@@ -1,6 +1,6 @@
 import type { AssistantProgress, AssistantResponse } from './researchAssistant';
 import {MAX_ASSISTANT_RECORD_COLUMNS,boundedAssistantActivity,boundedAssistantText,boundedConversationMessages,reconcileAssistantActivity} from './assistantActivityBudget.js';
-import {maxAnswerVerificationChecks} from './assistantVerificationLimits.js';
+import {maxPublicAnswerVerificationChecks} from './assistantVerificationLimits.js';
 
 export type AssistantMessage = {
   id: string;
@@ -54,7 +54,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
     })}:{}),
     suggestedQuestions:Array.isArray(result.suggestedQuestions)?result.suggestedQuestions.filter((item):item is string=>typeof item==='string').slice(0,3).map(item=>boundedAssistantText(item,180)):[],
     activity:mergeAssistantActivity([],Array.isArray(result.activity)?result.activity:[]),
-    ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=maxAnswerVerificationChecks
+    ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=maxPublicAnswerVerificationChecks
       ? {verification:{status:verification.status as 'verified'|'unverified',attempts:Number(verification.attempts)}} : {}),
     ...(grounding?{grounding:{source:boundedAssistantText(grounding.source,80),webSearched:grounding.webSearched===true,checkedAt:boundedAssistantText(grounding.checkedAt,50),degraded:grounding.degraded===true}}:{}),
   };

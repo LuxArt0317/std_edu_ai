@@ -94,7 +94,8 @@ export async function searchSchoolWeb(question, options = {}) {
   const chineseQuestion = /[\u3400-\u9fff]/.test(question);
   const deadline = options.deadline || Date.now()+35000;
   const followUp = options.followUp === true;
-  const deeperDiscovery = followUp && options.deeperDiscovery === true;
+  const alternateDiscovery = followUp && options.alternateDiscovery === true;
+  const deeperDiscovery = followUp && (options.deeperDiscovery === true || alternateDiscovery);
   let attempted = false;
   const discoveredLinks = new Map();
   for (const officialOnly of followUp ? [true] : [true,false]) {
@@ -113,7 +114,9 @@ export async function searchSchoolWeb(question, options = {}) {
             'You help visitors and students of Shu-Te University (樹德科技大學), Kaohsiung, Taiwan. STU here means Shu-Te, not another university.',
             'School Affairs is independent of the STU Nexus app. Never use the Nexus demo catalog, classes, terms, account context or stu.best pages as evidence for university facts.',
             'Be proactive and helpful for all school information, campus life, offices, contacts, admissions, services, courses, announcements, transport and practical website help. A vague school question defaults to Shu-Te. Use the public question to search before giving up; try Chinese/English school and office names. Answer the parts supported by evidence even if another detail cannot be verified. Do not refuse just because the answer is absent from a managed knowledge base.',
-            deeperDiscovery
+            alternateDiscovery
+              ? 'Look for an independent official publication that contains the exact missing detail. Try the event organizer, responsible department, calendar entry, or linked primary document. Search with both the Traditional Chinese terminology and the named topic, date or term. Skip generic directory pages and repeated copies of a notice.'
+              : deeperDiscovery
               ? 'Change the search approach: translate the specific requested term, and look for the dated notice, regulation, PDF, calendar or office publication where that detail would be recorded. Try the responsible office name or its site rather than repeating a general directory search. Provide source URLs as leads for a separate content check.'
               : followUp
               ? 'This is a focused evidence check. Search for the exact requested detail in an official STU department or service page, dated announcement, published calendar or primary document. Use the public question and its named service, period or office as search terms. Prefer a different specific page or document containing the answer over a general directory, landing page or adjacent topic. Keep the search limited to the same request; do not guess missing details.'

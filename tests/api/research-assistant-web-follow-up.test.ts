@@ -6,6 +6,10 @@ import {sanitizeStoredConversation} from '../../server/assistantConversationData
 
 const officialDirectory = 'https://www.lib.stu.edu.tw/visitor-information/';
 const officialNotice = 'https://www.lib.stu.edu.tw/2026-archive-exhibit/';
+const officialOffice = 'https://www.lib.stu.edu.tw/archive-office/';
+const eventCalendar = 'https://www.lib.stu.edu.tw/archive-calendar/';
+const officeContent = 'The archive office will open the exhibition in November, with hours to be announced.';
+const calendarContent = 'The library lists the archive exhibition on November 24 and refers visitors to the organizer for hours.';
 const directoryContent = 'The library visitor directory lists the exhibits and explains how to contact staff.';
 const noticeContent = 'The archive exhibition opens at 10:30 a.m. on November 24, 2026.';
 const testQuestion = 'When does the STU library archive exhibition open in November 2026?';
@@ -63,7 +67,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'transient-lead') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -91,6 +95,13 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       if (searchCalls === 1) return Response.json(outcome === 'unused-tool-lead'
         ? searchPayload([officialDirectory,officialNotice,'https://outside.example.org/campus/'],unsafeDraft,[officialDirectory])
         : searchPayload([officialDirectory],unsafeDraft));
+      if (outcome === 'transient-lead' || (outcome === 'deeper-review' && searchCalls === 3))
+        return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft));
+      if (outcome === 'incomplete-office' || outcome === 'fourth-check' || outcome === 'fourth-rejected' || outcome === 'fourth-budget' || outcome === 'mirror') {
+        const source = searchCalls === 2 ? officialOffice
+          : searchCalls === 3 && outcome !== 'incomplete-office' ? eventCalendar : officialNotice;
+        return Response.json(searchPayload([source],unsafeDraft));
+      }
       if (outcome === 'same-source' || (outcome === 'third-pass-discovery' && searchCalls === 2))
         return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],noticeContent));
       if (outcome === 'third-pass-discovery' && searchCalls === 3)
@@ -124,9 +135,10 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     assert.equal(name,'answer_evidence_review');
     reviewCalls++;
     if (outcome === 'budget' && reviewCalls === 1) elapsed = 40_000;
+    if (outcome === 'fourth-budget' && reviewCalls === 3) elapsed = 47_000;
     if (outcome === 'third-pass-discovery' && reviewCalls === 2)
       return provider({supported:false,answersQuestion:false,claims:[]});
-    if (!source || outcome === 'deeper-review' && reviewCalls === 2) {
+    if (!source || outcome === 'fourth-rejected' || outcome === 'deeper-review' && reviewCalls === 2) {
       return provider({supported:false,answersQuestion:false,claims:[{
         claim:rejectedClaim,supported:false,evidenceId:context.evidence[0].id,quotes:[],jsonPaths:[],
       }]});
@@ -140,8 +152,12 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       captures:[],
       acquire: async url=>{
         acquiredUrls.push(url);
-        if (outcome === 'unreadable-tool-link') throw Error('Controlled source read failure');
-        const content = url===officialDirectory ? directoryContent : url===officialNotice ? noticeContent : undefined;
+        if (outcome === 'unreadable-tool-link' || (outcome === 'transient-lead' && url === officialNotice
+          && acquiredUrls.filter(visited => visited === officialNotice).length === 1)) throw Error('Controlled source read failure');
+        const content = new Map([
+          [officialDirectory,directoryContent], [officialNotice,noticeContent], [officialOffice,officeContent],
+          [eventCalendar,outcome === 'mirror' ? officeContent : calendarContent],
+        ]).get(url);
         assert.ok(content);
         return {bytes:new TextEncoder().encode(`<html><title>STU Library</title><main><p>${content}</p></main></html>`),mimeType:'text/html',finalUrl:url};
       },
@@ -177,12 +193,12 @@ test('an exact follow-up source is fetched independently and replaces the unsupp
   assert.equal(answer.activity.find((step: {kind:string})=>step.kind==='web-follow-up').status,'complete');
 });
 
-test('a deeper third review reuses collected sources with no additional public search or fetch', async () => {
+test('a deeper third review looks for more evidence and can still correct a draft using previously read sources', async () => {
   const attempt = harness('deeper-review');
   const answer = await invoke({question:testQuestion},attempt.run,'web-follow-up-deeper');
   assert.equal(answer.verification.status,'verified');
   assert.equal(answer.verification.attempts,3);
-  assert.equal(attempt.searchRequests.length,2);
+  assert.equal(attempt.searchRequests.length,3);
   assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialNotice]);
   assert.deepEqual(attempt.scopes.map(({name,effort})=>[name,effort]),[
     ['answer_evidence_review','low'],['correct_grounded_answer','low'],['answer_evidence_review','low'],
@@ -223,6 +239,79 @@ test('two rejected drafts can discover and check a primary source even without n
   const restored=sanitizeStoredConversation([{id:'recovered',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
   assert.equal(restored[0].activity.find(({kind}: Progress)=>kind==='web-deeper-discovery').status,'complete');
   assert.equal(restored[0].result.verification.attempts,3);
+});
+
+test('a fresh but incomplete office page does not prevent discovery of the primary notice', async () => {
+  const attempt = harness('incomplete-office');
+  const progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-incomplete-office',progress);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,officialNotice]);
+  assert.equal(attempt.searchRequests.length,3);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.equal(progress.some(({kind})=>kind==='verification-stop'),false);
+});
+
+test('the fourth check follows a different strategy after three incomplete drafts and survives saved-chat reload', async () => {
+  const attempt = harness('fourth-check');
+  const progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-fourth-check',progress);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,officialNotice]);
+  assert.equal(attempt.searchRequests.length,4);
+  assert.match(String(attempt.searchRequests[3].instructions),/independent official publication/u);
+  for (const request of attempt.searchRequests) {
+    assert.equal(JSON.parse(String(request.input)).question,testQuestion);
+    assert.doesNotMatch(String(request.input),/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT/u);
+  }
+  assert.deepEqual(answer.verification,{status:'verified',attempts:4});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.deepEqual(progress.filter(({kind,status})=>/^verification-\d+$/u.test(kind)&&status!=='running').map(({kind,status})=>[kind,status]),
+    [['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','unavailable'],['verification-4','complete']]);
+  assert.equal(progress.some(({kind})=>kind==='verification-stop'),false);
+  const restored=sanitizeStoredConversation([{id:'fourth',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.equal(restored[0].result.verification.attempts,4);
+  assert.equal(restored[0].activity.find(({kind}:Progress)=>kind==='verification-4').status,'complete');
+});
+
+test('an additional source never bypasses the fourth verdict or the remaining time', async () => {
+  for (const scenario of ['fourth-rejected','fourth-budget'] as const) {
+    const attempt = harness(scenario);
+    const progress: Progress[] = [];
+    const answer = await invoke({question:testQuestion},attempt.run,'web-'+scenario,progress);
+    const hasTime = scenario === 'fourth-rejected';
+    assert.equal(attempt.searchRequests.length,hasTime ? 4 : 3);
+    assert.equal(answer.verification.attempts,hasTime ? 4 : 3);
+    assert.equal(answer.verification.status,'unverified');
+    assert.deepEqual(answer.citations,[]);
+    assert.doesNotMatch(answer.answer,/10:30|8:00/u);
+    const stops = progress.filter(({kind})=>kind==='verification-stop');
+    assert.equal(stops.length,1);
+    assert.match(stops[0].detail,hasTime ? /details still unverified/u : /too little time/u);
+  }
+});
+
+test('a mirrored page supplies no new lead for a fourth review', async () => {
+  const attempt = harness('mirror');
+  const progress: Progress[] = [];
+  const answer=await invoke({question:testQuestion},attempt.run,'web-mirrored-evidence',progress);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar]);
+  assert.equal(attempt.searchRequests.length,3);
+  assert.equal(answer.verification.status,'unverified');
+  assert.equal(answer.verification.attempts,3);
+  assert.deepEqual(answer.citations,[]);
+  const stops = progress.filter(({kind})=>kind==='verification-stop');
+  assert.equal(stops.length,1);
+  assert.match(stops[0].detail,/additional usable evidence/u);
+});
+
+test('a transient read failure does not discard the safe notice URL permanently', async () => {
+  const attempt = harness('transient-lead');
+  const answer=await invoke({question:testQuestion},attempt.run,'web-transient-lead');
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialNotice,officialNotice]);
+  assert.equal(answer.verification.status,'verified');
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
 });
 
 test('a duplicate result or exhausted follow-up budget cannot turn missing evidence into an answer',async()=>{

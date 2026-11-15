@@ -10,7 +10,7 @@ import {answerLearningEntry,learningEntryIntent} from './learningEntryContract.j
 import {guestAccountStatusAnswer} from './accountStatusAnswer.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
-import {maxAnswerVerificationChecks} from '../src/services/assistantVerificationLimits.js';
+import {maxAnswerVerificationChecks, maxPublicAnswerVerificationChecks} from '../src/services/assistantVerificationLimits.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
@@ -989,8 +989,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 ],
             };
             try {
-                // When only the final check remains, assemble the answer from
-                // read pages, including leads the discovery draft never used.
+                // After two managed drafts failed, start from actual page
+                // contents, including leads the discovery draft never used.
                 const composeFromSources = !web.result || (previousChecks === maxAnswerVerificationChecks - 1 && Boolean(web.discoveredSources?.length));
                 return await verifyPublicSources(candidate, { previousChecks, composeFromSources, leads: web.discoveredSources });
             } finally { await searchOperation; }
@@ -999,6 +999,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const checkedSources = new Map(capture ? candidate.citations.map(citation => [citation.chunkId, citation]) : []);
             const canonicalUrl = url => safeWebSource(url)?.replace(/\/(?=\?|$)/u, '');
             const seenUrls = new Set(capture ? [canonicalUrl(capture.originalUrl)] : []);
+            const readAttempts = new Map();
+            const pendingLeads = new Map(leads.map(lead => [canonicalUrl(lead.url), lead]));
+            const canRead = url => Boolean(url) && !seenUrls.has(url) && (readAttempts.get(url) || 0) < 2;
             const steps = new Map();
             let evidence = [];
             const progress = (step) => {
@@ -1009,8 +1012,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const candidates = [];
                 for (const citation of citations) {
                     const url = canonicalUrl(citation.url);
-                    if (!url || seenUrls.has(url)) continue;
-                    seenUrls.add(url);
+                    if (!canRead(url) || candidates.some(item => canonicalUrl(item.url) === url)) continue;
+                    readAttempts.set(url, (readAttempts.get(url) || 0) + 1);
                     candidates.push(citation);
                     if (candidates.length === limit) break;
                 }
@@ -1019,6 +1022,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 return candidates.flatMap(citation => {
                     const source = fetched.find(item => item.id === citation.chunkId && item.url === citation.url);
                     if (!source || !validEvidence([source])) return [];
+                    seenUrls.add(canonicalUrl(citation.url));
                     checkedSources.set(source.id, citation);
                     return [source];
                 });
@@ -1054,51 +1058,77 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 }
                 candidate = composed;
             }
-            let followUpReadNewEvidence = false;
             const followUpQuestion = capture ? publicSchoolQuestion(verificationQuestion) : publicQuestion;
+            const canRecover = Boolean(followUpQuestion && !input.images.length);
+            let addedEvidenceOnLastPass = false;
+            const canExtendReview = () => canRecover && (
+                addedEvidenceOnLastPass || [...pendingLeads.keys()].some(canRead)
+            );
             async function recoverPublicEvidence({ attempt, previousFailure, feedback, deadline: until }) {
-                const deeper = attempt > 2;
+                const ordinal = attempt + previousChecks;
+                const deeper = ordinal >= maxAnswerVerificationChecks;
+                const extended = ordinal === maxPublicAnswerVerificationChecks;
                 const usefulFeedback = evidence.length > 0 && (feedback.some(detail => typeof detail === 'string' && detail.trim())
                     || previousFailure === 'verification_output_limit');
-                if (deeper && followUpReadNewEvidence && usefulFeedback) return evidence;
+                const normalizedContent = content => content.normalize('NFKC').replace(/\s+/gu, ' ').trim();
+                function newEvidence(sources) {
+                    const existing = new Set(evidence.map(source => normalizedContent(source.content)));
+                    return sources.filter(source => {
+                        const content = normalizedContent(source.content);
+                        if (existing.has(content)) return false;
+                        existing.add(content);
+                        return true;
+                    });
+                }
                 let fresh = [];
-                if (needsPublicEvidence(previousFailure) && !input.images.length && followUpQuestion) {
-                    const readUntil = Math.min(until - 11_000, Date.now() + 4_000);
-                    if (leads.length && readUntil - Date.now() >= 1_000) {
-                        fresh = await checkNewSources(leads, readUntil, 3);
+                if (needsPublicEvidence(previousFailure) && canRecover) {
+                    const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
+                    if (readUntil - Date.now() >= 1_000) {
+                        fresh = newEvidence(await checkNewSources([...pendingLeads.values()], readUntil, 3));
                         if (fresh.length) progress({ kind: 'web-alternate-source', label: 'Read another school source',
-                            detail: 'Checked additional pages found in the first search.', status: 'complete' });
+                            detail: 'Checked additional school pages.', status: 'complete' });
                     }
-                    const searchUntil = Math.min(until - 15_000, Date.now() + (deeper ? 8_000 : 6_500));
+                    const searchUntil = Math.min(until - 11_000, Date.now() + (deeper ? 8_000 : 6_500));
                     if (!fresh.length && searchUntil - Date.now() >= 2_500) {
-                        const step = deeper
-                            ? { kind: 'web-deeper-discovery', label: 'Searching for the original notice or policy' }
-                            : { kind: 'web-follow-up', label: 'Looking for a more specific school source' };
-                        progress({ ...step, detail: 'Checking the requested detail on official school pages.', status: 'running' });
-                        // Only the screened public question can enter search. Reviewer
-                        // feedback, private history and earlier drafts stay local.
-                        const followUp = await searchSchoolWeb(followUpQuestion, { deadline: searchUntil, followUp: true, deeperDiscovery: deeper }).catch(() => null);
+                        const step = extended
+                            ? { kind: 'web-alternate-discovery', label: 'Checking a different official publication' }
+                            : deeper
+                                ? { kind: 'web-deeper-discovery', label: 'Searching for the original notice or policy' }
+                                : { kind: 'web-follow-up', label: 'Looking for a more specific school source' };
+                        progress({ ...step, detail: 'Looking for the missing detail on official school pages.', status: 'running' });
+                        // Review feedback, draft text and private records never enter web search.
+                        const followUp = await searchSchoolWeb(followUpQuestion, {
+                            deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: extended,
+                        }).catch(() => null);
                         if (capture && followUp?.attempted) webAttempted = true;
-                        fresh = await checkNewSources(followUp?.discoveredSources || [], Math.min(until - 11_000, Date.now() + 4_000), 2);
-                        progress({ ...step, detail: fresh.length ? 'Read additional official source contents.' : 'No additional official source could be independently read.',
+                        const discovered = followUp?.discoveredSources || [];
+                        for (const lead of discovered) pendingLeads.set(canonicalUrl(lead.url), lead);
+                        fresh = newEvidence(await checkNewSources(discovered, Math.min(until - 8_500, Date.now() + 4_000), 2));
+                        progress({ ...step, detail: fresh.length ? 'Read additional official source contents.' : 'This search found no new readable evidence.',
                             status: fresh.length ? 'complete' : 'unavailable' });
                     }
                 }
-                if (fresh.length) {
-                    followUpReadNewEvidence = true;
-                    evidence = [...fresh, ...evidence].reduce((merged, source) =>
-                        validEvidence([...merged, source]) ? [...merged, source] : merged, []);
+                addedEvidenceOnLastPass = Boolean(fresh.length);
+                if (fresh.length) evidence = [...fresh, ...evidence].reduce((merged, source) =>
+                    validEvidence([...merged, source]) ? [...merged, source] : merged, []);
+                // The stronger third review can fix a drafting problem. A fourth
+                // review is only useful when it can evaluate different evidence.
+                if (!fresh.length && (extended || !usefulFeedback)) {
+                    throw Object.assign(new Error('No further verification evidence'), {
+                        code: extended ? 'NO_MORE_EVIDENCE' : 'EVIDENCE_UNAVAILABLE',
+                    });
                 }
-                if (!fresh.length && !usefulFeedback)
-                    throw new Error('No further verification evidence');
                 return evidence;
             }
             const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true, previousChecks,
-                ...(followUpQuestion && !input.images.length ? { loadDeeperEvidence: recoverPublicEvidence } : {}),
+                ...(canRecover ? {
+                    loadDeeperEvidence: recoverPublicEvidence, maxChecks: maxPublicAnswerVerificationChecks, canExtendReview,
+                } : {}),
                 async loadEvidence(context) {
                     if (context.attempt > 1) return recoverPublicEvidence(context);
                     if (!composeFromSources) evidence = capture ? [capture.evidence]
                         : await checkNewSources(candidate.citations, Math.min(context.deadline - 8_000, Date.now() + 5_000), 4);
+                    addedEvidenceOnLastPass = Boolean(evidence.length);
                     return evidence;
                 },
                 verify: context => verifyPublicAnswer({ ...context, deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks }),

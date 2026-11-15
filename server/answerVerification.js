@@ -1,5 +1,5 @@
 import { Annotation, END, START, StateGraph } from '@langchain/langgraph';
-import { maxAnswerVerificationChecks } from '../src/services/assistantVerificationLimits.js';
+import { maxAnswerVerificationChecks, maxPublicAnswerVerificationChecks } from '../src/services/assistantVerificationLimits.js';
 
 const VerificationState = Annotation.Root({
   attempt: Annotation(), verdict: Annotation(), previousFailure: Annotation(),
@@ -52,9 +52,11 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
   question, initialAnswer, loadEvidence, loadDeeperEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
-  previousChecks = 0, deadline = Date.now() + 50_000,
+  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, deadline = Date.now() + 50_000,
 }) {
-  if (!Number.isInteger(previousChecks) || previousChecks < 0 || previousChecks >= maxAnswerVerificationChecks)
+  if (maxChecks !== maxAnswerVerificationChecks && maxChecks !== maxPublicAnswerVerificationChecks)
+    throw new RangeError('Invalid verification check limit');
+  if (!Number.isInteger(previousChecks) || previousChecks < 0 || previousChecks >= maxChecks)
     throw new RangeError('Invalid initial verification check count');
   // Keep account data out of graph traces/checkpoints. Every invocation owns its
   // evidence and draft; the graph state contains only bounded control metadata.
@@ -68,7 +70,10 @@ export async function runAnswerVerification({
   };
   const withinBudget = () => Date.now() < deadline - 500;
   const safeToContinue = () => allowDeeperReview && !initialAnswer?.proposedAction && !candidate?.proposedAction;
-  const enoughTimeToContinue = () => deadline - Date.now() >= deeperReviewBudgetMs;
+  const publicRecovery = maxChecks === maxPublicAnswerVerificationChecks && Boolean(loadDeeperEvidence);
+  const enoughTimeToContinue = attempt => deadline - Date.now() >= (
+    publicRecovery && attempt + previousChecks >= maxAnswerVerificationChecks ? 14_000 : deeperReviewBudgetMs
+  );
   const shouldDeepen = verdict => safeToContinue() && (
     (evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
       && (feedback.length > 0 || verdict.reason === 'verification_output_limit'))
@@ -76,15 +81,17 @@ export async function runAnswerVerification({
   );
   const canRetryAfterSourceSwitch = verdict => safeToContinue()
     && (deeperReviewReasons.has(verdict.reason) || verdict.reason === 'evidence_unavailable');
+  const canFollowLead = attempt => attempt + previousChecks < maxAnswerVerificationChecks || canExtendReview?.() === true;
   const stop = (attempts, reason, attempt) => {
     const cause = reason === 'timeout' || reason === 'verification_timeout' || !withinBudget()
-      || (attempt + previousChecks < maxAnswerVerificationChecks && !enoughTimeToContinue()
+      || (attempt + previousChecks < maxChecks && canFollowLead(attempt) && !enoughTimeToContinue(attempt)
         && (previousChecks > 0 ? canRetryAfterSourceSwitch({ reason }) : shouldDeepen({ reason })))
       ? 'time_budget'
       : ['verifier_unavailable', 'verification_unavailable'].includes(reason) ? 'reviewer_unavailable'
       : reason === 'repair_unavailable' ? 'repair_unavailable'
-      : reason === 'evidence_unavailable' || !evidence.length ? 'no_usable_evidence'
-      : attempts >= maxAnswerVerificationChecks ? 'verification_limit' : 'no_safe_continuation';
+      : ['evidence_unavailable', 'source_exhausted'].includes(reason) || !evidence.length
+        || (publicRecovery && attempts >= maxAnswerVerificationChecks && !canFollowLead(attempt)) ? 'no_usable_evidence'
+      : attempts >= maxChecks ? 'verification_limit' : 'no_safe_continuation';
     const step = verificationStopActivity(question, cause);
     if (deferTerminalProgress) activity.push(step);
     else emit(step.kind, step.label, step.detail, step.status);
@@ -110,14 +117,16 @@ export async function runAnswerVerification({
         return { verdict: null };
       } catch (error) {
         evidence = [];
-        const reason = error?.code === 'VERIFICATION_TIMEOUT' ? 'timeout' : 'evidence_unavailable';
+        const reason = error?.code === 'VERIFICATION_TIMEOUT' ? 'timeout'
+          : error?.code === 'NO_MORE_EVIDENCE' ? 'source_exhausted' : 'evidence_unavailable';
         return { verdict: { ok: false, reason } };
       }
     })
     .addNode('draft', async state => {
       if (state.attempt === 1 || state.verdict || !withinBudget()) return {};
       try {
-        const repairDeadline=state.attempt>standardChecks || previousChecks>0 ? deadline-8_000 : deadline;
+        const deeperAttempt = state.attempt > standardChecks || previousChecks > 0;
+        const repairDeadline = deeperAttempt ? deadline - (publicRecovery ? 6_000 : 8_000) : deadline;
         candidate = await bounded(()=>repair({ question, candidate, evidence, deadline:repairDeadline, feedback, attempt:state.attempt }),repairDeadline);
         return {};
       } catch (error) {
@@ -156,7 +165,10 @@ export async function runAnswerVerification({
       return { verdict };
     })
     .addNode('retry', state => {
-      if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
+      const nextCheck = state.attempt + previousChecks + 1;
+      if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Following another source lead',
+        'Checking new source content for the remaining detail.');
+      else if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
         'Looking for the missing detail and revising the answer if the evidence supports it.');
       else if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
         loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
@@ -167,17 +179,18 @@ export async function runAnswerVerification({
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
     .addConditionalEdges('verify', state => {
-      if(state.verdict.ok || state.attempt + previousChecks >= maxAnswerVerificationChecks || !withinBudget())return END;
-      if(previousChecks>0)return canRetryAfterSourceSwitch(state.verdict) && enoughTimeToContinue() ? 'retry' : END;
-      return state.attempt < standardChecks || (shouldDeepen(state.verdict) && enoughTimeToContinue()) ? 'retry' : END;
+      if(state.verdict.ok || state.attempt + previousChecks >= maxChecks || !withinBudget() || state.verdict.reason === 'source_exhausted'
+        || !canFollowLead(state.attempt))return END;
+      if(previousChecks>0)return canRetryAfterSourceSwitch(state.verdict) && enoughTimeToContinue(state.attempt) ? 'retry' : END;
+      return (state.attempt < standardChecks && (!publicRecovery || enoughTimeToContinue(state.attempt))) || (shouldDeepen(state.verdict) && enoughTimeToContinue(state.attempt)) ? 'retry' : END;
     })
     .addEdge('retry', 'retrieve')
     .compile();
   let result;
   try {
-    result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: 15, callbacks: [] });
+    result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: maxChecks * 4 + 3, callbacks: [] });
   } catch {
-    return stop(checks, 'verification_unavailable', maxAnswerVerificationChecks);
+    return stop(checks, 'verification_unavailable', maxChecks);
   }
   const attempts=allowDeeperReview || previousChecks > 0 ? checks : result.attempt;
   if (!result.verdict.ok) return stop(attempts, result.verdict.reason, result.attempt);
