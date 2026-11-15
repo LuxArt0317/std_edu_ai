@@ -8,7 +8,7 @@ import {dtmAssignmentLookupContext} from './dtmAssignmentEvidenceIntent.js';
 import {isStudentConductCountQuestion,studentConductScope} from './studentConductEvidenceScope.js';
 import {isServiceNoteNextClass,serviceNoteLookup} from './serviceNoteIntent.js';
 import {answerSavedServiceRecords} from './savedServiceAnswers.js';
-import {isOwnTutorEvaluationTrackingNoteQuestion} from './tutorEvaluationEvidenceIntent.js';
+import {isOwnTutorEvaluationTrackingNoteQuestion,selectTutorEvaluationEvidence} from './tutorEvaluationEvidenceIntent.js';
 import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
@@ -947,7 +947,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const scopedSupplementalTool=pageLookup.readerOnly&&pageLookup.tools.length===1&&pageLookup.tools[0];
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
   const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
-  const exactSupplemental=(conductCount||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
+  const tutorSelection=scopedSupplementalTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
+  const exactTutorRatings=tutorSelection?.positions.length&&!tutorSelection.reason&&!tutorSelection.commentRequested&&!tutorSelection.unavailableDetails;
+  const exactSupplemental=(conductCount||exactTutorRatings||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
       ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
@@ -1307,6 +1309,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ||supplemental[0].evidence!==sources.find(source=>source.id===sourceId))return null;
     if(conductCount&&(!['ok','empty'].includes(supplemental[0].readState)
       ||JSON.parse(supplemental[0].evidence.content).selection?.projection!=='count'))return null;
+    if(exactTutorRatings&&(!['ok','empty'].includes(supplemental[0].readState)
+      ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,tutorSelection)))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
     if(scopedSupplementalTool!=='dormitoryConduct')return answerLinksSupported(rendered.answer,sources)?rendered:null;
     const bed=withScopedBed?housingAnswer(sources):null;
@@ -1454,6 +1458,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
           emit({kind:'student-conduct-count-check',label:zh?'已核對獎懲紀錄筆數':'Verified your saved conduct record count',
             detail:zh?'核對本人帳戶內的紀錄總筆數。':'Matched the displayed total to the exact count of your saved report rows.',status:'complete'});
+          return {ok:true};
+        }
+        if(exactTutorRatings){
+          const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          emit({kind:'tutor-evaluation-ratings-check',label:zh?'已核對導師評量評分':'Verified the saved tutor evaluation ratings',
+            detail:zh?'比對所選題號、儲存的評分和問卷連結。':'Matched the selected question numbers, saved ratings and questionnaire link.',status:'complete'});
           return {ok:true};
         }
         if(context.attempt>1){

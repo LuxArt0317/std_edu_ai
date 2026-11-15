@@ -121,7 +121,7 @@ async function offline(fixture:Fixture,exercise:()=>Promise<void>){
     const attempts=fixture.reject?2:1;
     assert.equal(tutorReads,fixture.tutor&&fixture.tutor!=='write'?attempts:0);
     assert.equal(feeReads,fixture.fee?attempts:0);
-    assert.deepEqual(stages,['answer_evidence_review',
+    assert.deepEqual(stages,fixture.tutor==='ratings'&&!fixture.fee?[]:['answer_evidence_review',
       ...(fixture.reject?['correct_grounded_answer','answer_evidence_review']:[]),
       ...((fixture.reject??0)>1?['correct_grounded_answer','answer_evidence_review']:[]),
     ]);
@@ -152,7 +152,12 @@ test('answers own saved submission, selected numbered ratings and explicit saved
       const result=await ask(question);
       assert.equal(result.verification.status,'verified');assert.match(result.answer,expected);
       assert.equal(result.citations.at(-1).url,route);assert.doesNotMatch(JSON.stringify(result),/PRIVATE_STUDENT/u);
-      if(tutor==='ratings')assert.deepEqual(result.views[0].rows,[['Question 3','4'],['Question 8','3']]);
+      if(tutor==='ratings'){
+        assert.deepEqual(result.views[0].rows,[['Question 3','4'],['Question 8','3']]);
+        assert.deepEqual(result.verification,{status:'verified',attempts:1});
+        assert.match(result.answer,/saved in stu.best/u);
+        assert.ok(result.activity.some(({kind,status}: {kind:string;status:string})=>kind==='tutor-evaluation-ratings-check'&&status==='complete'));
+      }
     });
   }
 });

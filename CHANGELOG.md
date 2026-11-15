@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify standalone tutor evaluation rating questions directly against the saved question numbers and ratings. Retain the saved-record attribution through verification. [#100]
+
 - Try a different school publication when a deeper, unsuccessful check has already reviewed distinct sources. Read unvisited leads first and verify again only when the alternate search adds usable evidence. [#100]
 
 - Check the university library’s opening-hours page before broader search. Use its dated public capture when needed and distinguish regular hours from listed holiday closures. [#100]
