@@ -304,4 +304,8 @@ The learning assistant recognizes eight entry and legacy paths for DTM and Digit
 
 The 80 service-note cases across 27-1, 30-1, 30-2, 31-1, 31-2, 32-1 and 35-1 are registered in the main evaluator. The 61 ready for hosted testing include 39 note-verification cases and 22 route or access-boundary checks. Two disposable callers verify the saved notes and crossed RLS projections around a request; transaction cleanup checks exact ownership and preserves unrelated rows. Nineteen cases still require new bindings, intent coverage or injected failure controls. The assistant treats these records as local notes. External submissions need their own supported action and evidence.
 
-The integrated candidate passed 1,764 API/source, 1,226 evaluator, and 541 unit checks. The inventory lists 1,408 questions, 94 services, 46 tools and 395 captures. Ten route paths lack semantic/navigation cases. Actual hosted evaluation has not started.
+The integrated candidate passed 1,764 API/source, 1,227 evaluator, and 541 unit checks. The inventory lists 1,408 questions, 94 services, 46 tools and 395 captures. Ten route paths lack semantic/navigation cases.
+
+## First authenticated Preview replay
+
+The authorized Development identity verified the exact protected baseline `64a8ccb0`. Run `81860fb7-9a59-4a4e-8be6-1209fa93de3f` stopped at the first fixture readback. It verified cleanup of the disposable accounts and zero saved conversation rows. It sent no model request. A diagnostic with the same release verified that the DTM projection disagreed with the independent fixture. The real API returns a separate `targetUrl` for materials, and the fixture omitted that field. The repaired fixture preserves both the source and target links during insertion and comparison. Hosted answers and independent review remain pending.

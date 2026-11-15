@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The user-authorized isolated Vercel CLI reached the exact client project, and its short-lived identity verified protected `64a8ccb0` from the evaluator. The exact hosted baseline replay reached fixture readback with zero model calls. Cleanup verified the disposable accounts and zero conversation rows. A follow-up isolated the saved Moodle material projection mismatch. The local `b494220` keeps both links in the exact oracle and passes all 1,227 evaluator checks. Full hosted review and the two pending migrations remain open.
+
 The integrated learning-entry and service-note checkpoint contains 1,408 evaluation cases and ten route omissions. It adds 24 learning-entry answers and admits 61 of 80 service-note cases to hosted testing with exact two-owner fixtures. All 1,764 API/source, 1,226 evaluator and 541 unit checks and the compiled build passed locally. No client migrations or hosted model evaluations have run for this candidate.
 
 The local club evaluation integrates 18 independent questions and a two-owner fixture with exact readback and cleanup. Inventory reaches 1,304 cases across 579 routes and 46 tools, with 18 route omissions. Both Preview runners now accept the exact development OIDC identity, retain the pinned release gate and keep caller Auth separate. All 1,194 offline evaluator checks passed. The default CLI belongs to another account and the authorized Development token is absent. The hosted fixture runner has not executed.
