@@ -8,7 +8,6 @@ import {answerLinksSupported,composeEvidenceAnswer,verifyEvidenceAnswer} from '.
 // The independently authored offline packet and oracle are JavaScript test modules.
 // @ts-expect-error No declaration accompanies this standalone evaluator packet.
 import {buildFacilityRepairCases,facilityRepairFixtureForCase,facilityRepairCaseManifest as m} from '../evaluation/facility-repair-cases.mjs';
-// @ts-expect-error No declaration accompanies the standalone evaluation oracle.
 import {gradeCase} from '../evaluation/grading.mjs';
 
 const bank=buildFacilityRepairCases() as Array<{id:string;question:string;route:string;fixtureKey:string;expected:any}>;

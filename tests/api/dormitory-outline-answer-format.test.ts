@@ -6,7 +6,6 @@ import {readElearningOutlineEvidence,unavailableElearningOutlineEvidence,type El
 import {readElearningEvidence} from '../../server/accountElearningEvidence.js';
 import {formatSupplementalAccountAnswers as format,supplementalAnswerLimits} from '../../server/supplementalAccountAnswers.js';
 import {answerLinksSupported,composeEvidenceAnswer,verifyEvidenceAnswer} from '../../server/answerVerificationModel.js';
-// @ts-expect-error The independent evaluation oracle has no TypeScript declaration.
 import {gradeCase} from '../evaluation/grading.mjs';
 
 const owner='d3400000-0000-4000-8000-000000000001',foreign='d3400000-0000-4000-8000-000000000002';

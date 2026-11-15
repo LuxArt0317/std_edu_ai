@@ -6,7 +6,6 @@ import {buildInternshipNativeCases,internshipNativeFixtureForCase,internshipNati
 
 // @ts-expect-error The independent test runner is a standalone JavaScript module.
 import {internshipRunnerCases} from '../evaluation/internship-native-runner.mjs';
-// @ts-expect-error The independent evaluation grader is a standalone JavaScript module.
 import {gradeCase} from '../evaluation/grading.mjs';
 
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';

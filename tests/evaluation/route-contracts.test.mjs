@@ -213,7 +213,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
     'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications'];
   const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query','public-custom-menu-browser-only',...buildSchoolMenuNativeCases().map(row=>row.id)];
   const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,...leaveCases.map(row=>row.id),'public-study-first-week','anonymous-records-leaveRecords','anonymous-records-dtmMaterials','anonymous-records-internshipRecords',...internshipCases.map(row=>row.id),...buildDtmMaterialCases().map(row=>row.id),...assignmentList.map(row=>row.id),'anonymous-records-dtmAssignmentList'];
-  newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog');
+  newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog','anonymous-records-elearningMetadata');
   newIds.push(...venueCases.map(row=>row.id),'anonymous-records-venueRequests');
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])

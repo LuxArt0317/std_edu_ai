@@ -230,7 +230,7 @@ test('traditional Chinese date and status scopes use Taipei and guests get a loc
   assert.equal(guest.body.citations[0].url,'/school-affairs/login?next='+encodeURIComponent(base));
   assert.equal(guest.body.views,undefined);
   const pair=await dispatch(createResearchAssistantHandler(),{question:'Show my venue request status and my tuition balance.',route:'/'},{'x-forwarded-for':'192.0.2.43'});
-  assert.deepEqual(pair.body.citations.map(item=>item.url),[base,'/school-affairs/services/39-1']
+  assert.deepEqual(pair.body.citations.map((item:{url:string})=>item.url),[base,'/school-affairs/services/39-1']
     .map(path=>'/school-affairs/login?next='+encodeURIComponent(path)));
   assert.equal(pair.body.views,undefined);
 });
@@ -287,7 +287,7 @@ test('independent venue and tuition sources preserve the facts and citations in 
     const response=await h.ask(question),{body}=response;
     assertOracle(question===venueFirst?'count-and-fees':'fees-and-record',response);
     assert.deepEqual(body.verification,{status:'verified',attempts:1});
-    assert.deepEqual(body.citations.map(item=>item.url),[firstCitation,firstCitation===base?feeRoute:base]);
+    assert.deepEqual(body.citations.map((item:{url:string})=>item.url),[firstCitation,firstCitation===base?feeRoute:base]);
     assert.match(body.answer,/Remaining balance .*23,000/u);
     assert.match(body.answer,/Saved amount due .*30,000/u);
     assert.match(body.answer,/Saved amount paid .*7,000/u);
@@ -313,7 +313,7 @@ test('fee failure retries fees only while the verified venue section stays visib
   assert.match(body.answer,/couldn’t verify your saved fee balance/u);
   assert.doesNotMatch(body.answer,/zero|no saved charge|23,000/u);
   assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'fees_evidence_unavailable'});
-  assert.deepEqual(body.citations.map(item=>item.url),[base]);
+  assert.deepEqual(body.citations.map((item:{url:string})=>item.url),[base]);
   assert.equal(body.grounding.degraded,true);
   assert.equal(h.requests.length,1);
   assert.equal(h.feeReads.length,2);
@@ -329,7 +329,7 @@ test('venue failure retries the same venue scope and preserves the independent f
   assert.match(body.answer,/couldn’t verify your saved venue requests/u);
   assert.doesNotMatch(body.answer,/No saved venue requests match|Approved/u);
   assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'venue_evidence_unavailable'});
-  assert.deepEqual(body.citations.map(item=>item.url),[feeRoute]);
+  assert.deepEqual(body.citations.map((item:{url:string})=>item.url),[feeRoute]);
   assert.equal(h.requests.length,2);
   assert.equal(h.requests[0].href,h.requests[1].href);
   assert.equal(h.feeReads.length,2);

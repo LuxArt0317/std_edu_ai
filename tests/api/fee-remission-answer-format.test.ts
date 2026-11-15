@@ -8,7 +8,6 @@ import {formatSupplementalAccountAnswers as format,supplementalAnswerLimits} fro
 import {answerLinksSupported,composeEvidenceAnswer,verifyEvidenceAnswer} from '../../server/answerVerificationModel.js';
 // @ts-expect-error Independently authored offline case bank has no TypeScript declaration.
 import {buildFeeRemissionCases,feeRemissionFixtureForCase} from '../evaluation/fee-remission-cases.mjs';
-// @ts-expect-error Independent deterministic fact grader has no TypeScript declaration.
 import {gradeCase} from '../evaluation/grading.mjs';
 
 const owner='62000000-0000-4000-8000-000000000001',route='/school-affairs/services/21-3';
