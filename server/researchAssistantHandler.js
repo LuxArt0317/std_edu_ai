@@ -2,6 +2,7 @@ import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
 import {catalogDetailGuestRoute,catalogDetailIntent} from './catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestPlan} from './venueRequestIntent.js';
 import {clubAttendanceBoundary,clubAttendanceRoute,clubAttendanceSelection} from './clubAttendanceIntent.js';
+import {clubEquipmentBoundary,clubEquipmentPlan,clubEquipmentRoute} from './clubEquipmentIntent.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {accountStatusIntent} from './accountStatusIntent.js';
@@ -154,7 +155,7 @@ function parse(body) {
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
-        /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||clubAttendanceRoute.test(source.route)||
+        /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||clubAttendanceRoute.test(source.route)||clubEquipmentRoute.test(source.route)||
         /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
           /^\/school-affairs\/services\/36-1\/?(?:\?page=[1-9]\d{0,2})?$/.test(source.route))||
@@ -447,6 +448,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 citations:[{chunkId:'directory:school-affairs-overview',title,url,claim:title,sourceName:'School Affairs'},...(teachingGuide?.citations??[])],
                 suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
+        }
+        const clubEquipment=clubEquipmentPlan(input.question,input.route,input.history);
+        if(clubEquipment){
+            const result=clubEquipmentBoundary(input.question,clubEquipment.selection,false);
+            if(clubEquipment.feeQuestion){
+                const title=/\p{Script=Han}/u.test(input.question)?'登入查看待繳費用':'Sign in to check your fee balance';
+                const url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
+                result.answer+='\n\n['+title+']('+url+')';
+                result.citations.push({title,url});
+            }
+            stream.send(200,result);return;
         }
         const clubAttendance=clubAttendanceSelection(input.question,input.route);
         if(clubAttendance){stream.send(200,clubAttendanceBoundary(clubAttendance,input.question,false));return;}

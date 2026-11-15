@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- The School Affairs assistant verifies the signed-in student’s club equipment status, pickup and return dates, and item names against saved borrowing requests. [#100]
+
 - Let authorized School Affairs managers record and reverse dated payments from the selected student's charge. Preserve the same request when a receipt goes missing, including after reopening the page. [#100]
 
 - Follow new public evidence after a rejected draft. An incomplete office page can lead to a more specific notice, and a further independent source can support a fourth check within the request budget. Preserve the stop reason and activity after reload. [#100]

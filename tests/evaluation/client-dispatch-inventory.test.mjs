@@ -15,6 +15,7 @@ test('the four direct readers and verified graph dispatch remain separately visi
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
     {id:'verified-sign-in',graphTool:'accountIdentity'},
     {id:'club-activity-attendance',graphTool:'clubAttendance'},
+    {id:'club-equipment',graphTool:'clubEquipment'},
     {id:'published-course-detail',graphTool:'courseCatalog'},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog'},
     {id:'elearning-page-metadata',graphTool:'elearningMetadata'},

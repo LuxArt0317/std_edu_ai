@@ -1,6 +1,8 @@
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
 import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
 import {clubAttendanceBoundary,clubAttendanceSelection} from '../server/clubAttendanceIntent.js';
+import {answerClubEquipment} from '../server/accountClubEquipmentAnswer.js';
+import {clubEquipmentBoundary,clubEquipmentPlan} from '../server/clubEquipmentIntent.js';
 import {answerCatalogDetail} from '../server/accountCatalogDetailAnswer.js';
 import {catalogDetailIntent} from '../server/catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestPlan} from '../server/venueRequestIntent.js';
@@ -310,6 +312,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(200,await answerClubActivityAttendance({account,question,route,selection:clubAttendance,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
     }catch{stream.send(503,{error:'The selected club attendance page could not be checked.'});}
+    return;
+  }
+  const clubEquipment=clubEquipmentPlan(question,route,history);
+  if(clubEquipment){
+    if(clubEquipment.selection.reason){stream.send(200,clubEquipmentBoundary(question,clubEquipment.selection,true));return;}
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about private equipment requests using text, without an image.'});return;
+    }
+    try{
+      stream.send(200,await answerClubEquipment({account,question,route,history,plan:clubEquipment,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The saved club equipment requests could not be checked.'});}
     return;
   }
   const offering=catalogDetailIntent(question,route);

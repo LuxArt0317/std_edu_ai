@@ -61,3 +61,9 @@ Authenticated assistant replies use the same read API for private participation 
 ### Release evidence
 
 Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 20261115100000 brings the client to 169 migrations with 206 RLS-protected public tables. Five student club destinations add searchable clubs and activities, account-owned participation and memberships, and new-club applications with protected approval. Local and production actual JWT, exact cleanup, pinned browser, five guest assistant links, deployment shell, client verification and Quality 43575984434 passed. All 94 catalog routes passed navigation.
+
+## Assistant read of club equipment requests
+
+From `/school-affairs/services/40-1/equipment`, ask “What is the status of my club equipment request, and when do I return the items?” The signed-in assistant verifies the saved status and scheduled date, then links to the borrowing page. It also supports a recent request, an exact owned request, or a count. The source returns up to 100 requests sorted by their last update, and the answer identifies that limit when the source returns 100. To change a request, use the signed-in borrowing form. The Student Health equipment entry at `/school-affairs/services/30-2` has its own tracking notes.
+
+Run `node --experimental-strip-types --test tests/api/club-equipment-assistant.test.ts` for offline client and handler checks. The fixture verifies bearer-scoped equipment reads, omitted identity and contact data, guest and other-owner boundaries, source failure and retry, and a combined reference to the separately saved tuition balance. A protected deployment replay with disposable accounts is needed to verify this assistant path against the live records service.
