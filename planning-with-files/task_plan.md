@@ -834,12 +834,13 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify all three student-conduct queries on `aa31201` with caller scope and fixture cleanup.
 - [x] Replay the identified payroll and dormitory precision regressions through the real local handlers with independent facts and scoped reads.
 - [x] Replay the five original payroll failures and all nine executable dormitory cases on a matching protected build.
-- [ ] Verify the direct empty payroll response and run the dormitory housing companion with an independently available academic year 115 semester 1 period.
+- [x] Verify the direct empty payroll answer in the eight-case protected payroll packet.
+- [ ] Verify a configured 115/1 housing period before positive protected housing and dormitory companion cases. The exact client currently has no housing periods. Use disposable PostgreSQL for the positive path and protected Preview for the empty state.
 - [x] Pass all 16 protected Health Exam cases with two independent caller views and exact cleanup.
 - [x] Pass all nine protected Counseling cases after correcting the unchanged-state proof wiring. Preserve both reports and verified cleanup.
 - [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
 - [x] Verify nine signed-out service boundaries and navigation paths on integrated protected Preview `6c76997`.
-- [ ] Verify the four service boundary families through authenticated protected Preview requests.
+- [x] Verify the four service boundary families through twenty authenticated requests on protected `2427eee` with exact cleanup.
 - [x] Add dated tuition payment history, the manager's receipt and reversal screen, and signed-in monthly assistant answers. Preserve aggregate-only legacy payment amounts.
 - [x] Verify the native PostgreSQL lock and replay behavior, manager and student browser routes, and the exact client migration source and RLS catalog.
 - [x] Pass the protected paired student scope, monthly assistant and fixture cleanup replay.
@@ -906,7 +907,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Mount 24 of 30 existing Student Internship cases with signed native observations and paired own/crossed reads. Verify the disposable fixture and cleanup on scratch PostgreSQL.
 - [x] Complete 24 pinned Internship cases on `0b88ca1`. Twenty passed, four need exact answer corrections, all retained paired readbacks, and fixture cleanup was verified.
 - [x] Grade a signed third review as a review of the existing second scoped read and require actual third-check activity. Retain all four substantive failures.
-- [ ] Pass the four Internship answer cases after exact typed verification and signed native receipts. Six other cases still need separate outage or account-companion coverage.
+- [x] Verify exact standalone Internship answers from typed records and pass all 24 mounted cases on the controlled actual handler with signed observations.
+- [ ] Pass the full 24-case protected replay on the exact candidate.
+- [ ] Extend the Internship packet to the independent tuition companion questions. Retain the exact timetable and transport-outage requirements.
 - [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
 - [x] Implement and locally verify confirmed facilities report cancellation with a native receipt check and same-page refresh.
 - [ ] Mount a protected facilities cancellation fixture that allows only its expected native event.
