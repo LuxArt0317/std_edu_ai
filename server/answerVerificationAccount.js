@@ -964,6 +964,29 @@ async function answerExactAcademicGrades({question,snapshot,route,loadSnapshot,o
   return {...result,views:result.views??[],activity:[...observed.values()]};
 }
 
+function exactStudentLeaveCandidate(result,selection,question){
+  const source=result?.evidence;
+  const url=studentLeaveBasePath+(selection.view==='record'?'/edit/'+selection.id:'/'+selection.view);
+  if(source?.id!=='account:leaveRecords'||source.url!==url||!['ok','empty'].includes(result.readState))return null;
+  const selected={view:selection.view,range:selection.range,filters:selection.filters,
+    fields:studentLeaveFieldNames.filter(field=>selection.fields.includes(field)),countOnly:false};
+  try{
+    if(!isDeepStrictEqual(JSON.parse(source.content).selection,selected))return null;
+    const formatted=formatSupplementalAccountAnswers([result],{question});
+    return formatted.status==='answered'&&answerLinksSupported(formatted.answer,[source])?formatted:null;
+  }catch{return null;}
+}
+
+function exactMoodleGradeOverviewCandidate(result,question){
+  const source=result?.evidence;
+  if(source?.id!=='account:dtmGradeReport'||source.url!=='/dtm/grades'||result.readState!=='ok'||result.reason!==null)return null;
+  try{
+    const payload=JSON.parse(source.content);
+    if(!isDeepStrictEqual(payload.selection,{view:'overview'}))return null;
+    return formatExactDtmGradeAnswer(result,question);
+  }catch{return null;}
+}
+
 export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified,onNativeInternshipVerified,onNativeTeachingVerified,allowNativeTeachingVerification=true}) {
   if(snapshot.academicGradesOnly===true&&!history.length&&!leavePlan&&!internshipPlan){
     const exact=await answerExactAcademicGrades({question,snapshot,route,loadSnapshot,onProgress,deadline});
@@ -1371,22 +1394,52 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
     }
   }
+  if(leavePlan?.deterministicGradePair&&activeTools.join()==='leaveRecords,dtmGradeReport'){
+    const zh=supplementalAnswerLanguage(question)==='zh-TW',t=(en,zhTw)=>zh?zhTw:en;
+    const withheld={status:'abstained',answer:'',citations:[],views:[]};
+    let results=firstSupplemental;
+    const render=()=>{
+      if(results.length!==2)return null;
+      const leave=exactStudentLeaveCandidate(results[0],leavePlan.selection,leavePlan.selection.question);
+      const grade=exactMoodleGradeOverviewCandidate(results[1],leavePlan.gradeQuestion);
+      if(!leave&&!grade)return null;
+      const checked=[leave,grade].filter(Boolean);
+      const answer=[
+        leave?.answer??t('I couldn’t verify your saved leave dates.','無法核對您已儲存的請假日期。'),
+        grade?.answer??t('I couldn’t verify a complete Moodle grade overview for this request.','無法核對此請求的完整 Moodle 成績綜覽。'),
+      ].join('\n\n');
+      const candidate={status:'answered',answer,citations:checked.flatMap(part=>part.citations),views:checked.flatMap(part=>part.views)};
+      const sources=results.filter((_,index)=>index===0?leave:grade).map(result=>result.evidence);
+      if(answer.length>supplementalAnswerLimits.answerCharacters||Buffer.byteLength(JSON.stringify(candidate),'utf8')>supplementalAnswerLimits.resultBytes
+        ||!answerLinksSupported(answer,sources))return null;
+      return {candidate,completePair:leave?.complete===true&&Boolean(grade)};
+    };
+    const checked=await runAnswerVerification({question,deadline,onProgress:emit,initialAnswer:render()?.candidate??withheld,
+      async loadEvidence({attempt}){
+        if(attempt>1)results=await readSupplemental(snapshot,attempt);
+        return results.map(result=>result.evidence);
+      },
+      verify({candidate,evidence}){
+        const expected=evidence.length===2&&evidence.every((source,index)=>source===results[index]?.evidence)?render():null;
+        if(!expected||!isDeepStrictEqual(candidate,expected.candidate))return {ok:false,reason:'evidence_unavailable'};
+        emit(expected.completePair
+          ?{kind:'student-leave-moodle-evidence-check',label:t('Verified your leave dates and Moodle grades','核對請假日期與 Moodle 成績'),
+            detail:t('Matched the dates and grade text to their separate saved records.','分別比對請假日期及 Moodle 成績原文。'),status:'complete'}
+          :{kind:'student-leave-moodle-verified-fragment',label:t('Verified part of your request','核對部分請求'),
+            detail:t('Only the displayed saved records could be checked.','僅核對能讀取並顯示的已儲存紀錄。'),status:'complete'});
+        return {ok:true};
+      },
+      repair:async()=>render()?.candidate??withheld,
+    });
+    const completePair=checked.verification?.status==='verified'&&render()?.completePair===true;
+    if(completePair)onNativeLeaveVerified?.('dtmGradeReport');
+    return {...checked,views:checked.views??[],suggestedQuestions:[],
+      grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!completePair},
+      activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+  }
   if(leavePlan?.deterministicRead&&activeTools.length===1&&activeTools[0]==='leaveRecords'
     &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState)){
-    const selection=leavePlan.selection;
-    const url=studentLeaveBasePath+(selection.view==='record'?'/edit/'+selection.id:'/'+selection.view);
-    const selected={view:selection.view,range:selection.range,filters:selection.filters,
-      fields:studentLeaveFieldNames.filter(field=>selection.fields.includes(field)),countOnly:false};
-    const canonical=results=>{
-      if(results.length!==1)return null;
-      const [result]=results,source=result.evidence;
-      if(source?.id!=='account:leaveRecords'||source.url!==url||!['ok','empty'].includes(result.readState))return null;
-      try {
-        if(!isDeepStrictEqual(JSON.parse(source.content).selection,selected))return null;
-        const formatted=formatSupplementalAccountAnswers(results,{question});
-        return formatted.status==='answered'&&answerLinksSupported(formatted.answer,[source])?formatted:null;
-      }catch{return null;}
-    };
+    const canonical=results=>results.length===1?exactStudentLeaveCandidate(results[0],leavePlan.selection,question):null;
     const withheld={status:'abstained',answer:'',citations:[],views:[]};
     let results=firstSupplemental;
     const checked=await runAnswerVerification({question,deadline,onProgress:emit,

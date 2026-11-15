@@ -146,14 +146,16 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
       if(boundary||nativeChecked||completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
       else completedModelOperations.push(operation);
     },
-    nativeCheckCompleted(){
-      if(boundary||grade||nativeChecked||completedModelOperations.length)invalid=true;
+    nativeCheckCompleted(companion){
+      if(boundary||companion!==(grade?'dtmGradeReport':undefined)||nativeChecked||completedModelOperations.length)invalid=true;
       else nativeChecked=true;
     },
     finish(payload){
       if(boundary||invalid||!attempts.length||attempts.some(row=>!row.reads.length||!sha.test(row.evidenceDigest)))return null;
-      if(grade&&(gradeAttempts.length!==attempts.length||gradeAttempts.some(row=>row.reads.length!==1||!sha.test(row.evidenceDigest))))return null;
-      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod:nativeChecked?'native-exact':'model',
+      if(grade&&(gradeAttempts.length!==attempts.length||gradeAttempts.some(row=>row.reads.length!==1||!sha.test(row.evidenceDigest))
+        ||!nativeChecked&&!completedModelOperations.includes('answer_evidence_review')))return null;
+      const verificationMethod=nativeChecked?(grade?'native-paired':'native-exact'):'model';
+      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod,
         ...(grade?{gradeAttempts}:{}),responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
     },
     finishBoundary(payload,boundaryDisposition){
@@ -179,12 +181,13 @@ export function verifyStudentLeaveObservation({receipt,binding,correlationId,bod
     ||!Array.isArray(observed.attempts)||!Array.isArray(observed.completedModelOperations))return null;
   if(boundary)return observed.verificationMethod==='none'&&boundaryDispositions.has(observed.boundaryDisposition)
     &&observed.attempts.length===0&&observed.completedModelOperations.length===0?observed:null;
+  const nativeMethod=grade?'native-paired':'native-exact';
   if(observed.attempts.length<1||observed.attempts.length>maxAnswerVerificationChecks
     ||observed.completedModelOperations.length>maxModelOperations||observed.completedModelOperations.some(operation=>!modelOperations.has(operation))
-    ||!['native-exact','model'].includes(observed.verificationMethod)
-    ||observed.verificationMethod==='native-exact'&&observed.completedModelOperations.length!==0
+    ||![nativeMethod,'model'].includes(observed.verificationMethod)
+    ||observed.verificationMethod===nativeMethod&&observed.completedModelOperations.length!==0
     ||observed.attempts.some(row=>!validAttempt(row,2))
-    ||grade&&(observed.verificationMethod!=='model'||!Array.isArray(observed.gradeAttempts)
+    ||grade&&(!Array.isArray(observed.gradeAttempts)
       ||observed.gradeAttempts.length!==observed.attempts.length||observed.gradeAttempts.some(row=>!validAttempt(row,1))))return null;
   return observed;
 }

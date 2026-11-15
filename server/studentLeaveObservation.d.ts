@@ -19,7 +19,7 @@ export function openStudentLeaveObservation(input:{
   observe(reader:(dependency:{observeRead(digest:string):void})=>Promise<StudentLeaveEvidenceResult>):Promise<StudentLeaveEvidenceResult>;
   observeGrade(reader:(dependency:{observeOverview(read:DtmGradeOverviewObservation):void})=>Promise<DtmGradeReportEvidenceResult>):Promise<DtmGradeReportEvidenceResult>;
   modelCompleted(operation:string):void;
-  nativeCheckCompleted():void;
+  nativeCheckCompleted(companion?:'dtmGradeReport'):void;
   finish(payload:unknown):string|null;
 };
 
@@ -40,6 +40,6 @@ export function verifyStudentLeaveObservation(input:{
 },key:string):null|{
   binding:StudentLeaveProbeBinding;correlationId:string;attempts:Array<{reads:string[];evidenceDigest:string}>;
   gradeAttempts?:Array<{reads:string[];evidenceDigest:string}>;
-  completedModelOperations:string[];verificationMethod:'native-exact'|'model'|'none';responseDigest:string;
+  completedModelOperations:string[];verificationMethod:'native-exact'|'native-paired'|'model'|'none';responseDigest:string;
   boundaryDisposition?:StudentLeaveBoundaryDisposition;
 };

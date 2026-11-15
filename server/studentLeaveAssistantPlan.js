@@ -4,6 +4,8 @@ import { isServiceNoteNextClass } from './serviceNoteIntent.js';
 import { dtmNativeClauseScope } from './dtmNativeClauseScope.js';
 import { schoolSubjectRecordsPath } from '../src/features/public/affairs/studentServices.js';
 
+const exactGradeOverview=/^(?:(?:please )?(?:show|list|check) my (?:(?:saved|local) )?(?:moodle|dtm) grade overview|(?:請)?(?:顯示|查詢|查看)我的(?:已儲存的)?(?:Moodle|DTM|數位教材網)成績綜覽)[.?!。！？]*$/iu;
+
 export function studentLeaveAssistantPlan(question, route, history) {
   const lookup = studentLeaveLookupContext(question, route, history);
   if (!lookup.selection && !lookup.excluded && !lookup.navigation) return null;
@@ -28,13 +30,17 @@ export function studentLeaveAssistantPlan(question, route, history) {
     ?history.findLast(item=>item?.role==='user')?.content?.normalize('NFKC')??''
     :selection?.question??'';
   const fixedRange=!selection?.range||[selection.range.from,selection.range.through].every(date=>dateWording.includes(date));
-  const deterministicRead=Boolean(selection&&!selection.reason&&!selection.title&&!selection.countOnly
-    &&fixedRange&&!lookup.foreign&&!lookup.navigation&&!lookup.excluded
-    &&!feeQuestion&&!classQuestion&&!gradeQuestion&&!unknown.length);
+  const exactLeaveRead=Boolean(selection&&!selection.reason&&!selection.title&&!selection.countOnly
+    &&fixedRange&&!lookup.foreign&&!lookup.navigation&&!lookup.excluded&&!feeQuestion&&!classQuestion&&!unknown.length);
+  const deterministicRead=exactLeaveRead&&!gradeQuestion;
+  const deterministicGradePair=Boolean(exactLeaveRead&&selection.from==='question'&&selection.view==='history'
+    &&selection.range===null&&selection.fields.join()==='dates'
+    &&Object.values(selection.filters).every(filter=>!filter.included.length&&!filter.excluded.length)
+    &&exactGradeOverview.test(lookup.otherQuestion)&&exactGradeOverview.test(gradeQuestion));
   return {
     ...lookup,
     feeQuestion, feeLabel: feeQuestion ? ownFeeBalanceLabel(feeQuestion) : null,
-    classQuestion, gradeQuestion, hasOtherQuestion: unknown.length > 0, deterministicRead,
+    classQuestion, gradeQuestion, hasOtherQuestion: unknown.length > 0, deterministicRead, deterministicGradePair,
   };
 }
 
