@@ -231,7 +231,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
   ];
   const reproductionIds=['record-overview','current-courses-year','remaining-balance','interview-help','completed-subject','friday-class']
     .map(id=>'account:reproduction-'+id);
-  const nativeIds=['student-conduct-literal','student-conduct-empty','student-conduct-detail-unavailable',
+  const nativeIds=['student-conduct-literal','student-conduct-empty','student-conduct-detail-unavailable','student-conduct-count-owned','student-conduct-count-empty',
     'student-loan-literal','student-loan-empty','student-loan-document-unavailable'].map(id=>'account:'+id);
   const aidIds=['salary-count','salary-multipart','salary-tax','claim','both','empty','bank-unavailable','foreign'].map(id=>'account:aid-payments-'+id);
   const dtmIds=['feedback','absent','total','saved-total','tail'].map(id=>'account:dtm-native-report-'+id);
