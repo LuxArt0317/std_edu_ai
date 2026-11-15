@@ -14,6 +14,12 @@ const learningSupportWithdrawalLead=/^(?:(?:do not|don['’]t|never|wait to|hold
 const ownLearningSupportWithdrawal=/^(?:withdraw|cancel) my (?:(latest|most recent|active) )?(?:stu\.best )?learning[- ]support (?:application|request)\b([\s\S]*)$/iu;
 const ownLearningSupportWithdrawalZh=/^(?:幫我)?(?:撤回|撤銷|取消)\s*(?:我(?:的)?|本人(?:的)?)\s*(?:(最新|最近|進行中)(?:的)?)?\s*(?:學習輔導|学习辅导|完善就學(?:獎勵學習輔導)?)(?:申請|申请|請求)([\s\S]*)$/u;
 const learningSupportSelector=/^(?:(?:with\s+)?(?:id|reference)|編號|编号|#)?\s*[:：]?\s*([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/iu;
+const learningSupportSubmission=/^(?:(?:(?<enHold>do not|don['’]t|never|wait to|hold off on)\s+)?(?:submit|create|file)\s+(?:(?:a|my)\s+)?(?:new\s+)?(?:stu\.best\s+)?learning[- ]support\s+(?:application|request)\b|(?:幫我|帮我)?\s*(?:先)?(?<zhHold>不要|別|暫勿)?\s*(?:送出|提交|建立|新增)\s*(?:我(?:的)?\s*)?(?:stu\.best\s*)?(?:學習輔導|学习辅导)(?:申請|申请|請求))(?<suffix>[\s\S]*)$/iu;
+const learningSupportSubmissionFields = new RegExp(
+  String.raw`^(?:(?:titled|called|named|(?:with )?(?:topic|title))\s*[:：]?\s*|(?:主題|標題)\s*[:：]?\s*)`+
+  `(${quotedText.source})`+
+  String.raw`(?:\s+(?:with|and)\s+(?:details|description)\s*[:：]?\s*|\s*(?:[，,、]\s*)?(?:學習需求|輔導需求|需求|內容)\s*[:：]?\s*)`+
+  `(${quotedText.source})$`,'iu');
 const repairCancellationLead = /^(?:(?:(?:do not|don['’]t|never|wait to|hold off on)\s+)?cancel(?:l?ing)?\b|(?:幫我)?(?:先)?(?:不要|別|暫勿)?(?:先)?取消)/iu;
 const repairTopic = /\b(?:repairs?|maintenance)\b|報修|报修|設備修繕/iu;
 const cancelOwnedRepair = /^cancel (?:my|this|that|the) (?:(?:stu\.best|local) )?(?:(?:facility|facilities|online) )?(?:repair(?: (?:report|request|ticket))?|maintenance (?:request|report|ticket))([\s\S]*)$/iu;
@@ -30,11 +36,19 @@ function field(value, {body=false} = {}) {
 }
 
 export function parseExplicitAccountAction(question) {
-  if (typeof question !== 'string' || question.length > 3000 || badText.test(question)) return null;
+  if (typeof question !== 'string' || question.length > 3000) return null;
   const rawCommand = question.trim().replace(lead,'').replace(/^請\s*/u,'');
   const command = rawCommand.replace(/[.!?。！？]+$/u,'').trim();
   const held=holdClause.test(rawCommand.replace(quotedText,'〈text〉'));
   const checked=result=>({...result,ambiguous:held||result.ambiguous});
+  const submission=learningSupportSubmission.exec(command)?.groups;
+  const malformed=badText.test(question);
+  if(submission){
+    const fields=learningSupportSubmissionFields.exec(submission.suffix.trim().replace(/^[,，:：]\s*/u,''));
+    return checked({kind:'submit_learning_support',title:field(fields?.[1])??'',details:field(fields?.[2],{body:true})??'',
+      ambiguous:malformed||Boolean(submission.enHold||submission.zhHold)||!fields});
+  }
+  if(malformed)return null;
   const equipment = /^(?:(?:cancel my (?:club equipment (?:borrowing )?request|request to borrow club equipment))|(?:(?:幫我)?取消我的社團器材借用申請))([\s\S]*)$/iu.exec(command);
   if (equipment) {
     const suffix = equipment[1];

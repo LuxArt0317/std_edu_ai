@@ -12,6 +12,7 @@ export const learningSupportStudentActions:readonly ['submit_learning_support','
 export const learningSupportReviewAction:'review_learning_support';
 export const learningSupportMaxPayloadBytes:7000;
 export const learningSupportPageSize:25;
+export function validLearningSupportSubmission(topic:unknown,details:unknown):boolean;
 export function parseLearningSupportQuery(query:unknown):LearningSupportSelector|null;
 export function readLearningSupport(account:Account,selector:LearningSupportSelector):Promise<LearningSupportView>;
 export function changeLearningSupport(account:Account,kind:typeof learningSupportStudentActions[number]|typeof learningSupportReviewAction,payload:unknown):Promise<LearningSupportReceipt>;

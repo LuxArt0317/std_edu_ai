@@ -21,6 +21,7 @@ import { changeCounseling } from "../../services/counseling";
 import { writeRepair } from '../../services/facilityRepair';
 import { changeLearningSupport } from '../../services/learningSupport';
 import { repairId } from './affairs/facilityRepair.js';
+import { learningSupportPath } from './affairs/studentServices.js';
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
@@ -195,6 +196,13 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         const receipt=kind==='counseling_cancel'?await changeCounseling(user.id,'cancel',fields,signal)
           :await writeClubEquipment(user.id,{kind,payload:fields},signal);
         result={id:receipt.id,kind,summary:kind==='counseling_cancel'?'Cancelled your appointment':'Cancelled your club equipment request'};
+      }else if(kind==='submit_learning_support'){
+        const {topic,details}=payload;
+        if(!clubUuid.test(requestId)||action.url!==learningSupportPath||Object.keys(payload).length!==2
+          ||typeof topic!=='string'||typeof details!=='string')
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const receipt=await changeLearningSupport(user.id,{kind,payload:{request_id:requestId,topic,details}},signal);
+        result={id:receipt.id,kind,summary:'Submitted your learning support request'};
       }else if(kind==='withdraw_learning_support'){
         if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^[12]$/u.test(payload.expected_version))
           throw new Error('This action needs a new review. Ask again before applying it.');
@@ -362,6 +370,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
                   <p className="mb-1 text-xs text-muted-foreground">Request category · {message.result.proposedAction.payload.request_type}</p>
                   <p className="mb-2 whitespace-pre-wrap break-words">{message.result.proposedAction.payload.details}</p>
                 </> : null}
+                {message.result.proposedAction.kind==='submit_learning_support' ? <dl className="mb-2 space-y-2">
+                  <div><dt className="text-xs text-muted-foreground">Topic · 主題</dt>
+                    <dd className="whitespace-pre-wrap break-words">{message.result.proposedAction.payload.topic}</dd></div>
+                  <div><dt className="text-xs text-muted-foreground">Support needed · 輔導需求</dt>
+                    <dd className="whitespace-pre-wrap break-words">{message.result.proposedAction.payload.details}</dd></div>
+                </dl> : null}
                 <p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p>
                 <Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button>
               </div> : null}

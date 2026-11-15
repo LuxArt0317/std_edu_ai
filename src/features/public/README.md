@@ -9,6 +9,8 @@ This folder renders the public site, copied reference pages, School Affairs UI a
 
 The assistant attaches live source/account checks to the answer that used them. Users can expand an activity timeline after completion or failure and follow the cited sources. A bounded transcript survives navigation and refresh in the same tab; it is isolated by School Affairs Google identity and cleared on sign-out or New chat. Image bytes, auth tokens, feedback capabilities and unconfirmed actions are not persisted. Private model reasoning is never displayed.
 
+The chat review card shows the exact topic and details for a local learning support submission. Confirmation uses the same native receipt as the [Learning Support workspace](../../../docs/qa/LEARNING_SUPPORT.md).
+
 The School Affairs account link leaves the embedded assistant frame and opens the full sign-in page. OAuth must start in that top-level page; an older frame that already contains the login page sends its Google button there before starting authorization.
 
 DTM and School Affairs share a verified Google session for private student records. The direct homepage embeds `/account-status` to show the signed-in account. [DTM](dtm/README.md), [School Affairs](affairs/README.md).

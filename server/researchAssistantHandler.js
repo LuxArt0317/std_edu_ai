@@ -381,6 +381,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const action=parseExplicitAccountAction(input.question);
+        function handoffAction(selection){
+            const zh=/[\u3400-\u9fff]/u.test(input.question);
+            const path=selection.kind==='counseling_cancel'?counselingAppointmentsPath
+                :selection.kind==='cancel_facility_repair'?repairPaths.history
+                :selection.kind==='withdraw_learning_support'||selection.kind==='submit_learning_support'?learningSupportPath
+                :selection.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
+            const url='/school-affairs/login?next='+encodeURIComponent(path);
+            const title=zh?'登入後確認變更':'Sign in to review a change';
+            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',citations:[{title,url}],suggestedQuestions:[],
+                grounding:{source:'directory',webSearched:false}});
+        }
+        if(action?.kind==='submit_learning_support'){handoffAction(action);return;}
         const campusEntry=campusEntryIntent(input.question,input.route);
         if(campusEntry){stream.send(200,answerCampusEntry(input.question,campusEntry,false));return;}
         if(accountStatusIntent(input.question,input.route)){
@@ -391,17 +404,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if(learningEntry){stream.send(200,answerLearningEntry(input.question,learningEntry,false));return;}
         const offering=!input.images.length&&catalogDetailIntent(input.question,input.route);
         if(offering){stream.send(200,catalogDetailGuestAnswer(input.question,offering));return;}
-        const action=!input.images.length&&parseExplicitAccountAction(input.question);
-        if(action){
-            const zh=/[\u3400-\u9fff]/u.test(input.question);
-            const path=action.kind==='counseling_cancel'?counselingAppointmentsPath
-                :action.kind==='cancel_facility_repair'?repairPaths.history
-                :action.kind==='withdraw_learning_support'?learningSupportPath
-                :action.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
-            const url='/school-affairs/login?next='+encodeURIComponent(path);
-            const title=zh?'登入後確認變更':'Sign in to review a change';
-            stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',citations:[{title,url}],suggestedQuestions:[],
-                grounding:{source:'directory',webSearched:false}});
+        if(action&&!input.images.length){
+            handoffAction(action);
             return;
         }
         const application=!input.images.length&&housingApplicationLookupContext(input.question,input.route,input.history);

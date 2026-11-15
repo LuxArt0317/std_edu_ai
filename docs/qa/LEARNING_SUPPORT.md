@@ -18,13 +18,16 @@ Each response binds the request ID, record ID, local status and version. Reuse t
 
 Students can submit, view and withdraw their own requests at `/school-affairs/services/27-1`. The page links to tracking notes at `/school-affairs/services/27-1/notes`. Authorized administrators can open `/school-affairs/services/27-1/review`. Each write requires confirmation. The confirmation retains the same command for a retry after an uncertain response.
 
-Ask the campus assistant “What is my learning support application status?” or “How many learning support requests do I have?” The status answer identifies the most recently updated saved request. The assistant checks the existing School Affairs session, uses saved status and count, and links to the 27-1 workspace. The topic, request text and review note stay in the workspace.
+Ask the campus assistant “What is my learning support application status?” or “How many learning support requests do I have?” The status answer identifies the most recently updated saved request. The assistant checks the existing School Affairs session, uses saved status and count, and links to the 27-1 workspace. Status and count replies leave the saved topic, request text and review note in the workspace.
+
+Ask “Submit a learning support request titled "Study plan" with details "I need help scheduling weekly reading."” or “幫我提交學習輔導申請，主題「讀書計畫」，需求「我需要協助安排閱讀進度」。” The assistant checks the two fields against the current message and shows both in the review card. Confirming submits the request for review on stu.best. An uncertain response retains the same command and request ID for retry. Incomplete or ambiguous commands link to the local workspace.
 
 ## Verification
 
 ```sh
 node --test tests/evaluation/learning-support-workflow.test.mjs
 node --test tests/evaluation/learning-support-assistant.test.mjs
+node --test tests/api/learning-support-submission-assistant.test.ts
 npx tsx --tsconfig tsconfig.unit.json --test tests/unit/learning-support-routing.test.tsx
 npm run typecheck:api
 ```

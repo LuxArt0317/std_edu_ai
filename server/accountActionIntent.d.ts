@@ -5,6 +5,7 @@ export type ExplicitAccountAction =
   | ({kind:'complete_task'} & TargetedAction)
   | ({kind:'cancel_club_equipment';pickup:string} & TargetedAction)
   | {kind:'cancel_facility_repair';id:string;ambiguous:boolean}
+  | ({kind:'submit_learning_support';details:string} & NamedAction)
   | {kind:'withdraw_learning_support';id:string;mode:'exact'|'latest'|'unique';ambiguous:boolean}
   | {kind:'counseling_cancel';appointmentKind:'counseling'|'assessment';date:string;id:string;ambiguous:boolean}
   | ({kind:'set_assignment_status';status:'open'|'submitted'} & TargetedAction)

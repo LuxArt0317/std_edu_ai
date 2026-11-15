@@ -159,3 +159,51 @@ test('the actual chatbot waits for confirmation and retries the exact native wit
   assert.deepEqual(requests,Array.from({length:2},()=>({kind:'withdraw_learning_support',payload:{id,expected_version:1,request_id:requestId}})));
   assert.equal(view.queryByRole('button',{name:'Confirm action'}),null);
 });
+
+test('the chatbot reviews a local submission and reuses the same native command after a bad receipt',async()=>{
+  session(a);
+  const topic='Plan weekly readings';
+  const details='Help build a study schedule that fits my class times.';
+  const question='Submit a learning support request titled "'+topic+'" with details "'+details+'"';
+  const requestId='27500000-0000-4000-8000-000000000006';
+  const requests:unknown[]=[];
+  routedFetch=async(target,init)=>{
+    assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer synthetic-'+a);
+    if(String(target).startsWith('/api/affairs-conversations')){
+      if(init?.method==='GET')return Response.json({conversations:[]});
+      const savedConversation=JSON.parse(String(init?.body));
+      assert.doesNotMatch(JSON.stringify(savedConversation.messages.filter((message:{role:string})=>message.role==='assistant')),
+        /proposedAction|27500000|Plan weekly readings|Help build a study schedule/u);
+      return Response.json({...savedConversation,version:savedConversation.version+1,updated_at:stamp});
+    }
+    if(String(target)==='/api/affairs-assistant'){
+      assert.equal(JSON.parse(String(init?.body)).question,question);
+      return Response.json({status:'answered',answer:'Review and confirm the topic and details below.',citations:[],suggestedQuestions:[],
+        verification:{status:'verified',attempts:1},
+        proposedAction:{kind:'submit_learning_support',label:'Submit learning support request',requestId,payload:{topic,details},url:path}});
+    }
+    assert.equal(String(target),'/api/affairs-action');
+    requests.push(JSON.parse(String(init?.body)));
+    return Response.json({id,version:requests.length===1?2:1,status:'submitted',requestId});
+  };
+  const view=render(<MemoryRouter><PublicAssistant initialOpen /></MemoryRouter>);
+  await waitFor(()=>assert.equal((view.getByRole('textbox',{name:/Your question/}) as HTMLTextAreaElement).disabled,false));
+  fireEvent.change(view.getByRole('textbox',{name:/Your question/}),{target:{value:question}});
+  fireEvent.click(view.getByRole('button',{name:'Send'}));
+  const confirmAction=await view.findByRole('button',{name:'Confirm action'});
+  assert.ok(view.getByText(topic,{exact:true}));
+  assert.ok(view.getByText(details,{exact:true}));
+  assert.deepEqual(requests,[]);
+  fireEvent.click(confirmAction);
+  await waitFor(()=>assert.match(view.getByRole('alert').textContent??'',/Could not verify the request receipt/u));
+  assert.equal(view.queryByRole('link',{name:'View updated records'}),null);
+  fireEvent.click(view.getByRole('button',{name:'Confirm action'}));
+  await waitFor(()=>{
+    const receiptLink=view.getByRole('link',{name:'View updated records'});
+    assert.match(receiptLink.parentElement?.textContent??'',/Submitted your learning support request/u);
+    assert.equal(receiptLink.getAttribute('href'),path);
+  });
+  await view.findByText('Conversation saved to your private account.');
+  assert.deepEqual(requests,Array.from({length:2},()=>({kind:'submit_learning_support',payload:{request_id:requestId,topic,details}})));
+  assert.equal(view.queryByRole('button',{name:'Confirm action'}),null);
+});

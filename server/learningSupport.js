@@ -64,9 +64,13 @@ export async function readLearningSupport(account,selector){
   return data;
 }
 
+export function validLearningSupportSubmission(topic,details){
+  return boundedText(topic,3,160)&&boundedText(details,5,1200);
+}
+
 function validAction(action,payload){
   if(action==='submit')return exact(payload,['request_id','topic','details'])&&isUuid(payload.request_id)
-    &&boundedText(payload.topic,3,160)&&boundedText(payload.details,5,1200);
+    &&validLearningSupportSubmission(payload.topic,payload.details);
   const review=action==='review';
   if(!exact(payload,review?['request_id','id','expected_version','status','note']:['request_id','id','expected_version'])
     ||!isUuid(payload.request_id)||!isUuid(payload.id)||!integer(payload.expected_version,1,3))return false;

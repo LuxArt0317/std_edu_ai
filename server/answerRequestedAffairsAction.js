@@ -15,7 +15,10 @@ export async function answerRequestedAffairsAction({account,question,selection,r
   const requestId=randomUUID();
   const zh=/[\u3400-\u9fff]/u.test(question);
   const say=(en,cn)=>zh?cn:en;
-  const base={citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}};
+  const submitLearningSupport=selection.kind==='submit_learning_support';
+  const citations=submitLearningSupport?[{chunkId:'directory:learning-support',
+    title:say('Learning support requests','學習輔導申請'),url:learningSupportPath,sourceName:'School Affairs'}]:[];
+  const base={citations,suggestedQuestions:[],grounding:{source:'account',webSearched:false}};
   let equipmentId;
   if(selection.kind==='cancel_club_equipment'){
     const page=new URL(route,'https://stu.best');
@@ -54,10 +57,12 @@ export async function answerRequestedAffairsAction({account,question,selection,r
       'Open the exact report in [My repair reports]('+repairPaths.history+') or provide its full report ID.',
       '請從[我的報修紀錄]('+repairPaths.history+')開啟該筆報修，或提供完整報修編號。')};
   }
-  if(selection.kind==='withdraw_learning_support'&&!selection.ambiguous){
+  if((submitLearningSupport||selection.kind==='withdraw_learning_support')&&!selection.ambiguous){
     const page=new URL(route,'https://stu.best'),path=page.pathname.replace(/\/$/u,'');
     if(path.startsWith(learningSupportPath+'/')||path===learningSupportPath&&page.search)return {
-      ...base,status:'clarification',answer:say(
+      ...base,status:'clarification',answer:submitLearningSupport?say(
+        'Open [My learning support requests]('+learningSupportPath+') to submit a request for yourself.',
+        '請從[我的學習輔導申請]('+learningSupportPath+')送出自己的申請。'):say(
         'Open [My learning support requests]('+learningSupportPath+') to withdraw a saved request.',
         '請從[我的學習輔導申請]('+learningSupportPath+')撤回已儲存的申請。'),
     };
@@ -75,7 +80,9 @@ export async function answerRequestedAffairsAction({account,question,selection,r
       answer:say('Open School Affairs to finish setting up your account, then ask again.','請先在校務系統完成帳戶設定後再試。')};
     const prepared=prepareAccountAction(question,context,{requestId});
     if(!prepared.action)return {...base,status:'clarification',answer:prepared.clarification};
-    const pending=selection.kind==='cancel_club_equipment'
+    const pending=submitLearningSupport
+      ?say('Review the topic and details below. Confirm to submit your request for review on stu.best.','請檢查下方的主題與輔導需求，確認後即可送交 stu.best 站內審查。')
+      :selection.kind==='cancel_club_equipment'
       ?say('Review the club equipment request below. Confirm to cancel it.','請檢查下方的社團器材借用申請，確認後即可取消。')
       :selection.kind==='counseling_cancel'
       ?say('Review the saved appointment below. Confirm to cancel it.','請檢查下方已儲存的預約，確認後即可取消。')
@@ -92,6 +99,11 @@ export async function answerRequestedAffairsAction({account,question,selection,r
   const readLabels={profile:'School Affairs account',tasks:'Open task',assignments:'Personal assignment tracker',dtm:'Personal Moodle course',clubEquipment:'Club equipment request',counselingAppointments:'Saved appointment',facilityRepairs:'Saved repair report',learningSupport:'Saved learning support request'};
   const read=async attempt=>{
     const kind='action-context:'+attempt;
+    if(submitLearningSupport){
+      progress({kind,label:say('Checked your submission details','已核對申請內容'),
+        detail:say('Used the topic and details in this message.','使用這則訊息中的主題和輔導需求。'),status:'complete'});
+      return [{id:'request:learning-support-submission',content:JSON.stringify({topic:selection.title,details:selection.details})}];
+    }
     try{
       const onRead=(tool,status)=>progress({
         kind:`account-read:${tool}:${attempt}`,label:readLabels[tool],status,
@@ -149,12 +161,15 @@ export async function answerRequestedAffairsAction({account,question,selection,r
     verify:async ({candidate,evidence})=>{
       if(!evidence.length)return {ok:false,reason:'evidence_unavailable'};
       const expected=format(evidence);
-      return {ok:candidate.status===expected.status&&candidate.answer===expected.answer
+      const matchesInput=!submitLearningSupport||!candidate.proposedAction||
+        JSON.stringify(candidate.proposedAction.payload)===evidence[0].content;
+      return {ok:matchesInput&&candidate.status===expected.status&&candidate.answer===expected.answer
         &&JSON.stringify(candidate.proposedAction)===JSON.stringify(expected.proposedAction)};
     },
     repair:async ({evidence})=>evidence.length?format(evidence):initial,
   });
   return {...result,activity,...(result.status==='abstained'?{
-    answer:say('I couldn’t verify the saved record for this change. Please try again before confirming it.','目前無法查核此變更所需的已儲存紀錄，請稍後重試。'),
+    answer:submitLearningSupport?say('I couldn’t check the submitted topic and details. Please try again.','目前無法查核申請主題和輔導需求，請稍後重試。')
+      :say('I couldn’t verify the saved record for this change. Please try again before confirming it.','目前無法查核此變更所需的已儲存紀錄，請稍後重試。'),
   }:{})};
 }

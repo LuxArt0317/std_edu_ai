@@ -3,7 +3,7 @@ import {boundedAssistantText} from './assistantActivityBudget.js';
 
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
-  proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'update_display_name'|'set_assignment_status'|'cancel_club_equipment'|'counseling_cancel'|'cancel_facility_repair'|'withdraw_learning_support';label:string;payload:Record<string,string>;requestId?:string;url?:string};
+  proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'update_display_name'|'set_assignment_status'|'cancel_club_equipment'|'counseling_cancel'|'cancel_facility_repair'|'withdraw_learning_support'|'submit_learning_support';label:string;payload:Record<string,string>;requestId?:string;url?:string};
   grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
   verification?: {status:'verified'|'unverified';attempts:number;reason?:string};
   views?: Array<{id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string}>;

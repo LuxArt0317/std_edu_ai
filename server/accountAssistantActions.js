@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {repairId,repairPaths} from '../src/features/public/affairs/facilityRepair.js';
 import {learningSupportPath} from '../src/features/public/affairs/studentServices.js';
+import {learningSupportMaxPayloadBytes,validLearningSupportSubmission} from './learningSupport.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {clubEquipmentPath} from './clubEquipmentIntent.js';
 import {counselingAppointmentsPath,counselingKinds,counselingStatus} from './counselingContract.js';
@@ -15,6 +16,9 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
   const zh=/[\u3400-\u9fff]/u.test(question);
   const say=(en,cn)=>zh?cn:en;
   const clarify=(en,cn)=>({clarification:say(en,cn)});
+  if(kind==='submit_learning_support'&&(requested.ambiguous||!validLearningSupportSubmission(title,details)))return clarify(
+    'Give one topic and the support you need, both in quotes. For example, “Submit a learning support request titled "Study plan" with details "I need help scheduling weekly reading."” You can also use [Learning support requests]('+learningSupportPath+').',
+    '請用引號提供一個主題及輔導需求。例如：幫我提交學習輔導申請，主題「讀書計畫」，需求「我需要協助安排每週的閱讀進度」。也可以前往[學習輔導申請]('+learningSupportPath+')。');
   if(requested.ambiguous&&kind==='cancel_club_equipment')return clarify(
     'Please ask to cancel one club equipment request. You can give its exact club or item name in quotes, or its pickup date (YYYY-MM-DD).',
     '請一次取消一筆社團器材借用申請，可用引號標註社團或器材完整名稱，或提供領取日期（YYYY-MM-DD）。');
@@ -29,7 +33,7 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
     '請一次要求取消一筆自己的已儲存報修。請從[我的報修紀錄]('+repairPaths.history+')選擇。');
   if(requested.ambiguous)return clarify('Ask for one change at a time. Quote the exact title or nickname if it contains instructions.',
     '請一次要求一項變更。如果標題或暱稱含有指令文字，請加上引號。');
-  const proposal=(label,payload,url='/school-affairs/records')=>Buffer.byteLength(JSON.stringify(payload),'utf8')<=3850
+  const proposal=(label,payload,url='/school-affairs/records',maxBytes=3850)=>Buffer.byteLength(JSON.stringify(payload),'utf8')<=maxBytes
     ?{action:{kind,label,payload,requestId,url}}
     :clarify('Please shorten the supplied text before reviewing the change.','請縮短輸入文字後再確認變更。');
   if(kind==='create_task')return within(title,3,160)
@@ -85,6 +89,8 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
     return proposal(`${say('Cancel','取消')} ${title} · ${dateLabel} ${row.date} · ${counselingStatus[row.status][zh?0:1]}`,
       {id:row.id,expected_version:String(row.version)},counselingAppointmentsPath);
   }
+  if(kind==='submit_learning_support')return proposal(say('Submit learning support request','提交學習輔導申請'),
+    {topic:title,details},learningSupportPath,learningSupportMaxPayloadBytes);
   if(kind==='withdraw_learning_support'){
     const context=snapshot.learningSupport, row=context?.row;
     const open=say('[My learning support requests]','[我的學習輔導申請]')+'('+learningSupportPath+')';
