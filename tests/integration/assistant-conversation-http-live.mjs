@@ -68,6 +68,15 @@ export function expectedPreviewDeleteState(before,userId,id){
   markers.sort((left,right)=>left.user_id.localeCompare(right.user_id));
   return {rows:before.rows.filter(row=>row.user_id!==userId),markers};
 }
+export async function readProtectedConversationDeleteState(sql,id,{ownerId,title,callerIds}){
+  const rows=await sql`select id,user_id,title,messages,version from public.affairs_conversations where id=${id}`;
+  const markers=await sql`select user_id,conversation_id,(extract(epoch from expires_at)*1000)::bigint::text as expires_ms
+    from private.affairs_conversation_delete_markers where conversation_id=${id} order by user_id`;
+  assert.ok(rows.every(row=>row.user_id===ownerId&&row.title===title)
+    &&markers.every(marker=>callerIds.includes(marker.user_id)),'Unexpected owner or state at the reserved probe ID.');
+  // Compare row contents independently of the database client's Result prototype.
+  return {rows:[...rows],markers:[...markers]};
+}
 /** Evaluate the two serialization orderings with exact HTTP and independent PG checks. */
 export async function runProtectedConversationDeleteChecks({owner,other,saved,pending,expectedMessages,request,inspect}){
   const empty={rows:[],markers:[]};
@@ -262,12 +271,9 @@ export async function main(){
   const inspectProbe=async id=>{
     const reserved=reservedConversations.get(id);
     assert.ok(previewDelete&&reserved,'Only generated Preview fixture IDs may be inspected.');
-    const rows=await sql`select id,user_id,title,messages,version from public.affairs_conversations where id=${id}`;
-    const markers=await sql`select user_id,conversation_id,(extract(epoch from expires_at)*1000)::bigint::text as expires_ms
-      from private.affairs_conversation_delete_markers where conversation_id=${id} order by user_id`;
-    assert.ok(rows.every(row=>row.user_id===reserved.userId&&row.title===reserved.payload.title)
-      &&markers.every(marker=>users.some(user=>user.id===marker.user_id)),'Unexpected owner or state at the reserved probe ID.');
-    return {rows,markers};
+    return readProtectedConversationDeleteState(sql,id,{
+      ownerId:reserved.userId,title:reserved.payload.title,callerIds:users.map(user=>user.id),
+    });
   };
   const request=async(user,{method='GET',id,body,status=200}={})=>{
     const ticket=previewPin?await previewPin.beforeRequest():null;

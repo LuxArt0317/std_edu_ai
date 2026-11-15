@@ -6,7 +6,7 @@ import {newConversationId} from '../../src/services/assistantConversationId.js';
 import {conversationDeleteProbeTitles} from './vercel-preview-transport.mjs';
 import {conversationFixture,validateConversationTarget,conversationResponseMatches,conversationExpectedVersion,
   reconcileConversationWrite,reconcileConversationIdentity,allowedConversationBrowserRequest,assertConversationRecoveryClear,assertConversationDeleteIsolation,conversationResponseDiagnostic,openVerifiedConversationAssistant,boundedConversationDiagnostic,
-  validatePreviewConversationDeleteTarget,runProtectedConversationDeleteChecks} from '../integration/assistant-conversation-http-live.mjs';
+  validatePreviewConversationDeleteTarget,runProtectedConversationDeleteChecks,readProtectedConversationDeleteState} from '../integration/assistant-conversation-http-live.mjs';
 
 const id='32475426-b5e7-4ce6-863f-91e2e7d20929',userId='c0d6abf1-ad94-43da-b7de-995d3ccbe320';
 const root=fileURLToPath(new URL('../../',import.meta.url)),origin='https://stu.best',revision='a'.repeat(40);
@@ -101,6 +101,21 @@ test('cross-account DELETE preserves the actual GET projection regardless of POS
   for(const changed of [{...get,version:2},{...get,messages:[]},{...get,title:'Changed'},null]){
     let first=true;await assert.rejects(assertConversationDeleteIsolation(async()=>{if(first){first=false;return get;}return changed;},async()=>{}));
   }
+});
+test('protected delete compares PostgreSQL result contents with plain expected arrays',async()=>{
+  class QueryResult extends Array {}
+  const owner={ownerId:userId,title:'Reserved title',callerIds:[userId]};
+  const row={id,user_id:userId,title:owner.title,version:1,messages:[]};
+  const marker={user_id:userId,conversation_id:id,expires_ms:'1794834180000'};
+  const query=(rows,markers)=>async ([statement],value)=>{
+    assert.equal(value,id);
+    return statement.includes('public.affairs_conversations')?rows:markers;
+  };
+  const empty=new QueryResult();
+  assert.deepEqual(await readProtectedConversationDeleteState(query(empty,empty),id,owner),{rows:[],markers:[]});
+  assert.deepEqual(await readProtectedConversationDeleteState(query(QueryResult.of(row),QueryResult.of(marker)),id,owner),
+    {rows:[row],markers:[marker]});
+  await assert.rejects(readProtectedConversationDeleteState(query(empty,QueryResult.of({...marker,user_id:id})),id,owner));
 });
 function deletionProbe(fault){
   const owner={id:userId},other={id},creation=Date.UTC(2026,10,15,12,30),expiration=Date.UTC(2026,10,16,12,30);
