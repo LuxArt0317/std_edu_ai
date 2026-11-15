@@ -904,7 +904,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Preserve course totals and all-item feedback directly from typed Moodle responses for complete exact lookups.
 - [x] Pass 6/6 exact protected Moodle overview requests on `0b88ca1`, with paired caller readbacks and verified cleanup.
 - [x] Mount 24 of 30 existing Student Internship cases with signed native observations and paired own/crossed reads. Verify the disposable fixture and cleanup on scratch PostgreSQL.
-- [ ] Execute the mounted protected Student Internship packet. Six cases still need separate outage or companion fixture coverage.
+- [x] Complete 24 pinned Internship cases on `0b88ca1`. Twenty passed, four need exact answer corrections, all retained paired readbacks, and fixture cleanup was verified.
+- [x] Grade a signed third review as a review of the existing second scoped read and require actual third-check activity. Retain all four substantive failures.
+- [ ] Pass the four Internship answer cases after exact typed verification and signed native receipts. Six other cases still need separate outage or account-companion coverage.
 - [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
 - [x] Implement and locally verify confirmed facilities report cancellation with a native receipt check and same-page refresh.
 - [ ] Mount a protected facilities cancellation fixture that allows only its expected native event.
