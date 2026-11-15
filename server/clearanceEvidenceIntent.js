@@ -21,8 +21,9 @@ const guide=value=>/\bwhere (?:can|do|should) i (?:find|open|view|apply)|\bhow (
 const inquiry=/\b(?:my|our|for me|show|list|check|read|saved|recorded|status|history|note|notes|pending|review|offices?|when|window|period|submit|cancel|download|print)\b|我|本人|顯示|显示|查看|查詢|查询|列出|狀態|紀錄|說明|備註|審核|期間|申請/iu;
 const note=/\b(?:notes?|remarks?|comments?|reason|reasons|explanation|explain why)\b|備註|备注|說明|说明|原因/iu;
 const operation=value=>/(?:^(?:(?:please|then|also)\s+)*|\b(?:please|can you|could you|i want (?:you )?to|help me)\s+)(?:submit|cancel|approve|reject|clear|delete|edit|change|remove|create|update)\b|(?:請|请)?(?:取消|刪除|修改|更改|提交|送出|核准|駁回|批准|新增|更新)/iu.test(value);
-const field=value=>/^(?:(?:show|list|read|include|tell me|explain|its|their|my|the|saved|recorded|office|each|all|cashier|library|academic|department|career|advisor|thesis|international)\s+)*(?:notes?|remarks?|comments?|status(?:es)?|reviews?|review dates?|submitted date|application date|window|period|why it needs action)(?:\s+(?:too|separately|for me|from each office))?$/iu.test(value)
+const field=value=>/^(?:(?:show|list|read|include|tell me|explain|its|their|my|the|saved|recorded|office|each|all|cashier|library|academic|department|career|advisor|thesis|international)\s+)*(?:notes?|remarks?|comments?|status(?:es)?|reviews?|review dates?|submitted date|application date|windows?|periods?|why it needs action)(?:\s+(?:too|separately|for me|from each office))?$/iu.test(value)
   ||/^(?:請|请)?(?:顯示|显示|包含|說明|说明)?(?:我的|各單位|出納組|圖書館)?(?:備註|說明|狀態|審核時間|申請時間)$/u.test(value);
+const continuation=value=>field(value)||operation(value)&&/\b(?:it|them|application|review|status)\b|申請|審核|狀態/u.test(value);
 const follow=/^(?:(?:and|also|then)\s+)?(?:(?:what|how) (?:about|is|are) (?:my |the |its |their )?(?:status|note|notes|review|reviews|date|window|period)|(?:show|list|read|check)(?: me)?\s+(?:(?:my|the|these|those|saved)\s+)*(?:applications?|reviews?|notes?|status|periods?)|when (?:is|was) (?:it|my application))[?.!]*$|^(?:查看|顯示|查詢)?(?:我的|這個|它的)?(?:紀錄|狀態|備註|說明|時間|期間)(?:呢)?[？。！]*$/iu;
 const officePatterns={library:/\blibrary(?!\s+thesis)(?: circulation)?\b|圖書館典閱|图书馆典阅|圖書館(?!論文)|图书馆(?!论文)/iu,
   academic:/\bacademic affairs\b|教務處|教务处/iu,department:/\bdepartment\b|系所/iu,cashier:/\bcashier\b|出納|出纳/iu,
@@ -48,8 +49,7 @@ export function selectClearanceEvidence(question,route='',history=[]){
     &&!(previous&&other.test(previous)&&!past.length)&&(context.selected||past.length>0&&!past.some(foreign));
   if(!explicit.length&&!contextual)return null;
   const indices=new Set(explicit.map(part=>segments.indexOf(part)));
-  for(const index of [...indices])for(let cursor=index+1;segments[cursor]&&!negative.test(segments[cursor])&&!other.test(segments[cursor])
-    &&(field(segments[cursor])||operation(segments[cursor])&&/\b(?:it|them|application|review|status)\b|申請|審核|狀態/u.test(segments[cursor]));cursor++)indices.add(cursor);
+  for(const index of [...indices])for(let cursor=index+1;segments[cursor]&&isClearanceFieldClause(segments[cursor]);cursor++)indices.add(cursor);
   const selected=explicit.length?segments.filter((_,index)=>indices.has(index)).join('\n'):current;
   const findOffices=value=>Object.entries(officePatterns).filter(([,pattern])=>pattern.test(value)).map(([key])=>key);
   const selectedParts=parts(selected),officeSource=contextual&&!findOffices(selected).length?past.join('\n'):selected;
@@ -69,7 +69,7 @@ export function selectClearanceEvidence(question,route='',history=[]){
 }
 export function isClearanceEvidenceQuestion(question,route='',history=[]){return selectClearanceEvidence(question,route,history)!==null;}
 
-export function isClearanceFieldClause(value){return Boolean(text(value))&&!other.test(value)&&!negative.test(value)&&field(value);}
+export function isClearanceFieldClause(value){return Boolean(text(value))&&!other.test(value)&&!negative.test(value)&&continuation(value);}
 
 export function clearanceNavigationView(question){
   const value=text(question);

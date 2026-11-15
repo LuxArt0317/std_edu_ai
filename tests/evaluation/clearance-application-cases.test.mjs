@@ -124,7 +124,7 @@ test('a correct paragraph cannot conceal wrong-term, wrong-office or foreign rec
 
 test('projection mutations expose lost review lineage, extra note, IDs and false source',()=>{
   const row=find('office-statuses'),good=response(row,answer(row));
-  for(const mutate of [p=>{p.applications[0].reviews[0].status='cleared';},p=>{p.applications[0].reviews[0].note='PRIVATE NOTE';},p=>{p.applications[0].id='PRIVATE';},
+  for(const mutate of [p=>{p.applications[0].reviews.find(review=>review.office==='library').status='cleared';},p=>{p.applications[0].reviews[0].note='PRIVATE NOTE';},p=>{p.applications[0].id='PRIVATE';},
     p=>{p.applications[0].term='QA Clearance 114-2';},p=>{p.applications[0].reviews.pop();},p=>{p.counts.applications.total=0;},p=>{p.complete=false;},p=>{p.collectionState='empty';}]){
     const obs=independentObservation(row),p=JSON.parse(obs.result.evidence.content);mutate(p);obs.result.evidence.content=JSON.stringify(p);assert.equal(runGrade(row,good,obs).passed,false);}
   const wrong=independentObservation(row);wrong.result.evidence.id='account:serviceRecords';assert.equal(runGrade(row,good,wrong).passed,false);

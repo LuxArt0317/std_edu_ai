@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep combined graduation-clearance status and window questions within the caller’s clearance records. Exercise both routes and deny chat approval and manager access in two-caller evaluation. [#100]
+
 - Verify combined health-record and tuition replies against independently fetched owned records on protected Preview. Include the second-page case and explicit health exclusion. [#100]
 
 - Verify a selected health-record page and a separately named tuition charge against their own saved records. Respect explicit requests to leave health records unread. [#100]
