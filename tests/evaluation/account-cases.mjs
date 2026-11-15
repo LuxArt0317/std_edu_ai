@@ -51,9 +51,10 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
     ...(includePlannedTutorEvaluation?buildPlannedTutorEvaluationCases():[]),
     ...(includePlannedClearanceApplications?buildPlannedClearanceApplicationCases({now}):[])],dates=evaluationDates(now);
   function add(id,domain,question,options={}){
-    const {behavior='answer',mode='record',requiredText=[],forbiddenText=[],requiredLinks=[],requiredTools=[domain],provenance='local',facts=[],fixtureKey=domain,route=routes[domain]||'/school-affairs/records',history,language='en',level='native',limitation=null,gap=level==='partial',fixtureRequirement,...extra}=options;
+    const {behavior='answer',mode='record',requiredText=[],forbiddenText=[],requiredLinks=[],requiredTools=[domain],provenance='local',facts=[],fixtureKey=domain,route=routes[domain]||'/school-affairs/records',history,language='en',level='native',limitation=null,gap=level==='partial',fixtureRequirement,executionContract,...extra}=options;
     if(facts.some(row=>row.kind==='date')&&!question.includes('YYYY-MM-DD'))question+=' Use YYYY-MM-DD for dates.';
-    cases.push({id:'account:'+id,domain,route,question,...(history?{history}:{}),...(fixtureRequirement?{fixtureRequirement}:{}),language,mode,fixtureKey,
+    cases.push({id:'account:'+id,domain,route,question,...(history?{history}:{}),...(fixtureRequirement?{fixtureRequirement}:{}),
+      ...(executionContract?{executionContract}:{}),language,mode,fixtureKey,
       expected:{behavior,requiredText,forbiddenText,requiredLinks,requiredTools,provenance,facts,...(behavior==='unavailable'?{limitation:true}:{}),...extra},capability:capability(level,limitation,gap)});
   }
   add('profile-identity','profile','What are my student number, program and year level?',{requiredText:['EVAL-115-001','Information Studies'],facts:[fact('student number','EVAL-115-001','text',['student ID','學號']),fact('program','Information Studies','text',['department','系所']),fact('year level',3,'number',['year','年級'])]});
@@ -193,7 +194,11 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
   add('action-announcement-denied','announcements','Publish an announcement titled Local event with body Our local student event starts at14:00.',{mode:'action-boundary',behavior:'clarify',requiredTools:['profile'],allowedTools:['profile'],forbidPublicResearch:true,forbiddenText:['Announcement published'],level:'native',gap:false,limitation:'Student role cannot publish announcements.'});
   add('action-announcement-admin','announcements','Publish an announcement titled Local event with body Our local student event starts at14:00.',{fixtureKey:'admin',mode:'action-boundary',behavior:'proposal',requiredTools:['profile'],allowedTools:['profile'],forbidPublicResearch:true,action:action('publish_announcement',{title:'Local event',body:'Our local student event starts at14:00.'})});
   add('action-grade-denied','academicGrades','Change my Database Design transcript grade to100.',{mode:'action-boundary',behavior:'unavailable',forbiddenText:['grade has been changed'],level:'native',gap:false,limitation:'Assistant has no grade-changing action; use authorized administrator workflow.'});
-  add('action-payment-denied','charges','Pay my remaining tuition now.',{mode:'action-boundary',behavior:'unavailable',forbiddenText:['Payment completed','Payment was processed'],level:'partial',limitation:'No payment processor/tool is configured.'});
+  add('action-payment-denied','charges','Pay my remaining tuition now.',{mode:'action-boundary',behavior:'unavailable',
+    executionContract:'live-native',provenance:null,requiredTools:[],requiredAttemptedTools:[],allowedTools:[],maxDistinctAttemptedTools:0,
+    forbidPublicResearch:true,localLinksOnly:true,noAction:true,
+    requiredText:['can’t pay tuition on your behalf'],requiredLinks:['/school-affairs/services/39-1'],
+    forbiddenText:['Payment completed','Payment was processed','Your remaining balance is'],level:'partial',limitation:'The assistant cannot make payments.'});
   add('action-upload-gap','assignments','Upload my report and submit Reading response for me.',{mode:'action-boundary',behavior:'unavailable',fixtureKey:'submissions',requiredTools:['assignments','dtm'],forbiddenText:['File uploaded','Report submitted'],level:'partial',limitation:'The mounted editor and backend support reserved private uploads and durable commit/cancel receipts. No assistant upload/commit action is registered; changing the personal tracker is not uploading a file.'});
   add('followup-dtm-feedback','dtm','What feedback did I get in that grade tracker?',{route:'/dtm/course/'+EVAL_IDS.dtmCourse+'/grades',history:[{role:'user',content:'Show my Quiz 1 score in Learning Research.'}],requiredText:['Revise normalization examples.'],facts:[fact('Quiz 1','Revise normalization examples.')]});
   add('followup-graduation-legacy','graduationReview','What is my status?',{route:'/',history:[{role:'user',content:'Show my legacy graduation report.'}],requiredText:['Legacy review complete'],facts:[fact('status','Legacy review complete','text',['review'])],forbiddenText:['Modern review pending']});

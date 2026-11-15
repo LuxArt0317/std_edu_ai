@@ -83,7 +83,7 @@ import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
 import { isHousingRecordQuestion } from '../server/housingRecords.js';
-import { isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup } from '../server/pendingFeesAnswer.js';
+import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken } from '../server/affairsWorkspace.js';
@@ -267,6 +267,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const payment=answerDirectTuitionPayment(requestedQuestion);
+  if(payment){stream.send(200,payment);return;}
   const campusEntry=campusEntryIntent(question,route);
   if(campusEntry){stream.send(200,answerCampusEntry(question,campusEntry,true));return;}
   if(accountStatusIntent(question,route)){

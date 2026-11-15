@@ -5,7 +5,7 @@ import {accountQueryByService,schoolSubjectRecordsPath} from '../src/features/pu
 import {answerScholarshipRecords} from './scholarshipRecords.js';
 import {answerStudentAidRecords} from './studentAidRecords.js';
 import {answerHousingRecords} from './housingRecords.js';
-import {answerPendingFees} from './pendingFeesAnswer.js';
+import {answerDirectTuitionPayment,answerPendingFees} from './pendingFeesAnswer.js';
 import {answerCreditLoadHistory} from './creditLoadHistory.js';
 import {answerCourseSelection} from './courseSelection.js';
 import {answerCampusNavigation} from './schoolAffairsDirectory.js';
@@ -482,6 +482,8 @@ export function fallbackPrivateAnswer(question,snapshot) {
 }
 
 export async function answerPrivateAffairsQuestion(question,snapshot,history=[],route='',options={}) {
+  const payment=answerDirectTuitionPayment(question);
+  if(payment)return payment;
   route=route.replace(/\/+$/,'');
   const intent=accountQuestionIntent(question,history,route);
   const core=composeCoreRecordAnswer(intent,snapshot);

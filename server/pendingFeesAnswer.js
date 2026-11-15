@@ -7,6 +7,23 @@ const anotherTopic=/\b(?:courses?|subjects?|class(?:es)?|schedules?|timetables?|
 const cents=value=>Math.round(Number(value)*100);
 const balance=row=>Math.max(0,cents(row.amountDue)-cents(row.amountPaid));
 
+const directTuitionPayment=/^(?:(?:please|(?:can|could|would) you(?: please)?) )?(?:(?:pay|settle) (?:(?:my|the) )?(?:(?:remaining|outstanding|unpaid|pending|current) )?(?:tuition(?: (?:fees?|bill|balance|charges?))?|(?:school|student) fees?)|(?:make|submit|process) (?:(?:a|my|the) )?(?:tuition|school fees?) payment)(?: (?:for me|on my behalf))?(?: (?:right )?now| today| please)?$/iu;
+const directTuitionPaymentZh=/^(?:請|请)?(?:幫我|帮我|替我|代我|為我|为我)?(?:現在|现在|立即|馬上|马上)?(?:繳清|繳交|繳納|繳付|缴清|缴交|缴纳|缴付|支付|付清)(?:我的)?(?:剩餘|剩余|未繳|未缴|待繳|待缴|本學期的|本学期的)?(?:學費|學雜費|学费|学杂费)(?:吧|謝謝|谢谢)?$/u;
+
+/** A payment command has no registered action. Answer it without opening
+ * private records. Anchors leave read, navigation and mixed turns alone. */
+export function answerDirectTuitionPayment(question) {
+  if(typeof question!=='string')return null;
+  const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'').trim();
+  const zh=directTuitionPaymentZh.test(text.replace(/[\t ]+/gu,''));
+  if(!zh&&!directTuitionPayment.test(text.replace(/[\t ]+/gu,' ')))return null;
+  return {status:'handoff',
+    answer:zh?`我無法代你繳交學費。你可以到[學雜費待繳查詢](${feesPath})查看待繳費用。`
+      :`I can’t pay tuition on your behalf. You can review pending charges in [Tuition balance](${feesPath}).`,
+    citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false},
+  };
+}
+
 /** Local account data only. Never infer a due date, payment confirmation, or bank details. */
 export function isPendingFeeQuestion(question,route='',history=[]) {
   // "Balance my class schedule" is not a monetary balance inquiry.

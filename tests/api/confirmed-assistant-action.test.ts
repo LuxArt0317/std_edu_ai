@@ -4,6 +4,7 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import confirm from '../../api/affairs-action.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {parseExplicitAccountAction} from '../../server/accountActionIntent.js';
+import {answerDirectTuitionPayment} from '../../server/pendingFeesAnswer.js';
 
 const owner='a9510000-0000-4000-8000-000000000001';
 const foreign='a9510000-0000-4000-8000-000000000002';
@@ -240,4 +241,48 @@ test('the registered action oracles grade real staged replies without granting m
     assert.deepEqual(graded.failures,[],testCase.id);
   }
   assert.ok(calls.some(call=>call.url.pathname.endsWith('/dtm_courses')));
+});
+
+
+test('a direct tuition payment request uses the authenticated capability response without data or model calls',async t=>{
+  const load=async(file:string)=>import(new URL('../evaluation/'+file+'.mjs',import.meta.url).href);
+  const [{buildAccountCases},{fixtureForCase},{gradeCase}]=await Promise.all([load('account-cases'),load('fixtures'),load('grading')]);
+  const testCase=buildAccountCases().find((row:{id:string})=>row.id==='account:action-payment-denied');
+  assert.ok(testCase);
+  assert.equal(testCase.fixtureKey,'charges');
+  assert.equal(fixtureForCase(testCase,{userId:owner}).profile.userId,owner);
+  assert.equal(testCase.executionContract,'live-native');
+  const calls=transport(t,()=>assert.fail('An unsupported payment never enters PostgREST'));
+  const reply=await invoke(routed,{question:testCase.question,route:testCase.route});
+  const graded=gradeCase(testCase,{statusCode:200,execution:'live-native',body:reply,fixtureKey:testCase.fixtureKey,events:[]});
+  assert.deepEqual(graded.failures,[]);
+  assert.equal(reply.status,'handoff');
+  assert.deepEqual(reply.citations,[]);
+  assert.equal(reply.proposedAction,undefined);
+  assert.equal(reply.verification,undefined);
+  assert.equal(reply.grounding.webSearched,false);
+  assert.deepEqual(graded.toolEvidence.attempted,[]);
+  assert.deepEqual(graded.toolEvidence.observed,[]);
+  assert.match(reply.answer,/Tuition balance\]\(\/school-affairs\/services\/39-1\)/u);
+  for(const question of ['請幫我立即繳交剩餘學費。','请帮我缴纳学费。']){
+    const chinese=await ask(question);
+    assert.equal(chinese.status,'handoff');
+    assert.match(chinese.answer,/無法代你繳交學費.*\(\/school-affairs\/services\/39-1\)/u);
+    assert.equal(chinese.proposedAction,undefined);
+  }
+  assert.deepEqual(calls,[]);
+});
+
+test('payment handoff only matches a standalone direct payment request',()=>{
+  for(const question of ['Please pay my tuition bill now.','Could you please pay my tuition for me?',
+    'Settle my outstanding tuition today.','請替我繳清未繳學雜費。'])
+    assert.equal(answerDirectTuitionPayment(question)?.status,'handoff',question);
+  for(const question of ['Where can I pay my tuition?','How should I pay my remaining tuition?',
+    'What is my remaining tuition balance?','Show me how to pay my tuition.',
+    'Pay my remaining tuition and show my next class.',
+    'Pay my remaining tuition; what is my balance?','Pay my remaining tuition. What is my next class?',
+    'Pay my remaining tuition only if I confirm.','Do not pay my tuition.',
+    '我可以在哪裡繳交學費？','我的待繳學費金額是多少？','請幫我繳學費，然後查我的課表。',
+    'Pay tuition to an account I give you.','Pay Alex’s tuition.'])
+    assert.equal(answerDirectTuitionPayment(question),null,question);
 });
