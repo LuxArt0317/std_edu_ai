@@ -168,6 +168,8 @@ The combined worktree passed 1,219 API/source tests and 612 evaluator tests. The
 
 ## Facility repair status and next class
 
+A signed-in student can request cancellation from the exact saved report detail or give its full report ID in chat. One caller-owned detail read supplies the current status and version. The student reviews the report reference and date before confirming. The existing repair action handles the write with its version check and request ID. Chat displays completion only after the matching cancellation receipt, and the visible report refreshes. Missing, foreign, conflicting and held requests cannot produce a cancellation proposal. Controlled API and Chromium checks cover ownership, stale revisions, invalid receipts and exact retry; protected hosted cancellation is still pending.
+
 The account assistant sends repair history questions through LangGraph. A specific report returns its saved status and, when requested, its latest saved handling note. The source does not identify the note author or confirm physical completion. Combining repair status with the next class requires both the repair reader and School Affairs timetable. A failed repair lookup leaves the requested status unknown, even if the timetable can be read independently.
 
 The facility fixture verifies both disposable owners before touching report or event rows. It journals the previous and pending plans, checks exact persisted fields, reads both caller-authorized lists and details, and requires 404 for missing and other-account reports. It reads both owners before and after each response. The grader requires unchanged owned-record digests for signed-in repair cases. A case with uncertain cleanup cannot count toward live acceptance.

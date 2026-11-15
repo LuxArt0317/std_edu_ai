@@ -1,5 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {readClubEquipmentCancellationContext} from './accountClubEquipmentAnswer.js';
+import {readFacilityRepairCancellationContext} from './accountFacilityRepairEvidence.js';
+import {repairId,repairPaths} from '../src/features/public/affairs/facilityRepair.js';
 import {readCounselingCancellationContext} from './accountCounselingEvidence.js';
 import {counselingPath,counselingAppointmentsPath} from './counselingContract.js';
 import {loadOwnAffairsActionContext} from './affairsWorkspace.js';
@@ -37,6 +39,20 @@ export async function answerRequestedAffairsAction({account,question,selection,r
         '請從[我的預約紀錄]('+counselingAppointmentsPath+')選擇要取消的預約。')};
     }
   }
+  let repairReportId;
+  if(selection.kind==='cancel_facility_repair'&&!selection.ambiguous){
+    const page=new URL(route,'https://stu.best'),path=page.pathname.replace(/\/$/u,'');
+    const historyDetail=path.startsWith(repairPaths.history+'/');
+    const routeId=historyDetail?path.slice(repairPaths.history.length+1):'';
+    const onRepairRoute=path===repairPaths.report||path.startsWith(repairPaths.report+'/');
+    const invalidRoute=page.origin!=='https://stu.best'||path===repairPaths.manage||path.startsWith(repairPaths.manage+'/')
+      ||onRepairRoute&&Boolean(page.search)||historyDetail&&!repairId(routeId);
+    if(!invalidRoute&&!(selection.id&&routeId&&selection.id!==routeId))
+      repairReportId=selection.id||routeId;
+    if(!repairId(repairReportId))return {...base,status:'clarification',answer:say(
+      'Open the exact report in [My repair reports]('+repairPaths.history+') or provide its full report ID.',
+      '請從[我的報修紀錄]('+repairPaths.history+')開啟該筆報修，或提供完整報修編號。')};
+  }
   const activity=[];
   const progress=step=>{
     const index=activity.findIndex(item=>item.kind===step.kind);
@@ -54,13 +70,15 @@ export async function answerRequestedAffairsAction({account,question,selection,r
       ?say('Review the club equipment request below. Confirm to cancel it.','請檢查下方的社團器材借用申請，確認後即可取消。')
       :selection.kind==='counseling_cancel'
       ?say('Review the saved appointment below. Confirm to cancel it.','請檢查下方已儲存的預約，確認後即可取消。')
+      :selection.kind==='cancel_facility_repair'
+      ?say('Review your saved repair report below. Confirm to cancel it.','請檢查下方的已儲存報修。確認後即可取消。')
       :selection.kind==='set_assignment_status'
       ?say('Confirm to update your stu.best personal tracker. You can submit coursework separately on its assignment page.','確認後會更新你的 stu.best 個人作業追蹤。若要繳交作業，請至作業頁面。')
       :say('Review the proposed change below. I’ll apply it to your stu.best account after you confirm.','請確認下方的變更。確認後才會套用至你的 stu.best 帳戶。');
     return {...base,status:'answered',answer:pending,proposedAction:prepared.action};
   };
   if(selection.ambiguous)return {...base,status:'clarification',answer:prepareAccountAction(question,{}).clarification,activity};
-  const readLabels={profile:'School Affairs account',tasks:'Open task',assignments:'Personal assignment tracker',dtm:'Personal Moodle course',clubEquipment:'Club equipment request',counselingAppointments:'Saved appointment'};
+  const readLabels={profile:'School Affairs account',tasks:'Open task',assignments:'Personal assignment tracker',dtm:'Personal Moodle course',clubEquipment:'Club equipment request',counselingAppointments:'Saved appointment',facilityRepairs:'Saved repair report'};
   const read=async attempt=>{
     const kind='action-context:'+attempt;
     try{
@@ -86,6 +104,14 @@ export async function answerRequestedAffairsAction({account,question,selection,r
         });
         onRead('counselingAppointments','complete');
         context={counseling};
+      }else if(selection.kind==='cancel_facility_repair'){
+        onRead('facilityRepairs','running');
+        const facilityRepair=await readFacilityRepairCancellationContext(account,repairReportId,deadline).catch(error=>{
+          onRead('facilityRepairs','unavailable');
+          throw error;
+        });
+        onRead('facilityRepairs','complete');
+        context={facilityRepair};
       }else{
         context=await loadOwnAffairsActionContext(account,selection,{deadline,onRead});
       }

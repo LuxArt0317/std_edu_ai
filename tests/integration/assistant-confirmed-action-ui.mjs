@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
-import {mockAffairsAuth} from './helpers/affairs-auth.mjs';
+import {affairsTestUser,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 
 const origin=process.env.PUBLIC_SITE_ORIGIN||'http://127.0.0.1:5173';
 assert.ok(['127.0.0.1','localhost'].includes(new URL(origin).hostname),'Use a local compiled build.');
@@ -38,12 +38,35 @@ const cases=[
     error:'無法處理諮商預約。',
     success:'Cancelled your appointment',
   },
+  {
+    question:'Cancel this repair report.',
+    openFrom:'/school-affairs/services/45-1/history/'+recordId,
+    label:'Cancel repair report A9510000 · Submitted 2026-11-20',
+    kind:'cancel_facility_repair',payload:{id:recordId,version:'1'},url:'/school-affairs/services/45-1/history/'+recordId,
+    expectedWrite:{kind:'cancel_facility_repair',payload:{request_id:requestId,id:recordId,version:1}},
+    invalidReceipt:{id:recordId,version:3,status:'cancelled'},
+    receipt:{id:recordId,version:2,status:'cancelled'},
+    error:'無法確認報修結果，請重試。',
+    success:'Cancelled your repair report',
+  },
 ];
 try{
   for(const scenario of cases){
     const context=await browser.newContext({viewport:{width:390,height:900}});
     await mockAffairsAuth(context);
     const writes=[];
+    let reads=0;
+    if(scenario.openFrom)await context.route('**/api/affairs-data?**',route=>{
+      const url=new URL(route.request().url());
+      if(url.searchParams.get('scope')!=='facility-repairs')return route.fulfill({json:{}});
+      assert.equal(url.searchParams.get('view'),'mine');
+      assert.equal(url.searchParams.get('id'),recordId);
+      assert.match(route.request().headers().authorization??'',/^Bearer /u);
+      reads++;
+      const status=writes.length===2?'cancelled':'submitted';
+      return route.fulfill({json:{userId:affairsTestUser.id,detail:{id:recordId,user_id:affairsTestUser.id,status,
+        version:status==='cancelled'?2:1,building:'QA building',location:'QA room',item:'QA light',description:'QA fixture'},events:[]}});
+    });
     await context.route('**/api/affairs-conversations*',route=>{
       if(route.request().method()==='GET')return route.fulfill({json:{conversations:[]}});
       const draft=route.request().postDataJSON();
@@ -53,6 +76,7 @@ try{
     await context.route('**/api/affairs-assistant',route=>{
       assert.match(route.request().headers().authorization??'',/^Bearer /u);
       assert.equal(route.request().postDataJSON().question,scenario.question);
+      if(scenario.openFrom)assert.equal(route.request().postDataJSON().route,scenario.openFrom);
       return route.fulfill({json:{
         status:'answered',answer:'Review the proposed change below. I’ll apply it to your stu.best account after you confirm.',citations:[],suggestedQuestions:[],
         verification:{status:'verified',attempts:1},
@@ -69,7 +93,11 @@ try{
     const page=await context.newPage();
     const errors=[];
     page.on('pageerror',error=>errors.push(error.message));
-    await page.goto(origin+'/campus-assistant');
+    await page.goto(origin+(scenario.openFrom??'/campus-assistant'));
+    if(scenario.openFrom){
+      await page.getByText('A9510000 · 已送出',{exact:true}).waitFor();
+      await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
+    }
     await page.getByRole('heading',{name:'校園助理 · Assistant'}).waitFor();
     await page.getByPlaceholder('Ask a school question…').fill(scenario.question);
     await page.getByRole('button',{name:'Send',exact:true}).click();
@@ -86,6 +114,12 @@ try{
     assert.deepEqual(writes[0],writes[1]);
     assert.deepEqual(errors,[]);
     assert.equal(await page.getByRole('link',{name:'View updated records'}).getAttribute('href'),scenario.url);
+    if(scenario.openFrom){
+      await page.keyboard.press('Escape');
+      await page.getByText('A9510000 · 已取消',{exact:true}).waitFor();
+      assert.equal(await page.getByRole('button',{name:'取消報修'}).count(),0);
+      assert.ok(reads>=2);
+    }
     await context.close();
     console.log(JSON.stringify({action:scenario.kind,status:'ok',prematureWrites:0,unmatchedReceiptWithheld:true,sameRequestIdOnRetry:true,confirmedReceiptDisplayed:true}));
   }

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Let signed-in students review and confirm cancellation of a saved facilities repair report that is still submitted. Refresh the report after the verified receipt. [#100]
+
 - Route exact Moodle grade-report questions to the signed-in report and test the record contents and crossed-account denials on protected Preview. [#100]
 
 - Localize the capture date on Traditional Chinese page summaries and distinguish a known school notice link from its unread contents. [#100]

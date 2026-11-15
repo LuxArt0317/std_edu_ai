@@ -32,6 +32,16 @@ function useWrite(userId:string,onSuccess:(result:Awaited<ReturnType<typeof writ
   return {busy,error,conflict,send,clear};
 }
 
+function useRepairRevision(){
+  const [revision,setRevision]=useState(0);
+  useEffect(()=>{
+    const refresh=()=>setRevision(value=>value+1);
+    window.addEventListener('school-affairs:updated',refresh);
+    return ()=>window.removeEventListener('school-affairs:updated',refresh);
+  },[]);
+  return [revision,setRevision] as const;
+}
+
 const floors=[...Array.from({length:11},(_,i)=>`${i+1}樓`),'地下1樓','地下2樓','地下3樓'];
 
 function RepairAreaPicker({catalog}:{catalog:RepairCatalog}){
@@ -148,7 +158,7 @@ function RepairListView({userId,manage}:{userId:string;manage:boolean}){
   const [params,setParams]=useSearchParams();
   const rawPage=params.get('page')??'0',status=params.get('status')??'';
   const page=/^\d{1,3}$/.test(rawPage)?Number(rawPage):0;
-  const [revision,setRevision]=useState(0);
+  const [revision,setRevision]=useRepairRevision();
   const [result,setResult]=useState<{key:string;data?:RepairList;error?:string}|null>(null);
   const filter=Object.hasOwn(repairStatuses,status)?status:'';
   const key=[page,filter,revision].join(':');
@@ -184,7 +194,8 @@ function RepairListView({userId,manage}:{userId:string;manage:boolean}){
 }
 
 function RepairDetailView({userId,manage,id}:{userId:string;manage:boolean;id:string}){
-  const [result,setResult]=useState<{key:number;data?:RepairDetail;error?:string}|null>(null),[revision,setRevision]=useState(0);
+  const [result,setResult]=useState<{key:number;data?:RepairDetail;error?:string}|null>(null);
+  const [revision,setRevision]=useRepairRevision();
   const [draft,setDraft]=useState<{type:'cancel'|'in_progress'|'resolved';key:string;note:string}|null>(null);
   const write=useWrite(userId,()=>{setDraft(null);setRevision(value=>value+1);});
   const current=result?.key===revision?result:null;

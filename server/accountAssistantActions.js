@@ -1,4 +1,5 @@
 import {randomUUID} from 'node:crypto';
+import {repairId,repairPaths} from '../src/features/public/affairs/facilityRepair.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {clubEquipmentPath} from './clubEquipmentIntent.js';
 import {counselingAppointmentsPath,counselingKinds,counselingStatus} from './counselingContract.js';
@@ -19,6 +20,9 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
   if(requested.ambiguous&&kind==='counseling_cancel')return clarify(
     'Please ask to cancel one of your saved appointments. You can give its exact date in YYYY-MM-DD format.',
     '請一次取消一筆自己的預約，可提供確切日期（YYYY-MM-DD）。');
+  if(requested.ambiguous&&kind==='cancel_facility_repair')return clarify(
+    'Ask to cancel one of your own saved repair reports. Open [My repair reports]('+repairPaths.history+') to select it.',
+    '請一次要求取消一筆自己的已儲存報修。請從[我的報修紀錄]('+repairPaths.history+')選擇。');
   if(requested.ambiguous)return clarify('Ask for one change at a time. Quote the exact title or nickname if it contains instructions.',
     '請一次要求一項變更。如果標題或暱稱含有指令文字，請加上引號。');
   const proposal=(label,payload,url='/school-affairs/records')=>Buffer.byteLength(JSON.stringify(payload),'utf8')<=3850
@@ -76,6 +80,19 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
     const title=say(row.kind==='assessment'?'Psychological assessment':'Counseling',counselingKinds[row.kind]);
     return proposal(`${say('Cancel','取消')} ${title} · ${dateLabel} ${row.date} · ${counselingStatus[row.status][zh?0:1]}`,
       {id:row.id,expected_version:String(row.version)},counselingAppointmentsPath);
+  }
+  if(kind==='cancel_facility_repair'){
+    const row=snapshot.facilityRepair;
+    if(!repairId(row?.id)||requested.id&&requested.id!==row.id)return clarify(
+      'I couldn’t identify that report in [My repair reports]('+repairPaths.history+').',
+      '在[我的報修紀錄]('+repairPaths.history+')中找不到這筆報修。');
+    const url=repairPaths.history+'/'+row.id;
+    if(row.status!=='submitted'||!Number.isSafeInteger(row.version)||row.version<1||row.version>=10000)
+      return clarify('This report is no longer eligible for cancellation. [View report]('+url+').',
+        '這筆報修目前無法取消。[查看報修]('+url+')。');
+    const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(row.createdAt));
+    return proposal(say('Cancel repair report','取消報修')+' '+row.id.slice(0,8).toUpperCase()+' · '+say('Submitted','已送出')+' '+date,
+      {id:row.id,version:String(row.version)},url);
   }
   const matches=(snapshot.assignments??[]).filter(row=>target&&same(row.title,target));
   if(matches.length!==1)return clarify('Which personal assignment tracker in stu.best should I update? Please give its exact title.','請提供要更新的個人作業追蹤完整標題。');

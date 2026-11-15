@@ -3,7 +3,7 @@ import {selectFacilityRepairEvidence,isForeignFacilityRepairQuestion} from './fa
 import {repairPaths,repairStatuses} from '../src/features/public/affairs/facilityRepair.js';
 export {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from './facilityRepairEvidenceIntent.js';
 
-// Unmounted, caller-only read. This module cannot submit, cancel or review repairs.
+// Caller-only reads. This module cannot submit, cancel or review repairs.
 export const facilityRepairEvidenceMaxBytes=16000;
 const budgetMs=8000,rawLimit=128*1024;
 const uuid=/^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u;
@@ -146,6 +146,21 @@ async function boundedRead(read,account,query,deadline){
     Promise.resolve().then(()=>{if(Date.now()>=deadline)throw {evidenceDeadline:true};return read(account,Object.freeze(query));}),
     new Promise((_,reject)=>{timer=setTimeout(()=>reject({evidenceDeadline:true}),Math.max(1,deadline-Date.now()));}),
   ]);}finally{clearTimeout(timer);}
+}
+export async function readFacilityRepairCancellationContext(account,id,deadline){
+  const limit=Math.min(deadline,Date.now()+budgetMs);
+  const caller=Number.isFinite(limit)&&capture(account,limit);
+  if(!caller||!validId(id)||Date.now()>=limit)throw new Error('Invalid repair cancellation lookup.');
+  let response;
+  try{
+    response=await boundedRead(readFacilityRepairs,caller,{scope:'facility-repairs',view:'mine',id},limit);
+  }catch(error){
+    if(safeReason(error)==='record_not_found')return null;
+    throw error;
+  }
+  const record=parseDetail(response,caller.user.id,id)?.detail;
+  if(!record||Date.now()>=limit)throw new Error('The saved repair report could not be verified.');
+  return {id:record.id,version:record.version,status:record.status,createdAt:record.created_at};
 }
 export async function readFacilityRepairEvidence(account,options={},dependencies={}){
   let selected=defaultSelection();const failed=reason=>envelope('unavailable',reason,selected);

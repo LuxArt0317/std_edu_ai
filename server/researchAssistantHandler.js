@@ -49,7 +49,7 @@ import {answerPermanentCourse} from './permanentCourses.js';
 import {answerVenue} from './venueBooking.js';
 import {answerRepairGuide} from './facilityRepair.js';
 import {studentProfilePath,studentProfileQuestion} from './studentProfileContract.js';
-import {repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
+import {repairPaths,repairQuestion} from '../src/features/public/affairs/facilityRepair.js';
 import {selectFeeRemissionEvidence} from './feeRemissionEvidenceIntent.js';
 import {feeRemissionPath} from './feeRemissionContract.js';
 import {selectDormitoryConductEvidence} from './dormitoryConductEvidenceIntent.js';
@@ -391,6 +391,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if(action){
             const zh=/[\u3400-\u9fff]/u.test(input.question);
             const path=action.kind==='counseling_cancel'?counselingAppointmentsPath
+                :action.kind==='cancel_facility_repair'?repairPaths.history
                 :action.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
             const url='/school-affairs/login?next='+encodeURIComponent(path);
             const title=zh?'登入後確認變更':'Sign in to review a change';
