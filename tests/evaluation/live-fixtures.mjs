@@ -50,6 +50,8 @@ import {assertClearanceStatusSchema,assertClearanceStatusTermIds,bindClearanceSt
 import {academicGradesPreviewActor,academicGradesPreviewCases,academicGradesPreviewMode,academicGradesPreviewRequest,
   assertAcademicGradesPreviewSchema,buildAcademicGradesPreviewPlan,gradeAcademicGradesPreview,readAcademicGradesPreviewCallers,
   seedAcademicGradesPreviewRows,verifyAcademicGradesPreviewRows} from './academic-grades-preview.mjs';
+import {dtmStudyPreviewMode,dtmStudyPreviewCases,buildDtmStudyPreviewPlan,assertDtmStudyPreviewSchema,assertDtmStudyClock,
+  verifyDtmStudyPreviewRows,seedDtmStudyPreviewRows,readDtmStudyPreviewCallers,dtmStudyPreviewRequest,gradeDtmStudyPreview} from './dtm-study-preview.mjs';
 import {buildVenueProtectedPlan,deleteVenueProtectedFixture,observeVenueProtectedFixture,seedVenueProtectedFixture,
   venueProtectedCases,venueProtectedFixtureMode,venueProtectedGaps,verifyVenueProtectedFixtureAbsent} from './venue-protected-fixture.mjs';
 import {hasVenueProtectedProof,observeVenueProtectedCallers,requestVenueProtectedCase} from './venue-protected-preview.mjs';
@@ -370,6 +372,7 @@ async function saveLedger(){
       ...(s.learningSupportPreview?{learningSupportPreview:s.learningSupportPreview}:{}),
       ...(s.clearanceStatusPreview?{clearanceStatusPreview:s.clearanceStatusPreview}:{}),
       ...(s.academicGradesPreview?{academicGradesPreview:s.academicGradesPreview}:{}),
+      ...(s.dtmStudyPreview?{dtmStudyPreview:s.dtmStudyPreview}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.internshipJournal?{internshipFixture:s.internshipJournal}:{}),
@@ -452,7 +455,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -474,12 +477,13 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const learningSupportPreviewOnly=fixtureMode===learningSupportPreviewMode;
   const clearanceStatusPreviewOnly=fixtureMode===clearanceStatusPreviewMode;
   const academicGradesPreviewOnly=fixtureMode===academicGradesPreviewMode;
+  const dtmStudyPreviewOnly=fixtureMode===dtmStudyPreviewMode;
   if(clearanceStatusPreviewOnly)assertClearanceStatusTermIds(clearanceStatusTerms);
   else if(clearanceStatusTerms!==undefined)fail('fixture-config','Graduation clearance term bindings require their protected fixture mode.');
   const venueProtectedOnly=fixtureMode===venueProtectedFixtureMode;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -513,6 +517,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(academicGradesPreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Academic grades require an exact protected Preview and isolated disposable owners.');
+  if(dtmStudyPreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Moodle study records require an exact protected Preview and disposable owners.');
   if(teachingSampleOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Teaching feedback checks require the exact protected Preview and isolated disposable owners.');
@@ -597,7 +604,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -640,7 +647,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
   state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,internshipNativeOnly,
-    facilityRepairCancellationOnly,learningSupportPreviewOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,teachingSampleOnly,venueProtectedOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
+    facilityRepairCancellationOnly,learningSupportPreviewOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,dtmStudyPreviewOnly,teachingSampleOnly,venueProtectedOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
     admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -665,6 +672,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(academicGradesPreviewOnly){
       await previewGate.assertCurrent();
       await query(()=>assertAcademicGradesPreviewSchema(state.sql),'The four protected Academic Services tables are required before fixture account creation.');
+    }
+    if(dtmStudyPreviewOnly){
+      await previewGate.assertCurrent();
+      await query(()=>assertDtmStudyPreviewSchema(state.sql),'Both protected Moodle tables are required before fixture account creation.');
     }
     state.protectedOwnerEmail=config.supabase.ownerEmail;
     state.protectedOwnerBefore=await readProtectedOwnerFingerprint(state.sql,state.protectedOwnerEmail);
@@ -717,6 +728,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(academicGradesPreviewOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['academicGrades']};
+    }
+    if(dtmStudyPreviewOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtm']};
     }
     if(teachingSampleOnly){
       state.teachingObservationKey=serviceKey;
@@ -824,6 +839,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(academicGradesPreviewOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Academic grades fixture preparation failed.');
       reason.academicGradesPreviewCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(dtmStudyPreviewOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle study fixture preparation failed.');
+      reason.dtmStudyPreviewCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     if(teachingSampleOnly){
@@ -1559,6 +1579,78 @@ export async function runAcademicGradesPreview({origin,sourceRevision,previewTok
   return {runId,origin,sourceRevision,results,...(failure?{failure}:{}),deployment:gate?.status()??null,cleanup:cleanupProof,
     liveAcceptance:!failure&&results.length===cases.length&&results.every(row=>row.passed)
       &&cleanupProof.verified&&cleanupProof.protectedOwnerUnchanged&&cleanupProof.academicGradesPreviewCleanup===true};
+}
+
+export async function runDtmStudyPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Moodle study records require the exact protected Preview and source revision.');
+  const runId=randomUUID(),results=[],seen=new Set(),now=new Date().toISOString();
+  let cases=[];
+  let gate,prepared=false,failure,phase='preflight',cleanupProof={verified:false,status:'not-started'};
+  try{
+    const {createLiveRequestPacer,readReply,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Moodle study records require the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
+    phase='prepare';
+    await prepare({runId,cases:[],now,origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:dtmStudyPreviewMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();gate=s.previewGate;
+    const identities=s.users.map(user=>s.identityRequests.find(row=>row.id===user.id&&row.runId===runId&&row.state==='created'));
+    if(identities.length!==2||identities.some(row=>!row||row.id===s.protectedOwnerBefore.id))
+      fail('fixture-isolation','Moodle study records require two recorded disposable owners.');
+    const plan=buildDtmStudyPreviewPlan(identities,now);
+    cases=dtmStudyPreviewCases(plan);
+    phase='seed';
+    await assertRecordedFixtureLease(s,'Moodle study records seed');
+    await gate.assertCurrent();
+    await query(()=>verifyDtmStudyPreviewRows(s.sql,plan,{expectEmpty:true}),'Reserved Moodle study records fixture rows already exist.');
+    s.dtmStudyPreview=plan;
+    for(const id of [...plan.courseIds,...plan.meetingIds])s.recordIds.add(id);
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedDtmStudyPreviewRows(s.sql,plan)),'Could not persist the exact isolated Moodle study records.');
+    async function observe(){
+      await assertRecordedFixtureLease(s,'Moodle study records readback');
+      await gate.assertCurrent();
+      const rows=await query(()=>verifyDtmStudyPreviewRows(s.sql,plan),'Could not verify persisted Moodle study rows.');
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await readDtmStudyPreviewCallers(plan,s.users,{projectOrigin:new URL(s.url).origin,publishable:s.publishable,
+        fetchImpl:s.boundedFetch,readResponse:(response,target)=>readBoundedFixtureResponse(response,target,64_000),signal:signals(signal,15000)});
+      return {rows,callers};
+    }
+    for(const testCase of cases){
+      phase=testCase.id;
+      assertDtmStudyClock(now);
+      const before=await observe(),request=dtmStudyPreviewRequest(plan,testCase);
+      let ticket,response,parsed;
+      await pace(async()=>{
+        response=await readback(new URL(request.path,origin),{method:'POST',body:request.body,
+          headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.users[0].token},signal:signals(signal,65000)});
+        parsed=await readReply(response);
+        await gate.afterRequest(ticket);
+      },signal,async()=>{ticket=await gate.beforeRequest();});
+      const correlationId=response.headers.get('x-assistant-request-id');
+      const after=await observe();
+      assertDtmStudyClock(now);
+      const deniedMarkers=[...plan.ownerIds,...identities.map(row=>row.email),...s.users.map(user=>user.token)];
+      const graded=gradeDtmStudyPreview(plan,testCase,{...parsed,statusCode:response.status,execution:'live-native',fixtureKey:testCase.fixtureKey,
+        correlationId,requestIndex:ticket.requestIndex,requestSha256:request.sha256},{before,after,privateMarkers:deniedMarkers});
+      if(seen.has(correlationId)){graded.passed=false;graded.failedChecks.push('dtm-study.duplicate-request');}
+      seen.add(correlationId);results.push({...graded,requestIndex:ticket.requestIndex});
+    }
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Moodle study records source changed during verification.');
+    await gate.finish();
+  }catch(error){
+    if(error?.dtmStudyPreviewCleanupProof)cleanupProof=error.dtmStudyPreviewCleanupProof;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{if(prepared)cleanupProof=await captureFixtureCleanup();}
+  return {runId,origin,sourceRevision,results,...(failure?{failure}:{}),deployment:gate?.status()??null,cleanup:cleanupProof,
+    liveAcceptance:!failure&&results.length===cases.length&&results.every(row=>row.passed)
+      &&cleanupProof.verified&&cleanupProof.protectedOwnerUnchanged&&cleanupProof.dtmStudyPreviewCleanup===true};
 }
 
 export async function runDtmGradeReportPreview({origin,sourceRevision,previewToken,signal,suite='report'}={}){
@@ -4234,6 +4326,12 @@ export async function cleanup(){
       await query(()=>verifyAcademicGradesPreviewRows(s.sql,s.academicGradesPreview,{allowEmpty:true}),
         'Could not authorize cascade cleanup of the exact disposable academic grade rows.');
     }
+    if(s.dtmStudyPreview){
+      await assertRecordedFixtureLease(s,'Moodle study fixture cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>verifyDtmStudyPreviewRows(s.sql,s.dtmStudyPreview,{allowEmpty:true}),
+        'Could not authorize cascade cleanup of the exact disposable Moodle study records.');
+    }
     if(s.facilityRepairCancellation){
       await assertRecordedFixtureLease(s,'Facility repair cancellation cleanup');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
@@ -4416,6 +4514,14 @@ export async function cleanup(){
       if(identities.length)fail('fixture-cleanup','A reserved academic grades fixture identity remains.');
       s.academicGradesPreviewCleanup=true;
     }
+    if(s.dtmStudyPreview){
+      const plan=s.dtmStudyPreview;
+      await query(()=>verifyDtmStudyPreviewRows(s.sql,plan,{expectEmpty:true}),'Could not verify Moodle study fixture cleanup.');
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(plan.ownerIds)} limit 1`,
+        'Could not verify Moodle study fixture identity cleanup.');
+      if(identities.length)fail('fixture-cleanup','A reserved Moodle study fixture identity remains.');
+      s.dtmStudyPreviewCleanup=true;
+    }
     if(s.facilityRepairCancellation){
       const {plan,command}=s.facilityRepairCancellation;
       await query(()=>verifyFacilityRepairCancellationAbsent(s.sql,plan,command),'Could not prove exact facility repair cancellation cleanup.');
@@ -4496,6 +4602,7 @@ export async function cleanup(){
     ...(s.learningSupportPreviewCleanup?{learningSupportPreviewCleanup:true}:{}),
     ...(s.clearanceStatusPreviewCleanup?{clearanceStatusPreviewCleanup:true,clearanceStatusSharedUnchanged:s.clearanceStatusSharedUnchanged}:{}),
     ...(s.academicGradesPreviewCleanup?{academicGradesPreviewCleanup:true}:{}),
+    ...(s.dtmStudyPreviewCleanup?{dtmStudyPreviewCleanup:true}:{}),
     ...(s.internshipFixture?{internshipCleanup:true}:{}),
     ...(s.internshipChargeCleanup?{internshipChargeCleanup:true}:{}),
     ...(s.internshipTimetableCleanup?{internshipTimetableCleanup:true}:{}),

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify standalone Moodle questions about the student's saved courses, course role, meeting notes, next meeting, and attendance directly against their owned records. Add a protected evaluation of the five original questions with two callers. [#100]
+
 - Reconcile disposable Auth users after uncertain deletion responses and space out transient cleanup retries. [#100]
 
 - Verify student club records, scoped officer views, and separate student and manager review behavior in Chromium. [#100]

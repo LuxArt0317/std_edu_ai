@@ -11,6 +11,22 @@ export function validateDtmMaterialTargetUrl(value:unknown):string|null;
 export function parseDtmCourseResourceData(value:unknown,userId:string,courseId:string,materialId:string):DtmCourseResourceData;
 export function loadDtmCourseResource(account:DtmCourseResourceAccount,options:{courseId:string;materialId:string}):Promise<DtmCourseResourceData>;
 
+export type DtmStudyRecords = {
+  courses: {
+    id: string; user_id: string; code: string; title: string; term: string;
+    source_mode: 'sample' | 'personal'; role: 'student' | 'teacher';
+  }[];
+  meetings: {
+    id: string; course_id: string; meeting_on: string; starts_at: string;
+    title: string; attendance: 'unknown' | 'present' | 'absent' | 'late' | 'excused';
+    notes: string; dtm_courses: {id: string; user_id: string};
+  }[];
+  courseTotal: number;
+  meetingTotal: number;
+};
+export function parseDtmStudyRecords(value: unknown, userId: string, courseId: string | null): DtmStudyRecords;
+export function loadDtmStudyRecords(account: DtmCourseResourceAccount, courseId: string | null): Promise<DtmStudyRecords>;
+
 export const dtmMaterialListLimit: 12;
 export type DtmCourseMaterialList = {
   id: string;
