@@ -73,3 +73,5 @@
 - 2026-11-15 [#100] Exact Preview Quality 43695833757 passed. Independent public review confirmed accurate scope on the five probes and found an omitted archived-page summary and a missing sign-in-required DTM notice lead. Posted the verified checkpoint and remaining acceptance gates in Issue #100.
 
 - 2026-11-15 [#100] Implemented verified public continuation after a useful but incomplete answer and content-backed same-capture summaries. Added pinned equipment cancellation and Moodle timing runners with paired record readbacks and exact fixture disposal. The Moodle evaluator and actual API handlers passed all six cases locally against disposable PostgreSQL.
+
+- 2026-11-15 [#100] Protected `ae5135f` passed both account packets. Club reads and cancellation passed 18 pinned requests and Moodle timing passed six with exact cleanup. The five public probes preserved the gated notice and verified saved archive contents. Staged `eddb586` to correct the observed archive language mismatch and remove the generic retry text when there is a specific school-source link.

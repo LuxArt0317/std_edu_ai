@@ -940,3 +940,10 @@ returns new evidence. Explicit archive summaries require a claim referring
 to the same source excerpt. The equipped protected runners verify nine
 cancellation outcomes and six saved Moodle timing scenarios. Serialize
 their disposable account lease and keep the independent cleanup reports.
+
+Exact protected `ae5135f` passed equipment reads and confirmed cancellation
+on 18 pinned requests and six Moodle timing cases. Both fixture leases were
+released after exact cleanup. The five public probes preserved the gated
+OneDrive notice and verified the archived student page summary. The language
+correction is staged separately on `eddb586`. Native Moodle grades and the
+owned Counseling cancellation are in separate worktrees.

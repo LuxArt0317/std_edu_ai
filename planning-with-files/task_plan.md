@@ -846,9 +846,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Verify the hosted finance manager path using an approved synthetic manager identity.
 - [x] Verify scoped club equipment reads and exact confirmed cancellation locally through the assistant, including zero pre-confirmation writes and a stable retry ID.
 - [x] Pass all nine protected equipment read checks on `6f9fb5e` with paired owner readbacks and exact fixture cleanup.
-- [ ] Verify confirmed equipment cancellation against disposable records on protected Preview.
+- [x] Pass the nine confirmed equipment cancellation checks on protected `ae5135f`, including stale/crossed denial, replay and exact fixture cleanup.
 - [x] Verify exact Moodle submission timing locally, including prior deadline, date boundaries and ambiguous revision questions.
-- [ ] Replay signed-in Moodle submission timing on the protected deployment.
+- [x] Pass all six signed-in Moodle submission timing checks on protected `ae5135f`, with native record readbacks and exact fixture cleanup.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
@@ -880,8 +880,16 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Complete broader protected acceptance before promotion. The public manifest still serves `076c79a`.
 
 - [x] Require the archived-page answer to summarize requested content from the same capture and independently grade it locally.
-- [ ] Verify the exact archived student-page summary on protected Preview.
+- [x] Verify the substantive archived student-page summary, title, link and date on protected `ae5135f`.
+- [ ] Verify English and Traditional Chinese archive wording on the language-correction Preview.
 - [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
 - [x] Preserve the original DTM notice link outside answer evidence and verify the login redirect handling locally.
-- [ ] Verify the specific DTM notice and partial-coverage behavior on the new protected Preview.
+- [x] Verify the exact DTM notice access handoff on protected `ae5135f`.
+- [ ] Observe an independent successful verified-partial follow-up with live public providers. Controlled endpoint coverage resolves this branch.
 - [x] Add protected runners for equipment confirmation and exact Moodle submission timing with paired record readbacks and journaled cleanup.
+
+### Native grade and appointment actions [Issue #100]
+
+- [ ] Mount and replay the exact Moodle native grade-report cases after checking separate gradebook and tracker facts.
+- [ ] Implement and verify confirmed cancellation of an eligible caller-owned 29-1 appointment through the existing versioned workflow.
+- [ ] Replay the four authenticated service boundary families at 30-1, 30-2, 31-2 and 35-1.
