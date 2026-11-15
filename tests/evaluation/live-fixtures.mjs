@@ -2612,6 +2612,7 @@ export async function runClubAttendancePreview({origin,sourceRevision,previewTok
     }
     await saveLedger();
     await query(()=>feeTransaction(s,async()=>{
+      await seedDisposableNativeBrowserProfiles(s.sql,{runId,owners:verifiedDisposableBrowserOwners(s)});
       await changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests);
       if(s.clubAttendanceChargePlan)await stageOwnedChargeRows(s.sql,s.clubAttendanceChargePlan);
     }),'Could not seed exact disposable Club Attendance records.');
@@ -4955,7 +4956,6 @@ async function reserveScopedFixtureConversation(s,ownerId,{conversationId,journa
     if(matches.length!==1)fail('fixture-state','The transcript owner is not an exact disposable identity.');
     return {id:user.id,email:matches[0].email};
   });
-  if(second)owners.reverse();
   const fixture=createTranscriptConversationFixture({runId:s.runId,owners,conversationId,journal,sql:s.sql,
     assertLease:async()=>{
       if(state!==s||!s.locked||s.closed||!s.ledgerOwned)fail('fixture-lease','The transcript fixture lease is unavailable.');
