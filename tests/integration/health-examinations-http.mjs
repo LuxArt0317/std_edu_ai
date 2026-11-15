@@ -193,7 +193,8 @@ async function observeCompound(sql,tokens) {
     assert.equal(response.status,200);
     assert.deepEqual((await response.json()).map(rowFields),dbRows.filter(row=>row.student_id===studentId));
     const health=await call(rows.length>25?'&page=2':'',token);
-    const expectedPage=(rows.length>25?rows.slice(25):rows).map(({user_id:_owner,...row})=>row);
+    const expectedPage=(rows.length>25?rows.slice(25):rows).map(({id,examination_code,student_number,student_name,class_label,report_available})=>
+      ({id,examination_code,student_number,student_name,class_label,report_available}));
     assert.deepEqual(health,{userId:user.id,total:rows.length,rows:expectedPage});
     const over=subjects[1-index].user.id;
     await call('&user_id='+over,token,400);
