@@ -22,6 +22,7 @@ import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} fr
 import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,elearningCatalogSetupSummary,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
+import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,gradeClubAttendanceCase} from './club-attendance-cases.mjs';
 import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
@@ -112,7 +113,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
     :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
-      ...elearningCatalogRunnerCases(),...accountStatusCases(),...buildPublicCases(inventory)];
+      ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -475,11 +476,14 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       report.bindingPending=selected.some(row=>row.fixtureRequirement==='published_catalog_binding');
       if(report.bindingPending){report.templateSuiteHash=report.suiteHash;report.suiteHash=null;}
       await persist(out,report);
-      if(opt.fixtureModule&&fixtureCases.length){
+      if(opt.fixtureModule&&fixtureCases.length&&!fixtureCases.every(row=>isClubAttendanceCase(row)&&row.fixtureKey==='anonymous')){
         const modulePath=resolve(root,opt.fixtureModule);
         if(relative(resolve(root,'tests/evaluation'),modulePath).startsWith('..'))throw new Error('Fixture adapters must be repository evaluation modules.');
         adapter=await loadAdapter(modulePath);
         validateFixtureAdapter(adapter,{fixtureMode});
+        if(fixtureCases.some(row=>row.fixtureKey!=='anonymous'&&isClubAttendanceCase(row))
+          &&(adapter.clubAttendanceFixtureVersion!==1||typeof adapter.afterCase!=='function'))
+          throw new Error('Club attendance requires the bound disposable fixture and both-owner readback adapter.');
         await adapter.prepare({runId,cases:feeOnly?structuredClone(fixtureCases):fixtureCases,now:opt.now,origin:opt.origin,signal:controller.signal,
           approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...(feeOnly?{fixtureMode,caseFamily:opt.caseFamily}:{})});
         if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
@@ -497,6 +501,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
       const feeOnly=opt.caseFamily==='fee-remission';
+      const nativeClub=isClubAttendanceCase(testCase);
       if(controller.signal.aborted)break;
       const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
       try{
@@ -507,6 +512,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         assertElearningCatalogCaseReady(testCase);
         assertNativeVenueCaseReady(testCase);
         assertAccountStatusCaseReady(testCase);
+        if(nativeClub){
+          clubAttendanceOracle(testCase);
+          if(opt.mode!=='live')throw new Error('Club attendance uses the actual native assistant route; draft or retrieval mode cannot execute it.');
+        }
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
           if(feeOnly||testCase.fixtureKey!=='anonymous'){
@@ -535,7 +544,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           if(response.redirected||response.url&&response.url!==new URL(endpoint,opt.origin).href)throw new Error('Assistant response changed the exact target URL.');
           const requestId=response.headers.get('X-Assistant-Request-Id');
           const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
-          envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),execution:'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
+          envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),
+            execution:nativeClub?'live-native':'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
         }else{
@@ -551,7 +561,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase))?'not-run':opt.mode==='live'?'live-model':'deterministic';
+        const execution=phase==='setup'&&(nativeClub||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase))?'not-run':opt.mode==='live'?(nativeClub?'live-native':'live-model'):'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
@@ -581,7 +591,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
+      const result=nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);
@@ -590,8 +600,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       log(JSON.stringify({case:testCase.id,passed:result.passed,failures:result.failures.map(row=>row.id),ms:envelope.elapsedMs}));
       const feeSetupFailed=feeOnly&&envelope.failureKind==='setup';
       if(feeSetupFailed)report.runFailure='Fee remission fixture setup failed; no further cases or fixture transitions were attempted.';
+      const clubSetupFailed=nativeClub&&opt.mode==='live'&&envelope.failureKind==='setup';
+      if(clubSetupFailed)report.runFailure='Club attendance fixture setup failed; the runner stopped before another assistant request.';
       await persist(out,report);
-      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed)break;
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';

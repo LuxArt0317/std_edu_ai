@@ -1,3 +1,4 @@
+import {clubAttendanceRunnerCases} from './club-attendance-cases.mjs';
 import {venueRunnerCases} from './venue-native-runner.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
@@ -181,8 +182,8 @@ test('remote-learning inventory follows the authenticated workspace and distinct
 test('route coverage retains only unresolved semantic cases after adding public assistant guidance',async()=>{
   const inventory=await discoverSurfaces();
   const leaveCases=studentLeaveRunnerCases(),internshipCases=internshipRunnerCases(),assignmentList=dtmAssignmentListCases();
-  const catalogCases=elearningCatalogRunnerCases(),venueCases=venueRunnerCases(),identityCases=accountStatusCases();
-  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...venueCases,...identityCases,...buildPublicCases(inventory)];
+  const catalogCases=elearningCatalogRunnerCases(),venueCases=venueRunnerCases(),identityCases=accountStatusCases(),clubCases=clubAttendanceRunnerCases();
+  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...venueCases,...identityCases,...clubCases,...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
   const expected=[
     '/dtm/dashboard','/dtm/my',
@@ -217,16 +218,17 @@ test('route coverage retains only unresolved semantic cases after adding public 
   newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog','anonymous-records-elearningMetadata');
   newIds.push(...venueCases.map(row=>row.id),'anonymous-records-venueRequests');
   newIds.push(...identityCases.map(row=>row.id),'anonymous-records-accountIdentity');
+  newIds.push(...clubCases.map(row=>row.id),'anonymous-records-clubAttendance');
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
-  assert.equal(report.coverage.routes.total,577);
+  assert.equal(report.coverage.routes.total,579);
   assert.equal(expected.length,16);assert.equal(added.length,5);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
   assert.equal(report.coverage.routes.missing.length,21);
-  assert.equal(report.browserAcceptance.total,577);assert.equal(report.browserAcceptance.requiredScenarios,587);
-  assert.equal(report.coverage.routeFamilies.total,53);
+  assert.equal(report.browserAcceptance.total,579);assert.equal(report.browserAcceptance.requiredScenarios,589);
+  assert.equal(report.coverage.routeFamilies.total,54);
   assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
   assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,21);

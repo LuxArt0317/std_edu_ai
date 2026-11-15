@@ -537,7 +537,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['accountIdentity','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','venueRequests','internshipRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmAssignmentList','dtmMaterials','dtmGradeReport','elearningCatalog','elearningMetadata','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
+const accountReadNames=new Set(['accountIdentity','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','clubAttendance','venueRequests','internshipRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmAssignmentList','dtmMaterials','dtmGradeReport','elearningCatalog','elearningMetadata','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -613,7 +613,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   const actions = body.proposedAction;
   check('case.id',typeof testCase?.id==='string' && Boolean(testCase.id),'Case has a stable identifier.');
   check('transport.status',envelope.statusCode === (expected.statusCode ?? expected.expectedStatusCode ?? 200),'HTTP status matches the declared expectation.');
-  check('transport.execution',['live-model','deterministic','recorded'].includes(envelope.execution),'Execution provenance is explicit.');
+  check('transport.execution',(['live-model','deterministic','recorded'].includes(envelope.execution)||envelope.execution==='live-native'&&testCase.executionContract==='live-native'),'Execution provenance is explicit.');
   if (testCase?.fixtureKey) check('fixture.identity',envelope.fixtureKey===testCase.fixtureKey,'The response used the requested fixture.');
   const denied = behavior === 'denial';
   if (!denied) check('answer.present',text.length>0 && !body.error,'A non-error answer is present.');

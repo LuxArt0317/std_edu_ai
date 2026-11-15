@@ -314,7 +314,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
       URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,assertNativeDtmCaseReady,assertNativeStudentLeaveCaseReady,assertNativeInternshipCaseReady,
       nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,gradeElearningCatalogCase,
-      assertNativeVenueCaseReady,nativeVenueSetupRequired,
+      assertNativeVenueCaseReady,nativeVenueSetupRequired,isClubAttendanceCase:()=>false,
       assertAccountStatusCaseReady,accountStatusSetupRequired,
       persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });

@@ -39,6 +39,8 @@ import {createTranscriptConversationFixture} from './transcript-conversation-fix
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {clubAttendanceOracle} from './club-attendance-cases.mjs';
+import {buildClubAttendancePlan,changeClubAttendanceFixture,observeClubAttendanceFixture} from './club-attendance-fixtures.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib';
@@ -52,6 +54,7 @@ const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRe
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
+export const clubAttendanceFixtureVersion=1;
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
 let state;
@@ -282,6 +285,7 @@ async function saveLedger(){
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
+      ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
         previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
       }}:{}),...(s.elearningPlan||s.elearningTransitionPending?{elearningFixture:{
@@ -342,7 +346,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode!==undefined&&s.fixtureMode===FEE_FIXTURE_MODE)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.clubOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -361,6 +365,12 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
   if(cases.some(nativeInternshipSetupRequired))
     fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
+  const clubCases=cases.filter(row=>row?.clubAttendanceOracle!==undefined||row?.fixtureRequirement==='club_attendance_disposable');
+  for(const testCase of clubCases)clubAttendanceOracle(testCase);
+  if(clubCases.some(testCase=>testCase.fixtureKey!=='anonymous')&&(!approvedPreviewOrigin||origin!==approvedPreviewOrigin
+    ||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(origin)))
+    fail('fixture-target','Club attendance fixtures require the exact approved project Preview.');
+  const clubOnly=clubCases.length===cases.length;
   if(cases.some(nativeVenueSetupRequired))
     fail('fixture-unsupported','Native venue requests require exact caller fixtures and independent request observations.');
   let transcriptCaseIds;
@@ -403,7 +413,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -424,13 +434,17 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['feeRemission','charges']};
     }
+    if(clubOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['clubAttendance']};
+    }
     const foreignId=randomUUID();state.recordIds.add(foreignId);await saveLedger();
     await query(()=>state.sql`insert into public.dtm_courses(id,user_id,code,title,term,role,source_mode)
       values(${foreignId},${state.users[1].id},'FOREIGN-EVAL',${FOREIGN_MARKER},'Synthetic private term','student','personal')`,'Could not create the isolated second-account sentinel.');
     state.foreignDtmCourseId=foreignId;
     await readSnapshot(state.users[0]);
     state.prepared=true;
-    return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:[...SUPPORTED_TOOLS]};
+    return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:[...SUPPORTED_TOOLS,...(clubCases.length?['clubAttendance']:[])]};
   }catch(error){
     // Limit orphan lifetime when prepare itself fails. A failed cleanup closes
     // the connection and retains its ledger; the runner's later cleanup call
@@ -840,6 +854,23 @@ async function readBoundedFixtureResponse(response,url,maxBytes){
     }
   }finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
   return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
+}
+
+async function assertClubAttendanceLease(s){
+  if(state!==s||!s.ledgerOwned||!s.locked||s.closed)fail('fixture-lease','Club attendance requires the recorded disposable database lease.');
+  const locks=await s.sql`select 1 from pg_locks where locktype='advisory' and pid=pg_backend_pid()
+    and classid=23101314 and objid=115100 and objsubid=2 and granted`;
+  if(locks.length!==1)fail('fixture-lease','Club attendance could not verify its reserved database connection.');
+}
+
+async function clubAttendanceObservation(s,oracle,signal){
+  await assertClubAttendanceLease(s);
+  return query(()=>observeClubAttendanceFixture({sql:s.sql,plan:s.clubAttendancePlan,identities:s.identityRequests,
+    users:s.users,origin:s.origin,page:oracle.page,signal,read:async(url,token,active)=>{
+      const response=await fetch(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
+        headers:{Authorization:'Bearer '+token},signal:signals(active,15000)});
+      return readBoundedFixtureResponse(response,url,32768);
+    }}),'Could not independently recheck both disposable club attendance views.');
 }
 
 /** Transition only known composite keys for the two verified disposable owners. */
@@ -1678,6 +1709,26 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     return anonymous?{}:{token:s.users[0].token};
   }
   if(fixtureMode!==undefined||fixtureFamily!==undefined)fail('fixture-case','Fixture mode changed after preparation.');
+  if(testCase?.clubAttendanceOracle!==undefined||testCase?.fixtureRequirement==='club_attendance_disposable'){
+    const oracle=clubAttendanceOracle(testCase);
+    if(!s.caseIds.has(testCase.id)||oracle.guest||!s.locked||!s.ledgerOwned||s.clubAttendancePending)
+      fail('fixture-case','The club attendance case is outside its selected disposable owner binding.');
+    const active=signal||s.signal;active?.throwIfAborted();
+    await assertClubAttendanceLease(s);
+    if(!s.clubAttendancePlan){
+      s.clubAttendancePlan=buildClubAttendancePlan({runId:s.runId,owners:s.users.map(user=>user.id)});
+      s.clubAttendancePending=true;
+      await saveLedger();
+      await query(()=>feeTransaction(s,()=>changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests)),
+        'Could not prepare the exact disposable club attendance fixture.');
+      s.clubAttendancePending=false;
+    }
+    const beforeHash=await clubAttendanceObservation(s,oracle,active);
+    s.current={caseId:testCase.id,beforeHash,clubAttendance:true};
+    try{await saveLedger();}catch(error){s.current=null;throw error;}
+    return {token:s.users[oracle.role==='A'?0:1].token};
+  }
+  if(s.clubOnly||s.clubAttendancePending)fail('fixture-state','The club attendance fixture cannot serve an unrelated case or unresolved transaction.');
   if(s.aidTransitionPending)fail('fixture-state','The preceding aid fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.dtmReportTransitionPending)fail('fixture-state','The preceding DTM report fixture transaction did not settle. Cleanup must reconcile it before any further case.');
   if(s.elearningTransitionPending)fail('fixture-state','The preceding remote-learning fixture transaction did not settle. Cleanup must reconcile it before any further case.');
@@ -1790,6 +1841,21 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
   const s=ready();if(s.current?.caseId!==testCase.id)fail('fixture-state','afterCase() does not match the prepared case.');
   const current=s.current;
   try{
+    if(current.clubAttendance){
+      const oracle=clubAttendanceOracle(testCase);
+      const after=await clubAttendanceObservation(s,oracle,signal||s.signal);
+      if(after!==current.beforeHash)fail('fixture-unapproved-write','Saved attendance fixture rows changed during the assistant request.');
+      const emitted=JSON.stringify([envelope.body,envelope.events]);
+      if([...s.clubAttendancePlan.ids,...s.clubAttendancePlan.owners].some(marker=>emitted.toLowerCase().includes(marker.toLowerCase()))){
+        envelope.body={error:'Club attendance fixture identity isolation failed.'};envelope.events=[];
+        fail('fixture-isolation','The assistant exposed a disposable account or record identifier.');
+      }
+      envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
+      envelope.stateAfterProposal={ownedRecordsDigest:after};
+      envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+        clubAttendance:{page:oracle.page,role:oracle.role,twoOwnersVerified:true}};
+      return;
+    }
     if(s.feeFixture){
       if(fixtureMode!==FEE_FIXTURE_MODE||fixtureFamily!==current.fixtureFamily)fail('fixture-state','Fee fixture scope changed during evaluation.');
       const after=await s.feeFixture.lifecycle.verifyUnchanged();
@@ -1919,6 +1985,13 @@ export async function cleanup(){
     }
     if(s.feeFixture?.lifecycle){
       await s.feeFixture.lifecycle.cleanup();
+      await saveLedger();
+    }
+    if(s.clubAttendancePlan){
+      await assertClubAttendanceLease(s);
+      await query(()=>feeTransaction(s,()=>changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests,{cleanup:true})),
+        'Could not reconcile the exact disposable club attendance rows; the cleanup ledger is retained.');
+      s.clubAttendancePlan=null;s.clubAttendancePending=false;
       await saveLedger();
     }
     if(s.dormitoryPlan||s.pendingDormitoryPlan){
