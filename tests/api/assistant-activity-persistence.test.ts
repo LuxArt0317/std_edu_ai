@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import handler from '../../server/assistantConversations.js';
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 
 const steps=Array.from({length:40},(_,index)=>({kind:`account-read:record${index}:2`,label:`Checked record ${index}`,detail:'Read the owned record; checked its source.',status:'complete' as const}));
 const messages=()=>[{id:'u',role:'user' as const,content:'What is in my records?'},
@@ -10,7 +11,7 @@ const messages=()=>[{id:'u',role:'user' as const,content:'What is in my records?
 test('authenticated persistence sends all normal activity steps and rejects oversized UTF-8 before RPC',async()=>{
   const savedFetch=globalThis.fetch,urlKey=process.env.VITE_SUPABASE_URL,publicKey=process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='fixture';
-  const owner='10000000-0000-4000-8000-000000000099',id='20000000-0000-4000-8000-000000000099';
+  const owner='10000000-0000-4000-8000-000000000099',id=newConversationId();
   let writes=0,stored:any;
   globalThis.fetch=async(input,init)=>{
     const url=new URL(String(input));

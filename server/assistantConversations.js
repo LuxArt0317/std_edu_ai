@@ -19,7 +19,9 @@ export default async function handler(req,res){
         throw new AffairsWorkspaceError('Invalid conversation.',400);
       const title=boundedAssistantText(body.title,100);
       if(!title.trim())throw new AffairsWorkspaceError('Invalid conversation.',400);
-      path='rpc/affairs_save_conversation_v2';
+      // A tab loaded before promotion can still send its original UUIDv4 draft.
+      // The compatibility RPC shares deletion markers and enforces the database cutover.
+      path=body.version===0&&id[14]==='4'?'rpc/affairs_save_conversation':'rpc/affairs_save_conversation_v2';
       try{content=JSON.stringify({p_id:id,p_title:title,p_expected_version:body.version,p_messages:sanitizeStoredConversation(body.messages)});}
       catch(error){if(error instanceof RangeError)throw new AffairsWorkspaceError('This conversation turn is too large to save. Start a new conversation.',400);throw error;}
     }else if(req.method==='DELETE'){

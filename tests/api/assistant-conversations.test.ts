@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';import {test} from 'node:test';
 import handler from '../../api/affairs-data.ts';
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 test('conversation API derives owner from verified Google session and strips executable data',async()=>{
   const original=globalThis.fetch,saved={...process.env};
   process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';process.env.VITE_SUPABASE_PUBLISHABLE_KEY='fixture';
-  const owner='10000000-0000-4000-8000-000000000099',id='20000000-0000-4000-8000-000000000099';
+  const owner='10000000-0000-4000-8000-000000000099',id=newConversationId();
   let write:any,read:unknown;
   globalThis.fetch=async(input,init)=>{
     const url=new URL(String(input));
@@ -70,6 +71,51 @@ test('conversation DELETE acknowledges only the owner-scoped database receipt',a
     rpcStatus=429;
     assert.equal((await request(query)).status,429);
     assert.equal(rpcCalls,7);
+  }finally{
+    globalThis.fetch=original;
+    for(const [key,value] of Object.entries(saved))if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+});
+
+test('only version-zero v4 saves use the compatibility RPC, which can retire without fallback',async()=>{
+  const original=globalThis.fetch,config={VITE_SUPABASE_URL:'https://xiftudmvxphxcjtmfmib.supabase.co',VITE_SUPABASE_PUBLISHABLE_KEY:'fixture'};
+  const saved=Object.fromEntries(Object.keys(config).map(key=>[key,process.env[key]]));
+  Object.assign(process.env,config);
+  const owner='10000000-0000-4000-8000-000000000099';
+  const legacyId='20000000-0000-4000-8000-000000000099',v7Id=newConversationId(),v8Id='20000000-0000-8000-8000-000000000099';
+  const rpcCalls:Array<{path:string;id:string;version:number}>=[];
+  let closeLegacy=false;
+  globalThis.fetch=async(input,init)=>{
+    const url=new URL(String(input)),path=url.pathname;
+    if(path==='/auth/v1/user')return Response.json({id:owner,identities:[{provider:'google'}]});
+    assert.equal(init?.method,'POST');
+    const {p_id:id,p_expected_version:version}=JSON.parse(String(init?.body));
+    rpcCalls.push({path,id,version});
+    if(id===v8Id||(closeLegacy&&id===legacyId))return Response.json({code:'PT409'},{status:409});
+    return Response.json({id,version:version+1});
+  };
+  const save=async(id:string,version:number)=>{
+    let status=200;
+    const response={status(code:number){status=code;return response;},json(){},setHeader(){}};
+    await handler({method:'POST',query:{resource:'conversations'},headers:{authorization:'Bearer '+'x'.repeat(40)},
+      body:{id,version,title:'Chat',messages:[]}},response);
+    return status;
+  };
+  const compatibility='/rest/v1/rpc/affairs_save_conversation',protectedSave=compatibility+'_v2';
+  try{
+    assert.equal(await save(legacyId,0),200);
+    assert.equal(await save(legacyId,1),200);
+    assert.equal(await save(v7Id,0),200);
+    assert.equal(await save(v8Id,0),409);
+    closeLegacy=true;
+    assert.equal(await save(legacyId,0),409);
+    assert.deepEqual(rpcCalls,[
+      {path:compatibility,id:legacyId,version:0},
+      {path:protectedSave,id:legacyId,version:1},
+      {path:protectedSave,id:v7Id,version:0},
+      {path:protectedSave,id:v8Id,version:0},
+      {path:compatibility,id:legacyId,version:0},
+    ]);
   }finally{
     globalThis.fetch=original;
     for(const [key,value] of Object.entries(saved))if(value===undefined)delete process.env[key];else process.env[key]=value;
