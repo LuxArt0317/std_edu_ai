@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify the saved record overview, current subjects and year, and standalone balances directly against their selected record fields and counts. Refresh the authorized read when those fields cannot be validated. [#100]
+
 - Answer standalone English and Traditional Chinese founding-year questions from the saved university About page. [#100]
 
 - Continue public answer verification with an unread school page after a temporary rewrite or review failure, when time remains to check the answer. Keep each completed check and the interruption in chat Activity. [#100]

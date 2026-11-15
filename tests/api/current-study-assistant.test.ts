@@ -120,8 +120,8 @@ test('the reported prompt checks only the caller’s current courses and year, i
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY='STUDY_TEST_MODEL';
   try{
-    for(const mode of ['healthy','retry','missing','year-failed','timetable-failed','both-failed','source-unavailable','review-omits-year','review-cites-sample-only']){
-      let yearReads=0,studentReads=0,coursesReads=0,reviews=0;
+    for(const mode of ['healthy','retry','missing','year-failed','timetable-failed','both-failed']){
+      let yearReads=0,studentReads=0,coursesReads=0;
       const failures:unknown[]=[];
       async function mock(input:RequestInfo|URL,init?:RequestInit){
         const url=new URL(String(input));
@@ -132,7 +132,7 @@ test('the reported prompt checks only the caller’s current courses and year, i
             assert.equal(url.searchParams.get('user_id'),'eq.'+id(1));
             if(url.searchParams.get('select')?.includes('year_level')){
               yearReads++;
-              if(['year-failed','both-failed'].includes(mode))return Response.json({error:'unavailable'},{status:503});
+              if(['year-failed','both-failed'].includes(mode)||mode==='retry'&&yearReads===1)return Response.json({error:'unavailable'},{status:503});
               return mode==='missing'?Response.json([],{headers:{'content-range':'*/0'}}):
                 Response.json([{user_id:id(1),year_level:yearReads+2,source_mode:'sample'}],{headers:{'content-range':'0-0/1'}});
             }
@@ -142,54 +142,27 @@ test('the reported prompt checks only the caller’s current courses and year, i
           assert.equal(url.pathname,'/rest/v1/affairs_enrollments');
           assert.equal(url.searchParams.get('student_id'),'eq.'+id(2));
           coursesReads++;
-          if(['timetable-failed','both-failed'].includes(mode))return Response.json({error:'unavailable'},{status:503});
+          if(['timetable-failed','both-failed'].includes(mode)||mode==='retry'&&coursesReads===1)return Response.json({error:'unavailable'},{status:503});
           return Response.json([
             enrolment(1,'Previous subject','2020-01-01','2020-12-31'),
             enrolment(2,'Current saved subject','2021-01-01','2098-12-31'),
             enrolment(3,'Future subject','2099-01-01','2099-12-31'),
           ],{headers:{'content-range':'0-2/3'}});
         }
-        assert.equal(url.origin,'https://api.openai.com');
-        const body=JSON.parse(String(init?.body)),payload=JSON.parse(body.input[0].content[0].text),stage=body.text.format.name;
-        assert.equal(stage,'answer_evidence_review');
-        reviews++;
-        if(mode==='source-unavailable')return Response.json({error:'unavailable'},{status:503});
-        assert.deepEqual(payload.evidence.map((row:{id:string})=>row.id),['account-scope','account:profile','account:courses']);
-        assert.deepEqual(Object.keys(JSON.parse(payload.evidence[0].content).availableTools),['profile','courses']);
-        assert.doesNotMatch(JSON.stringify(payload.evidence),/Previous subject|Future subject|STUDY_TEST|PRIVATE/u);
-        const year=JSON.parse(payload.evidence[1].content),courses=JSON.parse(payload.evidence[2].content);
-        const yearPath=mode==='missing'?'/studentRecordFound':mode==='year-failed'?'/unavailableReason':'/records/student/yearLevel';
-        const coursePath=mode==='missing'?'/studentRecordFound':mode==='timetable-failed'?'/unavailableReason':'/records/0/title';
-        if(mode==='missing'||mode==='timetable-failed')assert.equal(courses.calendar,undefined);
-        if(mode==='missing'){assert.equal(year.studentRecordFound,false);assert.equal(courses.studentRecordFound,false);}
-        if(mode==='year-failed')assert.equal(year.unavailableReason,'read_failed');
-        if(mode==='timetable-failed')assert.equal(courses.unavailableReason,'read_failed');
-        const yearClaim=mode==='missing'?'This account has no linked year record.':mode==='year-failed'?'The year lookup could not be verified.':`Year level: ${yearReads+2}.`;
-        const courseClaim=mode==='missing'?'There is no linked student for the timetable.':mode==='timetable-failed'?'The timetable could not be verified.':'Current saved subject STUDY2 (sample).';
-        const supported=mode!=='retry';
-        const sampleOnly=mode==='review-cites-sample-only';
-        const value={supported,answersQuestion:supported,claims:[
-          ...(mode==='review-omits-year'?[]:[{
-            claim:sampleOnly?'The student record is sample data.':yearClaim,
-            supported,evidenceId:'account:profile',jsonPaths:[sampleOnly?'/records/student/sourceMode':yearPath],quotes:[],
-          }]),
-          {claim:courseClaim,supported,evidenceId:'account:courses',jsonPaths:[coursePath],quotes:[]},
-        ]};
-        return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
+        assert.fail('Exact course and year answers do not send account records to a model.');
       }
       globalThis.fetch=(...args)=>mock(...args).catch(error=>{failures.push(error);throw error;});
       const result=await ask(exact,mode==='retry'?'/dtm':'/');
       assert.deepEqual(failures,[],mode);
-      const attempts=['retry','both-failed','source-unavailable','review-omits-year','review-cites-sample-only'].includes(mode)?2:1;
+      const attempts=['retry','both-failed'].includes(mode)?2:1;
       assert.equal(yearReads,attempts,mode);assert.equal(studentReads,attempts,mode);
       assert.equal(coursesReads,mode==='missing'?0:attempts,mode);
-      assert.equal(reviews,mode==='both-failed'?0:1,mode);
       assert.equal(result.verification.status,mode==='both-failed'?'unverified':'verified',mode);
       assert.equal(result.verification.attempts,attempts,mode);
       if(attempts===2&&mode!=='both-failed'){
         assert.match(result.answer,/Year level: 4 .*sample data/u);
-        assert.ok(result.activity.some((step:{kind:string;status:string})=>step.kind==='current-study-evidence-check'&&step.status==='complete'));
       }
+      if(mode!=='both-failed')assert.ok(result.activity.some((step:{kind:string;status:string})=>step.kind==='current-study-evidence-check'&&step.status==='complete'));
       if(mode==='both-failed'){
         assert.equal(result.verification.reason,'evidence_unavailable');
         assert.deepEqual(result.citations,[]);

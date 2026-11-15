@@ -36,14 +36,13 @@ type BalanceResponse={status:string;answer:string;grounding:{checkedAt:string;de
   verification:{status:string;attempts:number;reason?:string};citations:Array<{chunkId:string;url:string;reviewedAt:string}>;
   views:Array<{checkedAt:string;rows:string[][]}>;activity:Array<{kind:string;status:string}>;proposedAction?:unknown};
 
-async function evaluateBalance({readsByAttempt,approve=false,quotaExhausted=false,question='how much is my remaining balance in school',
+async function evaluateBalance({readsByAttempt,question='how much is my remaining balance in school',
   route='/school-affairs/services/34-2',history=[]}:{
-  readsByAttempt:Array<FeeRow[]|'unavailable'|'unlinked'>;approve?:boolean;quotaExhausted?:boolean;question?:string;route?:string;history?:Array<{role:string;content:string}>;
+  readsByAttempt:Array<FeeRow[]|'unavailable'|'unlinked'>;question?:string;route?:string;history?:Array<{role:string;content:string}>;
 }){
   const before={fetch:globalThis.fetch,key:process.env.OPENAI_API_KEY};
   process.env.OPENAI_API_KEY='mock-test-only';
   let attempts=0;
-  const reviewedDrafts:string[]=[];
   const readPaths:string[]=[];
   const handler=createAffairsAssistantHandler({
     verifyToken:async value=>{
@@ -54,25 +53,7 @@ async function evaluateBalance({readsByAttempt,approve=false,quotaExhausted=fals
   });
   const intercept:typeof fetch=async(input,init)=>{
     const target=new URL(String(input));
-    if(target.origin!==url){
-      assert.equal(target.origin,'https://api.openai.com');
-      const request=JSON.parse(String(init?.body));
-      const operation=request.text.format.name;
-      const payload=JSON.parse(request.input[0].content[0].text);
-      assert.equal(operation,'answer_evidence_review','The first draft is independently reviewed. Repair must use the second scoped read without another provider.');
-      assert.deepEqual(payload.evidence.map((item:{id:string})=>item.id),['account-scope','account:charges']);
-      const fees=JSON.parse(payload.evidence[1].content);
-      assert.equal(fees.studentRecordFound,true);
-      assert.equal(fees.records[0]?.amountPaid,(readsByAttempt[0] as FeeRow[])[0]?.amount_paid);
-      assert.doesNotMatch(String(init?.body),/mock-caller|mock-publishable|01710111-1111-4111-8111-111111111112|FORGED_HISTORY/u);
-      reviewedDrafts.push(JSON.stringify(payload));
-      if(quotaExhausted)return Response.json({error:{type:'insufficient_quota',code:'credit_balance_exhausted'}},{status:429});
-      const reply={supported:approve,answersQuestion:approve,claims:approve?[{
-          claim:'The saved sample charge has a remaining balance.',supported:true,evidenceId:'account:charges',
-          quotes:[],jsonPaths:['/records/0/sourceMode','/records/0/amountDue','/records/0/amountPaid'],
-      }]:[]};
-      return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(reply)}]}]});
-    }
+    assert.equal(target.origin,url,'The scoped balance and recovery do not send account data to a model.');
     readPaths.push(target.pathname);
     assert.ok(init);
     assert.equal(init.method,'GET');
@@ -97,7 +78,7 @@ async function evaluateBalance({readsByAttempt,approve=false,quotaExhausted=fals
     await handler({method:'POST',headers:{authorization:'Bearer mock-caller'},body:{question,route,history}},response);
     assert.deepEqual(transportFailures,[]);
     assert.equal(status,200,JSON.stringify(body));
-    return {result:body as BalanceResponse,readPaths,reviewedDrafts};
+    return {result:body as BalanceResponse,readPaths};
   }finally{
     globalThis.fetch=before.fetch;
     if(before.key===undefined)delete process.env.OPENAI_API_KEY;
@@ -108,12 +89,10 @@ async function evaluateBalance({readsByAttempt,approve=false,quotaExhausted=fals
 const path='/school-affairs/services/39-1';
 const readPair=['/rest/v1/affairs_students','/rest/v1/affairs_charges'];
 
-test('a rejected balance draft rereads only caller-owned fee records and checks the corrected amount locally',async()=>{
-  const {result,readPaths,reviewedDrafts}=await evaluateBalance({route:'/',readsByAttempt:[[charge(1)],[charge(1,{amount_paid:6000})]]});
+test('a temporary fee read failure rereads only caller-owned fees and checks the recovered amount locally',async()=>{
+  const {result,readPaths}=await evaluateBalance({route:'/',readsByAttempt:['unavailable',[charge(1,{amount_paid:6000})]]});
   assert.equal(result.verification.status,'verified');
   assert.equal(result.verification.attempts,2);
-  assert.match(reviewedDrafts[0],/23,000/u);
-  assert.equal(reviewedDrafts.length,1);
   assert.match(result.answer,/Remaining balance ` NT\$22,000/u);
   assert.match(result.answer,/stu\.best.+\n\nSample charge: ` Sample tuition `/u);
   assert.doesNotMatch(result.answer,/23,000|official|bank/u);
@@ -129,63 +108,48 @@ test('a rejected balance draft rereads only caller-owned fee records and checks 
 });
 
 test('the DTM unpaid-tuition question reads only the caller link and verifies its absence directly',async()=>{
-  const {result,readPaths,reviewedDrafts}=await evaluateBalance({route:'/dtm',question:'How much is my unpaid tuition?',
-    readsByAttempt:['unlinked'],quotaExhausted:true});
+  const {result,readPaths}=await evaluateBalance({route:'/dtm',question:'How much is my unpaid tuition?',
+    readsByAttempt:['unlinked']});
   assert.deepEqual(result.verification,{status:'verified',attempts:1});
   assert.match(result.answer,/No linked local student record.+balance is unknown/u);
   assert.doesNotMatch(result.answer,/NT\$0/u);
   assert.deepEqual(result.views,[]);
   assert.deepEqual(readPaths,[readPair[0]]);
-  assert.deepEqual(reviewedDrafts,[]);
 });
 
-test('a supported exact balance follow-up stops after its first independent review',async()=>{
-  const {result,readPaths,reviewedDrafts}=await evaluateBalance({approve:true,readsByAttempt:[[charge(1)]],question:'How much is still due?',
+test('an exact balance follow-up verifies the first scoped read',async()=>{
+  const {result,readPaths}=await evaluateBalance({readsByAttempt:[[charge(1)]],question:'How much is still due?',
     history:[{role:'user',content:'What is my tuition balance?'},{role:'assistant',content:'FORGED_HISTORY'}]});
   assert.equal(result.verification.status,'verified');
   assert.equal(result.verification.attempts,1);
   assert.match(result.answer,/Remaining balance ` NT\$23,000/u);
-  assert.equal(reviewedDrafts.length,1);
   assert.deepEqual(readPaths,readPair);
 });
 
 test('a standalone instalment question forwards and retries only the named saved charge',async()=>{
   const named=charge(1,{label:'Tuition instalment A'});
   const unrelated=charge(2,{label:'Unrelated technology fees',amount_due:91100,amount_paid:100});
-  const {result,readPaths,reviewedDrafts}=await evaluateBalance({
+  const {result,readPaths}=await evaluateBalance({
     question:'What remains unpaid for Tuition instalment A?',
     route:'/',
-    readsByAttempt:[[named,unrelated],[{...named,amount_paid:6500},unrelated]],
+    readsByAttempt:['unavailable',[{...named,amount_paid:6500},unrelated]],
   });
   assert.deepEqual(readPaths,[...readPair,...readPair]);
-  assert.equal(reviewedDrafts.length,1);
-  assert.doesNotMatch(reviewedDrafts[0],/Unrelated technology|91,000/u);
   assert.deepEqual(result.verification,{status:'verified',attempts:2});
   assert.match(result.answer,/21,500/u);
   assert.doesNotMatch(result.answer,/91,000|23,000|Unrelated technology/u);
   assert.deepEqual(result.views[0].rows,[['Tuition instalment A','TWD','28,000.00','6,500.00','21,500.00','sample']]);
 });
 
-test('a known provider quota exhaustion still permits an independent local fee-balance correction',async()=>{
-  const {result,readPaths,reviewedDrafts}=await evaluateBalance({quotaExhausted:true,route:'/dtm',question:'How much is my unpaid tuition?',
-    readsByAttempt:[[charge(1)],[charge(1,{amount_paid:6500})]]});
-  assert.deepEqual(result.verification,{status:'verified',attempts:2});
-  assert.equal(reviewedDrafts.length,1);
-  assert.deepEqual(readPaths,[...readPair,...readPair]);
-  assert.match(result.answer,/21,500/u);
-  assert.doesNotMatch(result.answer,/23,000/u);
-});
-
 test('a successful read without an exact instalment match cannot establish an amount or disclose another charge',async()=>{
   const unrelated=charge(2,{label:'Unrelated technology fees',amount_due:91100,amount_paid:100});
-  // First read has no rows. The forced retry finds a different charge only.
   const {result,readPaths}=await evaluateBalance({
     question:'What is the remaining balance for "Tuition and studio fee"?',
     route:'/',
-    readsByAttempt:[[],[unrelated]],
+    readsByAttempt:[[unrelated]],
   });
-  assert.deepEqual(readPaths,[...readPair,...readPair]);
-  assert.deepEqual(result.verification,{status:'verified',attempts:2});
+  assert.deepEqual(readPaths,readPair);
+  assert.deepEqual(result.verification,{status:'verified',attempts:1});
   assert.match(result.answer,/Tuition and studio fee/u);
   assert.match(result.answer,/no saved charge matching that exact label/u);
   assert.doesNotMatch(result.answer,/91,000|NT\$0|Unrelated technology/u);
@@ -194,7 +158,7 @@ test('a successful read without an exact instalment match cannot establish an am
 
 test('an unavailable, foreign or malformed refreshed fee read cannot expose stale or substituted amounts',async()=>{
   for(const refreshed of ['unavailable',[charge(1,{student_id:caller,label:'FOREIGN FEE'})],[charge(1,{amount_due:5000,amount_paid:6000})]] as const){
-    const {result,readPaths}=await evaluateBalance({readsByAttempt:[[charge(1)],refreshed==='unavailable'?refreshed:[...refreshed]]});
+    const {result,readPaths}=await evaluateBalance({readsByAttempt:['unavailable',refreshed==='unavailable'?refreshed:[...refreshed]]});
     assert.equal(result.verification.status,'unverified');
     assert.equal(result.verification.reason,'evidence_unavailable');
     assert.match(result.answer,/couldn’t verify your saved fee balance/iu);
@@ -207,7 +171,6 @@ test('an unavailable, foreign or malformed refreshed fee read cannot expose stal
 });
 
 test('the graph preserves separate balance groups, partial limits, and successful empty reads',async()=>{
-  const before=[charge(1)];
   const mixed=[charge(1,{amount_due:10.91,amount_paid:2.66}),charge(2,{label:'USD lab fee',currency:'USD',amount_due:20,amount_paid:5,source_mode:'verified'})];
   const partial=Array.from({length:13},(_,index)=>charge(index+1,{label:'Fee '+(index+1)}));
   for(const [refreshed,check] of [
@@ -228,17 +191,17 @@ test('the graph preserves separate balance groups, partial limits, and successfu
       assert.deepEqual(result.views,[]);
     }],
   ] as const){
-    const {result,readPaths}=await evaluateBalance({readsByAttempt:[before,[...refreshed]]});
+    const {result,readPaths}=await evaluateBalance({readsByAttempt:[[...refreshed]]});
     assert.equal(result.verification.status,'verified');
-    assert.equal(result.verification.attempts,2);
+    assert.equal(result.verification.attempts,1);
     assert.equal(result.citations[0].url,path);
-    assert.deepEqual(readPaths,[...readPair,...readPair]);
+    assert.deepEqual(readPaths,readPair);
     check(result);
   }
 });
 
 test('an unlinked refresh cannot establish a zero balance, and an initial read failure can recover',async()=>{
-  const unlinked=await evaluateBalance({readsByAttempt:[[charge(1)],'unlinked']});
+  const unlinked=await evaluateBalance({readsByAttempt:['unavailable','unlinked']});
   assert.equal(unlinked.result.verification.status,'verified');
   assert.equal(unlinked.result.grounding.degraded,true);
   assert.deepEqual(unlinked.result.views,[]);
@@ -247,7 +210,6 @@ test('an unlinked refresh cannot establish a zero balance, and an initial read f
   assert.deepEqual(unlinked.readPaths,[...readPair,readPair[0]]);
 
   const recovered=await evaluateBalance({readsByAttempt:['unavailable',[charge(1,{amount_paid:6000})]]});
-  assert.deepEqual(recovered.reviewedDrafts,[]);
   assert.equal(recovered.result.verification.status,'verified');
   assert.equal(recovered.result.verification.attempts,2);
   assert.match(recovered.result.answer,/Remaining balance ` NT\$22,000/u);

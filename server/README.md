@@ -20,6 +20,8 @@
 
 `publicPageContext.js` answers narrow university founding-year questions from the verified About page capture. It cites the captured date of approval to establish the school and admit students. These public questions need no student-record lookup or model call.
 
+For the signed-in saved overview, current subjects with year level, and standalone fee balances, `answerVerificationAccount.js` checks a deterministic answer against the exact selected account evidence and citations. Complete and explicitly limited reads can pass on the first check. Missing or malformed evidence retries the selected account scope and never supports an amount or enrollment by itself.
+
 
 ## Learning support actions
 

@@ -167,17 +167,18 @@ test('invalid exact ranges cancel their body and malformed or oversized metadata
 });
 
 
-test('overview route uses exact counts and verifies the requested parts after a fresh scoped read',async()=>{
+test('overview route uses exact counts and verifies the requested parts on the first scoped read or a real recovery',async()=>{
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY,question='what do you know about my records';
   process.env.OPENAI_API_KEY='OVERVIEW_LOCAL_TEST_ONLY';
   try{
-    for(const kind of ['direct','refresh','unavailable','omitted','url-like']){
-      let reads=0,reviews=0;
+    for(const kind of ['direct','refresh','unavailable','url-like']){
+      let reads=0;
       const errors:unknown[]=[];
       const savedName='Student <https://example.com/portfolio>';
       const savedTitle='``Course title https://example.com/notes``';
       const savedEntityTitle='Course title https&colon;//example.com/wiki';
       const io=transport(request=>{
+        if(kind==='refresh'&&reads===1)return new Response(null,{status:503});
         if(kind==='url-like'&&request.url.pathname.endsWith('/affairs_profiles'))return json([{...profile(),preferred_name:savedName}]);
         if(kind==='url-like'&&request.url.pathname.endsWith('/dtm_courses'))
           return json([{...dtmCourse(),title:savedTitle},{...dtmCourse(9),title:savedEntityTitle}]);
@@ -188,46 +189,10 @@ test('overview route uses exact counts and verifies the requested parts after a 
       const mock:typeof fetch=async(input,init)=>{
         const url=new URL(String(input));
         if(url.origin===account().url){
-          if(url.pathname.endsWith('/affairs_profiles'))reads++;
+          if(url.pathname.endsWith('/affairs_students')&&url.searchParams.get('select')?.includes('program:'))reads++;
           return io.fetchImpl(input,init);
         }
-        assert.equal(url.origin,'https://api.openai.com');
-        const request=JSON.parse(String(init?.body)),stage=request.text.format.name,payload=JSON.parse(request.input[0].content[0].text);
-        const ids=payload.evidence.map((source:{id:string})=>source.id);
-        const keys=['profile','courses','dtm','assignments','charges','tasks','requests'];
-        assert.deepEqual(ids,['account-scope',...keys.map(key=>'account:'+key)]);
-        assert.doesNotMatch(JSON.stringify(payload.evidence),/OFFLINE_|private request payload|student_number|amountPaid|fullName|R301/u);
-        const data=Object.fromEntries(payload.evidence.slice(1).map((source:{id:string;content:string})=>[source.id.slice(8),JSON.parse(source.content)]));
-        assert.equal(data.courses.records[0].code,'DB301');
-        assert.equal(data.dtm.records[0].code,'DTM301');
-        if(kind==='url-like'){
-          assert.equal(data.profile.records.profile.displayName,savedName);
-          assert.equal(data.dtm.records[0].title,savedTitle);
-          assert.equal(data.dtm.records[1].title,savedEntityTitle);
-        }
-        assert.equal(data.assignments.overview.total,3);
-        assert.equal(data.charges.overview.total,2);
-        assert.equal(data.tasks.overview.total,kind==='unavailable'?null:2);
-        assert.equal(data.requests.overview.total,kind==='refresh'&&reads>1?2:1);
-        for(const part of ['assignments','charges','tasks','requests'])assert.equal(data[part].records,undefined);
-        const claim=(key:string,path:string,claim:string,supported=true)=>({claim,evidenceId:'account:'+key,jsonPaths:[path],quotes:[],supported});
-        if(stage==='answer_evidence_review'){
-          reviews++;
-          const supported=kind!=='refresh'&&kind!=='url-like';
-          const fields=[
-            claim('profile','/records/student/program','Your saved program is Information Studies.',supported),
-            claim('profile','/records/student/yearLevel','Your saved year level is 3.',supported),
-            claim('courses','/records/0/code','Your current saved class is DB301.',supported),
-            claim('dtm','/records/0/code','Your saved DTM course is DTM301.',supported),
-            claim('assignments','/overview/total','You have 3 saved assignment tracker records.',supported),
-            claim('charges','/overview/total','You have 2 saved charge items.',supported),
-            claim('tasks',kind==='unavailable'?'/unavailableReason':'/overview/total',kind==='unavailable'?'Saved task count unavailable.':'You have 2 saved tasks.',supported),
-            claim('requests','/overview/total','You have '+data.requests.overview.total+' saved requests.',supported),
-          ];
-          if(kind==='omitted')fields.pop();
-          return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported,answersQuestion:supported,claims:fields})}]}]});
-        }
-        assert.fail('Only the first independent review may call the model for this scoped overview.');
+        assert.fail('The checked overview does not send account records to a model.');
       };
       globalThis.fetch=(...args)=>mock(...args).catch(error=>{errors.push(error);throw error;});
       const blocked=async()=>assert.fail('Overview must not call the broad snapshot or public research.');
@@ -237,14 +202,13 @@ test('overview route uses exact counts and verifies the requested parts after a 
       await handler({method:'POST',headers:{authorization:'Bearer '+account().token},body:{route:'/dtm',question}},reply);
       assert.deepEqual(errors,[]);
       assert.equal(result.verification.status,'verified');
-      const refreshed=kind==='omitted'||kind==='refresh'||kind==='url-like';
-      assert.equal(reads,refreshed?2:1);assert.equal(reviews,1);
+      const refreshed=kind==='refresh';
+      assert.equal(reads,refreshed?2:1);
       assert.equal(result.verification.attempts,reads);
-      assert.equal(result.activity.some((step:{kind:string})=>step.kind==='account-overview-evidence-check'),refreshed);
-      assert.equal(io.seen.filter(row=>row.method==='HEAD').length,4*reads);
+      assert.equal(result.activity.some((step:{kind:string})=>step.kind==='account-overview-evidence-check'),true);
+      assert.equal(io.seen.filter(row=>row.method==='HEAD').length,refreshed?6:4);
       if(kind==='unavailable')assert.match(result.answer,/saved tasks: count unavailable/u);
       if(kind==='refresh')assert.match(result.answer,/2 service requests/u);
-      if(kind==='omitted')assert.match(result.answer,/1 service requests/u);
       if(kind==='url-like'){
         assert.ok(result.answer.includes('` '+savedName+' `'));
         assert.ok(result.answer.includes('``` '+savedTitle+' ```'));
@@ -263,10 +227,9 @@ test('overview retry reports unlinked, empty, or excerpted states and withholds 
   process.env.OPENAI_API_KEY='OVERVIEW_LOCAL_TEST_ONLY';
   try{
     for(const kind of ['unlinked','empty','excerpt','failed']){
-      let reads=0,reviews=0;
+      let reads=0;
       const io=transport(({url})=>{
-        if(reads!==2)return undefined;
-        if(kind==='failed')return new Response(null,{status:503});
+        if(reads===1||kind==='failed')return new Response(null,{status:503});
         if(kind==='unlinked'&&url.pathname.endsWith('/affairs_students'))return json([]);
         if(kind==='empty'&&url.pathname.endsWith('/affairs_tasks'))return new Response(null,{headers:{'content-range':'*/0'}});
         if(kind==='excerpt'&&url.pathname.endsWith('/dtm_courses'))
@@ -278,16 +241,14 @@ test('overview retry reports unlinked, empty, or excerpted states and withholds 
           if(url.pathname.endsWith('/affairs_students')&&url.searchParams.get('select')?.includes('program:'))reads++;
           return io.fetchImpl(input,init);
         }
-        reviews++;
-        assert.equal(JSON.parse(String(init?.body)).text.format.name,'answer_evidence_review');
-        return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:false,answersQuestion:false,claims:[]})}]}]});
+        assert.fail('An unavailable typed overview may reread its records without a model.');
       };
       const blocked=async()=>assert.fail('Overview must not read the broader workspace or public sources.');
       const handler=createAffairsAssistantHandler({verifyToken:async()=>account(),loadSnapshot:blocked,publicResearch:blocked});
       let result:any;
       const reply={setHeader(){},status(code:number){assert.equal(code,200);return reply;},json(value:unknown){result=value;}};
       await handler({method:'POST',headers:{authorization:'Bearer '+account().token},body:{route:'/dtm',question}},reply);
-      assert.equal(reads,2);assert.equal(reviews,1);
+      assert.equal(reads,2);
       assert.equal(result.verification.attempts,2);
       assert.equal(result.verification.status,kind==='failed'?'unverified':'verified');
       if(kind==='unlinked'){

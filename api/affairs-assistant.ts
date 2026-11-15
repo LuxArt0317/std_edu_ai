@@ -960,7 +960,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const saved=await loadOwnAffairsCharges(account,{deadline,requireExactProjection:pairedHealthCharge||pairedTutorCharge||exactExcludedTutorCharge});
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         const selected=chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
-        return exactBalance?{...selected,feeBalanceScope:true,...(exactExcludedTutorCharge?{exactNamedChargeOnly:true}:{})}:selected;
+        return exactBalance?{...selected,feeBalanceScope:true}:selected;
       }catch(error){
         if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!excludedNoteFeeLabel&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];

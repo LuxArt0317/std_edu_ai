@@ -124,14 +124,14 @@ test('independent helpfulness artifacts bind the actual evolving history and can
   assert.throws(()=>gradeTranscriptReplay(p,run.session,{reviews:[{binding:{caseId:'unknown'}}]}),{code:'invalid_reviews'});
 });
 
-for(const scenario of ['baseline','coaching-rejected','overview-rejected'])
-test(scenario==='overview-rejected'?'exact four-turn conversation recovers the overview after independent review rejects it'
+for(const scenario of ['baseline','coaching-rejected','overview-unavailable'])
+test(scenario==='overview-unavailable'?'exact four-turn conversation recovers the overview after its scoped reads are unavailable'
   :scenario==='coaching-rejected'?'exact four-turn conversation uses safe interview practice after the model draft is rejected'
     :'current authenticated endpoint processes the saved four-turn conversation with only intercepted model and data transports',async()=>{
-  const rejectedCoaching=scenario==='coaching-rejected',rejectedOverview=scenario==='overview-rejected';
+  const rejectedCoaching=scenario==='coaching-rejected',unavailableOverview=scenario==='overview-unavailable';
   const p=plan(),store=memoryStore(),saved=transcriptReplayFixture(p),origin='https://xiftudmvxphxcjtmfmib.supabase.co';
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='synthetic-transcript-model';
-  const transport=[],reviewEvidence=[],providerHistory=[];let active=0,workspaceReads=0;
+  const transport=[],reviewEvidence=[],providerHistory=[];let active=0,workspaceReads=0,overviewLoads=0;
   const ownId=p.ownerId,studentId=saved.student.id,programId='17000000-0000-4000-8000-000000000099';
   const counted={affairs_assignments:saved.assignments.length,affairs_charges:saved.charges.length,affairs_tasks:saved.tasks.length,affairs_service_requests:saved.requests.length};
   const json=rows=>Response.json(rows,{headers:{'content-range':rows.length?`0-${rows.length-1}/${rows.length}`:'*/0'}});
@@ -144,6 +144,8 @@ test(scenario==='overview-rejected'?'exact four-turn conversation recovers the o
       transport.push({turn:active,path:url.pathname,method:init.method,query:Object.fromEntries(params)});
       assert.equal(headers.get('authorization'),'Bearer synthetic-token');assert.equal(headers.get('apikey'),'synthetic-publishable');
       assert.ok(['GET','HEAD'].includes(init.method));
+      if(active===0&&table==='affairs_students'&&params.get('select')?.includes('program:'))overviewLoads++;
+      if(active===0&&unavailableOverview&&overviewLoads===1)return new Response(null,{status:503});
       if(init.method==='HEAD'){
         assert.equal(active,0);assert.ok(Object.hasOwn(counted,table));assert.equal(init.redirect,'error');assert.equal(headers.get('prefer'),'count=exact');
         const studentOwned=['affairs_assignments','affairs_charges'].includes(table);
@@ -182,31 +184,19 @@ test(scenario==='overview-rejected'?'exact four-turn conversation recovers the o
       assert.fail('Unexpected private transport '+url.pathname);
     }
     assert.equal(url.origin,'https://api.openai.com');assert.equal(url.pathname,'/v1/responses');
+    assert.equal(active,3,'Only the interview practice needs the model, with no record evidence.');
     const request=JSON.parse(init.body),payload=JSON.parse(request.input[0].content[0].text),operation=request.text.format.name;
     let response;
     if(operation==='account_lookup_plan')response={tools:[],publicTopics:[],catalogQuery:null,action:null};
     else if(operation==='compose_grounded_answer'){
-      providerHistory.push({turn:active,history:payload.history});response={status:'answered',
-        answer:rejectedCoaching&&active===3?'I led a production engineering team and earned a degree in software engineering.':answers[active],
-        sourceIds:active===3?[]:['account:profile','account:courses','account:dtm']};
+      providerHistory.push({turn:active,history:payload.history});
+      response={status:'answered',sourceIds:[],answer:rejectedCoaching
+        ?'I led a production engineering team and earned a degree in software engineering.':answers[3]};
     }else{
-      assert.equal(operation,'answer_evidence_review');reviewEvidence.push({turn:active,ids:payload.evidence.map(row=>row.id),sources:clone(payload.evidence),content:JSON.stringify(payload.evidence)});
-      if(active===3)response=rejectedCoaching
+      assert.equal(operation,'answer_evidence_review');reviewEvidence.push(payload.evidence.map(row=>row.id));
+      response=rejectedCoaching
         ?{supported:false,answersQuestion:true,parts:[{id:1,kind:'factual',accepted:false,claims:[]}]}
         :{supported:true,answersQuestion:true,parts:payload.answerParts.map((part,index)=>({id:part.id,kind:['suggestion','template','clarification'][index],accepted:true,claims:[]}))};
-      else if(active===0&&rejectedOverview)response={supported:false,answersQuestion:false,claims:[
-        {claim:'Overview review did not verify the four independently saved counts.',supported:false,evidenceId:'account:tasks',jsonPaths:[],quotes:[]},
-      ]};
-      else response={supported:true,answersQuestion:true,claims:active===0?[
-        {claim:'The saved account name is Evaluation Student.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/profile/displayName'],quotes:[]},
-        {claim:'The saved program is Sample General Studies and year level is 3.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/student/program','/records/student/yearLevel'],quotes:[]},
-        ...['SAMP101','SAMP102','SAMP103'].map((code,index)=>({claim:'Current sample subject '+code+'.',supported:true,evidenceId:'account:courses',jsonPaths:[`/records/${index}/code`,`/records/${index}/title`],quotes:[]})),
-        ...['DTM301','DTM102','DTM401'].map((code,index)=>({claim:'Separately saved DTM course '+code+'.',supported:true,evidenceId:'account:dtm',jsonPaths:[`/records/${index}/code`,`/records/${index}/title`],quotes:[]})),
-        ...Object.entries({assignments:3,charges:2,tasks:2,requests:1}).map(([collection,total])=>({claim:`The selected ${collection} count is ${total}.`,supported:true,evidenceId:'account:'+collection,jsonPaths:['/overview/total'],quotes:[]})),
-      ]:active===2?[{claim:'A saved sample charge has 23000 remaining.',supported:true,evidenceId:'account:charges',jsonPaths:['/records/0/amountDue','/records/0/amountPaid'],quotes:[]}]:[
-        {claim:'Recorded year level: 3.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/student/yearLevel'],quotes:[]},
-        {claim:'Current sample course Campus Orientation.',supported:true,evidenceId:'account:courses',jsonPaths:['/records/0/code','/records/0/title'],quotes:[]},
-      ]};
     }
     return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(response)}]}]});
   };
@@ -222,27 +212,21 @@ test(scenario==='overview-rejected'?'exact four-turn conversation recovers the o
     for(const {envelope:{body}} of run.session.results)
       assert.doesNotMatch(JSON.stringify([body.answer,body.views,body.activity]),/not (?:an? )?(?:live|official|verified) university|no university sync|並非校方/iu);
     for(const {envelope:{body}} of run.session.results.slice(0,3))assert.match(body.answer,/sample/u);
-    const first=reviewEvidence.find(row=>row.turn===0);assert.deepEqual(first.ids,['account-scope','account:profile','account:courses','account:dtm','account:assignments','account:charges','account:tasks','account:requests']);
-    for(const [collection,total]of Object.entries({assignments:3,charges:2,tasks:2,requests:1})){
-      const source=JSON.parse(first.sources.find(row=>row.id==='account:'+collection).content);
-      assert.deepEqual(source.overview,{readState:'ok',total,included:0,complete:true,reason:null});assert.equal(Object.hasOwn(source,'records'),false);
-    }
-    assert.doesNotMatch(first.content,/amountDue|amountPaid|Collect reading list|Library access request|B-tree|evaluation\.student@|EVAL-115-001/u);
-    const firstReads=transport.filter(row=>row.turn===0);assert.equal(firstReads.length,rejectedOverview?18:9);assert.equal(firstReads.filter(row=>row.method==='HEAD').length,rejectedOverview?8:4);
+    const firstReads=transport.filter(row=>row.turn===0);
+    assert.equal(firstReads.length,unavailableOverview?15:9);
+    assert.equal(firstReads.filter(row=>row.method==='HEAD').length,unavailableOverview?6:4);
     assert.doesNotMatch(firstReads.map(row=>row.query.select).join('\n'),/\*|email|student_number|full_name|notes|details|grades|materials|attendance|amount_due|amount_paid|role/u);
-    assert.equal(providerHistory.some(row=>row.turn===0),false);
-    assert.match(run.session.results[0].envelope.body.answer,/3 assignment tracker records, 2 charge items, 2 saved tasks, 1 service requests/u);
     const firstBody=run.session.results[0].envelope.body;
-    assert.equal(firstBody.verification.attempts,rejectedOverview?2:1);
-    if(rejectedOverview){
-      assert.equal(reviewEvidence.filter(row=>row.turn===0).length,1);
-      assert.deepEqual(firstReads.slice(0,9),firstReads.slice(9));
-      assert.ok(firstBody.activity.some(step=>step.kind==='account-overview-evidence-check'&&step.status==='complete'));
-      assert.deepEqual(firstBody.citations.map(citation=>citation.chunkId),first.ids);
-    }
+    assert.match(firstBody.answer,/3 assignment tracker records, 2 charge items, 2 saved tasks, 1 service requests/u);
+    assert.doesNotMatch(firstBody.answer,/amountDue|amountPaid|Collect reading list|Library access request|B-tree|evaluation\.student@|EVAL-115-001/u);
+    assert.equal(firstBody.verification.attempts,unavailableOverview?2:1);
+    assert.ok(firstBody.activity.some(step=>step.kind==='account-overview-evidence-check'&&step.status==='complete'));
+    assert.deepEqual(firstBody.citations.map(citation=>citation.chunkId),
+      ['account-scope','account:profile','account:courses','account:dtm','account:assignments','account:charges','account:tasks','account:requests']);
     assert.deepEqual(run.report.results[0].failures.map(row=>row.id),['guidance.independentReview']);assert.equal(run.report.results[0].independentReview.status,'pending');
-    assert.deepEqual(reviewEvidence.find(row=>row.turn===1).ids,['account-scope','account:profile','account:courses']);
-    assert.deepEqual(reviewEvidence.find(row=>row.turn===2).ids,['account-scope','account:charges']);assert.deepEqual(reviewEvidence.find(row=>row.turn===3).ids,[]);
+    assert.deepEqual(run.session.results[1].envelope.body.citations.map(row=>row.chunkId),['account-scope','account:profile','account:courses']);
+    assert.deepEqual(run.session.results[2].envelope.body.citations.map(row=>row.chunkId),['account:charges']);
+    assert.deepEqual(reviewEvidence,[[]]);
     assert.deepEqual(providerHistory.find(row=>row.turn===3).history,[],'Explicit interview coaching needs no previous account replies at the model provider.');assert.equal(transport.some(row=>row.turn===3),false);
     for(const index of [1,2])assert.equal(run.report.results[index].passed,true,JSON.stringify(run.report.results[index].failures));
     assert.equal(run.report.results[3].independentReview.status,'pending');
@@ -252,7 +236,6 @@ test(scenario==='overview-rejected'?'exact four-turn conversation recovers the o
     assert.deepEqual(coaching.citations,[]);
     assert.deepEqual(coaching.views,[]);
     assert.equal(coaching.proposedAction,undefined);
-    assert.equal(reviewEvidence.filter(row=>row.turn===3).length,1);
     if(rejectedCoaching){
       assert.equal(coaching.verification.attempts,2);
       assert.match(coaching.answer,/real software example/);

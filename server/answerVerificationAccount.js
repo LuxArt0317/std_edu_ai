@@ -687,21 +687,6 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
   return evidence;
 }
 
-function overviewReviewReferences(evidence){
-  return evidence.filter(source=>source.id.startsWith('account:')).flatMap(source=>{
-    const id=source.id,label=id.slice(8),data=JSON.parse(source.content);
-    const part=(paths,detail=label)=>({id,paths,label:detail});
-    if(label==='profile'){
-      if(!data.records.student)return [part(/^\/records\/studentRecordFound$/u,'saved program and year availability')];
-      return [part(/^\/records\/student\/program$/u,'academic program'),part(/^\/records\/student\/yearLevel$/u,'recorded year level')];
-    }
-    if(data.overview.readState==='unavailable')return [part(/^\/(?:unavailableReason|overview\/readState)$/u)];
-    if(label==='courses'||label==='dtm')return [part(data.records.length
-      ?/^\/records\/\d+\/(?:code|title|term)$/u:/^\/(?:records|calendar\/(?:included|complete)|overview\/(?:total|included|readState))$/u,label==='courses'?'current School Affairs subjects':'saved DTM courses')];
-    return [part(/^\/overview\/total$/u,label+' count')];
-  });
-}
-
 function scopedReviewReferences(evidence,tools,teachingQuestion,requireDtmGrade=false){
   const parts=[];
   for(const tool of tools){
@@ -847,7 +832,7 @@ export async function lookupPublicTopics(topics,deadline,onProgress=()=>{}) {
   return [...new Map(evidence.map(item=>[item.id,item])).values()];
 }
 
-async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId}){
+async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress}){
   const observed=new Map();
   const emit=step=>{observed.set(step.kind,step);onProgress?.(step);};
   const language=supplementalAnswerLanguage(question),zh=language==='zh-TW';
@@ -890,16 +875,11 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
     },
     verify:context=>{
       const expected=candidateFrom(context.evidence);
-      if(!expected||JSON.stringify(context.candidate)!==JSON.stringify(expected))return {ok:false,reason:'evidence_unavailable'};
+      if(!expected||!isDeepStrictEqual(context.candidate,expected)||!answerLinksSupported(expected.answer,context.evidence))
+        return {ok:false,reason:'evidence_unavailable'};
       const linked=current.studentRecordFound===true;
-      const payload=JSON.parse(context.evidence[1].content);
-      const exactNamedCharge=Boolean(linked&&current.exactNamedChargeOnly===true&&selectedLabel!==undefined
-        &&payload.excerpted===false&&payload.records?.length===1&&payload.counts?.[0]?.matchingRows===1&&expected.complete);
-      if(context.attempt===1&&linked&&!exactNamedCharge)return verifyEvidenceAnswer({...context,responseIntent:'records',
-        diagnosticContext:correlationId?{correlationId,attempt:context.attempt}:undefined});
       emit({kind:'fee-balance-evidence-check',label:linked?'Recalculated your saved fee balance':'Checked for a linked student record',
-        detail:exactNamedCharge?'Matched the named record and independently checked the saved amounts and currency.'
-          :linked?'Checked the amounts, currencies, source labels and read limits against the refreshed fee records.'
+        detail:linked?'Checked the amounts, currencies, source labels and read limits against the selected fee records.'
           :'The scoped read found no linked student record for this account.',status:'complete'});
       return {ok:true};
     },
@@ -1008,7 +988,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     if(exact)return exact;
   }
   if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&(isOwnFeeBalanceQuestion(question)||standaloneFeeBalanceLabel(question))&&!leavePlan&&!internshipPlan)
-    return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
+    return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress});
   // Capture the complete route, including its query; native account routing below
   // intentionally drops queries. The public loader receives no account data.
   const fullRoute=route;
@@ -1643,13 +1623,20 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const answer=composeAccountOverviewEvidence(question,sources);
     return answer&&answerLinksSupported(answer,sources)?answer:null;
   };
+  const directStudyAnswer=sources=>{
+    if(!isDeepStrictEqual(sources.map(source=>source.id),['account-scope','account:profile','account:courses']))return null;
+    const readStates=sources.slice(1).map(source=>JSON.parse(source.content));
+    if(readStates.every(data=>data.unavailableReason==='read_failed'))return null;
+    const answer=composeCurrentStudyEvidence(question,sources,{requireReadStates:true});
+    return answer&&answerLinksSupported(answer,sources)?answer:null;
+  };
   if(scopedOverview){
     initial.answer=scopedOverviewAnswer(evidence)??'';
     initial.status=initial.answer?'answered':'abstained';
     needsComposition=false;
   }
   if(directStudy){
-    initial.answer=composeCurrentStudyEvidence(question,evidence)??'';
+    initial.answer=directStudyAnswer(evidence)??'';
     initial.status=initial.answer?'answered':'abstained';
   }
   if(dtmCompound?.denied.length){
@@ -1997,20 +1984,18 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       if(scopedOverview){
         const supported=scopedOverviewAnswer(context.evidence);
         if(!supported||context.candidate.answer!==supported||context.candidate.status!=='answered'||context.candidate.proposedAction
-          ||JSON.stringify(context.candidate.citations)!==JSON.stringify(evidenceCitations(context.evidence)))return {ok:false,reason:'evidence_unavailable'};
-        if(context.attempt>1){
-          emit({kind:'account-overview-evidence-check',label:'Verified your saved overview',
-            detail:'Matched the answer to the refreshed profile, course lists and exact record counts.',status:'complete'});
-          return {ok:true};
-        }
+          ||!isDeepStrictEqual(context.candidate.citations,evidenceCitations(context.evidence)))return {ok:false,reason:'evidence_unavailable'};
+        emit({kind:'account-overview-evidence-check',label:'Verified your saved overview',
+          detail:'Matched the answer to your saved profile, course lists and exact record counts.',status:'complete'});
+        return {ok:true};
       }
       if(directStudy){
-        const supported=composeCurrentStudyEvidence(question,context.evidence);
-        if(!supported||context.candidate.answer!==supported)return {ok:false,reason:'evidence_unavailable'};
-        if(evidenceAttempt>1){
-          emit({kind:'current-study-evidence-check',label:'Verified your saved course and year fields',detail:'Matched the corrected answer to the refreshed School Affairs records and the campus term dates.',status:'complete'});
-          return {ok:true};
-        }
+        const supported=directStudyAnswer(context.evidence);
+        if(!supported||context.candidate.answer!==supported||context.candidate.status!=='answered'||context.candidate.proposedAction
+          ||!isDeepStrictEqual(context.candidate.citations,evidenceCitations(context.evidence)))return {ok:false,reason:'evidence_unavailable'};
+        emit({kind:'current-study-evidence-check',label:'Verified your saved course and year fields',
+          detail:'Matched the answer to the selected School Affairs records and the campus term dates.',status:'complete'});
+        return {ok:true};
       }
       if(studyCoachingUsedFallback){
         const supported=renderStudyCoachingFallback(context.evidence);
@@ -2020,8 +2005,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         return {ok:true};
       }
       if(needsComposition){needsComposition=false;return {ok:false,reason:'needs_grounded_composition',feedback:['Compose all requested parts from the selected evidence, explicitly identify unavailable details and keep suggestions distinct from factual claims. Do not substitute tracker status for file reviews, charges for statements, or catalog offerings for enrollment.']};}
-      const requiredEvidenceReferences=scopedOverview?overviewReviewReferences(context.evidence)
-        :servicePlan||scopedAssignment||scopedStudy||scopedTeaching||housingSelected||applicationSelected
+      const requiredEvidenceReferences=servicePlan||scopedAssignment||scopedStudy||scopedTeaching||housingSelected||applicationSelected
           ?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question,Boolean(dtmCompound||leavePlan?.gradeQuestion))
           :activeTools.includes('dtmAssignment')?scopedReviewReferences(context.evidence,['dtmAssignment']):undefined;
       return verifyEvidenceAnswer({...context,responseIntent,resolvedUserQuestion,requiredEvidenceReferences,
@@ -2050,7 +2034,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
       }
       if(directStudy){
-        const answer=composeCurrentStudyEvidence(question,context.evidence);
+        const answer=directStudyAnswer(context.evidence);
         return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
       }
       return repairEvidenceAnswer({...context,responseIntent,resolvedUserQuestion,
