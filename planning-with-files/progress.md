@@ -22,3 +22,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] The scoped Counseling/tuition fallback, four native remote-enrollment scenarios, selected graduation status, and assistant access on two service notices passed local focused checks. Quality 43749820197 completed for `1fc093f`. Prepared a protected deployment to exercise the new routes and record readers in serial.
 
 - 2026-11-16 [#100] Pinned 17 requests to `9b8767b`. Fourteen passed, including three scoped graduation status cases. The three other graduation prompts withheld after provider quota exhaustion. All fixture leases verified cleanup and no active journals remain. Preserved separate reports and opened the scoped recovery follow-up in the existing issue.
+
+- 2026-11-16 [#100] Quality 43752577095 passed. Added a time reserve for a queued readable school page and verified recovery after a first or third review timeout. The three unchanged graduation questions now pass the actual handler and independent grader against migrated PostgreSQL. Prepared one protected replay for the six status and detail prompts and public continuation smoke checks.
