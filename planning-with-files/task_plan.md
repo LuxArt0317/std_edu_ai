@@ -882,5 +882,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Require the archived-page answer to summarize requested content from the same capture and independently grade it locally.
 - [ ] Verify the exact archived student-page summary on protected Preview.
 - [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
-- [ ] Verify that the specific sign-in-required DTM notice is preserved without treating it as evidence.
+- [x] Preserve the original DTM notice link outside answer evidence and verify the login redirect handling locally.
+- [ ] Verify the specific DTM notice and partial-coverage behavior on the new protected Preview.
 - [x] Add protected runners for equipment confirmation and exact Moodle submission timing with paired record readbacks and journaled cleanup.
