@@ -6,7 +6,7 @@ export function teachingFeedbackGuide(question,{views=[],navigation=null,reason=
   const t=(en,zhText)=>zh?zhText:en;
   const result={status:'handoff',answer:'',citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
   if(reason==='foreign_request')return {...result,answer:t('I can check teaching feedback saved to your own stu.best account. I can’t show another student’s records.','你可以查詢自己的 stu.best 教學意見。這裡沒有其他帳號的存取權限，因此無法查看其他學生的紀錄。')};
-  if(excluded)return {...result,answer:t('I skipped the teaching feedback records you asked me to leave out.','已略過你要求不要查詢的教學意見紀錄。')};
+  if(excluded)return {...result,status:'answered',answer:t('I did not read the teaching feedback records you asked me to leave out.','我沒有讀取你要求略過的教學意見紀錄。')};
   const navigationViews=Array.isArray(navigation)?navigation:navigation?[navigation]:[];
   const selected=Array.from(new Set(navigationViews.length?navigationViews:views)).filter(view=>Object.hasOwn(teachingFeedbackPaths,view));
   const direct=signedIn||navigationViews.length>0;

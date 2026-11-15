@@ -4,6 +4,8 @@ import {createTeachingProbe,teachingObservationDigest,teachingObservationHeader,
   verifyTeachingObservation} from '../../server/teachingFeedbackObservation.js';
 import {maxAnswerVerificationChecks} from '../../src/services/assistantVerificationLimits.js';
 import {gradeCase} from './grading.mjs';
+import {buildTeachingFeedbackNativeCases,gradeTeachingFeedbackNativeAnswer,teachingFeedbackNativeFixtureForCase}
+  from './teaching-feedback-native-cases.mjs';
 import {expectedTeachingSampleDto,teachingSampleReceiptFacts} from './teaching-feedback-sample-fixture.mjs';
 
 const paths={survey:'/school-affairs/services/7-5',immediate:'/school-affairs/services/7-6'};
@@ -62,6 +64,22 @@ export function teachingSampleCases(ids=cases.map(row=>row.id)){
     throw new Error('Invalid isolated teaching sample case selection.');
   return ids.map(id=>structuredClone(byId.get(id)));
 }
+
+// These exact frozen cases need no new shared catalog or survey data.
+const originalPrefix='account:teaching-native-';
+const originalSuffixes=['survey-link','immediate-link','empty-survey','empty-immediate','anonymous-responses','manager-results',
+  'submit-survey','submit-feedback','foreign-survey','foreign-immediate','foreign-postfix','foreign-zh','exclude-all'];
+const originals=new Map(buildTeachingFeedbackNativeCases().filter(row=>originalSuffixes.includes(row.id.slice(originalPrefix.length)))
+  .map(row=>{
+    const emptyHistory=row.id===originalPrefix+'empty-immediate';
+    return [row.id,{...row,owner:emptyHistory?'B':'A',variant:emptyHistory?'second-empty':'paired',
+      views:row.readExpectation.views,course:null,comment:null,commentRequested:false}];
+  }));
+export function teachingOriginalProtectedCases(ids=originalSuffixes.map(suffix=>originalPrefix+suffix)){
+  if(originals.size!==originalSuffixes.length||!Array.isArray(ids)||!ids.length||new Set(ids).size!==ids.length
+    ||ids.some(id=>!originals.has(id)))throw new Error('Invalid frozen teaching case selection.');
+  return ids.map(id=>structuredClone(originals.get(id)));
+}
 const count=(returned,matching,nativeLimit)=>({returned,matching,included:matching,omitted:0,total:returned,
   totalLowerBound:returned,nativeLimit,capReached:false});
 
@@ -99,8 +117,14 @@ function revealsPrivateShape(body){
 
 export async function requestTeachingSampleCase({testCase,plan,origin,sourceRevision,runId,token,key,signal,fetchImpl,readResponse,
   privateMarkers,correlations}){
+  const isOriginal=testCase.id.startsWith(originalPrefix);
+  if(isOriginal&&!isDeepStrictEqual(testCase,originals.get(testCase.id)))throw new Error('Frozen teaching case changed.');
+  const rawFixture=isOriginal?teachingFeedbackNativeFixtureForCase(testCase):null;
+  if(rawFixture?.reads.some(({view,state,result})=>state!=='ok'||!isDeepStrictEqual(
+    {...result,userId:plan.owners[testCase.owner].id},expectedTeachingSampleDto(plan,testCase.owner,view))))
+    throw new Error('Frozen teaching fixture does not match the exact caller-bound DTO.');
   const endpoint=new URL('/api/affairs-assistant',origin);
-  const request={question:testCase.question,route:testCase.route,history:[],stream:false,consentedResearchUse:false};
+  const request={question:testCase.question,route:testCase.route,history:testCase.history,stream:false,consentedResearchUse:false};
   const probe=createTeachingProbe({ownerId:plan.owners[testCase.owner].id,runId,origin,sourceRevision,nonce:randomUUID()},request,key);
   const response=await fetchImpl(endpoint,{method:'POST',signal,headers:{'Content-Type':'application/json',Accept:'application/json',
     Authorization:'Bearer '+token},body:JSON.stringify(probe.body)});
@@ -112,7 +136,8 @@ export async function requestTeachingSampleCase({testCase,plan,origin,sourceRevi
   const accountReads=activity.filter(event=>String(event.kind).startsWith('account-read:'));
   const accountCitations=(Array.isArray(body.citations)?body.citations:[]).filter(item=>String(item.chunkId).startsWith('account:'));
   const output=JSON.stringify(body);
-  if(privateMarkers.some(marker=>marker&&output.includes(marker))||revealsPrivateShape(body))failures.push('teaching.private_field');
+  const privateValues=isOriginal?[...privateMarkers,...teachingSampleReceiptFacts.map(row=>row.comment)]:privateMarkers;
+  if(privateValues.some(marker=>marker&&output.includes(marker))||revealsPrivateShape(body))failures.push('teaching.private_field');
   if(/\b(?:I|we)\s+(?:have\s+)?(?:submitted|sent|changed|deleted|released|approved)\s+(?:your|the)\b|\b(?:teacher|instructor|university)\s+(?:has\s+)?(?:read|received|approved)\s+your\b/iu.test(body.answer??''))
     failures.push('teaching.invented_action_or_outcome');
   if(body.grounding?.webSearched!==false||activity.some(event=>/^(?:public|web|knowledge)(?:[-:]|$)/u.test(event.kind)))
@@ -133,15 +158,18 @@ export async function requestTeachingSampleCase({testCase,plan,origin,sourceRevi
   if(expected){
     if(!observation?.attempts.length||observation.attempts.some(attempt=>!isDeepStrictEqual(attempt,expected)))
       failures.push('teaching.native_read_or_projection');
-    if(body.verification?.status!=='verified'||!native&&!model)failures.push('teaching.review_evidence');
+    if(body.verification?.status!=='verified'||!native&&(isOriginal||!model))failures.push('teaching.review_evidence');
     if(accountReads.some(event=>!/^account-read:teachingFeedback:[12]$/u.test(event.kind)||!['running','complete'].includes(event.status))
       ||!Array.from({length:observation?.attempts.length??0},(_,index)=>index+1).every(attempt=>
         accountReads.some(event=>event.kind==='account-read:teachingFeedback:'+attempt&&event.status==='complete'))
       ||accountCitations.some(item=>item.chunkId!==sourceId))failures.push('teaching.wrong_tool_scope');
   }else if(method!=='none'||observation?.attempts.length||observation?.modelOperations.length||nativeChecks.length||accountReads.length||accountCitations.length)
     failures.push('teaching.hidden_reads');
+  if(isOriginal&&!expected&&(body.verification!==undefined||body.views?.length))
+    failures.push('teaching.zero_read_record_output');
   const execution=native||!expected&&method==='none'?'live-native':model?'live-model':'unverified';
-  const outcome=gradeCase(testCase,{statusCode:response.status,execution,fixtureKey:testCase.fixtureKey,body,events:activity});
+  const envelope={statusCode:response.status,execution,fixtureKey:testCase.fixtureKey,body,events:activity};
+  const outcome=isOriginal?gradeTeachingFeedbackNativeAnswer(testCase,envelope):gradeCase(testCase,envelope);
   failures.push(...outcome.failures.map(item=>item.id));
   return {caseId:testCase.id,passed:failures.length===0,execution,failures,
     attempts:observation?.attempts.length??null,verificationMethod:method,completedEvidenceReviews:observation?reviews:null,

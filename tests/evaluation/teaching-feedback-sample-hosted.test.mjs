@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
+import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {readTeachingFeedbackEvidence} from '../../server/accountTeachingFeedbackEvidence.js';
 import {createTeachingProbe,openTeachingObservation,teachingObservationHeader,verifyTeachingObservation} from '../../server/teachingFeedbackObservation.js';
 import {buildTeachingSampleFixture,expectedTeachingSampleDto} from './teaching-feedback-sample-fixture.mjs';
-import {requestTeachingSampleCase,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
+import {requestTeachingSampleCase,teachingOriginalProtectedCases,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
+import {buildTeachingFeedbackNativeCases} from './teaching-feedback-native-cases.mjs';
+import {teachingFeedbackRunnerCases} from './teaching-feedback-runner.mjs';
 
 const id=n=>'75060000-0000-4000-8000-'+String(n).padStart(12,'0');
 const origin='https://stdedu-abcd12345-v1-d286.vercel.app',db='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -41,7 +45,10 @@ function review(init){
   return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(reply)}]}]});
 }
 
-test('every additional sample prompt uses the actual protected assistant handler and a verified native read receipt',async()=>{
+for(const family of ['sample','original'])test(`every ${family} prompt uses the actual protected assistant handler and a verified native read or zero-read receipt`,async()=>{
+  const originalFamily=family==='original';
+  const fixtureRunId=originalFamily?id(81):runId;
+  const fixtureOwners=originalFamily?{A:{...owners.A,id:id(11)},B:{id:id(12),email:`evaluation.other.${fixtureRunId}@example.invalid`}}:owners;
   const env=metadata(),previous=Object.fromEntries(Object.keys(env).map(name=>[name,process.env[name]]));
   const original=globalThis.fetch,errors=[];
   Object.assign(process.env,env);
@@ -53,7 +60,7 @@ test('every additional sample prompt uses the actual protected assistant handler
   const handler=createAffairsAssistantHandler({loadSnapshot:fail,publicResearch:fail,verifyToken:async token=>{
     const owner=Object.keys(tokens).find(label=>tokens[label]===token);
     assert.ok(owner);
-    return {url:db,key:'synthetic-publishable-key',token,user:{...owners[owner],user_metadata:{assistant_evaluation_run:runId}}};
+    return {url:db,key:'synthetic-publishable-key',token,user:{...fixtureOwners[owner],user_metadata:{assistant_evaluation_run:fixtureRunId}}};
   }});
   let sent=[];
   globalThis.fetch=async(input,init)=>{
@@ -85,20 +92,34 @@ test('every additional sample prompt uses the actual protected assistant handler
   try{
     const correlations=new Set();
     const failures=[];
-    for(const testCase of teachingSampleCases()){
-      plan=buildTeachingSampleFixture({runId,owners},catalog,testCase.variant);
+    for(const testCase of (originalFamily?teachingOriginalProtectedCases():teachingSampleCases())){
+      plan=buildTeachingSampleFixture({runId:fixtureRunId,owners:fixtureOwners},catalog,testCase.variant);
       sent=[];
-      const result=await requestTeachingSampleCase({testCase,plan,origin,sourceRevision,runId,token:tokens[testCase.owner],key,
-        fetchImpl,readResponse,privateMarkers:[owners.A.id,owners.B.id,...Object.values(tokens)],correlations});
+      const result=await requestTeachingSampleCase({testCase,plan,origin,sourceRevision,runId:fixtureRunId,token:tokens[testCase.owner],key,
+        fetchImpl,readResponse,privateMarkers:[fixtureOwners.A.id,fixtureOwners.B.id,...Object.values(tokens)],correlations});
       assert.deepEqual(sent,testCase.views,testCase.id);
       assert.equal(result.execution,'live-native',testCase.id);
       assert.equal(result.verificationMethod,testCase.views.length?'native-exact':'none',testCase.id);
       assert.equal(result.completedEvidenceReviews,0,testCase.id);
+      assert.equal(result.readDigests?.length,testCase.views.length,testCase.id);
+      assert.equal(result.projectionDigests?.length,testCase.views.length,testCase.id);
       if(!result.passed)failures.push({id:testCase.id,failures:result.failures});
       assert.ok(result.receiptDigest);
     }
     assert.deepEqual(errors,[]);
     assert.deepEqual(failures,[]);
+    if(originalFamily){
+      const originalCases=teachingOriginalProtectedCases();
+      const testCase=originalCases.find(row=>row.id.endsWith('empty-immediate'));
+      plan=buildTeachingSampleFixture({runId:fixtureRunId,owners:fixtureOwners},catalog,'paired');
+      const args={testCase,plan,origin,sourceRevision,runId:fixtureRunId,token:tokens.B,key,fetchImpl,readResponse,
+        privateMarkers:[],correlations};
+      sent=[];
+      await assert.rejects(requestTeachingSampleCase(args),/exact caller-bound DTO/u);
+      await assert.rejects(requestTeachingSampleCase({...args,testCase:{...testCase,question:'Altered prompt'}}),/Frozen teaching case changed/u);
+      assert.deepEqual(sent,[]);
+      return;
+    }
 
     const [first]=teachingSampleCases(),request=requestFor(first);
     const probe=createTeachingProbe({ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision},request,key);
@@ -176,6 +197,28 @@ test('every additional sample prompt uses the actual protected assistant handler
   }
 });
 
+test('the separate preflight maps exactly thirteen unchanged original cases and keeps the forty-case denominator',()=>{
+  const original=teachingOriginalProtectedCases();
+  const frozen=buildTeachingFeedbackNativeCases();
+  assert.equal(teachingFeedbackRunnerCases().length,40);
+  assert.equal(teachingSampleCases().length,11);
+  assert.equal(original.length,13);
+  for(const {owner,variant,views,course,comment,commentRequested,...row} of original){
+    assert.deepEqual(row,frozen.find(item=>item.id===row.id),row.id);
+    assert.deepEqual(views,row.readExpectation.views,row.id);
+    assert.deepEqual([owner,variant],row.id.endsWith('empty-immediate')?['B','second-empty']:['A','paired']);
+    assert.deepEqual([course,comment,commentRequested],[null,null,false]);
+  }
+  assert.throws(()=>teachingOriginalProtectedCases(['account:teaching-native-survey-windows']),/Invalid frozen/u);
+  assert.throws(()=>teachingOriginalProtectedCases([original[0].id,original[0].id]),/Invalid frozen/u);
+  assert.throws(()=>teachingSampleCases([original[0].id]),/Invalid isolated/u);
+  const command=fileURLToPath(new URL('./run-teaching-sample-preview.mjs',import.meta.url));
+  const preflight=(...args)=>JSON.parse(execFileSync(process.execPath,[command,...args,'--preflight'],{encoding:'utf8'}));
+  assert.deepEqual(preflight(),{originalCases:40,sampleCases:11,nativeReadCases:7,pairedOwnerVariants:['paired','second-empty']});
+  assert.deepEqual(preflight('--original'),{originalCases:40,mountedOriginalCases:13,zeroReadCases:11,nativeReadCases:2,
+    pairedOwnerVariants:['paired','second-empty']});
+});
+
 test('a completion marker without a native DTO and selected projection cannot create a signed native receipt',()=>{
   const [testCase]=teachingSampleCases(),request=requestFor(testCase),env=metadata();
   const probe=createTeachingProbe({ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision},request,key);
@@ -184,4 +227,16 @@ test('a completion marker without a native DTO and selected projection cannot cr
   observation.nativeCheckCompleted();
   assert.equal(observation.finish({verification:{status:'verified',attempts:1},
     activity:[{kind:'teaching-feedback-evidence-check',status:'complete'}]},true),null);
+});
+
+test('proofs from the homepage and DTM admit only pure teaching navigation',()=>{
+  const scope={ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision};
+  const [surveyLink,immediateLink]=teachingOriginalProtectedCases();
+  for(const row of [surveyLink,immediateLink]){
+    const request=requestFor(row);
+    assert.ok(createTeachingProbe(scope,request,key));
+    assert.throws(()=>createTeachingProbe(scope,{...request,question:'Show my immediate teaching feedback status.'},key),/Invalid teaching/u);
+    assert.throws(()=>createTeachingProbe(scope,{...request,question:row.question+' Also show my tuition balance.'},key),/Invalid teaching/u);
+    assert.throws(()=>createTeachingProbe(scope,{...request,route:'/app'},key),/Invalid teaching/u);
+  }
 });

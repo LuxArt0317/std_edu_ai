@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add protected evaluation for 13 original teaching feedback questions, including exact empty-record checks, navigation, privacy and unsupported writes, using the existing isolated sample fixture. [#100]
+
 - Reread a school page once after a temporary connection or server failure when an unanswered detail could still be verified. Keep checked facts when the reread cannot resolve the detail. [#100]
 
 - Follow an unread school source when a draft leaves the same details unanswered. Keep the best checked reply until new evidence verifies more. [#100]

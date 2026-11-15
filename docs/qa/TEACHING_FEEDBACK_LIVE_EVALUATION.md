@@ -14,8 +14,10 @@ fixture or arbitrary options.
 
 ## Current executable boundary
 
-Every teaching case is currently an **unexecuted setup failure** in live, draft
-and retrieval modes. The report includes the reason and `liveEligible: 0`.
+The default suite records the original teaching cases as **unexecuted setup
+failures** in live, draft and retrieval modes. Its report includes the reason
+and `liveEligible: 0`. A separately scoped protected operator can select 13
+original prompts with the existing sample fixture.
 Teaching cases are excluded from the legacy adapter's `prepare` input and are
 rejected again at the direct adapter entry before credentials or network work.
 A teaching-only selection performs no fixture initialization or assistant POST.
@@ -83,6 +85,28 @@ row removals and preserves the protected owner. A passing sample report covers
 saved local history, empty reads and restricted actions. Published survey
 windows, survey completion, eligibility, companion sources, caps and service
 failures retain their original evaluation requirements.
+
+### Original boundaries and verified empty records
+
+```sh
+node tests/evaluation/run-teaching-sample-preview.mjs --original --preflight
+node tests/evaluation/run-teaching-sample-preview.mjs --original <protected-preview-origin> <source-revision>
+```
+
+The preflight lists 13 original prompts within the 40-case bank. Eleven use a
+signed zero-read disposition for navigation, exclusions, other-user requests,
+privacy or unsupported writes. The other two require native checks of empty
+survey and immediate-feedback DTOs for the exact disposable caller. Both counts
+are separate from the 11 additional sample questions.
+
+The operator takes the original question, route and answer rubric unchanged. It
+compares the native empty DTO to the original fixture after binding the real
+disposable caller and still requires exact signed raw and selected evidence
+digests. The homepage and DTM proof routes allow only a single direct teaching
+link; private reads remain limited to the service routes. The lease, paired SQL
+and caller readbacks, revision pins, exact cleanup and protected-owner checks
+apply to the full packet. This operator does not create shared survey windows or
+provide acceptance for the other 27 original cases.
 
 ### Original teaching-feedback questions in scratch PostgreSQL
 
