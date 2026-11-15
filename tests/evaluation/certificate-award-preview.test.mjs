@@ -5,10 +5,11 @@ import {test} from 'node:test';
 import {pathToFileURL} from 'node:url';
 import dataHandler from '../../api/affairs-data.ts';
 import {certificateAwardQuestion,certificateAwardRecordId} from '../../server/certificateAwardsContract.js';
-import {bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewManifest,certificateAwardPreviewMode,
+import {bindCertificateAwardBrowserCase,bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewManifest,certificateAwardPreviewMode,certificateBrowserCaseIds,
   deleteCertificateAwardPreview,observeCertificateAwardPreview,observeCertificateAwardPreviewCallers,readCertificateAwardPreviewCatalog,
   requestCertificateAwardPreviewCase,seedCertificateAwardPreview,verifyCertificateAwardPreviewAbsent} from './certificate-award-preview.mjs';
 import {prepare,runCertificateAwardPreview} from './live-fixtures.mjs';
+import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 
 const runtime=process.env.STU_CERTIFICATE_TEST_PGLITE_ENTRY;
 const runId='4ce10000-0000-4000-8000-000000000001';
@@ -70,7 +71,7 @@ function pgliteSql(db){
   };
 }
 
-test('migrated PostgreSQL and the actual handler pass all eight frozen observations with exact disposal', {skip:!runtime}, async t=>{
+test('migrated PostgreSQL verifies the eight native cases and two original browser selectors with exact disposal', {skip:!runtime}, async t=>{
   assert.ok(isAbsolute(runtime),'Supply an existing PGlite runtime entry. This test never installs a package.');
   const {PGlite}=await import(pathToFileURL(runtime).href),db=new PGlite();
   const previousUrl=process.env.VITE_SUPABASE_URL,previousKey=process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -137,7 +138,17 @@ test('migrated PostgreSQL and the actual handler pass all eight frozen observati
   assert.deepEqual(initial.callers.map(({role,target,status})=>[role,target,status]),[
     ['A','selected',200],['A','second',404],['A','newer',200],['B','selected',404],['B','second',200],['B','newer',404],
   ]);
-  for(const bound of bindCertificateAwardPreviewCases(plan)){
+  const {questions}=await discoverClientDispatchSurfaces();
+  const browserCases=certificateBrowserCaseIds.map(id=>questions.find(row=>row.id===id));
+  const browserBindings=browserCases.map(row=>bindCertificateAwardBrowserCase(plan,row));
+  assert.deepEqual(browserBindings.map(row=>[row.testCase.id,row.recordId,row.expectedRows.length,row.bankReceipt??false]),[
+    [certificateBrowserCaseIds[0],null,2,false],[certificateBrowserCaseIds[1],null,2,true],
+  ]);
+  for(const testCase of browserCases){
+    assert.throws(()=>bindCertificateAwardBrowserCase(plan,{...testCase,route:testCase.route+'/record/'+plan.targets.newer}));
+    assert.throws(()=>bindCertificateAwardBrowserCase(plan,{...testCase,question:testCase.question+' Changed.'}));
+  }
+  for(const bound of [...bindCertificateAwardPreviewCases(plan),...browserBindings]){
     const token=users.find(user=>user.id===owners[bound.role].id).token,checkpoint=calls.length;
     const result=await requestCertificateAwardPreviewCase({bound,token,origin,fetchImpl:appFetch,readResponse});
     assert.equal(result.passed,true,JSON.stringify(result.checks.filter(check=>!check.passed)));

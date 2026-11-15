@@ -153,21 +153,39 @@ const sum=row=>row.award_amount===null?'':' · NT$'+row.award_amount;
 const renderedRow=(row,language)=>`- ${localizedName(row)} · ${label[row.status][language]}${sum(row)}`;
 const selectedRows=(plan,role)=>plan.rows.filter(row=>row.user_id===plan.owners[role].id).sort((a,b)=>b.updated_at.localeCompare(a.updated_at));
 
+function bindCertificateCase(plan,{role,target,language,denied=false,bankReceipt=false,id,question}){
+  const recordId=target?plan.targets[target]:null,route=recordId?recordPath(recordId):certificateAwardPath;
+  const list=denied?[]:selectedRows(plan,role).filter(row=>!recordId||row.id===recordId);
+  requireExact(denied||list.length===(recordId?1:2),'Independently bound certificate row count is incorrect.');
+  const expected={behavior:denied?'denial':'answer',statusCode:denied?404:200,noAction:true,forbidPublicResearch:true,localLinksOnly:true,
+    ...(denied?{}:{requiredLinks:[route],requiredSourceBindings:[{sourceId:source,url:route}]}),
+    forbiddenText:[...(bankReceipt?privateFields.filter(field=>field!=='bank'&&field!=='payout'):privateFields),
+      ...plan.profiles.flatMap(row=>[row.email,row.user_id]),...plan.rows.flatMap(row=>[row.phone,row.review_note]),
+      ...plan.rows.filter(row=>!list.includes(row)).map(localizedName)]};
+  const testCase={id,domain:'certificate-awards',mode:'native-status',route,question,language,
+    executionContract:'live-native',fixtureKey:certificateAwardPreviewMode,expected};
+  return {testCase,role,recordId,expectedRows:list.map(row=>renderedRow(row,language)),...(bankReceipt?{bankReceipt}:{})};
+}
+
 export function bindCertificateAwardPreviewCases(plan){
   assertPlan(plan);
-  return certificateAwardPreviewManifest().map(({role,target,language,denied=false,bankReceipt=false,id,question})=>{
-    const recordId=target?plan.targets[target]:null,route=recordId?recordPath(recordId):certificateAwardPath;
-    const list=denied?[]:selectedRows(plan,role).filter(row=>!recordId||row.id===recordId);
-    requireExact(denied||list.length===(recordId?1:2),'Independently bound certificate row count is incorrect.');
-    const expected={behavior:denied?'denial':'answer',statusCode:denied?404:200,noAction:true,forbidPublicResearch:true,localLinksOnly:true,
-      ...(denied?{}:{requiredLinks:[route],requiredSourceBindings:[{sourceId:source,url:route}]}),
-      forbiddenText:[...(bankReceipt?privateFields.filter(field=>field!=='bank'&&field!=='payout'):privateFields),
-        ...plan.profiles.flatMap(row=>[row.email,row.user_id]),...plan.rows.flatMap(row=>[row.phone,row.review_note]),
-        ...plan.rows.filter(row=>!list.includes(row)).map(localizedName)]};
-    const testCase={id,domain:'certificate-awards',mode:'native-status',route,question,language,
-      executionContract:'live-native',fixtureKey:certificateAwardPreviewMode,expected};
-    return {testCase,role,recordId,expectedRows:list.map(row=>renderedRow(row,language)),...(bankReceipt?{bankReceipt}:{})};
-  });
+  return certificateAwardPreviewManifest().map(row=>bindCertificateCase(plan,row));
+}
+
+export const certificateBrowserCaseIds=Object.freeze(['client:certificate-awards:record','client:certificate-awards:multipart']);
+
+export function bindCertificateAwardBrowserCase(plan,questionCase){
+  assertPlan(plan);
+  const index=certificateBrowserCaseIds.indexOf(questionCase?.id);
+  requireExact(index>=0,'Unknown certificate browser case.');
+  const row=certificateAwardPreviewManifest().at(index-2);
+  requireExact(questionCase.question===row.question&&questionCase.route===certificateAwardPath
+    &&questionCase.endpoint==='/api/affairs-data'&&questionCase.scope===scope&&questionCase.auth==='signed-in'
+    &&questionCase.mode===(index===0?'record':'multipart')&&questionCase.fixtureRequirement==='independent_owned_native_records',
+    'The frozen certificate browser question or owner scope changed.');
+  // Both browser questions start at the aggregate page. The existing selected
+  // record receipt check remains a separate native test with its own oracle.
+  return bindCertificateCase(plan,{...row,target:null,id:questionCase.id});
 }
 
 export async function observeCertificateAwardPreviewCallers(plan,{users,origin,publishable,fetchImpl,readResponse,signal}){
@@ -200,17 +218,25 @@ export async function observeCertificateAwardPreviewCallers(plan,{users,origin,p
 
 function expectedWithoutTimestamp({updated_at,...row}) {return row;}
 
-export async function requestCertificateAwardPreviewCase({bound,token,origin,fetchImpl,readResponse,signal}){
-  const {testCase,recordId,bankReceipt}=bound,language=testCase.language;
-  requireExact(typeof token==='string'&&token,'A protected certificate status request requires an authenticated caller.');
-  const url=new URL('/api/affairs-data',origin);
-  url.search=new URLSearchParams({scope,view:'mine',answer:language,...(recordId?{id:recordId}:{}),
+function certificateStatusPath({testCase,recordId,bankReceipt}){
+  return '/api/affairs-data?'+new URLSearchParams({scope,view:'mine',answer:testCase.language,...(recordId?{id:recordId}:{}),
     ...(bankReceipt?{bank_receipt:'requested'}:{})});
+}
+
+export async function requestCertificateAwardPreviewCase({bound,token,origin,fetchImpl,readResponse,signal}){
+  requireExact(typeof token==='string'&&token,'A protected certificate status request requires an authenticated caller.');
+  const url=new URL(certificateStatusPath(bound),origin);
   const reply=await fetchImpl(url,{method:'GET',headers:{Authorization:'Bearer '+token},redirect:'error',credentials:'omit',signal});
   const statusCode=reply.status;
   // Retain a behavioral result when a valid fixture receives the wrong status.
   requireExact(statusCode===200||statusCode===404,'Unexpected protected certificate response status.');
   const body=await readResponse(reply,url,32768,statusCode);
+  return gradeCertificateAwardPreviewResponse(bound,{statusCode,body,requestPath:url.pathname+url.search});
+}
+
+export function gradeCertificateAwardPreviewResponse(bound,{statusCode,body,requestPath}){
+  const {testCase,recordId,bankReceipt}=bound,language=testCase.language;
+  requireExact(requestPath===certificateStatusPath(bound),'The certificate response did not use the exact bound selector.');
   const envelope={body,statusCode,fixtureKey:testCase.fixtureKey,execution:'live-native',events:body?.activity??[]};
   const {checks}=gradeCase(testCase,envelope);
   const check=(id,passed,detail)=>checks.push({id,passed:passed===true,detail});
@@ -236,7 +262,7 @@ export async function requestCertificateAwardPreviewCase({bound,token,origin,fet
     }
   }
   return {caseId:testCase.id,role:bound.role,statusCode,passed:checks.every(check=>check.passed),checks,
-    requestDigest:digest({method:'GET',path:url.pathname+url.search,role:bound.role,question:testCase.question}),responseDigest:digest(body)};
+    requestDigest:digest({method:'GET',path:requestPath,role:bound.role,question:testCase.question}),responseDigest:digest(body)};
 }
 
 export const certificateAwardPreviewHash=value=>digest(value);
