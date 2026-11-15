@@ -25,7 +25,7 @@ import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCat
 import {metadataDispatchObservation as assistantDispatchObservation} from './elearning-metadata-live.mjs';
 import {assertHealthMetadataLiveCases,gradeHealthMetadataLiveCase,healthMetadataDispatch,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataLiveCases,verifiedHealthMetadataReadback} from './health-examination-live.mjs';
-import {assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamily,dtmAssignmentListFixtureMode,
+import {assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListFixtureMode,
   dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase,verifiedDtmAssignmentListReadback} from './dtm-assignment-list-live.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
@@ -50,9 +50,9 @@ export function options(args){
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
   if(result.caseFamily!==undefined){
-    const supported=['fee-remission',dtmAssignmentListFamily,healthMetadataFamily];
+    const supported=['fee-remission',...dtmAssignmentListFamilies,healthMetadataFamily];
     if(!supported.includes(result.caseFamily))throw new Error('Unknown case family.');
-    const label=result.caseFamily===healthMetadataFamily?'Health metadata':result.caseFamily===dtmAssignmentListFamily?'Moodle assignment-list':'Fee remission';
+    const label=result.caseFamily===healthMetadataFamily?'Health metadata':dtmAssignmentListFamilies.includes(result.caseFamily)?'Moodle assignment-list':'Fee remission';
     if(!['inventory','live'].includes(result.mode)||result.only||result.domain||result.maxCases!==Infinity)throw new Error(label+' runs require the complete isolated family in inventory or live mode; case filters are not permitted.');
     if(result.mode==='live'&&!result.fixtureModule)throw new Error(label+' live runs require an explicit isolated fixture adapter.');
     const projectPreview=result.caseFamily!=='fee-remission'?isEvaluationPreviewOrigin(result.origin)
@@ -125,10 +125,10 @@ export function validateFeeRemissionRunnerCases(cases){
   return true;
 }
 export async function evaluationSuite(now,{caseFamily}={}){
-  if(caseFamily!==undefined&&!['fee-remission',dtmAssignmentListFamily,healthMetadataFamily].includes(caseFamily))throw new Error('Unknown case family.');
+  if(caseFamily!==undefined&&!['fee-remission',...dtmAssignmentListFamilies,healthMetadataFamily].includes(caseFamily))throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():caseFamily===dtmAssignmentListFamily?dtmAssignmentListLiveCases():caseFamily===healthMetadataFamily?healthMetadataLiveCases()
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():dtmAssignmentListFamilies.includes(caseFamily)?dtmAssignmentListLiveCases(caseFamily):caseFamily===healthMetadataFamily?healthMetadataLiveCases()
     :[...serviceNoteRunnerCases({now}),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
       ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...clubEquipmentRunnerCases(),
@@ -467,14 +467,14 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   const opt=options(args),identity=await identify();
   if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
   if(opt.mode==='review')return reviewSavedReport(opt,identity);
-  const feeOnly=opt.caseFamily==='fee-remission',assignmentListOnly=opt.caseFamily===dtmAssignmentListFamily;
+  const feeOnly=opt.caseFamily==='fee-remission',assignmentListOnly=dtmAssignmentListFamilies.includes(opt.caseFamily);
   const healthMetadataOnly=opt.caseFamily===healthMetadataFamily;
   const fixtureMode=feeOnly?'fee-remission-only':assignmentListOnly?dtmAssignmentListFixtureMode:healthMetadataOnly?healthMetadataFixtureMode:undefined;
   const isolatedFixture=fixtureMode?{fixtureMode,caseFamily:opt.caseFamily}:{};
   const suite=await buildSuite(opt.now,{caseFamily:opt.caseFamily}),runId=randomUUID();
   if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
   if(assignmentListOnly){
-    assertDtmAssignmentListLiveCases(suite.cases);
+    assertDtmAssignmentListLiveCases(suite.cases,opt.caseFamily);
     if(suite.suiteHash!==hash(suite.cases))throw new Error('Moodle assignment-list suite hash does not match the frozen cases.');
   }
   if(healthMetadataOnly){
