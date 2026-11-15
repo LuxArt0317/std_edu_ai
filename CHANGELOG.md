@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Try a different school publication when a deeper, unsuccessful check has already reviewed distinct sources. Read unvisited leads first and verify again only when the alternate search adds usable evidence. [#100]
+
 - Verify saved aid-claim fields directly against the selected claim page, preserve conduct field questions that follow the report name, and return the dormitory notice link without reading records for a delete or change request. Catalog acceptance now checks the native sources for 34-2, 37-1 and 38-1. [#100]
 
 - Keep the subject of signed-in public campus contact follow-ups across turns, including English and Traditional Chinese. Account history and page selectors stay out of public research. [#100]

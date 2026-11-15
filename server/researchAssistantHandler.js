@@ -1257,6 +1257,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const followUpQuestion = capture ? publicSchoolQuestion(verificationQuestion) : publicQuestion;
             const canRecover = Boolean(followUpQuestion && !input.images.length);
             let triedAlternateSearch = false;
+            let triedDeeperSearch = false;
             async function discoverEvidence({ searchUntil, readUntil, alternate, deeper }) {
                 // Only the sanitized public question reaches search. The
                 // search response supplies URLs, then we read each page.
@@ -1265,6 +1266,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: alternate, ...librarySearch,
                     checkedSchoolUrls: [...checkedLiveUrls],
                 }).catch(() => null);
+                triedDeeperSearch ||= deeper === true && followUp?.attempted === true;
                 if ((capture || librarySources.length) && followUp?.attempted) webAttempted = true;
                 const discovered = followUp?.discoveredSources || [];
                 for (const lead of discovered) pendingLeads.set(canonicalUrl(lead.url), lead);
@@ -1348,9 +1350,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             let addedEvidenceOnLastPass = false;
             let foundOnlyMirroredContent = false;
+            let reviewedUnresolvedSources = false;
             const canExtendReview = () => canRecover && (
                 addedEvidenceOnLastPass || [...pendingLeads.keys()].some(canRead)
-                || (foundOnlyMirroredContent && !triedAlternateSearch)
+                || (!triedAlternateSearch && (foundOnlyMirroredContent || reviewedUnresolvedSources))
             );
             async function recoverPublicEvidence({ attempt, previousFailure, feedback, deadline: until }) {
                 const ordinal = attempt + previousChecks;
@@ -1368,7 +1371,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 if (needsPublicEvidence(previousFailure) && canRecover) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
                     if (readUntil - Date.now() >= 1_000) {
-                        fresh = retainDifferentContents(await checkNewSources([...pendingLeads.values()], readUntil, 3));
+                        const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
+                        const leadsToRead = [...pendingLeads.values()].sort((first, second) => attempts(first) - attempts(second));
+                        fresh = retainDifferentContents(await checkNewSources(leadsToRead, readUntil, 3));
                         if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
                             label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
                     }
@@ -1422,6 +1427,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 verify: async context => {
                     const review = await verifyPublicAnswer({ ...context, hasKnownNoticeLink, trackPublicCoverage: canRecover&&!publicStudyGuidance,
                         deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks });
+                    // A completed deeper check of distinct sources can point to a
+                    // different publication even when the latest search returned no URLs.
+                    if (context.attempt + previousChecks === maxAnswerVerificationChecks && triedDeeperSearch && context.evidence.length > 1
+                        && review.ok === false && needsPublicEvidence(review.reason)) reviewedUnresolvedSources = true;
                     if (managedPartial && review.ok && !context.candidate.citations.some(citation =>
                         !retainedIds.has(citation.chunkId) && context.evidence.some(source => source.id === citation.chunkId)))
                         return { ...review, missingRequestedDetails: undefined };
