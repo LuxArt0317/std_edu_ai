@@ -18,3 +18,4 @@ export function selectGraduationReviewCourses<T extends {title?:unknown;reportId
   courseScope:string;fullReportCourseRows:number;namedCourseRows?:Record<string,number>;linkedCourseRows?:Record<string,number>;requirements:T[];matchedCourses:T[];otherCourses:T[];
 };
 export function answerGraduationReview(question:string,snapshot:{profile?:{userId?:string};graduationReview?:GraduationReviewRecords},route?:string,history?:Array<{role:string;content:string}>):{answer:string;title:string;url:string}|null;
+export function graduationReviewStatusKind(question:string,route?:string,history?:Array<{role:string;content:string}>):GraduationReviewKind|null;

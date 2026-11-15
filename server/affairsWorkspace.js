@@ -6,6 +6,7 @@ import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
 import {serviceNoteKeys} from './serviceNoteIntent.js';
 import {loadNativeAcademicRecords,loadNativeGradeView} from './nativeAcademicWorkspace.js';
+import {graduationReviewReadSource,isGraduationReviewKind} from './graduationReview.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
@@ -275,6 +276,32 @@ export async function loadOwnAcademicGrades(account,view,{deadline=Date.now()+12
   const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
   const academicGrades=await loadNativeGradeView(userId,view,(table,query)=>readAccountRows(scoped,table,query));
   return {checkedAt:new Date().toISOString(),profile:{userId},academicGrades,academicGradesOnly:true,academicGradesView:view};
+}
+
+/** Projects one literal status. The report's identity, notes and courses stay
+ * outside the assistant result even when the signed-in caller can view them. */
+export async function loadOwnGraduationReviewStatus(account,kind,{deadline=Date.now()+12000}={}){
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!isGraduationReviewKind(kind)||!Number.isFinite(deadline))throw new AffairsWorkspaceError('Invalid graduation status inquiry.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
+  const rows=await request(scoped,graduationReviewReadSource.table,{exactCount:true,query:{
+    select:'user_id,report_kind,source_mode,review_status:report->graduationReview->>text',
+    user_id:'eq.'+userId,report_kind:'eq.'+kind,limit:2,
+  },readJson:async response=>{
+    const value=await readFeeRemissionJson(response,4096);
+    if(!Array.isArray(value)||value.length>1||response.headers.get('content-range')!==(value.length?'0-0/1':'*/0'))
+      throw new Error('Unverified selected report count.');
+    return value;
+  }});
+  const row=rows[0],value=row?.review_status;
+  if(rows.length&&(!row||typeof row!=='object'||Object.keys(row).sort().join(',')!=='report_kind,review_status,source_mode,user_id'
+    ||row.user_id!==userId||row.report_kind!==kind||row.source_mode!=='local_demo'
+    ||value!==null&&(typeof value!=='string'||[...value].length>160||/[\u0000\ud800-\udfff]/u.test(value))))
+    throw new AffairsWorkspaceError('The selected graduation report could not be verified.');
+  return {reportKind:kind,found:rows.length===1,statusText:row?value:null,checkedAt:new Date().toISOString()};
 }
 
 /** Narrow read for explicitly selected private notes. A capped, inconsistent

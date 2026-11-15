@@ -1,4 +1,5 @@
 import type {ExplicitAccountAction} from './accountActionIntent.js';
+import type {GraduationReviewKind} from './graduationReview.js';
 export class AffairsWorkspaceError extends Error { status:number; constructor(message:string,status?:number); }
 export class AffairsWorkspaceReadUnavailableError extends AffairsWorkspaceError {}
 export type AffairsAccount = {user:{id:string;email?:string};token:string;url:string;key:string};
@@ -13,6 +14,9 @@ export function loadOwnAffairsCharges(account:AffairsAccount&{requestDeadline?:n
   checkedAt:string;profile:{userId:string};studentRecordFound:boolean;charges:AffairsCharge[];
 }>;
 export function loadOwnAcademicGrades(account:AffairsAccount,view:string,options?:{deadline?:number}):Promise<Record<string,unknown>>;
+export function loadOwnGraduationReviewStatus(account:AffairsAccount,kind:GraduationReviewKind,options?:{deadline?:number}):Promise<{
+  reportKind:GraduationReviewKind;found:boolean;statusText:string|null;checkedAt:string;
+}>;
 export function loadOwnAffairsActionContext(account:AffairsAccount,selection:ExplicitAccountAction,options?:{deadline?:number;onRead?:(tool:string,status:'running'|'complete'|'unavailable')=>void}):Promise<Record<string,unknown>>;
 export function executeAffairsAction(account:AffairsAccount,kind:string,payload:unknown,requestId?:string):Promise<Record<string,unknown>>;
 export function manageAffairsRecord(account:AffairsAccount,kind:string,payload:unknown):Promise<Record<string,unknown>>;

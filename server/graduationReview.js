@@ -136,6 +136,29 @@ export function graduationReviewQuery(question,route='',history=[]) {
   const kinds=clauses.map(part=>legacyQuestion.test(part)?'legacy':'academic_services');
   return {reportKind:graduationReviewQueryKind(question,route,history),multipleScopes:new Set(kinds).size>1};
 }
+const statusOnly=/^(?:what is my status|what's my status|my status|我的(?:檢核)?狀態|我的狀態是什麼)$/iu;
+const ownExplicitStatus=/^(?:(?:what is|what's|(?:please )?show(?: me)?) my (?:(?:modern|legacy|academic services) )?graduation (?:review |report )?status|(?:請)?(?:查詢|顯示|告訴我)我(?:的)?(?:舊版|新版|教務應用服務)?畢業(?:檢核|審核)(?:的)?狀態)$/iu;
+const ownReportContext=/^(?:(?:(?:please )?(?:show(?: me)?|open|view|check|read) )?my (?:(?:modern|legacy|academic services) )?graduation (?:report|review)|(?:請)?(?:查看|顯示|開啟)?我(?:的)?(?:15-2|舊版|新版|教務應用服務)?畢業(?:檢核|審核)(?:表|報告)?)$/iu;
+const statusText=value=>typeof value==='string'&&value.length<=200
+  ?value.normalize('NFKC').trim().replace(/[’]/gu,"'").replace(/[?.!。！？]+$/u,''):'';
+
+/** Exact status requests only. Full reports and mixed questions keep their
+ * existing routing. A bare follow-up may use the last explicit own report. */
+export function graduationReviewStatusKind(question,route='',history=[]){
+  const text=statusText(question);
+  if(!text||/[?#]/u.test(route))return null;
+  if(!ownExplicitStatus.test(text)){
+    if(!statusOnly.test(text))return null;
+    const previous=[...history].reverse().find(row=>row?.role==='user');
+    const precedesOwnReport=ownReportContext.test(statusText(previous?.content));
+    if(previous&&topic.test(previous.content)&&!precedesOwnReport)return null;
+    if(!routeKind(route)&&!precedesOwnReport)return null;
+  }
+  if(!isGraduationReviewQuestion(question,route,history))return null;
+  const selection=graduationReviewQuery(question,route,history);
+  return selection.multipleScopes?null:selection.reportKind;
+}
+
 function graduationCourseNameRanges(question,title) {
   if(typeof title!=='string'||title.trim().length<3)return [];
   const text=question.toLocaleLowerCase(),name=title.trim().toLocaleLowerCase(),word=/[a-z0-9]/i;

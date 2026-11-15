@@ -207,3 +207,7 @@ The local handler test captures Auth, PostgREST and verification requests. It ch
 The separate `account:published-sample-current-courses-plus-interview-draft` case uses the published sample enrollment binding. It asks the same question and grades the three current sample subjects, their linked subjects page, and independently reviewed guidance. This leaves the original Database Design (DB301) fixture and its grade intact.
 
 If the tailored draft cannot start because the model provider is unavailable, the graph can verify a fixed practice guide alongside the exact saved fields or read limits. The response says the tailored draft was unavailable and Activity shows that the saved-record checks and general guide ran locally. A rejected model-generated draft still goes through the normal correction and verification checks.
+
+### Saved graduation review status
+
+An explicit saved status question or a status follow-up to the immediately preceding own graduation report reads one report kind through the verified caller. The reader projects the literal status text and discards identity, notes, credits and course rows. The graph checks the exact rendering locally and retries the same lookup once if the first read fails. A missing report, null or blank status, and a failed read have distinct replies. Official eligibility remains unverified. Full reports and independent additional questions keep their existing routing.
