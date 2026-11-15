@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Read only the selected private Academic Services view for explicit standalone grade questions without provisioning unrelated accounts or records. [#100]
+
 - Explain which public notice details could not be checked when the relevant source requires school sign-in. Keep its direct link in the reply. [#100]
 
 - Verify course and syllabus details, curriculum PDF loading, and substitution results in the signed-in browser checks. [#100]

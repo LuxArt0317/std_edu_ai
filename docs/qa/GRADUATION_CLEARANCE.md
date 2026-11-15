@@ -28,3 +28,7 @@ The 16-case status packet compares both callers' native page responses with inde
 ## Deployed evidence
 
 Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries. Successful administrator changes and scope denial were verified by the exact-target rollback. The production browser used fixtures.
+
+## Protected status replay
+
+`639f81b` first rejected a future start date before fixture setup. The same revision then dispatched all 16 questions using two pre-existing terms that had started. Four answers passed. Nine status, notes and empty-state outcomes and three denied-operation replies did not meet the grader. The app's logs reported exhausted reviewer quota. All 80 application requests were pinned and both callers' native records, the protected owner and the original shared term and period rows matched their independent checks. All disposable fixtures were removed. Three positive window cases still require a suitable fixture because the existing terms have no configured periods.
