@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify capped teaching feedback and mixed course questions against separate saved records. Ask for clarification before reading ambiguous requests, and confirm explicit exclusions without reading records. [#100]
+
 - Exercise Moodle assignment empty lists, sample fallback, foreign-course requests, and the display limit with both caller readbacks in protected evaluation. [#100]
 
 - Continue looking for missing details when a later review reaches its output limit. Keep the already verified facts until a different source supports a fuller answer. [#100]

@@ -14,7 +14,7 @@ const ids=['survey-status','course-completion','survey-windows','survey-phases',
   'immediate-status','immediate-comment','without-comment','immediate-times','both-views','history-followup','exclude-survey',
   'review-not-delivery','survey-link','immediate-link','anonymous-responses','manager-results','submit-survey','submit-feedback',
   'foreign-survey','foreign-immediate','foreign-postfix','foreign-zh','read-failure','one-view-failure','markup-comment','empty-survey','empty-immediate','excluded-native','mixed-before','mixed-after','survey-cap','feedback-cap','eligible-cap',
-  'stale-history','assistant-history','generic-note','unrelated-on-page','anonymous'];
+  'stale-history','assistant-history','generic-note','unrelated-on-page','exclude-all','anonymous'];
 const frozen=buildTeachingFeedbackNativeCases();
 const cases=ids.map(id=>frozen.find(row=>row.id===idPrefix+id));
 const migrations=['20261105010000_school_affairs_workspace.sql','20261105020000_dtm_sample_workspace.sql',
