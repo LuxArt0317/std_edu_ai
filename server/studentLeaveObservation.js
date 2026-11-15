@@ -8,8 +8,14 @@ const sha=/^[a-f0-9]{64}$/u;
 const revision=/^[a-f0-9]{40}$/u;
 const preview=/^https:\/\/stdedu-[a-z0-9]{9}-v1-d286\.vercel\.app$/u;
 const routePattern=/^\/(?:school-affairs\/services\/leave(?:\/(?:history|archive|periods|edit\/[a-f0-9-]{36}))?)?$/u;
+const boundaryOwnerRoute='/school-affairs/services/leave/history?user_id=';
+const boundaryRoute=route=>route==='/school-affairs/services/leave/index'
+  ||route.startsWith(boundaryOwnerRoute)&&uuid.test(route.slice(boundaryOwnerRoute.length));
 const requestKeys=['question','route','history','stream','consentedResearchUse'];
 const scopeKeys=['ownerId','runId','origin','sourceRevision','nonce'];
+const bindingKeys=[...scopeKeys,'issuedAt','requestDigest'];
+const boundaryDispositions=new Set(['navigation','foreign_request','invalid_route','ambiguous_selector',
+  'unsupported_operation','unsupported_field','requires_attendance_source','excluded']);
 const attemptKeys=['reads','evidenceDigest'];
 const modelOperations=new Set(['compose_grounded_answer','answer_evidence_review','correct_grounded_answer']);
 const maxModelOperations=maxAnswerVerificationChecks*2;
@@ -25,8 +31,10 @@ export const studentLeaveObservationDigest=value=>createHash('sha256').update(JS
 export const studentLeaveRowsDigest=rows=>studentLeaveObservationDigest(rows.map(row=>
   Object.fromEntries(Object.keys(row).sort().map(key=>[key,row[key]]))));
 const requestDigest=(origin,request)=>studentLeaveObservationDigest({method:'POST',url:origin+endpoint,request});
-const validRequest=request=>exact(request,requestKeys)&&typeof request.question==='string'
-  &&request.question.length>=2&&request.question.length<=2000&&typeof request.route==='string'&&routePattern.test(request.route)
+const isBoundaryBinding=value=>exact(value,[...bindingKeys,'purpose'])&&value.purpose==='boundary';
+const validRequest=(request,boundary)=>exact(request,requestKeys)&&typeof request.question==='string'
+  &&request.question.length>=2&&request.question.length<=2000&&typeof request.route==='string'
+  &&(routePattern.test(request.route)||boundary&&boundaryRoute(request.route))
   &&Array.isArray(request.history)&&request.history.length<=6&&request.history.every(row=>exact(row,['role','content'])
     &&['user','assistant'].includes(row.role)&&typeof row.content==='string'&&row.content.length<=1000)
   &&request.stream===false&&request.consentedResearchUse===false;
@@ -48,11 +56,19 @@ function unseal(domain,value,key){
   try{return JSON.parse(Buffer.from(payload,'base64url').toString('utf8'));}catch{return null;}
 }
 
-export function createStudentLeaveProbe(scope,request,key,now=Date.now()){
-  if(!exact(scope,scopeKeys)||!scopeValid(scope)||!validRequest(request)||!keyIsValid(key)||!Number.isSafeInteger(now))
+function createProbe(scope,request,key,now,boundary){
+  if(!exact(scope,scopeKeys)||!scopeValid(scope)||!validRequest(request,boundary)||!keyIsValid(key)||!Number.isSafeInteger(now))
     throw new Error('Invalid Student Leave observation request.');
-  const binding={...scope,issuedAt:now,requestDigest:requestDigest(scope.origin,request)};
+  const binding={...scope,issuedAt:now,requestDigest:requestDigest(scope.origin,request),...(boundary?{purpose:'boundary'}:{})};
   return {binding,body:{...request,evaluationLeaveProbe:seal('request',binding,key)}};
+}
+
+export function createStudentLeaveProbe(scope,request,key,now=Date.now()){
+  return createProbe(scope,request,key,now,false);
+}
+
+export function createStudentLeaveBoundaryProbe(scope,request,key,now=Date.now()){
+  return createProbe(scope,request,key,now,true);
 }
 
 function evidenceDigest(result){
@@ -67,10 +83,10 @@ function evidenceDigest(result){
 export function openStudentLeaveObservation({body,identity,correlationId},env=process.env,now=Date.now()){
   if(env.VERCEL_ENV!=='preview'||!exact(body,[...requestKeys,'evaluationLeaveProbe'])||!uuid.test(correlationId))return null;
   const {evaluationLeaveProbe,...request}=body;
-  if(!validRequest(request))return null;
   const key=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY;
   const binding=unseal('request',evaluationLeaveProbe,key);
-  if(!exact(binding,[...scopeKeys,'issuedAt','requestDigest'])||!scopeValid(binding)
+  const boundary=isBoundaryBinding(binding);
+  if((!boundary&&!exact(binding,bindingKeys))||!scopeValid(binding)||!validRequest(request,boundary)
     ||binding.origin!=='https://'+env.VERCEL_URL||binding.sourceRevision!==env.VERCEL_GIT_COMMIT_SHA
     ||binding.ownerId!==identity?.id||binding.runId!==identity?.runMarker||identity.email!=='evaluation.student@example.invalid'
     ||!Number.isSafeInteger(binding.issuedAt)||!Number.isSafeInteger(now)||binding.issuedAt>now+5000||now-binding.issuedAt>lifetimeMs
@@ -78,7 +94,12 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
   const attempts=[],completedModelOperations=[];
   let invalid=false,nativeChecked=false;
   return {
+    purpose:boundary?'boundary':'read',
     async observe(reader){
+      if(boundary){
+        invalid=true;
+        throw new Error('A Student Leave boundary probe cannot read records.');
+      }
       const reads=[];
       const attempt={reads,evidenceDigest:null};
       if(attempts.length>=maxAnswerVerificationChecks)invalid=true;
@@ -91,16 +112,22 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
       return value;
     },
     modelCompleted(operation){
-      if(nativeChecked||completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
+      if(boundary||nativeChecked||completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
       else completedModelOperations.push(operation);
     },
     nativeCheckCompleted(){
-      if(nativeChecked||completedModelOperations.length)invalid=true;
+      if(boundary||nativeChecked||completedModelOperations.length)invalid=true;
       else nativeChecked=true;
     },
     finish(payload){
-      if(invalid||!attempts.length||attempts.some(row=>!row.reads.length||!sha.test(row.evidenceDigest)))return null;
+      if(boundary||invalid||!attempts.length||attempts.some(row=>!row.reads.length||!sha.test(row.evidenceDigest)))return null;
       return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod:nativeChecked?'native-exact':'model',
+        responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
+    },
+    finishBoundary(payload,boundaryDisposition){
+      if(!boundary||invalid||attempts.length||completedModelOperations.length||nativeChecked
+        ||!boundaryDispositions.has(boundaryDisposition))return null;
+      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod:'none',boundaryDisposition,
         responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
     },
   };
@@ -108,14 +135,18 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
 
 export function verifyStudentLeaveObservation({receipt,binding,correlationId,body},key){
   const observed=unseal('receipt',receipt,key);
-  if(!exact(observed,['binding','correlationId','attempts','completedModelOperations','verificationMethod','responseDigest'])
-    ||!exact(observed.binding,[...scopeKeys,'issuedAt','requestDigest'])
+  const boundary=isBoundaryBinding(binding);
+  const receiptKeys=['binding','correlationId','attempts','completedModelOperations','verificationMethod','responseDigest'];
+  if(!exact(observed,boundary?[...receiptKeys,'boundaryDisposition']:receiptKeys)
+    ||!(boundary?isBoundaryBinding(observed.binding):exact(observed.binding,bindingKeys))
     ||Object.keys(observed.binding).some(name=>observed.binding[name]!==binding?.[name])
     ||!uuid.test(correlationId)||observed.correlationId!==correlationId
     ||observed.responseDigest!==studentLeaveObservationDigest({statusCode:200,body})
-    ||!Array.isArray(observed.attempts)||observed.attempts.length<1||observed.attempts.length>maxAnswerVerificationChecks
-    ||!Array.isArray(observed.completedModelOperations)||observed.completedModelOperations.length>maxModelOperations
-    ||observed.completedModelOperations.some(operation=>!modelOperations.has(operation))
+    ||!Array.isArray(observed.attempts)||!Array.isArray(observed.completedModelOperations))return null;
+  if(boundary)return observed.verificationMethod==='none'&&boundaryDispositions.has(observed.boundaryDisposition)
+    &&observed.attempts.length===0&&observed.completedModelOperations.length===0?observed:null;
+  if(observed.attempts.length<1||observed.attempts.length>maxAnswerVerificationChecks
+    ||observed.completedModelOperations.length>maxModelOperations||observed.completedModelOperations.some(operation=>!modelOperations.has(operation))
     ||!['native-exact','model'].includes(observed.verificationMethod)
     ||observed.verificationMethod==='native-exact'&&observed.completedModelOperations.length!==0
     ||observed.attempts.some(row=>!exact(row,attemptKeys)||!sha.test(row.evidenceDigest)

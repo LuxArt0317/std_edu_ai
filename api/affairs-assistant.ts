@@ -31,7 +31,7 @@ import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js
 import {internshipObservationHeader,openInternshipObservation} from '../server/internshipObservation.js';
 import {teachingObservationHeader,openTeachingObservation} from '../server/teachingFeedbackObservation.js';
 import {leaveObservationHeader,openStudentLeaveObservation} from '../server/studentLeaveObservation.js';
-import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools} from '../server/studentLeaveAssistantPlan.js';
+import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools,studentLeaveZeroReadDisposition} from '../server/studentLeaveAssistantPlan.js';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
 import {dtmAssignmentLookupContext} from '../server/dtmAssignmentEvidenceIntent.js';
 import {readDtmAssignmentEvidence} from '../server/accountDtmAssignmentEvidence.js';
@@ -281,8 +281,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   const observation=hasLeaveProbe?openStudentLeaveObservation({body,identity:probeIdentity,correlationId}):null;
   const observedPlan=observation?studentLeaveAssistantPlan(question,route,history):null;
-  if(hasLeaveProbe&&(!observedPlan?.selection||observedPlan.selection.reason||observedPlan.hasOtherQuestion||
-    studentLeaveSelectedTools(observedPlan).join()!=='leaveRecords')){
+  const observedLeaveBoundary=observation?.purpose==='boundary'&&observedPlan?studentLeaveZeroReadDisposition(observedPlan):null;
+  if(hasLeaveProbe&&(!observedPlan||observedPlan.hasOtherQuestion||(observation?.purpose==='boundary'
+    ? !observedLeaveBoundary
+    : !observedPlan.selection||observedPlan.selection.reason||studentLeaveSelectedTools(observedPlan).join()!=='leaveRecords'))){
     rejectProbe();return;
   }
   const internshipObservation=hasInternshipProbe?openInternshipObservation({body,identity:probeIdentity,correlationId}):null;
@@ -513,6 +515,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     if(!tools.length){
       const payload=nav??{status:unavailable?'handoff':'clarification',answer:boundary,citations:[],
         suggestedQuestions:[],grounding:{source:'account',webSearched:false}};
+      if(leavePlan&&observedLeaveBoundary){
+        const receipt=observation?.finishBoundary(payload,observedLeaveBoundary);
+        if(receipt)response.setHeader(leaveObservationHeader,receipt);
+      }
       const receipt=internshipObservation?.finish(payload,false);
       if(receipt)response.setHeader(internshipObservationHeader,receipt);
       stream.send(200,payload);

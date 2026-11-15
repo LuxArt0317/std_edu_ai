@@ -1,23 +1,56 @@
 import {randomUUID} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {
-  createStudentLeaveProbe,leaveObservationHeader,studentLeaveObservationDigest,studentLeaveRowsDigest,verifyStudentLeaveObservation,
+  createStudentLeaveBoundaryProbe,createStudentLeaveProbe,leaveObservationHeader,studentLeaveObservationDigest,studentLeaveRowsDigest,verifyStudentLeaveObservation,
 } from '../../server/studentLeaveObservation.js';
 import {gradeCase} from './grading.mjs';
 import {bindStudentLeaveFixtureCase,studentLeaveFixtureManifest} from './student-leave-fixture-plan.mjs';
 import {expectedAttempt} from './student-leave-offline-adapter.mjs';
 import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
 
-const scopes=new Map(studentLeaveFixtureManifest.cases.filter(scope=>scope.availability==='leave_state_available')
+const prefix='account:student-leave-native-';
+const readScopes=new Map(studentLeaveFixtureManifest.cases.filter(scope=>scope.availability==='leave_state_available')
   .map(scope=>[scope.caseId,scope.family]));
-const cases=new Map(studentLeaveRunnerCases().filter(row=>scopes.has(row.id)).map(row=>[row.id,row]));
+const boundaryScopes=new Map(studentLeaveFixtureManifest.cases.filter(scope=>scope.availability==='boundary_setup_available')
+  .map(scope=>[scope.caseId,scope.family]));
+const boundaryExpectations=new Map(Object.entries({
+  'explicit-foreign':'foreign_request',
+  'chinese-foreign':'foreign_request',
+  'foreign-record-no-expansion':'foreign_request',
+  'route-tamper':'invalid_route',
+  'unsupported-date':'ambiguous_selector',
+  'malformed-id':'ambiguous_selector',
+  'unsupported-detail':'unsupported_field',
+  attendance:'requires_attendance_source',
+  write:'unsupported_operation',
+  excluded:'excluded',
+  'excluded-foreign':'excluded',
+  navigation:'navigation',
+  'index-navigation':'navigation',
+  'approval-count-unavailable':'unsupported_field',
+}).map(([id,disposition])=>[prefix+id,disposition]));
+const cases=new Map(studentLeaveRunnerCases().filter(row=>readScopes.has(row.id)||boundaryScopes.has(row.id)).map(row=>[row.id,row]));
+for(const [id] of boundaryScopes){
+  const row=cases.get(id);
+  if(!boundaryExpectations.has(id)||row?.nativeLeaveContract.requiresScopedRecordRead!==false
+    ||row.expected.allowedTools.length||row.expected.requiredAttemptedTools.length
+    ||row.expected.requiredTools.length||row.expected.maxDistinctAttemptedTools!==0
+    ||row.expected.noAction!==true||row.expected.forbidPublicResearch!==true)
+    throw new Error('The hosted Student Leave boundary no longer matches the frozen zero-read contract.');
+}
+if(boundaryScopes.size!==boundaryExpectations.size)
+  throw new Error('The hosted Student Leave boundary roster changed.');
 const privateMarkers=/STUDENT_PRIVATE_(?:REASON|PHONE)|FOREIGN PRIVATE SENTINEL|000-000-0000/u;
 const maxBodyBytes=128000;
 
-export function studentLeaveHostedSelection(caseIds=[...cases.keys()]){
-  if(!Array.isArray(caseIds)||!caseIds.length||caseIds.length>cases.size
-    ||new Set(caseIds).size!==caseIds.length||caseIds.some(id=>!cases.has(id)))
+export const studentLeaveHostedBoundaryCaseIds=()=>[...boundaryScopes.keys()];
+
+export function studentLeaveHostedSelection(caseIds=[...readScopes.keys()]){
+  if(!Array.isArray(caseIds)||!caseIds.length||new Set(caseIds).size!==caseIds.length)
     throw new Error('Invalid Student Leave hosted case selection.');
+  // One disposable caller remains below the private per-minute endpoint limit.
+  const scopes=boundaryScopes.has(caseIds[0])?boundaryScopes:readScopes;
+  if(caseIds.some(id=>!scopes.has(id)))throw new Error('Invalid Student Leave hosted case selection.');
   return caseIds.map(id=>({testCase:cases.get(id),family:scopes.get(id)}));
 }
 
@@ -45,9 +78,11 @@ async function boundedResponse(response){
  * receipt. A terminal verification badge cannot populate either input. */
 export async function requestObservedStudentLeave({plan,testCase,key,token,fetchImpl,signal,seenCorrelations}){
   const bound=bindStudentLeaveFixtureCase(plan,testCase);
-  const expected=expectedAttempt(plan,bound,studentLeaveRowsDigest);
+  const boundary=boundaryExpectations.get(bound.caseId);
+  const expected=boundary?null:expectedAttempt(plan,bound,studentLeaveRowsDigest);
   const request={question:bound.question,route:bound.route,history:bound.history,stream:false,consentedResearchUse:false};
-  const {binding,body}=createStudentLeaveProbe({ownerId:bound.ownerId,runId:bound.runId,origin:bound.origin,
+  const makeProbe=boundary?createStudentLeaveBoundaryProbe:createStudentLeaveProbe;
+  const {binding,body}=makeProbe({ownerId:bound.ownerId,runId:bound.runId,origin:bound.origin,
     sourceRevision:bound.sourceRevision,nonce:randomUUID()},request,key);
   const response=await fetchImpl(bound.origin+'/api/affairs-assistant',{method:'POST',signal,
     headers:{Accept:'application/json','Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(body)});
@@ -59,6 +94,21 @@ export async function requestObservedStudentLeave({plan,testCase,key,token,fetch
   const absent={caseId:bound.caseId,passed:false,observed:false,completedModelCalls:0,completedNativeCheck:false};
   if(!observation||seenCorrelations.has(correlationId))return {...absent,failures:['observation.missing_or_invalid']};
   seenCorrelations.add(correlationId);
+  if(boundary){
+    const outcome=gradeCase({...testCase,expected:bound.expected,executionContract:'live-native'},{
+      statusCode:response.status,execution:'live-native',fixtureKey:bound.fixtureKey,body:reply,toolCalls:[],
+    });
+    const failures=outcome.failures.map(row=>row.id);
+    if(observation.boundaryDisposition!==boundary||observation.verificationMethod!=='none')
+      failures.push('observation.boundary_disposition_mismatch');
+    const activity=Array.isArray(reply.activity)?reply.activity:[];
+    if(reply.verification!==undefined||activity.some(step=>String(step?.kind??'').startsWith('account-read:')))
+      failures.push('observation.unexpected_reader_activity');
+    return {caseId:bound.caseId,passed:failures.length===0,observed:true,attempts:0,reads:0,
+      execution:'live-native',completedModelCalls:0,completedReview:false,completedNativeCheck:false,
+      completedBoundaryCheck:failures.length===0,boundaryDisposition:observation.boundaryDisposition,failures,
+      receiptDigest:studentLeaveObservationDigest(receipt),responseDigest:observation.responseDigest};
+  }
   const wanted={reads:expected.reads.map(studentLeaveObservationDigest),evidenceDigest:studentLeaveObservationDigest(expected.evidence)};
   if(!observation.attempts.every(attempt=>isDeepStrictEqual(attempt,wanted)))
     return {...absent,failures:['observation.read_or_evidence_mismatch']};
