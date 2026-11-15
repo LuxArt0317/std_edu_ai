@@ -12,6 +12,8 @@ System-wide question bank, independent grading, discovered coverage and per-case
 
 `*.test.mjs` tests grade integrity and retrieval behavior. No evaluation imports private university captures or uses a real student's records. A model's own verification result is never sufficient for passing.
 
+`academic-grades-handler.test.mjs` replays 11 frozen Academic Services questions through the streaming handler and native row validator with controlled transport. It checks compact semester selectors, named courses, saved summaries and rankings, null versus zero, English requirement metadata, and records owned by another student. This controlled run does not establish hosted acceptance.
+
 `dtm-native-runner.mjs` registers 18 assignment and 14 native grade questions. Controlled handler tests cover exact RPCs, caller ownership, excluded fields, nulls and blanks, grade and assignment clauses in both orders, and verification retries. The runner records these cases as pending until a caller-bound live fixture and independent observations are available.
 
 Live fixture creation records each reserved identity's email and run marker in the ignored owner-only ledger before sending the Auth request. Cleanup reconciles both values before deleting a fixture. An ambiguous creation timeout with no matching row remains unresolved: its recovery ledger is retained and the run cannot pass cleanup. A pre-existing account or mismatched run marker is never adopted or deleted. No password or session token is written to that ledger.

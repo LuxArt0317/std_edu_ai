@@ -1,5 +1,5 @@
 import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
-import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion} from './academicGrades.js';
+import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion,selectAcademicGradeCourses} from './academicGrades.js';
 import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamedCourseTitles,selectGraduationReviewCourses,isGraduationReviewQuestion} from './graduationReview.js';
 import {academicAttendancePaths,academicAttendanceQuery,academicAttendanceMatchingRows,isAcademicAttendanceQuestion} from './academicAttendance.js';
 import {selectAccountEvidence,selectServiceRecords,ownEvidenceRows} from './accountEvidenceSelection.js';
@@ -37,7 +37,7 @@ export function nativeAccountQuery(snapshot,key,context={}){
       selection=academicGradesQuery(question,route,history);
       const valid=!selection.invalid&&!selection.relativeTermUnresolved&&!selection.multipleScopes;
       const termMatches=row=>(selection.academicYear===undefined||row.academicYear===selection.academicYear)&&(selection.semester===undefined||row.semester===selection.semester);
-      matching.records=collection.records.filter(row=>valid&&row.recordKind===selection.view&&termMatches(row))
+      matching.records=selectAcademicGradeCourses(question,collection.records.filter(row=>valid&&row.recordKind===selection.view)).filter(termMatches)
         .sort((a,b)=>a.academicYear-b.academicYear||a.semester-b.semester||a.rowOrder-b.rowOrder||String(a.id).localeCompare(String(b.id)));
       matching.termSummaries=collection.termSummaries.filter(row=>valid&&row.summaryKind===selection.view&&termMatches(row));
       matching.rankings=collection.rankings.filter(row=>valid&&selection.view==='ranking'&&termMatches(row))
