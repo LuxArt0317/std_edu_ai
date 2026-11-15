@@ -51,7 +51,7 @@ import {isCounselingNavigationQuestion} from '../server/counselingEvidenceIntent
 import {counselingGuide} from '../server/counselingContract.js';
 import {readFeeRemissionEvidence} from '../server/accountFeeRemissionEvidence.js';
 import {readHealthExaminationEvidence} from '../server/accountHealthExaminationEvidence.js';
-import {isHealthExaminationNavigationQuestion} from '../server/healthExaminationEvidenceIntent.js';
+import {isHealthExaminationNavigationQuestion,withoutExcludedHealthClause} from '../server/healthExaminationEvidenceIntent.js';
 import {healthExaminationGuide} from '../server/healthExaminationContract.js';
 import {readStudentConductEvidence} from '../server/accountStudentConductEvidence.js';
 import {readStudentLoanEvidence} from '../server/accountStudentLoanEvidence.js';
@@ -787,7 +787,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
   const excludedNoteFeeLabel=notes.excluded&&!notes.keys.length&&!notes.officialOnly?ownFeeBalanceLabel(notes.otherQuestion):null;
-  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(question):null;
+  const hasImages=Array.isArray(input?.images)&&input.images.length>0;
+  const textOnly=input?.images===undefined||(Array.isArray(input.images)&&!hasImages);
+  const excludedHealthFee=textOnly&&scopedQuestion!==question&&withoutExcludedHealthClause(question)===scopedQuestion
+    &&standaloneFeeBalanceLabel(scopedQuestion)!==null?scopedQuestion:null;
+  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(excludedHealthFee??question):null;
   const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):standaloneChargeLabel);
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const exactBalance=(question===requestedQuestion||question===resolvedFee)
@@ -796,8 +800,6 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     &&!pageContext.selected&&!notes.keys.length
     &&!dtmCompound&&!assignment.selection&&!aid.selection&&!teachingSelection&&!housingSelection&&!applicationSelection;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
-  const hasImages=Array.isArray(input?.images)&&input.images.length>0;
-  const textOnly=input?.images===undefined||(Array.isArray(input.images)&&!hasImages);
   const publicFollowup=textOnly&&question===requestedQuestion
     ?publicServiceFollowup(question,input?.history):null;
   const publicDirectory=textOnly&&question===requestedQuestion&&campusDirectoryResearch(question);
@@ -962,7 +964,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
           :readers.teachingFeedback(account,options);
       },
     };
-    const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n'):excludedNoteFeeLabel?noteQuestion:question;
+    const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n')
+      :excludedNoteFeeLabel?noteQuestion:exactBalance&&excludedHealthFee?excludedHealthFee:question;
     const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
       allowNativeTeachingVerification:graphQuestion===question,
       loadSnapshot:()=>loadSelectedSnapshot(false),

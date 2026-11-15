@@ -13,6 +13,7 @@ import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
 import {selectFeeRemissionEvidence} from './feeRemissionEvidenceIntent.js';
+import {selectHealthExaminationEvidence} from './healthExaminationEvidenceIntent.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel,savedFeeBalanceFollowup,standaloneFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { answerPrivateAffairsQuestion, accountQuestionIntent,composeAccountOverviewEvidence,composeCurrentStudyEvidence,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
@@ -832,7 +833,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
     if(payload.checkedAt!==current.checkedAt||payload.unavailableReason||payload.selectionLabel!==selectedLabel
       ||typeof payload.studentRecordFound!=='boolean')return null;
     try{
-      const charge=formatSelectedChargeEvidence(charges,{language,exactBalance:true});
+      const charge=formatSelectedChargeEvidence(charges,{language,exactBalance:true,separateCurrency:selectedLabel!==undefined});
       return {...charge,grounding:grounding(!charge.complete),suggestedQuestions:[],activity:[]};
     }catch(error){
       if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;
@@ -948,9 +949,14 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     :scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :await planAccountLookup(question,history,fullRoute,deadline);
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
-  const pairedRemissionLabel=pageLookup.feeAndBalance&&pageLookup.tools.length===1&&pageLookup.tools[0]==='feeRemission'
+  const singlePageTool=pageLookup.tools.length===1?pageLookup.tools[0]:null;
+  const healthSelection=singlePageTool==='healthExaminations'&&pageLookup.feeChargeLabel!==null
+    ?selectHealthExaminationEvidence(question,fullRoute,history):null;
+  const pairedHealth=Boolean(healthSelection&&!healthSelection.reason&&!healthSelection.operation
+    &&!healthSelection.clinical&&!healthSelection.document&&!resolvedUserQuestion);
+  const pairedChargeLabel=pageLookup.feeAndBalance&&(singlePageTool==='feeRemission'||pairedHealth)
     ?pageLookup.feeChargeLabel:null;
-  const scopedSupplementalTool=(pageLookup.readerOnly||pairedRemissionLabel!==null)&&pageLookup.tools.length===1&&pageLookup.tools[0];
+  const scopedSupplementalTool=(pageLookup.readerOnly||pairedChargeLabel!==null)&&singlePageTool;
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
   const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
   const tutorSelection=scopedSupplementalTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
@@ -991,7 +997,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
       ?activeTools.length===2&&activeTools.includes('housing')
-      :pairedRemissionLabel!==null?!remissionDisposition&&activeTools.length===2&&activeTools.includes('charges'):activeTools.length===1);
+      :pairedChargeLabel!==null?!remissionDisposition&&activeTools.length===2&&activeTools.includes('charges'):activeTools.length===1);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
   const exactTeaching=allowNativeTeachingVerification&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='teachingFeedback'
     ?exactTeachingFeedbackRead(teaching):null;
@@ -1321,7 +1327,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   if(emptyHousing)initial={...initial,...emptyHousing};
   const renderExactSupplemental=sources=>{
     const sourceId='account:'+scopedSupplementalTool;
-    const wanted=['account-scope',sourceId,...(withScopedBed?['account:housing']:pairedRemissionLabel!==null?['account:charges']:[])];
+    const wanted=['account-scope',sourceId,...(withScopedBed?['account:housing']:pairedChargeLabel!==null?['account:charges']:[])];
     if(sources.length!==wanted.length||!wanted.every(id=>sources.some(source=>source.id===id))||supplemental.length!==1
       ||supplemental[0].evidence!==sources.find(source=>source.id===sourceId))return null;
     if(conductCount&&(!['ok','empty'].includes(supplemental[0].readState)
@@ -1332,11 +1338,16 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,remissionSelection)))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
     if(exactFeeRemission&&rendered.status!=='answered')return null;
-    if(pairedRemissionLabel!==null){
+    if(pairedChargeLabel!==null){
       const source=sources.find(item=>item.id==='account:charges');
       const charge=JSON.parse(source.content);
-      if(supplemental[0].readState!=='ok'||!rendered.complete||charge.checkedAt!==current.checkedAt
-        ||charge.selectionLabel!==pairedRemissionLabel||charge.unavailableReason||charge.studentRecordFound!==true
+      const page=pairedHealth?JSON.parse(supplemental[0].evidence.content):null;
+      // The requested page may be complete even if earlier or later health records exist.
+      const supportedPage=page?['ok','empty','partial'].includes(page.readState)&&!page.reason&&page.counts?.omitted===0
+        &&!rendered.formatting.limited&&isDeepStrictEqual(page.selection,healthSelection)
+        :supplemental[0].readState==='ok'&&rendered.complete;
+      if(!supportedPage||rendered.status!=='answered'||charge.checkedAt!==current.checkedAt
+        ||charge.selectionLabel!==pairedChargeLabel||charge.unavailableReason||charge.studentRecordFound!==true
         ||charge.excerpted!==false||charge.records?.length!==1||charge.counts?.[0]?.matchingRows!==1)return null;
       try{
         const fees=formatSelectedChargeEvidence(source,{language:supplementalAnswerLanguage(question),exactBalance:true,separateCurrency:true});
@@ -1360,7 +1371,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   };
   if(exactSupplemental){
     const exact=renderExactSupplemental(evidence);
-    if(pairedRemissionLabel!==null&&!exact)exactSupplemental=false;
+    if(pairedChargeLabel!==null&&!exact)exactSupplemental=false;
     else {
       initial={...initial,...(exact??{status:'abstained',answer:'',citations:[]})};
       needsComposition=false;
@@ -1515,13 +1526,20 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
           emit({kind:'fee-remission-evidence-check',
             label:remissionDisposition?(zh?'已核對學雜費減免查詢限制':'Checked the fee-remission lookup limit')
-              :pairedRemissionLabel!==null?(zh?'已分別核對減免紀錄與費用餘額':'Verified the remission history and separate fee balance')
+              :pairedChargeLabel!==null?(zh?'已分別核對減免紀錄與費用餘額':'Verified the remission history and separate fee balance')
                 :(zh?'已核對學雜費減免紀錄':'Verified your saved fee-remission records'),
             detail:remissionDisposition?(zh?'已核對查詢限制；未確認任何金額或狀態。':'Verified the lookup limitation without establishing an amount or status.')
-              :pairedRemissionLabel!==null?(zh?'已核對減免原文與選定費用各自的紀錄；兩者分開計算。'
+              :pairedChargeLabel!==null?(zh?'已核對減免原文與選定費用各自的紀錄；兩者分開計算。'
                 :'Matched the saved remission fields and calculated the named fee balance from its separate charge record.')
                 :(zh?'已比對所選期間、紀錄筆數和原文欄位。':'Matched the selected period, record counts and literal fields to your saved history.'),
             status:'complete'});
+          return {ok:true};
+        }
+        if(pairedHealth&&pairedChargeLabel!==null){
+          const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          emit({kind:'health-examination-evidence-check',label:zh?'已分別核對健檢可用性與費用餘額':'Verified the health record page and separate fee balance',
+            detail:zh?'已比對所選頁面的檢查代碼及報告旗標，並從獨立費用紀錄計算餘額。'
+              :'Matched the examination codes and availability flags on the selected page, and calculated the balance from its own charge record.',status:'complete'});
           return {ok:true};
         }
         if(context.attempt>1){
@@ -1643,7 +1661,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');
   const baseViews=[...(scopedOverview?(verified?overviewRecordViews(viewSnapshot):[]):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(applicationSelected&&result.verification?.status==='verified'?applicationAnswer(evidence)?.views??[]:[]),...(housingSelected?(result.verification?.status==='verified'?housingAnswer(evidence)?.views??[]:[]):activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
-  const views=servicePlan&&!verified?[]:pairedRemissionLabel!==null&&exactSupplemental&&verified?result.views
+  const views=servicePlan&&!verified?[]:pairedChargeLabel!==null&&exactSupplemental?(verified?result.views:[])
     :[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note=(view.note?view.note+' ':'')+'Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
   return {...result,...(repairClarification&&result.verification?.status==='verified'?{status:'clarification'}:{}),views,grounding:{...result.grounding,...(recordFreeCoaching?{source:'general-guidance'}:{}),webSearched:observed.some(step=>step.kind.startsWith('web-')),checkedAt:current.checkedAt},
