@@ -110,8 +110,12 @@ export async function answerExactAcademicAttendance({account,question,route,plan
       result=await loadOwnAcademicAttendance(account,plan.question,plan.route,{deadline});
       checkedAt=new Date().toISOString();
       observed=buildCandidate(plan,result,checkedAt);
-      emit({kind:'account-read:academicAttendance:'+attempt,label:'Checked saved attendance records',
-        detail:'Checked the requested attendance view for the signed-in account.',status:'complete'});
+      const sourceDetail=result.selection.reason==='current_term_missing'||result.selection.reason==='current_term_conflict'
+        ?'Checked the saved current-term setting for the signed-in account.'
+        :result.selection.reason?'Checked the supported scope without loading unrelated attendance rows.'
+          :'Read the selected attendance term and view for the signed-in account.';
+      emit({kind:'account-read:academicAttendance:'+attempt,label:'Checked the attendance request',
+        detail:sourceDetail,status:'complete'});
     }catch(error){
       if(!(error instanceof AffairsWorkspaceReadUnavailableError))throw error;
       emit({kind:'account-read:academicAttendance:'+attempt,label:'Attendance records unavailable',
