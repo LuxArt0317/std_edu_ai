@@ -179,7 +179,7 @@ async function offline(run:()=>Promise<void>,{read='records',charges,retry=false
     assert.deepEqual(errors,[]);
     assert.equal(appointments,read==='none'?0:retry?2:1);
     assert.equal(chargeReads,charges?retry?2:1:0);
-    assert.equal(reviews,charges&&(read==='failed'||charges==='failed')?0:1);
+    assert.equal(reviews,charges&&(read==='none'||read==='failed'||charges==='failed')?0:1);
     assert.equal(operations.includes('account_lookup_plan'),false);
     assert.equal(operations.includes('correct_grounded_answer'),false);
     assert.equal(operations.includes('compose_grounded_answer'),charges==='amount-out-of-contract');

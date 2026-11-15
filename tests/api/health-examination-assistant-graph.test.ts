@@ -132,7 +132,7 @@ async function offline(run:()=>Promise<void>,{mixed=false,retry=false,denyHealth
     assert.deepEqual(errors,[]);
     assert.equal(health,denyHealth?0:retry?2:1);
     assert.equal(charges,mixed||chargesOnly?1:0);
-    assert.deepEqual(calls,[...(mixed?['compose_grounded_answer']:[]),'answer_evidence_review',...(retry&&mixed?['correct_grounded_answer','answer_evidence_review']:[])]);
+    assert.deepEqual(calls,chargesOnly?[]:[...(mixed?['compose_grounded_answer']:[]),'answer_evidence_review',...(retry&&mixed?['correct_grounded_answer','answer_evidence_review']:[])]);
   }catch(error){throw errors[0]??error;}
   finally{globalThis.fetch=original;if(originalKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=originalKey;}
 }
@@ -282,7 +282,7 @@ test('named charges keep the exact health page, preserve either half during outa
     calls.length=0;
     const actual=await call(handler(),testCase.question,testCase.route);
     assert.equal(actual.status,200);
-    assert.deepEqual(actual.body.verification,{status:'verified',attempts:targetPage?1:2});
+    assert.deepEqual(actual.body.verification,{status:'verified',attempts:1});
     const graded=gradeCase(testCase,{body:actual.body,statusCode:actual.status,events:actual.steps,execution:'deterministic',fixtureKey:testCase.fixtureKey});
     assert.equal(graded.passed,true,JSON.stringify(graded.failures));
     if(targetPage&&!outage){
@@ -290,7 +290,7 @@ test('named charges keep the exact health page, preserve either half during outa
       assert.equal(actual.body.answer.indexOf(healthCode)<actual.body.answer.indexOf('QA Health Tuition instalment'),targetPage===1);
     }
     const ownedReads=['/rest/v1/affairs_charges','/rest/v1/affairs_students'];
-    const expected=targetPage?[...ownedReads,'/rest/v1/rpc/affairs_read_health_examinations']:[...ownedReads,...ownedReads,'review'];
+    const expected=targetPage?[...ownedReads,'/rest/v1/rpc/affairs_read_health_examinations']:ownedReads;
     assert.deepEqual(calls.sort(),expected.sort());
     assert.doesNotMatch(JSON.stringify(actual.body),/Unrelated charge|123,456|PRIVATE HEALTH/u);
     const viewIds=actual.body.views.map((view:{id:string})=>view.id);

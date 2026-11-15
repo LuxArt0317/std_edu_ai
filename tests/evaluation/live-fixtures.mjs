@@ -2284,7 +2284,7 @@ async function runScopedNativeBrowserTurn({s,origin,sourceRevision,previewToken,
   });
 }
 
-const announcementEmailNativeBrowser={
+const announcementEmailNativeBrowser=()=>({
   profile:'announcement-email',
   cases:announcementEmailBrowserCases,
   build:buildAnnouncementEmailBrowserFixture,
@@ -2317,10 +2317,10 @@ const announcementEmailNativeBrowser={
     if(!isDeepStrictEqual(callers,bootstraps))fail('fixture-state','Preview announcement preferences disagree with independent caller RPC reads.');
     return {stateDigest,callers};
   },
-};
+});
 
 export function runAnnouncementEmailBrowserPreview(options){
-  return runNativeBrowserPreview(options,announcementEmailNativeBrowser);
+  return runNativeBrowserPreview(options,announcementEmailNativeBrowser());
 }
 
 async function runNativeBrowserPreview({origin,sourceRevision,previewToken,browserCase,artifactDirectory,signal,onCheckpoint}={},fixture){
