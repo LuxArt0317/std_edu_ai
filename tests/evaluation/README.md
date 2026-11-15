@@ -127,6 +127,14 @@ The School Affairs directory adds 22 bilingual catalog cases and an explicit bro
 
 The isolated `dtm-assignment-list` family mounts nine of those cases on a protected Preview. It checks all assignments from a course and from the signed-in account, one fixed Taipei due date, open/completed/graded/submitted filters, titles only, and the exact count. The fixture records two independent signed-in owner projections before and after each assistant request. It also checks that the pinned request emitted the selected Moodle read and completed verification, and that cleanup removed the reserved courses and assignments. Relative-date, unavailable and legacy cases keep their existing evaluation coverage.
 
+### Native Moodle grade reports
+
+```sh
+node tests/evaluation/run-dtm-grade-report-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Run from the exact clean deployed revision with the disposable-fixture environment and an authorized Development `VERCEL_OIDC_TOKEN`. The protected runner covers native report feedback and weight, literal item zero, an absent report, a saved report with no course total, an explicit saved total, the twentieth report item, a follow-up, unknown-course handling, and two-owner access. Each case reads both owned reports and verifies both crossed reads fail. Independent SQL verifies exact courses and report and tracker rows before and after every assistant request. The tracker has deliberately different grades and feedback for the same item labels. The runner persists pending report transitions before writes, verifies cleanup, and reports the seven cases whose multicourse, feedback-set, empty-account or outage requirements remain in the offline packet.
+
 ### Saved Moodle submission timing
 
 ```sh

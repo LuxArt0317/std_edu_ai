@@ -94,6 +94,18 @@ test('foreign requests perform no native, snapshot, planner or public transport'
   assert.equal(value.envelope.statusCode,200);assert.equal(value.envelope.body.status,'handoff');assert.deepEqual(value.wire,[]);assert.deepEqual(value.stages,[]);
   assert.equal(gradeDtmNativeRouteCase(row,value.envelope,value.observation).passed,true);
 });
+
+test('a leading native report scope binds item feedback without broadening mixed clauses',async()=>{
+  const row=bank.find((item:Case)=>item.id.endsWith('-item-feedback'))!;
+  const scope='In my Moodle grade report for Study Methods, ';
+  const question=scope+'what feedback and weight are recorded for Source Analysis?';
+  const value=await actual({...row,question});
+  assert.equal(gradeDtmNativeRouteCase(row,value.envelope,value.observation).passed,true);
+  assert.equal(value.observation.broadReads,0);
+  for(const mixed of [scope+'what is the feedback, and list my courses?',scope+'what are my tuition fees?',
+    'In my Moodle grade report for Study Methods and Visual Thinking, what feedback is saved?'])
+    assert.equal(nativeIntent.isNativeDtmGradeOnlyQuestion(mixed,row.route),false,mixed);
+});
 test('unavailable native read stays unavailable and cannot borrow tracker grades',async()=>{
   const row=bank.find((item:Case)=>item.id.endsWith('-failed'))!,value=await actual(row);
   assert.equal(value.observation.broadReads,0);assert.equal(value.observation.publicReads,0);assert.ok(value.observation.reads.length>=1&&value.observation.reads.length<=2);

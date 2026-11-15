@@ -16,6 +16,8 @@ const nativeGradeField=/\b(?:grades?|marks?|gradebook|report weights?|course tot
 const independentDtmWork=/\b(?:assignments?|homework|coursework|meetings?|materials?|notices?|attendance)\b|作業|功課|教材|公告|出席/iu;
 const submissionDetail=/\b(?:files?|attachments?|revisions?|uploads?|uploaded|submissions?|submitted|file reviews?)\b|檔案|档案|附件|上傳|上传|繳交|缴交|提交|版本/iu;
 const nativeRoute=/^\/dtm\/(?:grades|course\/[0-9a-f-]+\/grades(?:\/overview)?)$/u;
+const leadingReportScope=/^in\s+(?:(?:my|the|this)\s+)?(?:(?:native|saved|local)\s+){0,2}(?:(?:moodle|dtm)\s+)?grade report(?:\s+for\s+([^,，]+))?[,，]\s*(.+)$/iu;
+const unsafeReportQualifier=/\b(?:and|also|plus|then|but|except|without|with|including|show|list|read|check|tell|what|which)\b|[,，:：/;；。!?！？\n]/iu;
 const concept=/^(?:what (?:is|are)|define|explain)\s+(?:(?:a|the)\s+)?(?:moodle |dtm )?(?:grades?|grade reports?|gradebook|weighted grades?)\s*[?.!]*$/iu;
 const implicitDetail=/^(?:and\s+)?(?:(?:what|which)\s+)?(?:(?:is|was|are|were)\s+)?(?:(?:my|the|its|that|this)\s+)?(?:feedback|weights?|rank|percentage|(?:course )?total)(?:\s+(?:did I (?:get|receive)|(?:was|is|were|are) (?:saved|recorded)|(?:does|did) it (?:say|show)))?\s*[?.!]*$|^(?:那|還有)?(?:評語|评语|權重|权重|總分|总分)(?:呢|是什麼|是甚麼)?[？?。！!]*$/iu;
 export const dtmGradeFollowup=/\b(?:it|its|this|that|these|those|report|feedback|weight|percentage|rank|total|say|show|record)\b|這|这|該|该|報告|报告|評語|评语|權重|权重|總分|总分/iu;
@@ -95,13 +97,16 @@ export function isNativeDtmGradeOnlyQuestion(question,route='',history=[]){
   const parts=current.split(/[;；。!?！？\n]|\.(?:\s+|$)/u).map(part=>part.trim()).filter(Boolean);
   if(!parts.length)return false;
   return parts.every(part=>{
+    const leading=leadingReportScope.exec(part);
+    if(leading?.[1]&&unsafeReportQualifier.test(leading[1]))return false;
+    const request=leading?.[2]??part;
     // A literal course/item qualifier may name saved rows, but cannot conceal
     // an independent request after a conjunction or sentence boundary.
-    const qualifier=/\s+(?:for|in)\s+(.+)$/iu.exec(part);
-    let fields=part;
+    const qualifier=/\s+(?:for|in)\s+(.+)$/iu.exec(request);
+    let fields=request;
     if(qualifier){
-      if(/\b(?:and|also|plus|then|but|except|without|with|including|show|list|read|check|tell|what|which)\b|[,，:：/;；。!?！？\n]/iu.test(qualifier[1]))return false;
-      fields=part.slice(0,qualifier.index);
+      if(unsafeReportQualifier.test(qualifier[1]))return false;
+      fields=request.slice(0,qualifier.index);
     }
     // Every coordinated field clause must itself describe report data. A
     // separate "and my courses" request cannot inherit the first grade noun.

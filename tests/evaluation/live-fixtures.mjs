@@ -71,6 +71,8 @@ import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuition
   TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
 import {buildDtmTimingPlan,deleteDtmTimingRows,dtmTimingFixtureMode,dtmTimingPreviewCases,dtmTimingRequest,emptyDtmTimingState,
   gradeDtmTimingCase,observeDtmTimingCallers,observeDtmTimingRows,readDtmTimingState,seedDtmTimingRows} from './dtm-submission-timing-preview.mjs';
+import {buildDtmGradePreview,deleteDtmGradePreview,dtmGradePreviewCases,dtmGradePreviewDigest,dtmGradePreviewMode,gradeDtmGradePreview,
+  observeDtmGradePreviewRows,seedDtmGradePreviewCompanion,unmountedDtmNativeGradeCases,verifyDtmGradePreviewAbsent} from './dtm-grade-report-preview.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
@@ -328,6 +330,7 @@ async function saveLedger(){
       ...(s.taskActionJournal?{confirmedTaskJournal:s.taskActionJournal}:{}),
       ...(s.tuitionLedgerPlan?{tuitionLedgerFixture:s.tuitionLedgerPlan}:{}),
       ...(s.dtmTimingPlan?{dtmSubmissionTimingFixture:s.dtmTimingPlan}:{}),
+      ...(s.dtmGradePreview?{dtmGradePreview:{courses:s.dtmGradePreview.courses,trackers:s.dtmGradePreview.trackers}}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
@@ -417,7 +420,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
   const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  const dtmGradePreviewOnly=fixtureMode===dtmGradePreviewMode;
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -427,6 +431,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(dtmTimingOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Moodle timing checks require the exact protected Preview and isolated disposable owners.');
+  if(dtmGradePreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Moodle grade checks require the exact protected Preview and isolated disposable owners.');
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
@@ -508,7 +515,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -579,6 +586,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmSubmissionTiming']};
     }
+    if(dtmGradePreviewOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmGradeReport']};
+    }
     if(leaveDataOnly){
       await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate,serviceKey);
       state.prepared=true;
@@ -643,6 +654,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(dtmTimingOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle timing fixture preparation failed.');
       reason.dtmTimingCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(dtmGradePreviewOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle grade fixture preparation failed.');
+      reason.dtmGradePreviewCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
@@ -943,6 +959,106 @@ export async function runDtmTimingPreview({origin,sourceRevision,previewToken,si
   return {runId,sourceRevision,origin,results,...(failure?{failure}:{}),deployment:previewGate?.status()??null,
     cleanup:cleanupProof,storageObjectWrites:false,liveAcceptance:!failure&&expectedCount>0&&results.length===expectedCount
       &&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.dtmTimingCleanup===true};
+}
+
+export async function runDtmGradeReportPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Moodle grade checks require an exact protected Preview and source revision.');
+  const runId=randomUUID(),results=[],correlationIds=new Set();
+  let previewGate,prepared=false,failure,phase='preflight',expectedCount=0;
+  let cleanupProof={verified:false,status:'not-started'};
+  try{
+    const {createLiveRequestPacer,readReply,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)
+      fail('fixture-target','Moodle grade checks require the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:dtmGradePreviewMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    phase='seed';
+    if(s.users.length!==2||s.users.some(user=>user.id===s.protectedOwnerBefore.id
+      ||!s.identityRequests.some(row=>row.id===user.id&&row.runId===runId&&row.state==='created')))
+      fail('fixture-isolation','Moodle grade callers are outside the disposable lease.');
+    const owners=Object.fromEntries(s.users.map(({id},index)=>{
+      const recorded=s.identityRequests.find(row=>row.id===id&&row.runId===runId&&row.state==='created');
+      return [index===0?'A':'B',{id,email:recorded.email,runMarker:runId}];
+    }));
+    const fixture=buildDtmGradePreview(runId,owners),cases=dtmGradePreviewCases(fixture);
+    expectedCount=cases.length;
+    await assertRecordedFixtureLease(s,'Moodle grade seed');
+    await previewGate.assertCurrent();
+    s.dtmGradePreview=fixture;
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedDtmGradePreviewCompanion(s.sql,fixture)),'Could not seed the disposable Moodle grade course rows.');
+
+    async function observe(plan){
+      await assertRecordedFixtureLease(s,'Moodle grade readback');
+      await previewGate.assertCurrent();
+      const rows=await query(()=>observeDtmGradePreviewRows(s.sql,fixture,plan),'Could not verify the exact Moodle grade report and tracker rows.');
+      const callers=dtmGradePreviewDigest(await readDtmReportFixtureScopes(plan,s.users,{origin,signal,fetchImpl:readback}));
+      return {rows,callers};
+    }
+
+    for(const testCase of cases){
+      const plan=fixture.plans[testCase.fixtureKey];
+      phase=testCase.id;
+      if(!plan)fail('fixture-state','The Moodle grade case has no leased report plan.');
+      if(s.dtmReportPlan!==plan){
+        await assertRecordedFixtureLease(s,'Moodle grade report transition');
+        await previewGate.assertCurrent();
+        s.pendingDtmReportPlan=plan;
+        s.dtmReportTransitionPending=true;
+        await saveLedger();
+        await query(()=>feeTransaction(s,async()=>{
+          await observeDtmGradePreviewRows(s.sql,fixture,s.dtmReportPlan??null);
+          await changeDtmReportFixtureRows(s.sql,s.dtmReportPlan,'remove');
+          await changeDtmReportFixtureRows(s.sql,plan,'insert');
+          await observeDtmGradePreviewRows(s.sql,fixture,plan);
+        }),'Could not transition the exact disposable Moodle grade reports.');
+        s.dtmReportPlan=plan;
+        s.pendingDtmReportPlan=null;
+        s.dtmReportTransitionPending=false;
+        await saveLedger();
+      }
+
+      const before=await observe(plan);
+      const user=s.users[testCase.role==='A'?0:1];
+      let ticket,response,parsed;
+      try{
+        response=await pace(()=>readback(new URL('/api/affairs-assistant',origin),{
+          method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+user.token},
+          body:JSON.stringify({question:testCase.question,route:testCase.route,history:testCase.history,stream:true,consentedResearchUse:false}),
+          signal:signals(signal,65000),
+        }),signal,async()=>{ticket=await previewGate.beforeRequest();});
+        parsed=await readReply(response);
+      }finally{if(ticket)await previewGate.afterRequest(ticket);}
+      const after=await observe(plan);
+      const graded=gradeDtmGradePreview(testCase,{...parsed,statusCode:response.status,fixtureKey:testCase.fixtureKey,execution:'live-native'},before,after);
+      const correlationId=response.headers.get('x-assistant-request-id');
+      if(!UUID.test(correlationId??'')||correlationIds.has(correlationId)){
+        graded.passed=false;
+        graded.failedFields.push('correlation');
+      }
+      if(correlationId)correlationIds.add(correlationId);
+      results.push({...graded,requestIndex:ticket.requestIndex,before,after});
+    }
+
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Moodle grade source changed during verification.');
+    await previewGate.finish();
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.dtmGradePreviewCleanupProof)cleanupProof=error.dtmGradePreviewCleanupProof;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{if(prepared)cleanupProof=await captureFixtureCleanup();}
+  return {runId,sourceRevision,origin,results,unmounted:unmountedDtmNativeGradeCases,...(failure?{failure}:{}),
+    deployment:previewGate?.status()??null,cleanup:cleanupProof,liveAcceptance:!failure&&expectedCount>0&&results.length===expectedCount
+      &&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.dtmGradePreviewCleanup===true};
 }
 
 export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
@@ -1850,7 +1966,7 @@ export async function readDtmReportFixtureScopes(plan,users,{origin,signal,fetch
       url.search=new URLSearchParams(other.query).toString();
       const cross=await fetchImpl(url,{...options,signal:signals(signal,15000)});
       const denial=await readBoundedFixtureResponse(cross,url,4096,403);
-      assert.deepEqual(denial,{error:'This grade report is not available to your account.'});
+      assert.deepEqual(denial,{error:'This course is not available to your account.'});
       result[contract.ownerId]=payload;
     }
   }catch{fail('fixture-readback','The DTM report fixture or its other-account denial did not match the expected response.');}
@@ -3046,7 +3162,14 @@ export async function cleanup(){
         }catch(error){try{await s.sql.unsafe('rollback');}catch{/* Preserve the original cleanup failure. */}throw error;}
       },'Could not remove the exact disposable remote-learning enrollments.');
     }
-    if(s.dtmReportPlan||s.pendingDtmReportPlan){
+    if(s.dtmGradePreview){
+      await assertRecordedFixtureLease(s,'Moodle grade cleanup');
+      await query(()=>feeTransaction(s,()=>deleteDtmGradePreview(s.sql,s.dtmGradePreview,{
+        prior:s.dtmReportPlan??null,pending:s.pendingDtmReportPlan,remove:changeDtmReportFixtureRows,
+      })),'Could not remove the exact disposable Moodle grade and tracker records.');
+      s.dtmReportPlan=null;s.pendingDtmReportPlan=null;s.dtmReportTransitionPending=false;
+      await saveLedger();
+    }else if(s.dtmReportPlan||s.pendingDtmReportPlan){
       await query(async()=>{
         await s.sql.unsafe('begin');
         try{
@@ -3139,6 +3262,10 @@ export async function cleanup(){
         fail('fixture-cleanup','An exact Moodle timing row, queue entry or disposable identity remains.');
       s.dtmTimingCleanup=true;
     }
+    if(s.dtmGradePreview){
+      await query(()=>verifyDtmGradePreviewAbsent(s.sql,s.dtmGradePreview),'Could not prove exact Moodle grade fixture cleanup.');
+      s.dtmGradePreviewCleanup=true;
+    }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
     if(s.clubEquipmentFixture){
       await s.clubEquipmentFixture.verifyAbsent();
@@ -3188,6 +3315,7 @@ export async function cleanup(){
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
     ...(s.tuitionLedgerCleanup?{tuitionLedgerCleanup:true}:{}),
     ...(s.dtmTimingCleanup?{dtmTimingCleanup:true}:{}),
+    ...(s.dtmGradePreviewCleanup?{dtmGradePreviewCleanup:true}:{}),
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
