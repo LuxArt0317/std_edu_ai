@@ -1,4 +1,5 @@
-export type VerificationEvidence = {id:string;content:string;url?:string;urls?:string[];title?:string;capturedOn?:string};
+import type {LibraryWeekdayHours} from './publicLibrarySources.js';
+export type VerificationEvidence = {id:string;content:string;url?:string;urls?:string[];title?:string;capturedOn?:string;libraryWeekdayHours?:LibraryWeekdayHours};
 export type VerificationCandidate = {answer:string;status:string;citations:any[];activity?:any[];grounding?:Record<string,any>;suggestedQuestions?:string[];proposedAction?:any;[key:string]:any};
 export type VerificationContext = {question:string;candidate:VerificationCandidate;evidence:VerificationEvidence[];deadline:number;feedback?:string[]};
 export type VerificationProgress = {kind:string;label:string;detail:string;status:'running'|'complete'|'unavailable'};

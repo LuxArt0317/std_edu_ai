@@ -3,6 +3,8 @@
 
 - Stop remote evidence checks when the reviewer reports exhausted quota. When the records can be checked locally, reread them and verify the answer directly. [#100]
 
+- Verify explicitly requested regular weekday reading-area hours directly from the library’s published table. Preserve the capture date when using a saved copy and keep mixed holiday questions in the broader review. [#100]
+
 - Check a named tuition instalment against its selected saved charge and keep that scope if verification needs a fresh read. Recognize common tuition-and-fees balance wording. [#100]
 
 - Answer public library questions alongside a registrar contact or Wi-Fi setup request. Keep the verified directory details when library research cannot verify the second part. [#100]

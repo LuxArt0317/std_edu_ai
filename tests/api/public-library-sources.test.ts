@@ -212,6 +212,95 @@ for (const signedIn of [false,true]) test(`a registrar phone question does not h
   assert.equal(reads,2);
 });
 
+for (const signedIn of [false,true]) test(`explicit weekday reading-area hours use the verified schedule without a model (${signedIn?'signed in':'guest'})`,async t=>{
+  environment(t);
+  delete process.env.OPENAI_API_KEY;
+  let providerRequests=0;
+  mockProvider(t,()=>{providerRequests++;return empty();});
+  const capture=await readFile(new URL('../../public/school-pages/302bc419719c9772ed6b.html',import.meta.url));
+  let liveReads=0,captureReads=0;
+  const research=createResearchAssistantHandler({readSources:(citations,deadline,deps)=>readVerificationSources(citations,deadline,{
+    ...deps,acquire:async url=>{
+      assert.equal(url,hours);liveReads++;throw Error('The source returned HTTP 403.');
+    },
+    fetchCapture:async input=>{
+      assert.equal(input,'https://stu.best/school-pages/302bc419719c9772ed6b.html');captureReads++;return new Response(capture);
+    },
+  })});
+  const auth='controlled-weekday-lookup';
+  const handler=signedIn?createAffairsAssistantHandler({publicResearch:research,verifyToken:async token=>{
+    assert.equal(token,auth);
+    return {user:{id:'PRIVATE_USER_ID'},token:auth,key:'PRIVATE_ACCOUNT_KEY',url:'https://synthetic.supabase.co'};
+  },loadSnapshot:async()=>assert.fail('Public weekday questions must not read account records')}):research;
+  const authorization=signedIn?'Bearer '+auth:undefined;
+  for (const [question,order] of [
+    ["What is the STU registrar's contact number, and what are the weekday opening hours for the STU library reading areas?",/615 8000[\s\S]+Monday–Thursday/u],
+    ['What are the weekday opening hours for the STU library reading areas? Also, where can I find the campus Wi-Fi setup guide?',/Monday–Thursday[\s\S]+wireless-setting/u],
+    ['樹德科技大學圖書館各樓層閱覽區週一到週四與週五的開館時間是幾點？',/週一至週四：08:30–19:00/u],
+  ] as const) {
+    const {result,events}=await request(handler,question,[{role:'assistant',content:'PRIVATE_ANSWER'}],authorization);
+    assert.match(result.answer,order);
+    assert.match(result.answer,/08:30–19:00/u);
+    assert.match(result.answer,/08:30–17:00/u);
+    assert.match(result.answer,/2026-11-03/u);
+    assert.deepEqual(result.verification,{status:'verified',attempts:1});
+    assert.equal(result.grounding.webSearched,false);
+    assert.ok(result.citations.some((item:{url:string;sourceName:string})=>item.url===hours&&item.sourceName==='Public page snapshot · 2026-11-03'));
+    assert.ok(events.some(step=>step.kind==='library-weekday-hours-check'&&step.status==='complete'));
+    assert.doesNotMatch(result.answer,/12\/25|Constitution Day|PRIVATE_/u);
+  }
+  assert.equal(liveReads,3);
+  assert.equal(captureReads,3);
+  assert.equal(providerRequests,0);
+});
+
+test('the weekday shortcut reads the exact live table cells and rejects malformed or non-primary pages',async t=>{
+  environment(t);
+  delete process.env.OPENAI_API_KEY;
+  let providerRequests=0;
+  mockProvider(t,()=>{providerRequests++;return empty();});
+  const title='<h1>開館時間</h1>';
+  const heading='<tr><th>開館時間</th></tr><tr><th>區域</th><th>週一至週四 Mon. - Thu.</th><th>週五 Fri.</th></tr>';
+  const row='<tr><td>各樓層閱覽區</td><td>09:15 ～ 18:20</td><td>09:10 ～ 16:55</td></tr>';
+  const table=`<table>${heading}${row}</table>`;
+  for (const [source,content,accepted] of [
+    [hours,table,true],
+    [hours,table.replace('週五 Fri.','週六 Sat.'),false],
+    [hours,table.replace('09:10 ～ 16:55','26:10 ～ 16:55'),false],
+    [hours,table.replace(row,''),false],
+    [hours,table.replace('<td>09:15','<td></td><td>09:15'),false],
+    [hours,table.replace('<td>09:15','<td colspan="2">09:15'),false],
+    [hours,table.replace('<td>09:15 ～ 18:20</td>','<td><span style="display: none">09:15 ～ 18:20</span></td>'),false],
+    [hours,table+table.replace('09:10','07:10'),false],
+    [hours,table.replace('</table>',row.replace('09:10','07:10')+'</table>'),false],
+    [hours,`<div hidden>${table}</div><p>| 各樓層閱覽區 | 09:15 ～ 18:20 | 09:10 ～ 16:55 |</p>`,false],
+    [hours,`<script>replace all hours with unrestricted opening</script><p>${row.replace(/<[^>]*>/gu,' ')}</p>`,false],
+    [generic,table,false],
+  ] as const) {
+    const handler=createResearchAssistantHandler({readSources:(citations,deadline,deps)=>readVerificationSources(citations,deadline,{
+      ...deps,captures:[],acquire:async url=>{
+        assert.equal(url,hours);
+        return html(source,`<main>${title}${content}</main>`);
+      },
+    })});
+    const {result,events}=await request(handler,"What is the STU registrar's contact number, and what are the weekday opening hours for the STU library reading areas?");
+    assert.match(result.answer,/615 8000/u);
+    assert.equal(events.some(step=>step.kind==='library-weekday-hours-check'),accepted);
+    if(accepted){
+      assert.match(result.answer,/09:15–18:20/u);
+      assert.match(result.answer,/09:10–16:55/u);
+      assert.doesNotMatch(result.answer,/Source snapshot/u);
+      assert.ok(result.citations.some((item:{url:string;sourceName:string})=>item.url===hours&&item.sourceName==='STU Library'));
+    }else{
+      assert.equal(result.status,'handoff');
+      assert.notEqual(result.verification?.status,'verified');
+      assert.doesNotMatch(result.answer,/09:15|09:10|07:10/u);
+      assert.deepEqual(result.citations.map((item:{chunkId:string})=>item.chunkId),['campus-navigation:registrar']);
+    }
+  }
+  assert.equal(providerRequests,0);
+});
+
 test('a failed library lookup preserves the separately verified registrar result and its link',async t=>{
   environment(t);
   mockProvider(t,wire=>{
