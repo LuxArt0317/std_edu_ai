@@ -90,7 +90,7 @@ import { readVerificationSources } from "./answerVerificationSources.js";
 import { createPublicSchoolSourceLeads, officialSchoolLeadUrl } from "./publicSchoolSourceLeads.js";
 import {findOfficialLibraryServiceLeads, libraryAnswerLanguage, libraryAnswerMatchesLanguage} from './publicLibrarySources.js';
 import {answerLibraryWeekdayHours, asksForLibraryWeekdayHours} from './publicLibraryWeekdayHours.js';
-import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
+import { boundedPublicPageEvidence, institutionalFactAnswer, institutionalFactRequest, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
     const authoritative = retrieved.filter((item) => ["primary_official", "delegated_official"].includes(item.authority_level) && Boolean(item.document_logical_key && item.document_checksum));
     for (let left = 0; left < authoritative.length; left += 1) {
@@ -923,7 +923,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
             process.env.SUPABASE_PUBLISHABLE_KEY;
         const researchConfigured = Boolean(openAiKey && supabaseUrl && publishableKey);
         const unconfigured = () => sendWithDirectory(503, publicDirectory ? {} : { error: "The research assistant is not configured." });
-        if (!researchConfigured && !exactLibraryWeekday) { unconfigured(); return; }
+        const publicQuestion = !input.images.length && publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
+            item.role === 'user' && !personalPublicQuestion(item.content)));
+        const preferredCapture = !kind.fresh && !personalQuestion && !pageQuestion && !publicStudyGuidance &&
+            publicQuestion && institutionalPublicCapture(input.question);
+        const exactInstitutionalFact = preferredCapture && institutionalFactRequest(input.question);
+        if (!researchConfigured && !exactLibraryWeekday && !exactInstitutionalFact) { unconfigured(); return; }
         const started = Date.now();
         const verificationQuestion = input.question;
         const deadline = Math.min(started + 55_000, Number.isFinite(context?.deadline) ? context.deadline : Infinity);
@@ -1042,8 +1047,6 @@ export function createResearchAssistantHandler(dependencies = {}) {
             .digest("hex");
         let webAttempted = false;
         const captureActivity = [];
-        const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
-            item.role === 'user' && !personalPublicQuestion(item.content)));
         const sourceLeads = publicQuestion && !personalQuestion && !input.images.length ? createPublicSchoolSourceLeads(input.question) : null;
         const indexedSources = (sourceLeads?.indexed || []).map(lead => ({ chunkId: lead.id, url: lead.url,
             title: chinese ? lead.titleZh : lead.titleEn,
@@ -1520,8 +1523,6 @@ export function createResearchAssistantHandler(dependencies = {}) {
             await sendPublicReply(checked);
             return true;
         }
-        const preferredCapture = !kind.fresh && !personalQuestion && !pageQuestion && !publicStudyGuidance &&
-            publicQuestion && institutionalPublicCapture(input.question);
         if (preferredCapture) {
             const stepKind = 'saved-public-source';
             const label = chinese ? '查閱已儲存的學校資料' : 'Checked a saved school source';
@@ -1538,6 +1539,21 @@ export function createResearchAssistantHandler(dependencies = {}) {
             verificationProgress(savedPublicSource);
             if (capture) {
                 const { context, evidence } = capture;
+                const exact = exactInstitutionalFact && institutionalFactAnswer(context, verificationQuestion);
+                if (exact) {
+                    const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: { ...exact, activity: captureActivity },
+                        deadline, onProgress: verificationProgress, loadEvidence: async () => [evidence],
+                        verify: ({ candidate, evidence: sources }) => {
+                            const expected = institutionalFactAnswer(context, verificationQuestion);
+                            return { ok: sources.length === 1 && sources[0] === evidence && expected?.answer === candidate.answer
+                                && JSON.stringify(expected?.citations) === JSON.stringify(candidate.citations) };
+                        },
+                        repair: async ({ candidate }) => candidate,
+                    });
+                    await sendPublicReply(checked);
+                    return;
+                }
+                if (!researchConfigured) { unconfigured(); return; }
                 const seed = { ...publicPageCandidate(context, input.question), activity: captureActivity };
                 const candidate = await composeEvidenceAnswer({ question: verificationQuestion, candidate: seed,
                     evidence: [evidence], deadline: Math.min(deadline, started + 12_000) }).catch(() => null);
@@ -1546,6 +1562,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return;
                 }
             }
+            if (!researchConfigured) { unconfigured(); return; }
         }
         try {
             // A public follow-up may use only a previous public school question. Never
