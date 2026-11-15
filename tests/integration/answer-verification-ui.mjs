@@ -12,11 +12,13 @@ try {
       window.fetch=(input,init)=>{
         if(String(input)!=='/api/research-assistant')return original(input,init);
         const steps=[
-          {kind:'verification-1',label:'Answer could not be verified',detail:'The current draft was withheld.',status:'unavailable'},
-          {kind:'verification-retry',label:'Rechecking and correcting the answer',detail:'Reloading the evidence and preparing one corrected draft.',status:'complete'},
-          {kind:'verification-2',label:'Answer checked against evidence',detail:'The answer passed the evidence checks.',status:'complete'},
+          {kind:'verification-1',label:'Draft did not pass verification',detail:'Some claims could not be matched to the available evidence.',status:'unavailable'},
+          {kind:'verification-retry',label:'Rechecking and correcting the answer',detail:'Checking the available evidence again and preparing a correction.',status:'complete'},
+          {kind:'verification-2',label:'Draft did not pass verification',detail:'The reviewer reached its output limit.',status:'unavailable'},
+          {kind:'verification-deeper-review',label:'Taking a closer look at the answer',detail:'Reconsidering the unresolved claims using the same authorized evidence.',status:'complete'},
+          {kind:'verification-3',label:'Answer checked against evidence',detail:'The answer passed the evidence checks.',status:'complete'},
         ];
-        const result={answer:'The checked tuition balance is NT$600.',status:'answered',citations:[],suggestedQuestions:[],activity:steps,verification:{status:'verified',attempts:2}};
+        const result={answer:'The checked tuition balance is NT$600.',status:'answered',citations:[],suggestedQuestions:[],activity:steps,verification:{status:'verified',attempts:3}};
         return Promise.resolve(new Response(steps.map(step=>'event: progress\ndata: '+JSON.stringify(step)+'\n\n').join('')+'event: result\ndata: '+JSON.stringify(result)+'\n\n',{headers:{'content-type':'text/event-stream'}}));
       };
     });
@@ -29,13 +31,15 @@ try {
       if(pass)await page.reload();
       const activity=page.locator('article').last().locator('details');
       await activity.locator('summary').click();
-      await activity.getByText('Answer could not be verified',{exact:true}).waitFor();
+      await activity.getByText('Some claims could not be matched to the available evidence.',{exact:true}).waitFor();
       await activity.getByText('Rechecking and correcting the answer',{exact:true}).waitFor();
+      await activity.getByText('The reviewer reached its output limit.',{exact:true}).waitFor();
+      await activity.getByText('Taking a closer look at the answer',{exact:true}).waitFor();
       await activity.getByText('Answer checked against evidence',{exact:true}).waitFor();
-      assert.equal(await activity.locator('li').count(),3);
+      assert.equal(await activity.locator('li').count(),5);
     }
     const stored=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('stu-campus-assistant-conversation-v1')));
-    assert.deepEqual(stored.messages.at(-1).result.verification,{status:'verified',attempts:2});
+    assert.deepEqual(stored.messages.at(-1).result.verification,{status:'verified',attempts:3});
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
     assert.deepEqual(errors,[]);await context.close();
   }

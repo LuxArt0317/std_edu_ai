@@ -3,6 +3,7 @@
 
 - Let rejected public web answers search for a more specific official source and verify the resulting page content independently. [#100]
 - Give eligible account and public answers a deeper verification check when the previous review identifies a resolvable gap and time remains. Preserve the observed check in chat history. [#100]
+- Recover signed-in overviews and fee balances from refreshed, caller-scoped fields. Explain each rejected draft in the activity log. [#100]
 - Lead routine personal answers with saved records, label sample entries where they appear, and retain precise limitations for explicit official-record requests. [#100]
 - Send Student Leave navigation questions to the application form and verify the embedded assistant's guest and signed-in behavior. [#100]
 
