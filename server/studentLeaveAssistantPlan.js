@@ -43,7 +43,11 @@ export function studentLeaveBoundary(plan, question) {
   const zh = /\p{Script=Han}/u.test(question);
   const say = (en, cn) => zh ? cn : en;
   const messages = [];
-  if (plan.navigation) {
+  if (plan.formNavigation) {
+    messages.push(say(
+      'Open the Student Leave form in School Affairs to prepare and save your request on stu.best. Official submissions use the university’s leave system.',
+      '請開啟校務系統的學生請假表單，在 stu.best 填寫並儲存假單。正式請假請使用校方請假系統。'));
+  } else if (plan.navigation) {
     messages.push(say(
       'School Affairs keeps saved leave history, older records, and leave periods in separate views.',
       '校務系統提供已儲存的請假紀錄、舊紀錄與請假節次。'));
@@ -75,12 +79,12 @@ export function studentLeaveBoundary(plan, question) {
 export function studentLeaveNavigation(plan, question) {
   if (!plan.navigation) return null;
   const zh = /\p{Script=Han}/u.test(question);
-  const links = [
-    [studentLeaveBasePath, zh ? '請假表單' : 'Leave form'],
+  const links = [[studentLeaveBasePath, zh ? '請假表單' : 'Leave form']];
+  if (!plan.formNavigation) links.push(
     [studentLeaveBasePath+'/history', zh ? '請假紀錄' : 'Leave history'],
     [studentLeaveBasePath+'/archive', zh ? '舊請假紀錄' : 'Archived leave'],
     [studentLeaveBasePath+'/periods', zh ? '請假節次' : 'Leave periods'],
-  ];
+  );
   return {status:'answered',answer:[studentLeaveBoundary(plan,question),...links.map(([url,title])=>'['+title+']('+url+')')].join('\n\n'),
     citations:links.map(([url,title])=>({title,url})),suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
 }

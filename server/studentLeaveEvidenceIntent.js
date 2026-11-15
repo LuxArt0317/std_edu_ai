@@ -16,6 +16,9 @@ const explicitOwnRecord=/\b(?:my|our|own|saved|this|selected)\s+(?:(?:own|saved|
 const command=/^(?:(?:please|can you|could you|would you|help me)\s+)*(?:create|save|edit|update|delete|remove|change|file|submit|withdraw|cancel|approve|reject|send)\b|^(?:請|请|幫我|帮我|替我)*(?:新增|建立|儲存|保存|更改|修改|刪除|删除|申請|申请|送出|提交|撤回|取消|核准|審核|审核)/iu;
 const relativeTarget=/\b(?:it|this(?: (?:form|record|leave|request))?|that(?: (?:form|record|leave|request))?|them|those)(?:\s+(?:now|please))?$|(?:它|該筆|该笔|這筆|这笔)(?:資料|资料|紀錄|记录|假單|假单)?$/iu;
 const navigation=/^(?:where (?:can|do) i (?:find|view|see|open|check)|how (?:can|do|should) i|(?:give|show) me (?:a|the) link|open .+(?:page|form|portal)|(?:請問|请问)?(?:哪裡|哪里|怎麼|怎么|如何)|(?:請|请)?(?:提供|給我|给我).*(?:連結|链接))/iu;
+const leaveFormLocation=/^where\s+(?:is|(?:can|do|should)\s+i\s+(?:find|open|access|get))\s+(?:(?:the|a|an)\s+)?(?:student\s+)?leave\s+(?:(?:request|application)\s+)?form(?:\s+(?:on\s+stu\.best|in\s+school\s+affairs|from\s+this\s+page))?$/iu;
+const leaveApplicationDirections=/^(?:where|how)\s+(?:can|do|should)\s+i\s+(?:prepare|draft|fill\s+out|file|submit)\s+(?:(?:the|a|an|my)\s+)?(?:new\s+)?(?:student\s+)?leave\s+(?:(?:request|application)(?:\s+form)?|form)(?:\s+(?:on\s+stu\.best|in\s+school\s+affairs|from\s+this\s+page))?$/iu;
+const leaveApplicationNavigation=part=>leaveFormLocation.test(part)||leaveApplicationDirections.test(part);
 const archive=/\b(?:archive(?:d)?|historical(?:\s+leave)?)\b|歷史請假假單|历史请假假单|107\s*(?:學|学)年(?:度)?以前/iu;
 const periodView=/\b(?:leave|class)\s+periods?\b|請假節次|请假节次/u;
 const exactView=/\b(?:this|that|the (?:open|selected|current)|current|selected)\s+(?:saved\s+)?(?:leave|form|request|record)\b|(?:這|这|該|该|目前|這份|这份|這筆|这笔)(?:筆|笔|份|張|张)?(?:請假|请假|假單|假单|紀錄|记录)/iu;
@@ -237,8 +240,9 @@ export function studentLeaveLookupContext(question,route='',history=[],now=Date.
   if(!selected&&!denied)return {...empty,otherQuestion,excluded};
   const active=scoped.filter(part=>!negative.test(part)).join('. ');
   const titles=[...new Set(scoped.filter(part=>!negative.test(part)).map(savedTitle).filter(Boolean))];
-  const nav=Boolean(active)&&scoped.every(part=>navigation.test(part))&&!denied;
-  if(nav)return {...empty,otherQuestion,navigation:true};
+  const formNavigation=Boolean(active)&&scoped.every(leaveApplicationNavigation);
+  const nav=Boolean(active)&&scoped.every(part=>navigation.test(part)||leaveApplicationNavigation(part))&&!denied;
+  if(nav)return {...empty,otherQuestion,navigation:true,...(formNavigation?{formNavigation:true}:{})};
   const previousSelection=implicit&&prior?studentLeaveLookupContext(previous,route,[],now).selection:null;
   const title=titles.length===1?titles[0]:previousSelection?.title??null;
   const explicitScope=archive.test(active)?'archive':periodView.test(active)?'periods'

@@ -10,5 +10,5 @@ export function isStudentLeaveUuid(value:unknown): value is string;
 export function isStudentLeaveDate(value:unknown): value is string;
 export function isStudentLeaveTitle(value:unknown): value is string;
 export type StudentLeaveSelection = {from:'question'|'history'|'route';question:string;view:StudentLeaveView;id:string|null;range:StudentLeaveDateRange|null;filters:StudentLeaveFilters;fields:StudentLeaveField[];countOnly:boolean;reason:StudentLeaveIntentReason|null;title?:string};
-export function studentLeaveLookupContext(question:unknown,route?:unknown,history?:unknown,now?:number): {selection:StudentLeaveSelection|null;otherQuestion:string;navigation:boolean;excluded:boolean;foreign?:boolean};
+export function studentLeaveLookupContext(question:unknown,route?:unknown,history?:unknown,now?:number): {selection:StudentLeaveSelection|null;otherQuestion:string;navigation:boolean;formNavigation?:boolean;excluded:boolean;foreign?:boolean};
 export function isStudentLeaveEvidenceQuestion(question:unknown,route?:unknown,history?:unknown): boolean;

@@ -74,3 +74,76 @@ test('an unchecked metadata draft cannot pass the public-page verification expec
   const result=gradeCase(row,response);
   assert.equal(result.passed,false);assert.ok(result.failures.some(check=>check.id==='answer.verification.expected'));
 });
+
+test('Student Leave form directions select only the application page through both assistant entry points',async()=>{
+  const [{createResearchAssistantHandler},{createAffairsAssistantHandler}]=await Promise.all([
+    import('../../server/researchAssistantHandler.js'),import('../../api/affairs-assistant.ts'),
+  ]);
+  const row=buildPublicCases({publicPages:[],tools:[]}).find(item=>item.id==='public-service-leave');
+  const historyPath='/school-affairs/services/leave/history';
+  const queries=[row.question,'Where is the student leave form?','Where do I submit a student leave request?',
+    'Where can I open the student leave form from this page?'];
+  let companionChecks=0;
+  const account=createAffairsAssistantHandler({
+    verifyToken:async token=>{
+      assert.equal(token,'OFFLINE-LEAVE-NAVIGATION-CALLER');
+      return {user:{id:'12000000-0000-4000-8000-000000000001'},url:'https://example.invalid'};
+    },
+    loadSnapshot:async()=>assert.fail('Navigation must not read the account snapshot'),
+    publicResearch:async()=>assert.fail('Navigation must not dispatch research'),
+    answerAccount:async({question,leavePlan,supplementalReaders})=>{
+      assert.equal(question,'show my tuition balance');
+      assert.equal(leavePlan.selection,null);
+      assert.deepEqual(Object.keys(supplementalReaders),[]);
+      companionChecks++;
+      return {status:'handoff',answer:'The separate fee balance is unavailable.',citations:[]};
+    },
+  });
+  const guest=createResearchAssistantHandler();
+  async function ask(handle,question,route,authenticated,address){
+    let code,body;
+    const response={setHeader(){},status(value){code=value;return response;},json(value){body=value;}};
+    await handle({method:'POST',headers:{'x-forwarded-for':address,...(authenticated?{authorization:'Bearer OFFLINE-LEAVE-NAVIGATION-CALLER'}:{})},
+      body:{question,route,history:[]}},response);
+    assert.equal(code,200,question);
+    return body;
+  }
+  const originalFetch=globalThis.fetch,network=[];
+  let address=20;
+  globalThis.fetch=async(input,init)=>{
+    network.push({remote:new URL(String(input)).origin,method:init?.method});
+    throw new Error('Unexpected network call in local leave navigation test');
+  };
+  try{
+    for(const handle of [guest,account]){
+      const authenticated=handle===account;
+      const request=(question,route='/')=>ask(handle,question,route,authenticated,'192.0.2.'+(address++));
+      for(const question of queries){
+        const body=await request(question,question===row.question?'/':historyPath);
+        assert.deepEqual(body.citations.map(item=>item.url),[row.expected.requiredLinks[0]],question);
+        const observed={...envelope(row,body.answer),body,events:[]};
+        assert.deepEqual(gradeCase(row,observed).failures,[],question);
+        if(question===row.question){
+          const misdirected={...observed,body:{...body,citations:[...body.citations,{url:historyPath}]}};
+          assert.ok(gradeCase(row,misdirected).failures.some(item=>item.id==='links.forbidden.0'));
+        }
+      }
+      const history=await request('Where can I find my leave history?');
+      assert.ok(history.citations.some(item=>item.url===historyPath));
+      const write=await request('Submit my student leave request.',historyPath);
+      assert.equal(write.proposedAction,undefined);
+      assert.equal(write.status,'clarification');
+      assert.ok(!write.citations.length);
+    }
+    const mixed=await ask(guest,'Where is the student leave form? Also show my tuition balance.', '/',false,'192.0.2.'+(address++));
+    assert.equal(mixed.status,'handoff');
+    assert.deepEqual(mixed.citations.map(item=>item.url),[
+      '/school-affairs/services/leave','/school-affairs/login?next=%2Fschool-affairs%2Fservices%2F39-1',
+    ]);
+    const signedInMixed=await ask(account,'Where is the student leave form? Also show my tuition balance.', '/',true,'192.0.2.'+(address++));
+    assert.match(signedInMixed.answer,/fee balance is unavailable/);
+    assert.deepEqual(signedInMixed.citations.map(item=>item.url),['/school-affairs/services/leave']);
+    assert.equal(companionChecks,1);
+    assert.deepEqual(network,[]);
+  }finally{globalThis.fetch=originalFetch;}
+});

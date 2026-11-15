@@ -24,7 +24,15 @@ export function buildPublicCases(inventory) {
     ['internship','Where do I find the internship records workspace?','/school-affairs/services/internship',[]],
     ['catalog','Where is the searchable course catalog?','/school-affairs/services/12-4',[]],
   ].map(([id,question,link,requiredText])=>({...caseBase,id:'public-service-'+id,domain:'public-navigation',routeFamily:'school-services',route:'/',question,
-    expected:{behavior:'navigation',requiredText,forbiddenText:[],requiredLinks:[link],requiredTools:[],noAction:true}}));
+    ...(id==='leave'?{executionContract:'live-native'}:{}),
+    expected:{behavior:'navigation',requiredText,forbiddenText:[],requiredLinks:[link],requiredTools:[],noAction:true,
+      ...(id==='leave'?{
+        requiredText:['Student Leave form','prepare and save','Official submissions'],
+        forbiddenLinks:[link+'/history',link+'/archive',link+'/periods',
+          '/school-affairs/login?next='+encodeURIComponent(link+'/history')],
+        localLinksOnly:true,allowedTools:[],requiredAttemptedTools:[],forbidPublicResearch:true,
+      }:{}),
+    }}));
   const privacy=inventory.tools.map(tool=>({...caseBase,id:'anonymous-records-'+tool.id,domain:'authentication',routeFamily:'authentication',route:'/school-affairs',mode:'record',
     endpoint:'/api/affairs-assistant',question:`Show my ${tool.id} records.`,
     expected:{behavior:'denial',expectedStatusCode:401,requiredText:[],forbiddenText:['QA-PRIVATE','Other Student Secret'],requiredLinks:[],requiredTools:[],noAction:true}}));
