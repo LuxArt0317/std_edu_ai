@@ -2,7 +2,7 @@ import type {VerificationEvidence} from './answerVerification.js';
 export const teachingFeedbackEvidenceLimits:Readonly<{responseBytes:16000;admissionBytes:131072;deadlineMs:8000;surveys:50;eligibleCourses:200;feedback:100}>;
 export type TeachingFeedbackEvidenceAccount={url:string;key:string;token:string;user:{id:string};requestDeadline?:number};
 export type TeachingFeedbackEvidenceOptions={views:Array<'survey'|'immediate'>;commentRequested?:boolean;course?:{code?:string;title?:string};deadline?:number};
-export type TeachingFeedbackEvidenceResult={readState:'ok'|'empty'|'partial'|'unavailable';reason:string|null;evidence:VerificationEvidence&{id:'account:teachingFeedback';provenance:'saved_local'}};
+export type TeachingFeedbackEvidenceResult={readState:'ok'|'empty'|'partial'|'unavailable';reason:string|null;surveyIdentityUnambiguous?:boolean;evidence:VerificationEvidence&{id:'account:teachingFeedback';provenance:'saved_local'}};
 export function unavailableTeachingFeedbackEvidence(reason:string):TeachingFeedbackEvidenceResult;
 /** Verified caller only. The upstream selector must reject foreign, management
  * and write requests before calling. Only requested student views are read;

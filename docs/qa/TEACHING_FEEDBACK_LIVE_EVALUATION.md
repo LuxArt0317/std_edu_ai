@@ -84,6 +84,17 @@ saved local history, empty reads and restricted actions. Published survey
 windows, survey completion, eligibility, companion sources, caps and service
 failures retain their original evaluation requirements.
 
+### Original survey questions in scratch PostgreSQL
+
+The five original cases for survey status, course completion, dates, phase comparison and Traditional Chinese status run through the actual assistant handler and migrated PostgreSQL function. A private in-memory database uses a test-process clock pinned to the authored midterm-open and final-scheduled interval. The replay checks exact RPC arguments, native response order, typed projection counts, caller and crossed-receipt ownership, the independent answer rubric, and unchanged stored rows. Model and network calls are forbidden by the test. Its verdict applies to these deterministic local checks.
+
+Use a locally installed PGlite runtime entry. The test skips without the explicit path and never downloads a package.
+
+```sh
+STU_TEACHING_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index.js \
+  node --experimental-strip-types --test tests/evaluation/teaching-feedback-survey-postgres.test.mjs
+```
+
 ## Required next mount
 
 1. Build a separate, caller-bound fixture lifecycle using the existing fresh A/B

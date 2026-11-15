@@ -102,13 +102,16 @@ function selected(view,data,comments,courseFilter){
     courses:row.courses.filter(matching).map(({course,code,term,section,completed})=>({course,code,term,section,completed}))}));
   return data.feedback.filter(matching).map(({course,code,term,status,submittedAt,reviewedAt,comment})=>({course,code,term,status,submittedAt,reviewedAt,...(comments?{comment}:{})}));
 }
-export function teachingFeedbackNativeFixtureForCase(input){
+export function teachingFeedbackNativeFixtureForCase(input,{nativeSurveyOrder=false}={}){
   const row=resolve(input),family=row.fixtureKey.split(':').at(-1),data=clone(base);
   if(family==='empty'){data.survey=dto('survey');data.immediate=dto('immediate');}
   if(family==='markup')data.immediate.feedback[0].comment=markup;
   if(family==='survey-cap')data.survey.surveys=Array.from({length:50},(_,i)=>survey(i+1,{id:id(1000+i),termId:id(4000+i),term:'QA Survey term '+(i+1),courses:[course(1,{id:id(5000+i),term:'QA Survey term '+(i+1),completed:i%2===0})]}));
   if(family==='feedback-cap')data.immediate.feedback=Array.from({length:100},(_,i)=>feedback(1,{id:id(2000+i),comment:'QA feedback history '+(i+1)}));
   if(family==='eligible-cap')data.immediate.courses=Array.from({length:200},(_,i)=>course(1,{id:id(3000+i),code:'EL'+(i+1),course:'QA Eligible course '+(i+1)}));
+  // The authored arrays are in presentation order. The real student RPC
+  // returns opening time descending, breaking ties by the survey ID.
+  if(nativeSurveyOrder)data.survey.surveys.sort((a,b)=>Date.parse(b.opensAt)-Date.parse(a.opensAt)||a.id.localeCompare(b.id));
   const reads=row.readExpectation.views.map(view=>({view,query:{scope:'teaching-feedback',view},state:row.readExpectation.failed.includes(view)?'unavailable':'ok',
     result:row.readExpectation.failed.includes(view)?null:clone(data[view])}));
   const evidence=reads.map(read=>({view:read.view,state:read.state,records:read.result?selected(read.view,read.result,row.readExpectation.comments,row.readExpectation.courseFilter):[],
@@ -197,8 +200,8 @@ function cardCommentsMatch(views,records){
 }
 const absentPrefix=prefix=>/\b(?:cannot|can't|could not|does not|do not)\s+(?:confirm|verify|prove|establish|mean|say|infer)\s+(?:that\s+)?$/iu.test(prefix.slice(-140));
 const positive=(text,pattern)=>[...text.matchAll(new RegExp(pattern.source,pattern.flags.replace('g','')+'g'))].some(match=>!absentPrefix(text.slice(0,match.index)));
-export function gradeTeachingFeedbackNativeCase(input,envelope,{observation}={}){
-  const row=resolve(input),fixture=teachingFeedbackNativeFixtureForCase(row),base=gradeCase(row,envelope),checks=[];
+export function gradeTeachingFeedbackNativeCase(input,envelope,{observation,nativeSurveyOrder=false}={}){
+  const row=resolve(input),fixture=teachingFeedbackNativeFixtureForCase(row,{nativeSurveyOrder}),base=gradeCase(row,envelope),checks=[];
   const check=(id,passed,detail)=>checks.push({id,passed:passed===true,detail});
   check('teaching.caller',observation?.callerId===(row.auth==='anonymous'?null:owner),'Exact independently bound account, never another owner substituted with caller records.');
   check('teaching.nativeReads',isDeepStrictEqual(observation?.reads,fixture.reads),'Exact authorized student views, raw caller DTO and failures; no manage or answer shortcut.');

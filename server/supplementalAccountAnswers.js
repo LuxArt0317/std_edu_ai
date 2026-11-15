@@ -13,7 +13,7 @@ import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
 import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvaluationContract.js';
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
-import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence} from './teachingFeedbackEvidenceIntent.js';
+import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence,teachingFeedbackSurveyPresentation} from './teachingFeedbackEvidenceIntent.js';
 import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
 import {studentConductMaxRecords} from './studentConductContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
@@ -714,16 +714,80 @@ export function formatExactClearanceAnswer(result,question,refusal){
 export function formatExactTeachingFeedbackAnswer(result,question,selected){
   if(result?.evidence?.id!=='account:teachingFeedback'||selected?.views.length!==1
     ||result.reason!==null||!['ok','empty'].includes(result.readState))return null;
-  const {payload}=parse(result),actual=payload.selection,course=selected.course??null;
+  const {evidence,payload}=parse(result),actual=payload.selection,course=selected.course??null;
   if(!payload.complete||!actual||actual.views.length!==1||actual.views[0]!==selected.views[0]
     ||actual.commentRequested!==selected.commentRequested||(actual.course===null)!==(course===null)
     ||course&&(!exact(actual.course,Object.keys(course))||Object.entries(course).some(([field,value])=>actual.course[field]!==value)))return null;
+  const survey=selected.views[0]==='survey'&&teachingFeedbackSurveyPresentation(selected.question);
+  if(survey){
+    if(survey.kind==='comparison'&&result.surveyIdentityUnambiguous!==true)return null;
+    return exactTeachingSurveyAnswer(evidence,payload,question,survey);
+  }
   const formatted=formatSupplementalAccountAnswers([result],{question});
   // Typed record completeness does not guarantee every selected field fit into
   // the student-facing text and table. Keep those cases in the existing graph.
   if(formatted.status!=='answered'||!formatted.complete||formatted.formatting.limited)return null;
   const {status,answer,citations,views}=formatted;
   return {status,answer,citations,views};
+}
+
+function exactTeachingSurveyAnswer(evidence,payload,question,scope){
+  const zh=supplementalAnswerLanguage(question)==='zh-TW',t=(en,zhTw)=>zh?zhTw:en;
+  const title=t('Saved teaching evaluation','已儲存的教學評量');
+  const phase=key=>key==='midterm'?t('Midterm','期中'):t('Final','期末');
+  const done=value=>value?t('completed','已完成'):t('not completed','未完成');
+  const iso=value=>value.replace(/\+00:00$/u,'Z');
+  const surveys=payload.views[0].surveys.filter(row=>scope.kind==='comparison'||!scope.phases.length||scope.phases.includes(row.phase));
+  const lines=[t('These are your saved stu.best teaching evaluation records.','以下是你在 stu.best 已儲存的教學評量紀錄。')];
+  let fields=[],rows=[];
+  if(!surveys.length)lines.push(t('No matching saved survey was found.','未找到符合的已儲存問卷。'));
+  else if(scope.kind==='comparison'){
+    const matching=surveys.flatMap(row=>row.courses.filter(course=>course.code===scope.code).map(course=>({row,course})));
+    const midterm=matching.find(entry=>entry.row.phase==='midterm'),final=matching.find(entry=>entry.row.phase==='final');
+    // The projected data contains no section IDs. Require one same-term pair
+    // with matching title and section, and withhold comparisons when ambiguous.
+    if(matching.length!==2||!midterm||!final||!midterm.row.term||midterm.row.term!==final.row.term
+      ||midterm.course.section!==final.course.section||midterm.course.course!==final.course.course)return null;
+    lines.push(t('Completing one phase does not complete the other. The two phases have separate saved receipts.',
+      '完成其中一階段不會完成另一階段。兩個階段的收件紀錄分開儲存。'));
+    fields=[t('Phase','階段'),t('Course','課程'),t('Completion','完成狀態')];
+    for(const {row,course} of [midterm,final]){
+      const label=phase(row.phase),status=done(course.completed);
+      lines.push(`- ${label} — ${scope.code} ${t('completion','完成狀態')}: ${status}.`);
+      rows.push([label,scope.code,status]);
+    }
+  }else if(scope.kind==='completion'){
+    fields=[t('Course','課程'),t('Phase','階段'),t('Term','學期'),t('Completion','完成狀態')];
+    for(const row of surveys)for(const course of row.courses){
+      const label=phase(row.phase),status=done(course.completed);
+      lines.push(`- ${literalRecordText(course.code)} — ${label} ${t('completion','完成狀態')}: ${status}. ${literalRecordText(row.term+' · '+course.course+' · '+course.section)}`);
+      rows.push([course.code,label,row.term,status]);
+    }
+    if(!rows.length)lines.push(t('No course completion records were returned for the selected phase.','所選階段未查回課程完成紀錄。'));
+  }else if(scope.kind==='dates'){
+    fields=[t('Phase','階段'),t('Term','學期'),t('Opens at','開放時間'),t('Closes at','截止時間')];
+    for(const row of surveys){
+      const label=phase(row.phase),opens=iso(row.opensAt),closes=iso(row.closesAt),term=literalRecordText(row.term);
+      lines.push(`- ${term} · ${label} — ${fields[2]}: ${opens}; ${fields[3]}: ${closes}.`);
+      rows.push([label,row.term,opens,closes]);
+    }
+  }else{
+    fields=[t('Phase','階段'),t('Term','學期'),t('State','狀態')];
+    const states={scheduled:t('scheduled','尚未開始'),open:t('open','開放中'),closed:t('closed','已結束')};
+    for(const row of surveys){
+      const label=phase(row.phase),state=states[row.state];
+      lines.push(`- ${label} — ${fields[2]}: ${state}. ${literalRecordText(row.term)}`);
+      rows.push([label,row.term,state]);
+    }
+  }
+  lines.push(`[${t('Open teaching evaluation','開啟教學評量')}](${evidence.url})`);
+  const answer=lines.join('\n');
+  const views=rows.length>0&&rows.length<=supplementalAnswerLimits.viewRows&&rows.every(row=>row.every(value=>value.length<=160))?[{
+    id:'teachingFeedback',title,url:evidence.url,columns:fields,rows,total:rows.length,checkedAt:payload.checkedAt,note:'',
+  }]:[];
+  const candidate={status:'answered',answer,citations:[{chunkId:evidence.id,claim:title,title,sourceName:title,url:evidence.url,
+    locator:null,effectiveAt:null,reviewedAt:null}],views};
+  return answer.length<=supplementalAnswerLimits.answerCharacters&&bytes(candidate)<=supplementalAnswerLimits.resultBytes?candidate:null;
 }
 
 export function formatExactDtmGradeAvailability(result,question){
