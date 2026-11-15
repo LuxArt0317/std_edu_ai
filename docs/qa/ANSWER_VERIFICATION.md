@@ -30,6 +30,16 @@ if enough time remains to verify its contents. Sign-in and permanent failures
 end reads for the affected lead, and an exact dated capture can supply the
 evidence in place of a live reread.
 
+An unread official page can justify reserving part of the remaining request
+time before an early public review begins. If that review times out, the graph
+can read the queued page and verify a new draft. It makes another check only
+when the page provides different, readable contents. A timeout with no unread
+lead, or a duplicate page, ends that recovery. The Activity list records the
+timeout and the source check as separate events. This applies the same
+evaluator feedback and explicit exit conditions described in the
+[Anthropic agent workflow guide](https://www.anthropic.com/research/building-effective-agents)
+and [OpenAI agent guide](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/).
+
 ## Acceptance criteria
 
 1. An incorrect amount, date, enrollment claim or unsupported source claim must
@@ -112,7 +122,8 @@ The first command uses provider fixtures and checks real graph transitions,
 source references, fresh reads, conditional checks and evidence/provider failures.
 Run `node --import tsx --test tests/api/research-assistant-web-follow-up.test.ts
 tests/evaluation/grading.test.mjs` for the incomplete-office, fourth-check,
-mirrored-source, transient-read and deadline cases.
+mirrored-source, transient-read and deadline cases. The controlled timeouts
+cover a newly readable queued notice, a duplicate page and no available lead.
 The UI command requires the local app and uses explicit fixture replies.
 Production commands use actual providers and the exact configured client project;
 run database checks serially. Live private QA creates disposable identities,

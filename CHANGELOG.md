@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Leave time to read a known school page when an earlier public review may time out. Verify any recovered detail against the new page and persist the observed checks. [#100]
+
 - Read only the selected Academic Services or Legacy graduation review status when the student asks for it. [#100]
 
 - Keep the campus assistant available while the Teaching Assistant report and grant receipt notices are open. Explain each displayed notice and where Confirm returns. [#100]

@@ -30,11 +30,13 @@ const provider = (value: unknown) => Response.json({
 
 const originalFetch = globalThis.fetch;
 const originalNow = Date.now;
+const originalTimeout = AbortSignal.timeout;
 const envKeys = ['OPENAI_API_KEY','VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY','SUPABASE_SERVICE_ROLE_KEY'];
 const initialEnv = Object.fromEntries(envKeys.map(key=>[key,process.env[key]]));
 afterEach(() => {
   globalThis.fetch = originalFetch;
   Date.now = originalNow;
+  AbortSignal.timeout = originalTimeout;
   for (const key of envKeys) {
     const value = initialEnv[key];
     if (value === undefined) delete process.env[key];
@@ -70,7 +72,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -79,6 +81,13 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
   const scopes: Array<{name:string; effort:string; urls:string[]}> = [];
   const acquiredUrls: string[] = [];
   const searchRequests: Record<string,unknown>[] = [];
+  const reviewTimeouts: number[] = [];
+  let lastTimeout = 0;
+  const timedReview = outcome.startsWith('review-timeout-');
+  if (timedReview) AbortSignal.timeout = milliseconds => {
+    lastTimeout = milliseconds;
+    return originalTimeout(milliseconds);
+  };
   let reviewCalls = 0;
   globalThis.fetch = async (input,init) => {
     const url = String(input);
@@ -90,6 +99,12 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     if (name === 'stu_web_answer') {
       searchRequests.push(request);
       searchCalls++;
+      if (timedReview) {
+        assert.equal(searchCalls,1);
+        elapsed = 19_000;
+        const urls = outcome === 'review-timeout-no-lead' ? [officialDirectory] : [officialDirectory,officialNotice];
+        return Response.json(searchPayload(urls,unsafeDraft,[officialDirectory]));
+      }
       if (outcome === 'tool-links' || outcome === 'unreadable-tool-link' || outcome === 'transient-uncited') {
         return Response.json(searchCalls === 1
           ? searchPayload([officialNotice,'https://outside.example.org/campus/'],unsafeDraft,['https://invented.example.org/'])
@@ -146,6 +161,14 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     }
     assert.equal(name,'answer_evidence_review');
     reviewCalls++;
+    if (timedReview) {
+      reviewTimeouts.push(lastTimeout);
+      if (reviewCalls === 1) {
+        const reviewDuration = outcome === 'review-timeout-no-lead' ? 26_000 : 23_000;
+        elapsed += Math.min(lastTimeout,reviewDuration);
+        if (lastTimeout < reviewDuration) throw new DOMException('Controlled review timeout','TimeoutError');
+      }
+    }
     if (outcome === 'budget' && reviewCalls === 1) elapsed = 40_000;
     if (outcome === 'fourth-budget' && reviewCalls === 3) elapsed = 47_000;
     if (outcome === 'third-pass-discovery' && reviewCalls === 2)
@@ -169,7 +192,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
           && acquiredUrls.filter(visited => visited === officialNotice).length === 1))
           throw Object.assign(new Error('Controlled source read failure'),{code:'ECONNRESET'});
         const content = new Map([
-          [officialDirectory,directoryContent], [officialNotice,noticeContent], [officialOffice,officeContent],
+          [officialDirectory,directoryContent], [officialNotice,outcome === 'review-timeout-duplicate' ? directoryContent : noticeContent], [officialOffice,officeContent],
           [eventCalendar,outcome.startsWith('mirror') ? officeContent : calendarContent],
         ]).get(url);
         assert.ok(content);
@@ -177,7 +200,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       },
     }),
   });
-  return {run,scopes,acquiredUrls,searchRequests};
+  return {run,scopes,acquiredUrls,searchRequests,reviewTimeouts};
 }
 
 test('an exact follow-up source is fetched independently and replaces the unsupported public draft', async () => {
@@ -231,6 +254,38 @@ test('an uncited official tool lead is independently read before repeating searc
   assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
   assert.equal(answer.activity.find(({kind}: Progress)=>kind==='web-alternate-source').status,'complete');
   assert.doesNotMatch(JSON.stringify(answer),/outside\.example|NOT_PUBLIC_SEARCH_INPUT/);
+});
+
+test('a slow public review preserves time to verify an independently read lead', async () => {
+  const attempt = harness('review-timeout-lead');
+  const progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-review-timeout-lead',progress);
+  assert.deepEqual(attempt.reviewTimeouts,[17_000,19_000]);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialNotice]);
+  assert.equal(attempt.searchRequests.length,1);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:2});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.equal(progress.find(step=>step.kind==='verification-timeout-recovery-2')?.status,'complete');
+  assert.ok(progress.every(step=>step.kind!=='verification-stop'));
+  const [restored] = sanitizeStoredConversation([{id:'timed-review',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.equal(restored.activity.find(({kind}:Progress)=>kind==='verification-timeout-recovery-2')?.status,'complete');
+});
+
+test('a timed-out public review never replaces the draft with a duplicate or unseen source', async () => {
+  for (const scenario of ['review-timeout-duplicate','review-timeout-no-lead'] as const) {
+    const attempt = harness(scenario);
+    const answer = await invoke({question:testQuestion},attempt.run,'web-'+scenario);
+    const duplicate = scenario === 'review-timeout-duplicate';
+    assert.deepEqual(attempt.reviewTimeouts,[duplicate ? 17_000 : 25_000]);
+    assert.deepEqual(attempt.acquiredUrls,duplicate ? [officialDirectory,officialNotice] : [officialDirectory]);
+    assert.equal(attempt.searchRequests.length,1);
+    assert.equal(answer.verification.status,'unverified');
+    assert.equal(answer.verification.attempts,1);
+    assert.deepEqual(answer.citations,[]);
+    assert.doesNotMatch(answer.answer,/8:00|10:30/u);
+    assert.match(answer.activity.at(-1).detail,duplicate ? /usable evidence/u : /too little time/u);
+  }
 });
 
 test('two rejected drafts can discover and check a primary source even without new reviewer feedback', async () => {
@@ -1074,7 +1129,7 @@ test('verified public detail can advance through four checks and survives stalle
     ['visitor identification','step-free access','opening time'],['opening time'],[]];
   const statements=[admissible,entrance,identity,noticeContent];
   const question=testQuestion+' Please also confirm admission, the entrance, visitor identification, and step-free access.';
-  for(const outcome of ['complete','still-partial','rejected-then-recovered','truncated-then-recovered','truncated-no-time','same-gaps-with-lead','mirror','swapped-gaps','relabeled','outage','time'] as const){
+  for(const outcome of ['complete','still-partial','rejected-then-recovered','truncated-then-recovered','truncated-no-time','timeout-then-recovered','same-gaps-with-lead','mirror','swapped-gaps','relabeled','outage','time'] as const){
     configured();
     const unresolved=outcome==='still-partial'?['guide handouts']:[];
     const missingAt=(index:number)=>[...gaps[index],...unresolved];
@@ -1100,7 +1155,8 @@ test('verified public detail can advance through four checks and survives stalle
         assert.doesNotMatch(call.input,/PRIVATE_GAP_LABEL|previousMissingRequestedDetails|REJECTED_(?:DRAFT|FEEDBACK)_MARKER/u);
         assert.ok(index<4,'No fifth discovery pass.');
         const source=outcome==='mirror'&&index===2?mirror:sourceUrls[index];
-        const leads=outcome==='same-gaps-with-lead'&&index===2?[source,calendarMirror,officialNotice]:[source];
+        if(outcome==='timeout-then-recovered'&&index===2)elapsed=15_000;
+        const leads=['same-gaps-with-lead','timeout-then-recovered'].includes(outcome)&&index===2?[source,calendarMirror,officialNotice]:[source];
         return Response.json(searchPayload(leads,admissible+' The entrance, identification, step-free access, and opening time remain unresolved.',[source]));
       }
       const context=JSON.parse(call.input[0].content[0].text);
@@ -1114,7 +1170,7 @@ test('verified public detail can advance through four checks and survives stalle
           assert.doesNotMatch(context.previousAnswer,/REJECTED_DRAFT_MARKER/u);
           assert.match(context.unsupportedClaims.join(' '),/REJECTED_FEEDBACK_MARKER/u);
         }
-        if(outcome==='truncated-then-recovered'&&evidence.length===4){
+        if(['truncated-then-recovered','timeout-then-recovered'].includes(outcome)&&evidence.length===4){
           assert.match(context.previousAnswer,/free admission.+North Reading Room/u);
           assert.deepEqual(context.unsupportedClaims,[]);
         }
@@ -1132,12 +1188,16 @@ test('verified public detail can advance through four checks and survives stalle
       assert.equal(call.text.format.schema.required.includes('missingRequestedDetails'),true);
       const index=reviews++;
       const resolveGap=(name:string)=>name.toLowerCase();
-      const reviewResumed=['rejected-then-recovered','truncated-then-recovered'].includes(outcome);
+      const reviewResumed=['rejected-then-recovered','truncated-then-recovered','timeout-then-recovered'].includes(outcome);
       const prior=(reviewResumed||outcome==='same-gaps-with-lead')&&index===3?1:index-1;
       assert.deepEqual(context.previousMissingRequestedDetails,index?missingAt(prior).map(resolveGap):undefined);
       if(outcome.startsWith('truncated-')&&index===2){
         if(outcome==='truncated-no-time')elapsed=44_000;
         return Response.json({status:'incomplete',incomplete_details:{reason:'max_output_tokens'}});
+      }
+      if(outcome==='timeout-then-recovered'&&index===2){
+        elapsed=40_000;
+        throw new DOMException('Controlled late review timeout','TimeoutError');
       }
       if(outcome==='outage'&&index===2)return Response.json({error:{code:'service_unavailable'}},{status:503});
       if(outcome==='rejected-then-recovered'&&index===2){
@@ -1158,7 +1218,7 @@ test('verified public detail can advance through four checks and survives stalle
     };
     const progress:Progress[]=[];
     const answer=await invoke({question:question+(unresolved.length?' Are guide handouts available?':'')},run,'verified-public-continuation-'+outcome,progress);
-    const usedQueuedLead=outcome==='same-gaps-with-lead';
+    const usedQueuedLead=outcome==='same-gaps-with-lead'||outcome==='timeout-then-recovered';
     const reachedFourth=usedQueuedLead||['complete','still-partial','rejected-then-recovered','truncated-then-recovered'].includes(outcome);
     const expectedReviews=reachedFourth?4:['outage','swapped-gaps','relabeled','truncated-no-time'].includes(outcome)?3:2;
     assert.deepEqual(answer.verification,{status:'verified',attempts:expectedReviews},outcome);
@@ -1175,11 +1235,12 @@ test('verified public detail can advance through four checks and survives stalle
     assert.equal(answer.answer.includes('whether guide handouts are available'),Boolean(unresolved.length),outcome);
     assert.deepEqual(answer.citations.map((source:{url:string})=>source.url).sort(),(reachedFourth?[...sourceUrls]:sourceUrls.slice(0,2)).sort());
     assert.equal(progress.some(step=>step.kind==='verification-partial-follow-up-3'),outcome!=='time',outcome);
-    assert.equal(progress.some(step=>step.kind==='verification-extended-review'),reachedFourth,outcome);
+    assert.equal(progress.some(step=>step.kind==='verification-extended-review'),reachedFourth&&outcome!=='timeout-then-recovered',outcome);
+    assert.equal(progress.some(step=>step.kind==='verification-timeout-recovery-4'),outcome==='timeout-then-recovered',outcome);
     assert.equal(progress.some(step=>step.kind==='web-alternate-discovery'&&step.status==='complete'),reachedFourth&&!usedQueuedLead,outcome);
     assert.equal(progress.some(step=>step.kind==='web-extended-source'&&step.status==='complete'),usedQueuedLead,outcome);
     assert.equal(progress.some(step=>step.kind==='verification-kept-partial'),!reachedFourth&&outcome!=='time',outcome);
-    if(outcome==='rejected-then-recovered'||outcome==='outage'||outcome.startsWith('truncated-'))
+    if(outcome==='rejected-then-recovered'||outcome==='outage'||outcome.startsWith('truncated-')||outcome==='timeout-then-recovered')
       assert.ok(progress.some(step=>step.kind==='verification-3'&&step.status==='unavailable'));
     assert.equal(progress.filter(step=>/^verification-[1-4]$/u.test(step.kind)&&step.status!=='running').length,expectedReviews,outcome);
     if(reachedFourth){

@@ -90,9 +90,9 @@ export async function runAnswerVerification({
       throw new TypeError('Invalid retained public answer');
     verifiedPartial = { candidate: priorCandidate, missing };
   }
-  const enoughTimeToContinue = attempt => deadline - Date.now() >= (
-    publicRecovery && attempt + previousChecks >= maxAnswerVerificationChecks ? 14_000 : deeperReviewBudgetMs
-  );
+  const continuationBudget = attempt => publicRecovery && attempt + previousChecks >= maxAnswerVerificationChecks
+    ? 14_000 : deeperReviewBudgetMs;
+  const enoughTimeToContinue = attempt => deadline - Date.now() >= continuationBudget(attempt);
   const shouldDeepen = verdict => safeToContinue() && (
     (evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
       && (feedback.length > 0 || verdict.reason === 'verification_output_limit'))
@@ -101,6 +101,14 @@ export async function runAnswerVerification({
   const canRetryAfterSourceSwitch = verdict => safeToContinue()
     && (deeperReviewReasons.has(verdict.reason) || verdict.reason === 'evidence_unavailable');
   const canFollowLead = attempt => attempt + previousChecks < maxAnswerVerificationChecks || canExtendReview?.() === true;
+  const canRecoverTimedReview = attempt => publicRecovery && safeToContinue() && attempt + previousChecks < maxChecks
+    && hasUnreadPublicLead?.() === true && canFollowLead(attempt) && enoughTimeToContinue(attempt);
+  const reviewDeadlineFor = attempt => {
+    // Leave a review window for a concrete, unread public source.
+    if (!canRecoverTimedReview(attempt)) return deadline;
+    const reserved = deadline - continuationBudget(attempt) - 1_000;
+    return reserved - Date.now() >= 5_000 ? reserved : deadline;
+  };
   // A smaller set can still lose a fact if it adds a newly missing detail.
   const improvesPartial = () => missingRequestedDetails && missingRequestedDetails.length < verifiedPartial.missing.length
     && missingRequestedDetails.every(detail => verifiedPartial.missing.includes(detail));
@@ -150,10 +158,10 @@ export async function runAnswerVerification({
     .addNode('draft', async state => {
       if (state.attempt === 1 || state.verdict || !withinBudget()) return {};
       try {
-        const deeperAttempt = state.attempt > standardChecks || previousChecks > 0;
-        const repairDeadline = deeperAttempt ? deadline - (publicRecovery ? 6_000 : 8_000) : deadline;
+        const reserveReview = state.attempt > standardChecks || previousChecks > 0 || state.previousFailure === 'verification_timeout';
+        const repairDeadline = reserveReview ? deadline - (publicRecovery ? 6_000 : 8_000) : deadline;
         candidate = await bounded(()=>repair({ question, candidate, evidence, deadline:repairDeadline, feedback, attempt:state.attempt,
-          ...(state.previousFailure==='verified_partial'?{afterVerifiedPartial:true}:{}) }),repairDeadline);
+          ...(verifiedPartial?{afterVerifiedPartial:true}:{}) }),repairDeadline);
         return {};
       } catch (error) {
         // Missing sources or invented correction links are evidence failures,
@@ -172,8 +180,9 @@ export async function runAnswerVerification({
         checks++;
         emit(`verification-${ordinal}`, 'Checking answer against evidence', `Verification check ${checks}.`, 'running');
         try {
-          const review = await bounded(()=>verify({ question, candidate, evidence, deadline, feedback, attempt:state.attempt,
-            ...(verifiedPartial?{previousMissingRequestedDetails:verifiedPartial.missing}:{}) }));
+          const reviewDeadline = reviewDeadlineFor(state.attempt);
+          const review = await bounded(()=>verify({ question, candidate, evidence, deadline:reviewDeadline, feedback, attempt:state.attempt,
+            ...(verifiedPartial?{previousMissingRequestedDetails:verifiedPartial.missing}:{}) }),reviewDeadline);
           feedback = Array.isArray(review.feedback) ? review.feedback.slice(0, 12) : [];
           if (publicRecovery) missingRequestedDetails = normalizeMissingDetails(review.missingRequestedDetails);
           verdict = { ok: review.ok === true, reason: review.reason || 'unsupported_claims' };
@@ -181,7 +190,7 @@ export async function runAnswerVerification({
           const reason = error?.code === 'VERIFICATION_OUTPUT_LIMIT' ? 'verification_output_limit'
             : error?.code === 'VERIFICATION_QUOTA_EXHAUSTED' ? 'provider_quota_exhausted'
               : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
-          if (verifiedPartial && reason === 'verification_output_limit') feedback = [];
+          if (reason === 'verification_timeout' || (verifiedPartial && reason === 'verification_output_limit')) feedback = [];
           verdict = { ok: false, reason };
         }
         const label = verdict.ok ? 'Answer checked against evidence'
@@ -200,19 +209,23 @@ export async function runAnswerVerification({
     .addNode('retry', state => {
       const nextCheck = state.attempt + previousChecks + 1;
       if (verifiedPartial) candidate = verifiedPartial.candidate;
-      if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Looking for another source',
+      const timedOut = state.verdict.reason === 'verification_timeout';
+      if (timedOut && publicRecovery) emit(`verification-timeout-recovery-${nextCheck}`, 'Checking another source after a timeout',
+        'The previous review timed out. Checking an available school page for the missing detail.');
+      else if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Looking for another source',
         'Looking for an unread school page or another publication that can verify the remaining detail.');
       if (state.verdict.ok) {
         const step = partialFollowUps++ === 0 ? 'verification-partial-follow-up' : `verification-partial-follow-up-${nextCheck}`;
         emit(step, 'Checking a source for the missing details', 'The current answer has supported information. Looking for evidence that can answer the rest.');
-      } else if (nextCheck <= maxAnswerVerificationChecks) {
+      } else if (nextCheck <= maxAnswerVerificationChecks && !(timedOut && publicRecovery)) {
         if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
           'Looking for the missing detail and revising the answer if the evidence supports it.');
         else if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
           loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
         else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
       }
-      return { attempt: state.attempt + 1, verdict: null, previousFailure:verifiedPartial?'verified_partial':state.verdict.reason };
+      return { attempt: state.attempt + 1, verdict: null,
+        previousFailure:verifiedPartial&&!timedOut?'verified_partial':state.verdict.reason };
     })
     .addEdge(START, 'retrieve')
     .addEdge('retrieve', 'draft')
@@ -220,6 +233,7 @@ export async function runAnswerVerification({
     .addConditionalEdges('verify', state => {
       if(state.attempt + previousChecks >= maxChecks || !withinBudget() || state.verdict.reason === 'source_exhausted')return END;
       if(state.verdict.reason==='provider_quota_exhausted')return hasLocalCorrection&&state.attempt===1?'retry':END;
+      if(publicRecovery&&state.verdict.reason==='verification_timeout')return canRecoverTimedReview(state.attempt)?'retry':END;
       if(state.verdict.ok){
         if (!publicRecovery || !missingRequestedDetails?.length || !safeToContinue()
           || !canFollowLead(state.attempt) || !enoughTimeToContinue(state.attempt)

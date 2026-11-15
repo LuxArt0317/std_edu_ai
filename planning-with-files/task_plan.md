@@ -1069,3 +1069,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Open the assistant on both School Affairs acknowledgment notices and keep focus, persisted history and the exact route on desktop and mobile.
 - [x] Replay the three Counseling, four remote-learning, four notice and three graduation status cases on one protected revision with exact cleanup. Preserve the three additional graduation failures.
 - [ ] Add record-backed recovery for the unchanged graduation requirements, course lineage and eligibility-boundary prompts. Re-evaluate with the quota failure unchanged and keep the official eligibility boundary.
+
+### Slow public review recovery [Issue #100]
+
+- [x] Reserve time when an actual unread official page can resolve a public question. Exercise a slow reviewer, a genuinely different page, a duplicate page and no alternative lead through the real handler.
+- [ ] Verify the integrated suite on the exact candidate before any production decision.
