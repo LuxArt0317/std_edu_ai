@@ -1,4 +1,5 @@
 export const chargePaymentHistoryScope: 'fee-payment-history';
+export const chargePaymentOperationStoragePrefix: 'school-payment-operation:';
 export const chargePaymentHistoryAdminScope: 'fee-payment-history-admin';
 export const chargePaymentHistoryPath: '/school-affairs/services/39-1/payment-history';
 export const chargePaymentPageSize: 25;

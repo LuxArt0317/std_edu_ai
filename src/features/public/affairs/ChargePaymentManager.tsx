@@ -1,10 +1,9 @@
 import {useEffect, useRef, useState, type FormEvent} from 'react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {chargePaymentOperationStoragePrefix} from './authClient';
 import {
   type ChargePaymentAdminHistory, type ChargePaymentAction, type ChargePaymentAdminRow,
-  chargePaymentPageSize, chargePaymentMaxPage, validateChargePaymentAction,
+  chargePaymentOperationStoragePrefix, chargePaymentPageSize, chargePaymentMaxPage, validateChargePaymentAction,
 } from '../../../../server/chargePaymentContract.js';
 import {
   ChargePaymentRequestError, changeManagedChargePayment, loadManagedChargePayments,

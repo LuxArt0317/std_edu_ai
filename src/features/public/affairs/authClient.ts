@@ -7,14 +7,13 @@ import { healthExaminationPath } from '../../../../server/healthExaminationContr
 import { aidPaymentsMaxPage,aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
 import { elearningCatalogPageRoute } from '../../../../server/elearningCatalogPageIntent.js';
 import { clubAttendancePath, clubAttendancePagePattern } from '../../../../server/clubAttendanceIntent.js';
-import {chargePaymentHistoryPath} from '../../../../server/chargePaymentContract.js';
+import {chargePaymentHistoryPath, chargePaymentOperationStoragePrefix} from '../../../../server/chargePaymentContract.js';
 import {chargePaymentHistorySelection,chargePaymentHistoryUrl} from './chargePaymentHistoryRoute';
 import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 export const affairsStorageKey = 'stu-school-affairs-auth';
-export const chargePaymentOperationStoragePrefix = 'school-payment-operation:';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
 export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
