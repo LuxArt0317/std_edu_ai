@@ -107,7 +107,7 @@ The verified School Affairs assistant forwards the exact 37-1 claims or salary p
 
 ### Current subjects and year level
 
-A signed-in question asking for both uses the owned School Affairs timetable and a separate year-level lookup. The read path can report when either source is unavailable or has no linked student. It does not initialize records or read the broader workspace.
+A signed-in question asking for both uses the owned School Affairs timetable and a separate year-level lookup. A rejected draft triggers one refresh of both sources. The revised response uses the exact refreshed fields, including any failed or unlinked source state. Interview practice without a requested record dependency uses general coaching and preserves private account records in the app.
 
 ### Teaching feedback questions
 

@@ -160,11 +160,11 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 
 ### Current subjects and year level
 
-`ownAffairsTimetable.js` reads the caller's enrolled rows and term dates. `ownAffairsStudyYear.js` reads only the same caller's saved year level and its provenance. The verification graph checks the current term against the timetable and the year against its own source. Both reads are repeated once after a rejected answer.
+`ownAffairsTimetable.js` reads the caller's enrolled rows and term dates. `ownAffairsStudyYear.js` reads only the same caller's saved year level and its provenance. The verification graph checks the current term against the timetable and the year against its own source. After a rejected answer, it rereads both sources once, rebuilds the answer from the refreshed fields and checks the result against those fields. An unavailable source remains unavailable and the other verified part can still be shown.
 
 ### Teaching feedback evidence
 
-The account graph reads only the selected student teaching feedback views for focused questions. It checks the literal course, status, questionnaire window and requested comment against each view. The two-part semester and year question also requires a reviewer reference to each requested field or its precise missing or failed record state. The graph keeps the current two-attempt limit.
+The account graph reads only the selected student teaching feedback views for focused questions. It checks the literal course, status, questionnaire window and requested comment against each view. A combined teaching feedback, semester and year question requires a reviewer reference to each requested field or its precise missing or failed record state. The graph keeps the two-attempt limit.
 
 ### Saved account overview
 

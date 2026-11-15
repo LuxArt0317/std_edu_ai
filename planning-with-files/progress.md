@@ -96,3 +96,5 @@
 - 2026-11-15 [#100] Verified the separate authorized Vercel CLI with the exact protected `64a8ccb0` manifest. The baseline replay stopped at fixture readback and verified cleanup with zero model calls. The isolated diagnostic located the missing Moodle material target link. Updated the oracle and persistence mapping and passed all 1,227 offline checks.
 
 - 2026-11-15 [#100] Collected four hosted baseline answers with durable readback. The record overview passed independent AI review; the course/year and interview turns abstained and the correct balance failed the strict provenance wording check. Reproduced the cleanup JSONB binding defect, fixed the comparison, and separately proved exact disposable cleanup and protected owner preservation.
+
+- 2026-11-15 [#100] Integrated scoped course/year retry, explicit fee provenance, record-free coaching, club attendance return, and campus entry coverage. The combined API, evaluator, unit and type checks passed. The browser matrix passed all 394 fixture-controlled render checks, with a separate list of unavailable specialized fixture responses.

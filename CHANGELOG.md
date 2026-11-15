@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Recover the verified course list and year level from refreshed School Affairs fields when the answer reviewer rejects a draft. Label saved fee amounts and sample charges in revised answers. [#100]
+- Keep interview practice useful without reading student records unless the request calls for them. [#100]
+- Preserve the selected club attendance page at Google sign-in and explain where campus entry links lead. Verify assistant access across protected routes in Chromium. [#100]
+
 - Preserve the exact saved chat during the evaluator’s cleanup comparison by parsing the serialized transcript once in PostgreSQL. [#100]
 
 - Explain the shared Google sign-in for Digital Teaching Materials and Digital Academy and restore valid selected learning destinations. [#100]
