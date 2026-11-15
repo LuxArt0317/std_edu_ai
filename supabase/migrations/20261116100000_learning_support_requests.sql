@@ -1,12 +1,20 @@
 -- A stu.best learning-support intake and review queue. The official WeakReward
 -- application, award decisions, eligibility and payments are separate systems.
+-- Match ECMAScript trim() and the plain-text fields accepted by the HTTP contract.
+create function private.affairs_learning_support_text(value text) returns text
+language sql immutable strict set search_path='' as $$
+  select case when cleaned !~ U&'[\0001-\0008\000B\000C\000E-\001F\007F-\009F]' then cleaned end
+  from (select btrim(value,U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF') as cleaned) input
+$$;
+revoke all on function private.affairs_learning_support_text(text) from public,anon,authenticated;
+
 create table public.affairs_learning_support_requests (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  topic text not null check (char_length(btrim(topic)) between 3 and 160),
-  details text not null check (char_length(btrim(details)) between 5 and 1200),
+  topic text not null check (char_length(topic) between 3 and 160 and topic is not distinct from private.affairs_learning_support_text(topic)),
+  details text not null check (char_length(details) between 5 and 1200 and details is not distinct from private.affairs_learning_support_text(details)),
   status text not null default 'submitted' check (status in ('submitted','in_review','reviewed','withdrawn')),
-  review_note text not null default '' check (char_length(review_note)<=600),
+  review_note text not null default '' check (char_length(review_note)<=600 and review_note is not distinct from private.affairs_learning_support_text(review_note)),
   version smallint not null default 1 check (version between 1 and 3),
   submitted_at timestamptz not null default now() check (isfinite(submitted_at)),
   updated_at timestamptz not null default now() check (isfinite(updated_at)),
@@ -74,7 +82,7 @@ declare
   fields text[]; nonce uuid; target uuid; expected numeric;
   current_request public.affairs_learning_support_requests;
   previous private.affairs_learning_support_operations;
-  new_status text; note text; result jsonb;
+  submit_topic text; submit_details text; new_status text; note text; result jsonb;
 begin
   if caller is null or not (select private.affairs_google_identity())
     or (p_kind='review' and not (select private.affairs_is_admin())) then
@@ -102,14 +110,16 @@ begin
     return previous.result;
   end if;
   if p_kind='submit' then
+    submit_topic:=private.affairs_learning_support_text(p_payload->>'topic');
+    submit_details:=private.affairs_learning_support_text(p_payload->>'details');
     if jsonb_typeof(p_payload->'topic') is distinct from 'string'
       or jsonb_typeof(p_payload->'details') is distinct from 'string'
-      or char_length(btrim(p_payload->>'topic')) not between 3 and 160
-      or char_length(btrim(p_payload->>'details')) not between 5 and 1200 then
+      or submit_topic is null or char_length(submit_topic) not between 3 and 160
+      or submit_details is null or char_length(submit_details) not between 5 and 1200 then
       raise exception 'Invalid learning support application' using errcode='22023';
     end if;
     insert into public.affairs_learning_support_requests(user_id,topic,details)
-    values(caller,btrim(p_payload->>'topic'),btrim(p_payload->>'details')) returning * into current_request;
+    values(caller,submit_topic,submit_details) returning * into current_request;
   else
     if jsonb_typeof(p_payload->'id') is distinct from 'string'
       or p_payload->>'id' !~ '^[a-f0-9]{8}(-[a-f0-9]{4}){3}-[a-f0-9]{12}$'
@@ -132,9 +142,9 @@ begin
       new_status:='withdrawn';
       note:=current_request.review_note;
     else
-      new_status:=p_payload->>'status';note:=btrim(p_payload->>'note');
+      new_status:=p_payload->>'status';note:=private.affairs_learning_support_text(p_payload->>'note');
       if jsonb_typeof(p_payload->'status') is distinct from 'string' or new_status not in ('in_review','reviewed')
-        or jsonb_typeof(p_payload->'note') is distinct from 'string' or char_length(note)>600 then
+        or jsonb_typeof(p_payload->'note') is distinct from 'string' or note is null or char_length(note)>600 then
         raise exception 'Invalid learning support review' using errcode='22023';
       end if;
       if (current_request.status,new_status) not in (('submitted','in_review'),('in_review','reviewed')) then

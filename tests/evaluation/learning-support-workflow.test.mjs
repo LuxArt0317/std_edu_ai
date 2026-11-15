@@ -72,6 +72,8 @@ test('actual read, student action and manager endpoints keep exact scope, role d
   assert.equal((await invoke(data,{query:{scope:'learning-support'}})).statusCode,503);
   readOverride={...mine.body,rows:[]};
   assert.equal((await invoke(data,{query:{scope:'learning-support'}})).statusCode,503);
+  readOverride={...mine.body,rows:[{...rows[0],topic:'\u0001\u0001\u0001'}]};
+  assert.equal((await invoke(data,{query:{scope:'learning-support'}})).statusCode,503);
   readOverride=null;
   const beforeInvalid=requests.length;
   for(const query of [{scope:['learning-support','learning-support-review']},{scope:'learning-support-unknown'},
@@ -82,11 +84,13 @@ test('actual read, student action and manager endpoints keep exact scope, role d
 
   for(const [handler,kind,payload,extra] of [
     [action,'submit_learning_support',{...student,ownerId:other}],
-    [action,'submit_learning_support',{...student,topic:' '}],
+    [action,'submit_learning_support',{...student,topic:'\t\n\u00a0\u3000'}],
+    [action,'submit_learning_support',{...student,details:'Text with a \u0001 control'}],
     [action,'submit_learning_support',student,{requestId:student.request_id}],
     [action,'review_learning_support',review,{requestId:review.request_id}],
     [manage,'submit_learning_support',student],
     [manage,'review_learning_support',{...review,status:'approved'}],
+    [manage,'review_learning_support',{...review,note:'Text with a \u0085 control'}],
     [manage,'review_learning_support',{...review,expected_version:'1'}],
     [action,'withdraw_learning_support',{...withdraw,note:'unexpected'}],
   ]){

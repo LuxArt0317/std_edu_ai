@@ -17,8 +17,12 @@ const plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&
 const exact=(value,keys)=>plain(value)&&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const isUuid=value=>typeof value==='string'&&uuid.test(value);
 const integer=(value,min,max)=>Number.isSafeInteger(value)&&value>=min&&value<=max;
-const boundedText=(value,min,max)=>typeof value==='string'&&![...value].some(char=>char==='\u0000'||/[\uD800-\uDFFF]/u.test(char))
-  &&integer([...value.trim()].length,min,max);
+function boundedText(value,min,max){
+  if(typeof value!=='string')return false;
+  const text=value.trim();
+  return ![...text].some(char=>/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\uD800-\uDFFF]/u.test(char))
+    &&integer([...text].length,min,max);
+}
 const timestamp=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/u.test(value)
   &&Number.isFinite(Date.parse(value));
 const denied='This learning support operation is unavailable to your account.';
