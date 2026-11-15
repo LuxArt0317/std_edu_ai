@@ -20,6 +20,9 @@ import {rendererRepairContextProbe,rendererRepairExpectation,rendererRepairRead,
 import {rendererClubContextProbes,rendererClubExpectation,rendererClubRead,verifyRendererClub} from './helpers/assistant-renderer-clubs.mjs';
 import {rendererCertificateContextProbes,rendererCertificateExpectation,rendererCertificateRead,verifyRendererCertificate} from './helpers/assistant-renderer-certificates.mjs';
 import {certificateAwardScope} from '../../server/certificateAwardsContract.js';
+import {learningSupportReviewScope} from '../../server/learningSupport.js';
+import {rendererLearningSupportContextProbe,rendererLearningSupportReviewExpectation,rendererLearningSupportReviewRead,
+  verifyRendererLearningSupportReview} from './helpers/assistant-renderer-learning-support.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -27,16 +30,17 @@ const sourceRevision=git(['rev-parse','HEAD']),workingTreeDirty=Boolean(git(['st
 const launcherName='開啟 AI 校園助理',dialogName='校園助理 · Assistant';
 const fixtureOrigin='https://renderer-fixture.supabase.co';
 const roleAccount={state:true,name:'School Affairs account'},roleGuest={state:false,name:'School Affairs sign in'};
-const clubManagerId='45000000-0000-4000-8000-000000000026';
-const roleClubManager={...roleAccount,manager:true,user:{...user,id:clubManagerId,email:'club-manager@renderer.invalid',
-  app_metadata:{...user.app_metadata,role:'admin'},user_metadata:{name:'Renderer club manager'},
-  identities:user.identities.map(identity=>({...identity,id:'google-club-manager',user_id:clubManagerId}))}};
+const managerId='45000000-0000-4000-8000-000000000026';
+const roleManager={...roleAccount,manager:true,user:{...user,id:managerId,email:'site-manager@renderer.invalid',
+  app_metadata:{...user.app_metadata,role:'admin'},user_metadata:{name:'Renderer site manager'},
+  identities:user.identities.map(identity=>({...identity,id:'google-site-manager',user_id:managerId}))}};
 const args=process.argv.slice(2);
 const {hash,cases}=await rendererInventory();
 const family=args.length===2&&args[0]==='--family'?args[1]:null;
 const readbackFamilies=new Map([
   ['academic-document-readback',rendererAcademicExpectation],
   ['certificate-award-readback',rendererCertificateExpectation],
+  ['learning-support-review-readback',rendererLearningSupportReviewExpectation],
   ['facility-repair-readback',rendererRepairExpectation],
   ['student-clubs-readback',rendererClubExpectation],
 ]);
@@ -52,7 +56,8 @@ const contextualPhoneRoutes=new Set(['/school-affairs','/school-affairs/services
   ...rendererCertificateContextProbes.keys()]);
 const syntheticDtmReply='The renderer received the exact saved Moodle page context.';
 const rendererContextProbes=new Map([...rendererDtmContextProbes,...rendererClubContextProbes,...rendererCertificateContextProbes,
-  [rendererRepairContextProbe.route,rendererRepairContextProbe]]);
+  [rendererRepairContextProbe.route,rendererRepairContextProbe],[rendererLearningSupportContextProbe.route,rendererLearningSupportContextProbe]]);
+const hasManagerObservation=row=>rendererClubExpectation(row.route)?.review||rendererLearningSupportReviewExpectation(row.route);
 const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elearningCategory),title:'Renderer safety course',self_enroll:false,position:1};
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
 const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
@@ -165,8 +170,13 @@ async function wire(context,mode,origin){
         observed.api.push({path:url.pathname,scope,status:club.status});
         return route.fulfill(club);
       }
+      const review=url.pathname==='/api/affairs-data'?rendererLearningSupportReviewRead(url,actor.id,Boolean(mode.manager)):null;
+      if(review){
+        observed.api.push({path:url.pathname,scope,status:review.status});
+        return route.fulfill(review);
+      }
       if(mode.manager&&url.pathname!=='/api/affairs-conversations'){
-        observed.security.push('unexpected-club-manager-read');return route.abort();
+        observed.security.push('unexpected-manager-read');return route.abort();
       }
       const repair=url.pathname==='/api/affairs-data'?rendererRepairRead(url,user.id):null;
       if(repair){
@@ -214,10 +224,12 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   const certificateView=mode.state?rendererCertificateExpectation(row.route):null;
   const repairExpectation=mode.state?rendererRepairExpectation(row.route):null;
   const clubExpectation=mode.state?rendererClubExpectation(row.route):null;
-  const probe=mode.state&&!mode.manager?rendererContextProbes.get(row.route):null;
+  const learningSupportReview=mode.state&&rendererLearningSupportReviewExpectation(row.route);
+  const useProbe=learningSupportReview?mode.manager:mode.state&&!mode.manager;
+  const probe=useProbe?rendererContextProbes.get(row.route):null;
   contextState.activeProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
   let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,certificateDataRendered=false,repairViewVerified=false,
-    clubView=null,readbackRoute,assistantPageContextPassed=false;
+    clubView=null,readbackRoute,assistantPageContextPassed=false,learningSupportReviewVerified=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
     const [pdfResponse,response]=await Promise.all([
@@ -273,6 +285,13 @@ async function checkRoute(page,contextState,row,mode,device,origin){
       assert.deepEqual(contextState.api.filter(read=>read.path==='/api/affairs-data'),
         [{path:'/api/affairs-data',scope:certificateAwardScope,status:200}]);
       certificateDataRendered=true;
+    }
+    if(learningSupportReview){
+      stage='learning-support-review-readback';
+      await verifyRendererLearningSupportReview(page,mode.manager);
+      assert.deepEqual(contextState.api.filter(read=>read.path==='/api/affairs-data'),
+        [{path:'/api/affairs-data',scope:learningSupportReviewScope,status:mode.manager?200:403}]);
+      learningSupportReviewVerified=true;
     }
     if(repairExpectation){
       stage='facility-repair-readback';
@@ -340,16 +359,20 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   }
   const reads=[...new Map(contextState.api.map(read=>[read.path+':'+read.scope+':'+read.status,read])).values()];
   const workspaceReads=reads.filter(read=>read.path==='/api/affairs-data');
-  const verifiedDenial=stage===null&&(clubView==='student-denied'||repairViewVerified&&repairExpectation?.kind==='student-denied');
+  const verifiedDenial=stage===null&&(clubView==='student-denied'||repairViewVerified&&repairExpectation?.kind==='student-denied'
+    ||learningSupportReviewVerified&&!mode.manager);
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
-    auth:mode.manager?'synthetic-club-manager':mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
+    auth:mode.manager?(learningSupportReview?'synthetic-learning-support-manager':'synthetic-club-manager'):
+      mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
     ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),
     ...(certificateView?{certificateView,certificateDataRendered}:{}),
+    ...(learningSupportReview?{learningSupportReviewView:mode.manager?'manager-review':'student-denied',learningSupportReviewVerified}:{}),
     ...(repairExpectation?{repairView:repairExpectation.kind,repairViewVerified}:{}),
     ...(clubExpectation?{clubView:clubExpectation.review?(mode.manager?'manager-review':'student-denied'):'signed-in-records',
       clubViewVerified:clubView!==null&&stage===null,...(readbackRoute?{readbackRoute}:{})}:{}),
     ...(probe?{assistantContext:probe===rendererRepairContextProbe?'facility-repair':
-      rendererClubContextProbes.has(row.route)?'student-clubs':certificateView?'certificate-awards':'dtm',assistantPageContextPassed}:{}),
+      rendererClubContextProbes.has(row.route)?'student-clubs':certificateView?'certificate-awards':
+        learningSupportReview?'learning-support-review':'dtm',assistantPageContextPassed}:{}),
     nativeData:verifiedDenial?'synthetic-denial-verified':
       workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
@@ -408,8 +431,8 @@ try{
   assert.ok(isAbsolute(executablePath),'CHROME_PATH must be an absolute local path.');
   browser=await chromium.launch({headless:true,executablePath});
   for(const [device,viewport] of Object.entries(viewports)){
-    for(const mode of [roleAccount,roleGuest,roleClubManager]){
-      const routes=selected.filter(row=>(device==='desktop'||contextualPhoneRoutes.has(row.route))&&(!mode.manager||rendererClubExpectation(row.route)?.review));
+    for(const mode of [roleAccount,roleGuest,roleManager]){
+      const routes=selected.filter(row=>(device==='desktop'||contextualPhoneRoutes.has(row.route))&&(!mode.manager||hasManagerObservation(row)));
       if(!routes.length)continue;
       const context=await browser.newContext({viewport,reducedMotion:'reduce',serviceWorkers:'block'});
       try{
@@ -448,7 +471,7 @@ try{
   await rm(cache,{recursive:true,force:true});
   await mkdir(join(root,'artifacts/assistant-renderer'),{recursive:true,mode:0o700});
   const phoneRoutes=selected.filter(row=>contextualPhoneRoutes.has(row.route));
-  const managerComparisons=[...selected,...phoneRoutes].filter(row=>rendererClubExpectation(row.route)?.review).length;
+  const managerComparisons=[...selected,...phoneRoutes].filter(hasManagerObservation).length;
   const expectedComparisons=2*(selected.length+phoneRoutes.length)+managerComparisons;
   const summary={inventoryRoutes:cases.length,selectedRoutes:selected.length,comparisons:outcomes.length,expectedComparisons,managerComparisons,
     matrixComplete:outcomes.length===expectedComparisons,
@@ -460,6 +483,9 @@ try{
     certificateReadbackPassed:outcomes.filter(row=>row.certificateDataRendered).length,
     certificateContextChecks:outcomes.filter(row=>row.assistantContext==='certificate-awards').length,
     certificateContextPassed:outcomes.filter(row=>row.assistantContext==='certificate-awards'&&row.assistantPageContextPassed).length,
+    learningSupportStudentDenialPassed:outcomes.filter(row=>row.learningSupportReviewView==='student-denied'&&row.nativeData==='synthetic-denial-verified').length,
+    learningSupportManagerReviewPassed:outcomes.filter(row=>row.learningSupportReviewView==='manager-review'&&row.learningSupportReviewVerified&&row.passed).length,
+    learningSupportContextPassed:outcomes.filter(row=>row.assistantContext==='learning-support-review'&&row.assistantPageContextPassed).length,
     dtmReadbackChecks:outcomes.filter(row=>row.nativeDataRendered!==undefined).length,
     dtmReadbackPassed:outcomes.filter(row=>row.nativeDataRendered).length,
     dtmContextChecks:outcomes.filter(row=>row.assistantContext==='dtm').length,
