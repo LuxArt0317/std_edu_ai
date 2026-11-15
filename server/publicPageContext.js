@@ -66,6 +66,16 @@ export function isPublicPageQuestion(question) {
   return /\b(?:this|current|present)\s+(?:web\s*)?page\b|\bpage\s+(?:(?:that\s+)?i(?:'m| am)\s+(?:on|viewing|reading)|i (?:have )?opened)\b|(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:網頁|頁面|頁)/i.test(String(question));
 }
 
+const pageMention='(?:this|the current|the present)\\s+(?:web\\s*)?page';
+const englishPageSummary=new RegExp(
+  `\\b(?:what(?: is| was|['’]s) ${pageMention} about|what (?:does|did) ${pageMention} (?:cover|discuss)|(?:summari[sz]e|describe|explain|give (?:me )?(?:a |an )?(?:brief )?(?:summary|overview) of) ${pageMention})\\b(?!['’]s\\b)`,'iu');
+const chinesePageSummary=/(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:網頁|頁面|頁).{0,10}(?:關於什麼|主要內容|在說什麼|介紹什麼|有什麼內容)|(?:摘要|概述|總結).{0,12}(?:這(?:個|一)?|此|本).{0,8}(?:網頁|頁面|頁)/u;
+
+/** A page summary asks about the capture body, beyond its manifest identity. */
+export function isPublicPageSummaryQuestion(question) {
+  return englishPageSummary.test(String(question))||chinesePageSummary.test(String(question));
+}
+
 /** Route explicit institutional facts to their manifested primary source. */
 export function institutionalPublicCapture(question) {
   const text=String(question).normalize('NFKC').trim();
@@ -158,17 +168,22 @@ export function boundedPublicPageEvidence(context,{budget=6000}={}) {
   return render(low);
 }
 
-export function publicPageCandidate(context,question) {
+export function publicPageCandidate(context,question,{summary}={}) {
   const chinese=/[\u3400-\u9fff]/.test(question);
   const {page,evidence,contentAvailable}=context;
   const title=(page.title||(chinese?'目前公開頁面':'this public page')).replace(/[\\[\]]/g,'\\$&');
   const link=`[${title}](${page.route})`;
+  const snapshot=`Source snapshot: ${page.capturedOn}`;
+  const body=contentAvailable&&typeof summary==='string'
+    ?summary.split('\n').filter(line=>!/^Source snapshot: \d{4}-\d{2}-\d{2}\.?$/iu.test(line.trim())).join('\n').trim():'';
   const answer=(chinese?`這個頁面是 ${link}，為已儲存的學校公開頁面。`:`This is ${link}, a saved public school page.`)
-    +`\n\nSource snapshot: ${page.capturedOn}`
+    +(body?`\n\n${body}`:'')
+    +`\n\n${snapshot}`
+    +(contentAvailable&&summary===null?(chinese?'\n\n已核對頁面資訊，但未能驗證內文摘要。':'\n\nI could verify the page details, but I could not verify a summary of its contents.'):'')
     +(page.title?'':(chinese?'\n\n儲存的資料中沒有可核對的頁面標題。':'\n\nNo page title is available in the saved metadata.'))
     +(contentAvailable?'':(chinese?`\n\n目前只能核對${page.title?'頁面標題、':''}連結與擷取日期；頁面內文暫時無法讀取，因此不能確認內文細節。`:`\n\nI can verify the ${page.title?'page title, ':''}link and capture date, but the saved page text is unavailable, so I cannot verify its content details.`));
   return {status:'answered',answer,citations:[{
-    chunkId:evidence.id,claim:'Saved public page identity and capture date.',title:page.title,
+    chunkId:evidence.id,claim:body?'Saved page identity, capture date and content.':'Saved public page identity and capture date.',title:page.title,
     sourceName:`Public page snapshot · ${page.capturedOn}`,url:page.route,locator:null,effectiveAt:null,reviewedAt:null,
   }],suggestedQuestions:[],grounding:{source:'public-page-context',webSearched:false,capturedOn:page.capturedOn,contentAvailable},
   activity:[{kind:'page-context',label:chinese?'已核對目前頁面':'Checked the current page',detail:contentAvailable?(chinese?'已讀取並核對儲存的公開頁面。':'Read and checked the saved public page.'):(chinese?'已核對公開頁面資料；內文暫時無法讀取。':'Checked public page metadata; page text is unavailable.'),status:contentAvailable?'complete':'unavailable'}]};

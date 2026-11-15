@@ -85,7 +85,7 @@ import { createAssistantStream } from "./assistantStream.js";
 import { runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
-import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
+import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
     const authoritative = retrieved.filter((item) => ["primary_official", "delegated_official"].includes(item.authority_level) && Boolean(item.document_logical_key && item.document_checksum));
     for (let left = 0; left < authoritative.length; left += 1) {
@@ -903,14 +903,34 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.progress('page-context', 'Reading the current public page', 'Checking the saved page and its capture date.');
             const context = await loadPublicPage(input.route, deadline).catch(() => null);
             if (context) {
-                // A question about this page remains pinned to its saved
-                // contents, including during a deeper correction.
-                const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: publicPageCandidate(context, input.question), deadline, onProgress: verificationProgress,
+                // All drafts and checks stay pinned to the same saved page.
+                const summarize = context.contentAvailable && isPublicPageSummaryQuestion(verificationQuestion);
+                const evidence = [summarize ? boundedPublicPageEvidence(context) : context.evidence];
+                const seed = publicPageCandidate(context, input.question);
+                const summaryQuestion = chinese
+                    ? '請只用儲存網頁的內文節錄，用一到兩句概述主題，並舉出有足夠依據的資源或服務。不要重複標題、連結或擷取日期。'
+                    : 'In one or two sentences, summarize the topic and principal services or resources in the saved page excerpt. Use only that excerpt. Leave the title, link and capture date to the page caption.';
+                const summaryCandidate = draft => draft?.status === 'answered'
+                    ? publicPageCandidate(context, input.question, { summary: draft.answer })
+                    : { ...seed, status: 'abstained' };
+                const initialAnswer = summarize ? summaryCandidate(await composeEvidenceAnswer({
+                    question: summaryQuestion, candidate: seed, evidence, deadline: Math.min(deadline - 12_000, Date.now() + 8_000),
+                }).catch(() => null)) : seed;
+                const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer, deadline, onProgress: verificationProgress,
                     allowDeeperReview: context.contentAvailable,
-                    loadEvidence: async () => [context.evidence],
-                    verify: review => verifyEvidenceAnswer({ ...review, deeperReview: review.attempt >= maxAnswerVerificationChecks }),
-                    repair: repair => repairEvidenceAnswer({ ...repair, deeperReview: repair.attempt >= maxAnswerVerificationChecks }) });
-                stream.send(200, checked);
+                    loadEvidence: async () => evidence,
+                    verify: review => verifyEvidenceAnswer({ ...review, deeperReview: review.attempt >= maxAnswerVerificationChecks,
+                        ...(summarize ? { requiredEvidenceReferences: [{ id: evidence[0].id, paths: /^\/excerpt$/u, label: 'a substantive summary supported by the saved page contents' }] } : {}),
+                    }),
+                    repair: async repair => {
+                        const draft = await repairEvidenceAnswer({ ...repair, question: summarize ? summaryQuestion : repair.question,
+                            deeperReview: repair.attempt >= maxAnswerVerificationChecks });
+                        return summarize ? summaryCandidate(draft) : draft;
+                    } });
+                const result = summarize && checked.verification.status !== 'verified'
+                    ? { ...publicPageCandidate(context, input.question, { summary: null }), verification: checked.verification, activity: checked.activity }
+                    : checked;
+                stream.send(200, result);
                 return;
             }
             stream.progress('page-context', 'Page context unavailable', 'No approved public page context was available.', 'unavailable');

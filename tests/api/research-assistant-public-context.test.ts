@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {after,test} from 'node:test';
 import captures from '../../src/features/public/mirror/pages.json' with {type:'json'};
 import {createResearchAssistantHandler} from '../../api/research-assistant.ts';
-import {loadPublicPageContext,type PublicPageContext} from '../../server/publicPageContext.js';
+import {boundedPublicPageEvidence,isPublicPageSummaryQuestion,loadPublicPageContext,type PublicPageContext} from '../../server/publicPageContext.js';
 
 const originalFetch=globalThis.fetch;
 const names=['OPENAI_API_KEY','VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY'] as const;
@@ -42,6 +42,106 @@ test('this-page requests preserve encoded public routes and send actual snapshot
   assert.match(result.body.answer,new RegExp(page.capturedOn));assert.equal(result.body.citations[0].url,page.route);
   assert.equal(result.body.grounding.source,'public-page-context');assert.equal(result.body.grounding.contentAvailable,false);
   assert.equal(loaded,1);assert.equal(requests.length,1);assert.match(result.headers['Cache-Control'],/no-store/);
+});
+
+const overviewSummary='This directory helps current students find School Affairs, Moodle teaching materials, course registration, and student leave services.';
+const captureClaims=['校務資訊系統','Moodle數位教材網','學生選課系統','學生請假'];
+
+test('the compound page question returns a verified summary, exact local title and link, and the capture date',async()=>{
+  configure();
+  let loads=0,reads=0;
+  const saved=await loadPublicPageContext(page.route,Date.now()+5000,{fetchCapture:async url=>{
+    reads++;
+    assert.equal(String(url),'https://stu.best'+page.file);
+    return new Response(await readFile(new URL('../../public'+page.file,import.meta.url)));
+  }});
+  assert.ok(saved?.contentAvailable);
+  const before=structuredClone(saved),calls:string[]=[];
+  const evidence=boundedPublicPageEvidence(saved);
+  const bound=JSON.parse(evidence.content);
+  for(const text of captureClaims)assert.ok(bound.excerpt.includes(text));
+  globalThis.fetch=async(url,init)=>{
+    assert.equal(String(url),'https://api.openai.com/v1/responses');
+    const request=JSON.parse(String(init?.body)),name=request.text.format.name;
+    const body=JSON.parse(request.input[0].content[0].text);
+    calls.push(name);
+    assert.deepEqual(body.evidence,[evidence]);
+    if(name==='compose_grounded_answer'){
+      assert.match(body.question,/summarize the topic and principal services/u);
+      return modelResponse({status:'answered',answer:overviewSummary,sourceIds:[evidence.id]});
+    }
+    assert.equal(name,'answer_evidence_review');
+    assert.equal(body.question,question);
+    assert.ok(body.answer.includes(overviewSummary)&&body.answer.includes(page.title)&&body.answer.includes(page.route)&&body.answer.includes(page.capturedOn));
+    return modelResponse({supported:true,answersQuestion:true,claims:[
+      {claim:'The page is the dated student directory.',supported:true,evidenceId:evidence.id,quotes:[],jsonPaths:['/pageTitle','/localUrl','/capturedOn']},
+      {claim:overviewSummary,supported:true,evidenceId:evidence.id,quotes:captureClaims,jsonPaths:['/excerpt']},
+    ]});
+  };
+  const result=await invoke({question,route:page.route},async()=>{
+    loads++;
+    return saved;
+  },async()=>assert.fail('No outside page can supply an archived summary'));
+  assert.equal(result.statusCode,200);
+  assert.deepEqual(result.body.verification,{status:'verified',attempts:1});
+  assert.equal(result.body.grounding.source,'public-page-context');
+  assert.equal(result.body.grounding.webSearched,false);
+  assert.equal(result.body.grounding.contentAvailable,true);
+  assert.equal(result.body.answer.split('Source snapshot: ').length,2);
+  assert.ok(result.body.answer.includes(overviewSummary)&&result.body.answer.includes(`[${page.title}](${page.route})`)&&result.body.answer.includes(page.capturedOn));
+  assert.deepEqual(result.body.citations.map((citation:{url:string})=>citation.url),[page.route]);
+  assert.equal(reads,1);assert.equal(loads,1);
+  assert.deepEqual(saved,before);
+  assert.deepEqual(calls,['compose_grounded_answer','answer_evidence_review']);
+});
+
+test('a title-only approval prompts correction against the excerpt or withholds the failed summary',async()=>{
+  configure();
+  for(const shouldCorrect of [true,false]){
+    let reviews=0,corrections=0;
+    const saved=await context(),metadata=JSON.parse(saved.evidence.content);
+    metadata.contentAvailable=true;
+    metadata.contentStatus='verified_snapshot';
+    metadata.excerpt='校務資訊系統、Moodle數位教材網、學生選課系統、學生請假';
+    saved.contentAvailable=true;
+    saved.evidence.content=JSON.stringify(metadata);
+    const evidence=boundedPublicPageEvidence(saved);
+    globalThis.fetch=async(url,init)=>{
+      assert.equal(String(url),'https://api.openai.com/v1/responses');
+      const request=JSON.parse(String(init?.body)),name=request.text.format.name;
+      const body=JSON.parse(request.input[0].content[0].text);
+      assert.deepEqual(body.evidence,[evidence]);
+      if(name==='compose_grounded_answer')return modelResponse({status:'answered',answer:'This is a saved public page.',sourceIds:[evidence.id]});
+      if(name==='correct_grounded_answer'){
+        corrections++;
+        return modelResponse({status:'answered',answer:shouldCorrect?overviewSummary:'The page provides guaranteed scholarship approval.',sourceIds:[evidence.id]});
+      }
+      assert.equal(name,'answer_evidence_review');
+      reviews++;
+      if(shouldCorrect&&reviews===2)return modelResponse({supported:true,answersQuestion:true,claims:[
+        {claim:overviewSummary,supported:true,evidenceId:evidence.id,quotes:captureClaims,jsonPaths:['/excerpt']},
+      ]});
+      // This authorizes page identity only, even if the provider says the
+      // full compound question was answered.
+      return modelResponse(review(saved.evidence));
+    };
+    const result=await invoke({question,route:page.route},async()=>saved,async()=>assert.fail('No public search on the exact capture path'));
+    assert.equal(result.body.verification.status,shouldCorrect?'verified':'unverified');
+    assert.equal(result.body.verification.attempts,shouldCorrect?2:3);
+    assert.equal(reviews,shouldCorrect?2:3);
+    assert.equal(corrections,shouldCorrect?1:2);
+    assert.ok(result.body.answer.includes(page.title)&&result.body.answer.includes(page.route)&&result.body.answer.includes(page.capturedOn));
+    assert.doesNotMatch(result.body.answer,/guaranteed scholarship/u);
+    if(shouldCorrect)assert.ok(result.body.answer.includes(overviewSummary));
+    else assert.match(result.body.answer,/could not verify a summary/u);
+  }
+});
+
+test('summary routing recognizes content overviews without routing title or exact-detail questions to a summary',()=>{
+  for(const prompt of [question,"What's this page about?",'What does the current page cover?','Give me an overview of this page.','請摘要這個頁面。','這個頁面主要內容是什麼？'])
+    assert.equal(isPublicPageSummaryQuestion(prompt),true,prompt);
+  for(const prompt of ['What title and date does this page have?','What opening time is given on this page?',"Explain this page’s title.","Summarize this page's application deadline.",'這一頁的電話號碼是什麼？'])
+    assert.equal(isPublicPageSummaryQuestion(prompt),false,prompt);
 });
 
 test('content questions can be corrected once from the captured page without a web lookup or third review',async()=>{
