@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Reconcile disposable Auth users after uncertain deletion responses and space out transient cleanup retries. [#100]
+
 - Verify student club records, scoped officer views, and separate student and manager review behavior in Chromium. [#100]
 
 - Verify the student’s owned repair list and detail, the assistant’s exact repair context, and student access denials on management routes. [#100]
