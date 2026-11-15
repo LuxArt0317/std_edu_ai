@@ -187,8 +187,8 @@ export async function runAnswerVerification({
     .addNode('retry', state => {
       const nextCheck = state.attempt + previousChecks + 1;
       if (verifiedPartial && !state.verdict.ok) candidate = verifiedPartial.candidate;
-      if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Following another source lead',
-        'Checking new source content for the remaining detail.');
+      if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Looking for another source',
+        'Looking for an unread school page or another publication that can verify the remaining detail.');
       if (state.verdict.ok) {
         const step = partialFollowUps++ === 0 ? 'verification-partial-follow-up' : `verification-partial-follow-up-${nextCheck}`;
         emit(step, 'Checking a source for the missing details', 'The current answer has supported information. Looking for evidence that can answer the rest.');
