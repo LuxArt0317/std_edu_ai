@@ -11,7 +11,17 @@ const newest=(a,b)=>b.paidOn.localeCompare(a.paidOn)||b.id.localeCompare(a.id);
 const byId=(a,b)=>a.id.localeCompare(b.id);
 const digest=value=>createHash('sha256').update(JSON.stringify(value,(_key,item)=>
   item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort()):item)).digest('hex');
-const need=(condition,stage)=>{if(!condition)throw new Error('Tuition ledger Preview failed at '+stage+'.');};
+
+export class TuitionLedgerPreviewAssertion extends Error {
+  constructor(stage,failedFields=[]){
+    super('Tuition ledger Preview failed at '+stage+'.');
+    this.name='TuitionLedgerPreviewAssertion';
+    this.stage=stage;
+    this.failedFields=failedFields;
+  }
+}
+
+const need=(condition,stage)=>{if(!condition)throw new TuitionLedgerPreviewAssertion(stage);};
 
 export function tuitionLedgerPlan({runId,owners}){
   need(uuid4(runId)&&Array.isArray(owners)&&owners.length===2
@@ -60,6 +70,17 @@ export async function readTuitionLedgerPreviewState(sql,plan){
   const receipts=await sql`select request_id from private.affairs_charge_payment_operations
     where payload->>'charge_id' in ${sql(chargeIds)} or receipt->>'id' in ${sql(eventIds)} limit 1`;
   return {charges:[...charges],entries:[...entries],audits:[...audits],receipts:[...receipts]};
+}
+
+export async function readTuitionLedgerAccountScopes(sql,plan){
+  const studentIds=plan.accounts.map(account=>account.studentId);
+  const {from,through}=tuitionLedgerPreviewDates;
+  const rows=await sql`select s.id as "studentId",exists(select 1 from public.affairs_charges c
+      where c.student_id=s.id and coalesce(c.legacy_amount_paid,c.amount_paid)>0) as "hasUndatedPaidAmount",
+    (select count(*)::integer from public.affairs_charge_payment_entries e
+      where e.student_id=s.id and e.paid_on between ${from}::date and ${through}::date) as "total"
+    from public.affairs_students s where s.id in ${sql(studentIds)} order by s.id`;
+  return [...rows];
 }
 
 export const isEmptyTuitionLedgerPreviewState=state=>Object.values(state).every(rows=>rows.length===0);
@@ -118,9 +139,15 @@ function expectedHistory(account,foreign){
   return {userId:account.userId,studentRecordFound:true,rows,total:rows.length,hasUndatedPaidAmount:!foreign&&account.legacy!=='0.00'};
 }
 
-export async function checkTuitionLedgerPreview({plan,observe,history,ask}){
+export async function checkTuitionLedgerPreview({plan,observe,observeAccountScopes,history,ask}){
   const baseline=await observe();
   need(isDeepStrictEqual(baseline,expectedState(plan)),'independent ledger baseline');
+  const accountScopes=await observeAccountScopes();
+  const scopesByStudent=new Map(accountScopes.map(scope=>[scope.studentId,scope]));
+  need(accountScopes.length===plan.accounts.length&&plan.accounts.every(account=>{
+    const scope=scopesByStudent.get(account.studentId);
+    return typeof scope?.hasUndatedPaidAmount==='boolean'&&scope.total===account.entries.length;
+  }),'exact unfiltered account scope and independent dated rows');
   const [a,b]=plan.accounts;
   const sides=[['A',a,b,'43.05','13.25','29.80'],['B',b,a,'72.36','0.00','72.36']];
   const expectedUrl=tuitionLedgerHistoryPath+'?'+new URLSearchParams(tuitionLedgerPreviewDates);
@@ -132,13 +159,22 @@ export async function checkTuitionLedgerPreview({plan,observe,history,ask}){
     need(crossed.status===200&&isDeepStrictEqual(crossed.body,expectedHistory(account,true)),side+' foreign charge HTTP');
     const reply=await ask(side,tuitionLedgerPreviewQuestion);
     const {body,status,correlationId}=reply;
-    need(status===200&&uuid4(correlationId)&&!correlationIds.includes(correlationId)&&body?.status==='answered'
-      &&body.verification?.status==='verified'&&body.verification.attempts>=1&&body.grounding?.webSearched===false
-      &&body.citations?.some(cite=>cite.chunkId==='account:paymentHistory'&&cite.url===expectedUrl)
-      &&body.answer?.includes('Recorded payments: TWD '+gross)
-      &&(reversed==='0.00'?!body.answer.includes('Reversals:'):body.answer.includes('Reversals: TWD '+reversed+' · Net recorded change: TWD '+net))
-      &&body.answer.includes(account.chargeLabel)
-      &&body.answer.includes('Some saved paid amounts have no payment date')===(account.legacy!=='0.00'),side+' monthly assistant grounding');
+    const answer=typeof body?.answer==='string'?body.answer:'';
+    const checks={
+      httpStatus:status===200,
+      requestCorrelation:uuid4(correlationId)&&!correlationIds.includes(correlationId),
+      resultStatus:body?.status==='answered',
+      verified:body?.verification?.status==='verified',
+      verificationAttempts:Number.isInteger(body?.verification?.attempts)&&body.verification.attempts>=1,
+      privateGrounding:body?.grounding?.webSearched===false,
+      exactCitation:Array.isArray(body?.citations)&&body.citations.some(cite=>cite?.chunkId==='account:paymentHistory'&&cite.url===expectedUrl),
+      grossAmount:answer.includes('Recorded payments: TWD '+gross),
+      reversalAndNet:reversed==='0.00'?!answer.includes('Reversals:'):answer.includes('Reversals: TWD '+reversed+' · Net recorded change: TWD '+net),
+      chargeLabel:answer.includes(account.chargeLabel),
+      undatedBalanceDisclosure:answer.includes('Some saved paid amounts have no payment date')===scopesByStudent.get(account.studentId).hasUndatedPaidAmount,
+    };
+    const failedFields=Object.keys(checks).filter(field=>!checks[field]);
+    if(failedFields.length)throw new TuitionLedgerPreviewAssertion(side+' monthly assistant grounding',failedFields);
     need(![foreign.chargeLabel,foreign.userId,foreign.studentId,foreign.chargeId,...foreign.entries.map(row=>row.id),
       account.userId,account.studentId,account.chargeId,...account.entries.map(row=>row.id)]
       .some(value=>JSON.stringify(body).includes(value)),side+' assistant data boundary');
@@ -147,6 +183,7 @@ export async function checkTuitionLedgerPreview({plan,observe,history,ask}){
   const guest=await ask('guest',tuitionLedgerPreviewQuestion);
   need(guest.status===401&&!guest.body?.answer,'anonymous assistant denial');
   need(isDeepStrictEqual(await observe(),baseline),'student reads left ledger, audits and receipts unchanged');
+  need(isDeepStrictEqual(await observeAccountScopes(),accountScopes),'student reads left account scope unchanged');
   return {passed:true,ownHistoryReads:2,crossedHistoryReads:2,verifiedMonthlyAnswers:2,anonymousDenial:true,
-    readbackDigest:digest(baseline),staffHttpVerified:false};
+    readbackDigest:digest({baseline,accountScopes}),staffHttpVerified:false};
 }

@@ -62,8 +62,9 @@ import {studentLeaveJournalBinding} from './student-leave-fixture-lifecycle.mjs'
 import {buildStudentLeaveFixturePlan,leaveFixtureFamilies,studentLeaveFixtureManifest} from './student-leave-fixture-plan.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {checkConfirmedTaskRoundTrip,readConfirmedTaskRows} from './confirmed-task-preview.mjs';
-import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuitionLedgerPreviewState,readTuitionLedgerPreviewState,
-  seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerHistoryPath,tuitionLedgerPlan,tuitionLedgerPreviewDates} from './tuition-ledger-preview.mjs';
+import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuitionLedgerPreviewState,readTuitionLedgerAccountScopes,readTuitionLedgerPreviewState,
+  seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerHistoryPath,tuitionLedgerPlan,tuitionLedgerPreviewDates,
+  TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
@@ -606,6 +607,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     // Limit orphan lifetime when prepare itself fails. A failed cleanup closes
     // the connection and retains its ledger; the runner's later cleanup call
     // reports explicit recovery instead of attempting an invalid closed retry.
+    if(tuitionLedgerOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Tuition ledger fixture preparation failed.');
+      reason.tuitionLedgerCleanupProof=await tuitionLedgerCleanupProof();
+      throw reason;
+    }
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
     if(error instanceof LiveFixtureError)throw error;fail('fixture-prepare','Fixture preparation failed'+diagnostic(error)+'.');
   }
@@ -753,20 +759,30 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
 }
 
+async function tuitionLedgerCleanupProof(){
+  try{return {...await cleanup(),status:'verified'};}
+  catch(error){return {verified:false,status:'unverified',code:error instanceof LiveFixtureError?error.code:'unexpected'};}
+}
+
 export async function runTuitionLedgerPreview({origin,sourceRevision,previewToken,signal}={}){
   if(!isEvaluationPreviewOrigin(origin)||!(/^[a-f0-9]{40}$/u.test(sourceRevision??'')))
     fail('fixture-config','Tuition ledger checks require an exact protected Preview and source revision.');
-  const {sourceIdentity}=await import('./run.mjs');
-  const identity=await sourceIdentity();
-  if(identity.dirty||identity.sourceRevision!==sourceRevision)
-    fail('fixture-target','Tuition ledger checks require the exact clean deployed source.');
-  const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
   const runId=randomUUID();
-  await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
-    signal,fixtureMode:tuitionLedgerFixtureMode,previewReadbackFetch});
-  const s=ready(),{previewGate}=s;
-  let result,cleanupProof;
+  let result,failure,previewGate,prepared=false,phase='preflight';
+  let cleanupProof={verified:false,status:'not-started'};
   try{
+    const {sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)
+      fail('fixture-target','Tuition ledger checks require the exact clean deployed source.');
+    const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:tuitionLedgerFixtureMode,previewReadbackFetch});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    phase='seed';
     const owners=s.users.map(user=>({userId:user.id,studentId:user.studentId}));
     if(owners.length!==2||owners.some(owner=>owner.userId===s.protectedOwnerBefore.id
       ||!s.identityRequests.some(row=>row.id===owner.userId&&row.runId===runId&&row.state==='created')))
@@ -791,10 +807,15 @@ export async function runTuitionLedgerPreview({origin,sourceRevision,previewToke
       await previewGate.afterRequest(ticket);
       return {status:response.status,body:parsed,correlationId:response.headers.get('x-assistant-request-id')};
     }
+    phase='verification';
     result=await checkTuitionLedgerPreview({plan,
       observe:async()=>{
         await assertRecordedFixtureLease(s,'Tuition ledger readback');
         return query(()=>readTuitionLedgerPreviewState(s.sql,plan),'Could not read independent disposable tuition ledger state.');
+      },
+      observeAccountScopes:async()=>{
+        await assertRecordedFixtureLease(s,'Tuition ledger account readback');
+        return query(()=>readTuitionLedgerAccountScopes(s.sql,plan),'Could not read independent disposable account scopes.');
       },
       history:(side,chargeId)=>request(side,'/api/affairs-data?'+new URLSearchParams({
         scope:'fee-payment-history',charge_id:chargeId,...tuitionLedgerPreviewDates,
@@ -803,13 +824,20 @@ export async function runTuitionLedgerPreview({origin,sourceRevision,previewToke
         question,route:tuitionLedgerHistoryPath,stream:false,consentedResearchUse:false,
       }),
     });
+    phase='release-verification';
     const final=await sourceIdentity();
     if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
       fail('fixture-target','The tuition ledger verification source changed during the run.');
     await previewGate.finish();
-  }finally{cleanupProof=await cleanup();}
-  return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof,
-    liveAcceptance:result.passed&&cleanupProof.verified&&cleanupProof.tuitionLedgerCleanup===true};
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.tuitionLedgerCleanupProof)cleanupProof=error.tuitionLedgerCleanupProof;
+    failure=error instanceof TuitionLedgerPreviewAssertion
+      ?{phase,code:'fixture-assertion',assertion:error.stage,failedFields:error.failedFields}
+      :{phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{if(prepared)cleanupProof=await tuitionLedgerCleanupProof();}
+  return {runId,sourceRevision,origin,staffHttpVerified:false,...result,...(failure?{failure}:{}),
+    deployment:previewGate?.status()??null,cleanup:cleanupProof,
+    liveAcceptance:!failure&&result?.passed===true&&cleanupProof.verified&&cleanupProof.tuitionLedgerCleanup===true};
 }
 
 export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){

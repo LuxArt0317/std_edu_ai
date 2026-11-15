@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import test from 'node:test';
+import {runTuitionLedgerPreview} from './live-fixtures.mjs';
 import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,tuitionLedgerHistoryPath,tuitionLedgerPlan,
   tuitionLedgerPreviewDates,tuitionLedgerPreviewQuestion} from './tuition-ledger-preview.mjs';
 
-function fixture(){
+function fixture({seededUndated=false}={}){
   const owners=Array.from({length:2},()=>({userId:randomUUID(),studentId:randomUUID()}));
   const plan=tuitionLedgerPlan({runId:randomUUID(),owners});
   const byId=(a,b)=>a.id.localeCompare(b.id);
@@ -27,12 +28,14 @@ function fixture(){
     if(side==='guest')return {status:401,body:{error:'Sign in'}};
     const summary=side==='A'
       ?'Recorded payments: TWD 43.05 · Reversals: TWD 13.25 · Net recorded change: TWD 29.80\nSome saved paid amounts have no payment date'
-      :'Recorded payments: TWD 72.36';
+      :'Recorded payments: TWD 72.36'+(seededUndated?'\nSome saved paid amounts have no payment date':'');
     return {status:200,correlationId:randomUUID(),body:{status:'answered',answer:expected.get(side).chargeLabel+'\n'+summary,
       citations:[{chunkId:'account:paymentHistory',url:tuitionLedgerHistoryPath+'?'+new URLSearchParams(tuitionLedgerPreviewDates)}],
       verification:{status:'verified',attempts:1},grounding:{webSearched:false}}};
   };
-  return {plan,baseline,observe:async()=>structuredClone(baseline),history,ask};
+  const observeAccountScopes=async()=>plan.accounts.map((account,index)=>({studentId:account.studentId,total:account.entries.length,
+    hasUndatedPaidAmount:index===0||seededUndated}));
+  return {plan,baseline,observe:async()=>structuredClone(baseline),observeAccountScopes,history,ask};
 }
 
 test('the Preview acceptance requires distinct, complete paired answers and denies the guest',async()=>{
@@ -40,6 +43,31 @@ test('the Preview acceptance requires distinct, complete paired answers and deni
   assert.deepEqual({...result,readbackDigest:undefined},{passed:true,ownHistoryReads:2,crossedHistoryReads:2,
     verifiedMonthlyAnswers:2,anonymousDenial:true,staffHttpVerified:false,readbackDigest:undefined});
   assert.match(result.readbackDigest,/^[a-f0-9]{64}$/u);
+});
+
+test('an undated initial charge belongs to the whole account but not to the selected fixture charge',async()=>{
+  const f=fixture({seededUndated:true});
+  assert.equal((await f.history('B',f.plan.accounts[1].chargeId)).body.hasUndatedPaidAmount,false);
+  assert.equal((await checkTuitionLedgerPreview(f)).passed,true);
+  const answerWithoutUndated=async(...args)=>{
+    const response=await f.ask(...args);
+    if(args[0]==='B')response.body.answer=response.body.answer.split('\nSome saved')[0];
+    return response;
+  };
+  await assert.rejects(checkTuitionLedgerPreview({...f,ask:answerWithoutUndated}),error=>{
+    assert.equal(error.stage,'B monthly assistant grounding');
+    assert.deepEqual(error.failedFields,['undatedBalanceDisclosure']);
+    assert.doesNotMatch(JSON.stringify(error),/QA tuition|72\.36|studentId/u);
+    return true;
+  });
+});
+
+test('the Preview runner reports a rejected release pin without claiming fixture cleanup',async()=>{
+  const result=await runTuitionLedgerPreview({origin:'https://stdedu-abcdef123-v1-d286.vercel.app',sourceRevision:'0'.repeat(40)});
+  assert.equal(result.liveAcceptance,false);
+  assert.deepEqual(result.failure,{phase:'preflight',code:'fixture-target'});
+  assert.deepEqual(result.cleanup,{verified:false,status:'not-started'});
+  assert.equal(result.deployment,null);
 });
 
 test('the acceptance rejects crossed student data, wrong summary, stale result, anonymous access and writes',async()=>{
