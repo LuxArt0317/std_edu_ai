@@ -56,8 +56,13 @@ export async function createProtectedNativeBrowserSaveJournal({directory,runId,o
     async reserveSave({payload,expected,assistantResponse,requestSequence,requestPath}){
       check(!pending&&payload.id===conversationId&&payload.version===0&&Buffer.isBuffer(assistantResponse)
         &&Number.isSafeInteger(requestSequence)&&requestSequence>0,'save envelope mismatch');
-      const grade=browserProfile.grade(bound,{statusCode:200,body:decode(assistantResponse),requestPath});
-      check(grade.passed,'save answer mismatch');
+      const body=decode(assistantResponse);
+      const assessment=browserProfile.grade(bound,{statusCode:200,body,requestPath});
+      check(assessment.passed,'save answer mismatch');
+      const grade={...assessment,
+        requestDigest:digest({method:'GET',path:requestPath,role:bound.role,question:bound.testCase.question}),
+        responseDigest:digest(body),
+      };
       const messages=JSON.parse(JSON.stringify(sanitizeStoredConversation(payload.messages)));
       check(expected.title===payload.title&&isDeepStrictEqual(messages,expected.messages),'save message shape mismatch');
       const commitment={ownerId,conversationId,title:payload.title,expectedVersion:1,messageDigest:digest(messages),sourceRevision,

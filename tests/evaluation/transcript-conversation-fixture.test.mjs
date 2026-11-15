@@ -142,12 +142,18 @@ test('actual adapter binding returns only own ID and controlled readback, preser
     identityRequests:owners.map(row=>({id:row.id,email:row.email,runId,state:'created'})),sql:{},protectedOwnerBefore:{},protectedOwnerEmail:'protected@example.invalid'};
   const context={state,Object,UUID:/^[0-9a-f-]{36}$/u,ready:()=>state,fail:(code)=>{throw Object.assign(Error(code),{code});},saveLedger:async()=>seen.push('ledger'),
     readProtectedOwnerFingerprint:async()=>({}),assertProtectedOwnerUnchanged:()=>{},createTranscriptConversationFixture:args=>{seen.push(args);return {reserve:async()=>{},readback:async()=>({version:1,messageDigest:'f'.repeat(64)})};}};
-  vm.createContext(context);const api=vm.runInContext(section('export function transcriptFixtureIdentity(','export async function cleanup(')+'\n({transcriptFixtureIdentity,reserveTranscriptConversation});',context);
+  vm.createContext(context);const api=vm.runInContext(section('export function transcriptFixtureIdentity(','export async function cleanup(')+'\n({transcriptFixtureIdentity,reserveTranscriptConversation,reserveScopedFixtureConversation});',context);
   assert.equal(JSON.stringify(api.transcriptFixtureIdentity()),JSON.stringify({ownerId}));
   const result=await api.reserveTranscriptConversation({conversationId,journal:{read:()=>{}}});assert.deepEqual(Object.keys(result),['ownerId','conversationId','readback']);assert.equal(result.ownerId,ownerId);
   assert.deepEqual(await result.readback(),{version:1,messageDigest:'f'.repeat(64)});assert.equal(seen[0].owners.length,2);
   await seen[0].persist({version:1,conversationId});assert.equal(state.transcriptConversationRecovery.conversationId,conversationId);assert.equal(seen.at(-1),'ledger');
   await assert.rejects(api.reserveTranscriptConversation({conversationId,journal:{}}),{code:'fixture-state'});
+  state.transcriptConversation=null;
+  const emptyOwner=await api.reserveScopedFixtureConversation(state,otherId,{conversationId,journal:{read:()=>{}}});
+  assert.equal(emptyOwner.ownerId,otherId);
+  assert.equal(seen.at(-1).owners[0].id,otherId);
+  assert.equal(seen.at(-1).owners[1].id,ownerId);
+  assert.equal(state.users[0].id,ownerId);
 });
 
 test('actual cleanup calls exact conversation deletion before Auth and zero proof after, retaining token erasure and protected owner check',async()=>{

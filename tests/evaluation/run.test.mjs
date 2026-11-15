@@ -13,7 +13,9 @@ import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
-import {options,readReply,sourceIdentity,validateFixtureAdapter,deploymentIdentity,evaluationSuite,createLiveRequestPacer,validateCatalogCaseBinding,assertCatalogCaseBound,applyGuidanceReviews,assessRun,main} from './run.mjs';
+import {options,readReply,sourceIdentity,validateFixtureAdapter,deploymentIdentity,evaluationSuite,createLiveRequestPacer,validateCatalogCaseBinding,assertCatalogCaseBound,applyGuidanceReviews,assessRun,main,verifiedNativeBrowserObservation} from './run.mjs';
+import {certificateAwardPreviewHash} from './certificate-award-preview.mjs';
+import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 import {buildGuidanceReviewBinding} from './guidance-rubric.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildAccountCases} from './account-cases.mjs';
@@ -41,14 +43,47 @@ test('CLI rejects unknown modes, malformed limits, missing values and invalid da
   assert.equal(options(['--mode','live','--max-cases','3']).maxCases,3);
   for(const args of [['--unsafe','yes'],['--mode'],['--mode','--only','x'],['--mode','pretend'],['--max-cases','0'],['--max-cases','2.5'],['--max-cases','Infinity'],['--now','not-a-date']])assert.throws(()=>options(args),Error);
 });
-test('certificate dispatch is available only in the protected, non-injected live runner',async()=>{
+test('signed browser profiles require the protected non-injected live runner',async()=>{
   const origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
   const args=['--mode','live','--origin',origin,'--approved-preview-origin',origin,'--preview-auth','oidc'];
-  const flag=['--client-dispatch','certificate-awards'];
-  assert.equal(options([...args,...flag]).clientDispatch,'certificate-awards');
-  for(const invalid of [['--mode','inventory'],['--mode','live'],args.slice(0,-2)])assert.throws(()=>options([...invalid,...flag]));
+  for(const profile of ['certificate-awards','announcement-email','protected-native']){
+    const flag=['--client-dispatch',profile];
+    assert.equal(options([...args,...flag]).clientDispatch,profile);
+    for(const invalid of [['--mode','inventory'],['--mode','live'],args.slice(0,-2)])assert.throws(()=>options([...invalid,...flag]));
+    await assert.rejects(main([...args,...flag],{sourceIdentity:async()=>({dirty:false})}),/injected dependencies/u);
+  }
   assert.throws(()=>options([...args,'--client-dispatch','arbitrary.json']));
-  await assert.rejects(main([...args,...flag],{sourceIdentity:async()=>({dirty:false})}),/injected dependencies/u);
+});
+
+test('announcement browser proof requires one forwarded native answer, paired readbacks and exact cleanup',async()=>{
+  const {questions}=await discoverClientDispatchSurfaces();
+  const question=questions.find(row=>row.id==='client:announcement-email:empty');
+  const sourceRevision='a'.repeat(40),origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
+  const requestDigest='b'.repeat(64),responseDigest='c'.repeat(64);
+  const evidence={stateDigest:'d'.repeat(64),callers:{A:{enabled:true},B:{enabled:false}}};
+  const result={
+    sourceRevision,origin,execution:'live-browser',dispatchProfile:'announcement-email',terminal:true,
+    liveAcceptance:true,browserDispatchAcceptance:true,caseIds:[question.id],suiteDigest:certificateAwardPreviewHash([question]),boundSuiteDigest:'e'.repeat(64),
+    deployment:{sourceRevision,origin,status:'finished',issued:6,completed:6},
+    browserDiagnostics:[{observations:[{request:'announcement-email-answer',method:'GET',forwarded:true}]}],
+    cleanup:{verified:true,createdUsers:2,protectedOwnerUnchanged:true,nativeBrowserCleanup:'announcement-email',conversationCleanup:{verified:true,conversationRows:0}},
+    results:[{caseId:question.id,passed:true,requestDigest,responseDigest,native:{passed:true,requestDigest,responseDigest},
+      browserTurn:{answerRequests:1,saveRequests:1},browserRestore:{restoreRequests:1},
+      readback:{own:true,crossed:true,version:1,messageDigest:'f'.repeat(64)},before:structuredClone(evidence),after:structuredClone(evidence)}],
+  };
+  const verify=proof=>verifiedNativeBrowserObservation({result:proof,question,sourceRevision,origin,profile:'announcement-email'});
+  assert.deepEqual({...verify(result),reportDigest:undefined},{id:question.id,dispatched:true,passed:true,cleanupVerified:true,
+    reportDigest:undefined,requestDigest,responseDigest});
+  for(const change of [
+    proof=>{proof.browserDiagnostics[0].observations.push(proof.browserDiagnostics[0].observations[0]);},
+    proof=>{proof.browserDiagnostics[0].observations[0].request='graph-assistant';},
+    proof=>{proof.deployment.completed=5;},proof=>{proof.suiteDigest='0'.repeat(64);},
+    proof=>{proof.results[0].after.callers.B.enabled=true;},proof=>{proof.results[0].readback.crossed=false;},
+    proof=>{proof.cleanup.nativeBrowserCleanup='other';},proof=>{proof.cleanup.createdUsers=1;},
+    proof=>{proof.cleanup.conversationCleanup.conversationRows=1;},
+  ]){
+    const altered=structuredClone(result);change(altered);assert.equal(verify(altered).passed,false);
+  }
 });
 
 test('independent review mode requires an explicit reviewer and separate report without executing a new selection',()=>{

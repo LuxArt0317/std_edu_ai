@@ -39,6 +39,14 @@ import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
 import {certificateAwardPreviewHash,certificateBrowserCaseIds} from './certificate-award-preview.mjs';
+import {announcementEmailBrowserCases} from './announcement-email-browser-turn.mjs';
+
+const browserDispatchProfiles=new Map([
+  ['certificate-awards',{ids:certificateBrowserCaseIds,operation:'runCertificateAwardPreview',request:'certificate-answer',pinnedReads:2,
+    cleanup:proof=>proof.certificateAwardPreviewCleanup===true&&proof.certificateAwardCatalogUnchanged===true}],
+  ['announcement-email',{ids:announcementEmailBrowserCases.map(row=>row.id),operation:'runAnnouncementEmailBrowserPreview',
+    request:'announcement-email-answer',pinnedReads:6,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='announcement-email'}],
+]);
 
 const liveClientObservations=new WeakMap();
 
@@ -75,8 +83,9 @@ export function options(args){
   if(result.approvedPreviewOrigin&&(result.mode!=='live'||result.origin!==result.approvedPreviewOrigin||result.origin==='https://stu.best'))throw new Error('An approved Preview origin must equal the live target origin.');
   if(result.previewAuth!==undefined&&(result.previewAuth!=='oidc'||result.mode!=='live'
     ||result.approvedPreviewOrigin!==result.origin||!isEvaluationPreviewOrigin(result.origin)))throw new Error('Preview OIDC requires an explicitly approved exact project Preview.');
-  if(result.clientDispatch!==undefined&&(result.clientDispatch!=='certificate-awards'||result.mode!=='live'||result.previewAuth!=='oidc'))
-    throw new Error('Certificate browser dispatch requires a live, exact protected Preview with OIDC.');
+  if(result.clientDispatch!==undefined&&(!browserDispatchProfiles.has(result.clientDispatch)&&result.clientDispatch!=='protected-native'
+    ||result.mode!=='live'||result.previewAuth!=='oidc'))
+    throw new Error('Signed browser dispatch requires a live, exact protected Preview with OIDC.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
   if(result.maxCases!==Infinity){result.maxCases=Number(result.maxCases);if(!Number.isInteger(result.maxCases)||result.maxCases<1)throw new Error('max-cases must be a positive integer.');}
   result.intervalMs=Number(result.intervalMs);
@@ -302,24 +311,27 @@ export function gradeRetrievalCase(testCase,evidence,metadata={}){
   }
   return {caseId:testCase.id,domain:testCase.domain,...metadata,execution:'deterministic',executed:true,passed:checks.every(row=>row.passed),failureKind:checks.some(row=>!row.passed)?'behavior':null,checks,failures:checks.filter(row=>!row.passed)};
 }
-export function verifiedCertificateBrowserObservation({result,question,sourceRevision,origin}){
+export function verifiedNativeBrowserObservation({result,question,sourceRevision,origin,profile}){
+  const scope=browserDispatchProfiles.get(profile);
+  if(!scope?.ids.includes(question?.id))throw new Error('The signed browser report is outside the frozen profile.');
   const [row]=result.results;
   const {cleanup,deployment}=result;
-  const dispatched=result.browserDiagnostics?.some(context=>context.observations.some(event=>
-    event.request==='certificate-answer'&&event.method==='GET'&&event.forwarded===true))===true;
+  const answerRequests=result.browserDiagnostics?.flatMap(context=>context.observations).filter(event=>
+    event.request===scope.request&&event.method==='GET'&&event.forwarded===true)??[];
+  const dispatched=answerRequests.length>0;
   const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
-  const passed=dispatched&&result.origin===origin&&result.sourceRevision===sourceRevision&&result.execution==='live-browser'
+  const passed=answerRequests.length===1&&result.origin===origin&&result.sourceRevision===sourceRevision&&result.execution==='live-browser'
+    &&(profile==='certificate-awards'?result.dispatchProfile===undefined:result.dispatchProfile===profile)
     &&result.terminal===true&&result.caseIds.length===1&&result.caseIds[0]===question.id
     &&result.suiteDigest===certificateAwardPreviewHash([question])&&sha(result.boundSuiteDigest)
     &&result.liveAcceptance===true&&result.browserDispatchAcceptance===true&&deployment?.status==='finished'
-    &&deployment.sourceRevision===sourceRevision&&deployment.origin===origin&&deployment.completed===2
+    &&deployment.sourceRevision===sourceRevision&&deployment.origin===origin&&deployment.completed===scope.pinnedReads&&deployment.issued===scope.pinnedReads
     &&row?.caseId===question.id&&result.results.length===1&&row.passed===true
     &&row.native?.passed===true&&row.native.requestDigest===row.requestDigest&&row.native.responseDigest===row.responseDigest
     &&sha(row.requestDigest)&&sha(row.responseDigest)&&row.browserTurn?.answerRequests===1&&row.browserTurn.saveRequests===1
     &&row.browserRestore?.restoreRequests===1&&row.readback?.own===true&&row.readback.crossed===true
-    &&row.readback.version===1&&sha(row.readback.messageDigest)&&isDeepStrictEqual(row.before,row.after)
-    &&cleanup.verified===true&&cleanup.protectedOwnerUnchanged===true&&cleanup.certificateAwardPreviewCleanup===true
-    &&cleanup.certificateAwardCatalogUnchanged===true&&cleanup.conversationCleanup?.verified===true
+    &&row.readback.version===1&&sha(row.readback.messageDigest)&&sha(row.before?.stateDigest)&&isDeepStrictEqual(row.before,row.after)
+    &&cleanup.verified===true&&cleanup.protectedOwnerUnchanged===true&&scope.cleanup(cleanup)&&cleanup.conversationCleanup?.verified===true
     &&cleanup.conversationCleanup.conversationRows===0;
   return {id:question.id,dispatched,passed:Boolean(passed),cleanupVerified:cleanup.verified===true,
     reportDigest:hash(result),requestDigest:row?.requestDigest??null,responseDigest:row?.responseDigest??null};
@@ -579,25 +591,26 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(report.bindingPending){report.templateSuiteHash=report.suiteHash;report.suiteHash=null;}
       await persist(out,report);
       if(opt.clientDispatch){
-        const {runCertificateAwardPreview}=await import('./live-fixtures.mjs');
+        const fixtures=await import('./live-fixtures.mjs');
         const observations=[];
+        const selected=[...browserDispatchProfiles].filter(([profile])=>opt.clientDispatch==='protected-native'||opt.clientDispatch===profile);
         liveClientObservations.set(report,observations);
-        for(const id of certificateBrowserCaseIds){
+        for(const [profile,{ids,operation}] of selected)for(const id of ids){
           const question=suite.inventory.clientDispatch.questions.find(item=>item.id===id);
-          if(!question)throw new Error('A frozen certificate browser case is missing from the inventory.');
+          if(!question)throw new Error('A frozen signed browser question is missing from the inventory.');
           await deploymentGate.assertCurrent();
           await mkdir(dirname(out),{recursive:true,mode:0o700});
-          const directory=await mkdtemp(resolve(dirname(out),'client-certificate-'));
+          const directory=await mkdtemp(resolve(dirname(out),'client-'+profile+'-'));
           browserCleanupPending=true;
-          const result=await runCertificateAwardPreview({origin:opt.origin,sourceRevision:identity.sourceRevision,
+          const result=await fixtures[operation]({origin:opt.origin,sourceRevision:identity.sourceRevision,
             previewToken:process.env.VERCEL_OIDC_TOKEN,browserCase:id,artifactDirectory:directory,
             signal:AbortSignal.any([controller.signal,AbortSignal.timeout(5*60_000)]),
             onCheckpoint:value=>saveReport(resolve(directory,'report.json'),value)});
           browserCleanupPending=result.cleanup.verified!==true;
-          observations.push(verifiedCertificateBrowserObservation({result,question,sourceRevision:identity.sourceRevision,origin:opt.origin}));
+          observations.push(verifiedNativeBrowserObservation({result,question,sourceRevision:identity.sourceRevision,origin:opt.origin,profile}));
           report.clientDispatchRun=observations.map(item=>({...item}));
           await persist(out,report);
-          if(browserCleanupPending)throw new Error('Certificate browser fixture disposal needs reconciliation before another fixture starts.');
+          if(browserCleanupPending)throw new Error('Signed browser fixture disposal needs reconciliation before another fixture starts.');
         }
       }
       if(opt.fixtureModule&&fixtureCases.length&&!fixtureCases.every(row=>isClubAttendanceCase(row)&&row.fixtureKey==='anonymous')){

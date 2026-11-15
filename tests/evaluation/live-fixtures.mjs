@@ -58,6 +58,10 @@ import {hasVenueProtectedProof,observeVenueProtectedCallers,requestVenueProtecte
 import {bindCertificateAwardBrowserCase,bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewHash,certificateAwardPreviewManifest,certificateBrowserCaseIds,
   certificateAwardPreviewMode,deleteCertificateAwardPreview,observeCertificateAwardPreview,observeCertificateAwardPreviewCallers,
   readCertificateAwardPreviewCatalog,requestCertificateAwardPreviewCase,seedCertificateAwardPreview,verifyCertificateAwardPreviewAbsent} from './certificate-award-preview.mjs';
+import {assertAnnouncementEmailBrowserSchema,bindAnnouncementEmailBrowserCase,buildAnnouncementEmailBrowserFixture,
+  deleteAnnouncementEmailBrowserFixture,observeAnnouncementEmailBrowserCallers,observeAnnouncementEmailBrowserFixture,
+  seedAnnouncementEmailBrowserFixture,verifyAnnouncementEmailBrowserFixtureAbsent} from './announcement-email-browser-fixture.mjs';
+import {announcementEmailBrowserBootstrap,announcementEmailBrowserCases,inspectAnnouncementEmailBrowserBootstrap} from './announcement-email-browser-turn.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
@@ -136,6 +140,10 @@ const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollme
 const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','elearningOutline','facilityRepairs','dormitoryConduct','housingApplications',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
+const nativeBrowserFixtures=new Map([
+  ['announcement-email',{assertSchema:assertAnnouncementEmailBrowserSchema,
+    deletePlan:deleteAnnouncementEmailBrowserFixture,verifyAbsent:verifyAnnouncementEmailBrowserFixtureAbsent}],
+]);
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE,dtmAssignmentListFixtureMode,healthMetadataFixtureMode]);
 export const clubAttendanceFixtureVersion=1;
 export const protectedPreviewReadbackVersion=1;
@@ -381,6 +389,7 @@ async function saveLedger(){
         ...(s.dtmGradeOverview?{profiles:s.dtmGradePreview.profiles,reports:s.dtmGradePreview.reports}:{})}}:{}),
       ...(s.venueProtectedPlan?{venueProtectedPlan:s.venueProtectedPlan}:{}),
       ...(s.certificateAwardPreviewPlan?{certificateAwardPreviewPlan:s.certificateAwardPreviewPlan}:{}),
+      ...(s.nativeBrowserPlan?{nativeBrowserFixture:{profile:s.nativeBrowserProfile,plan:s.nativeBrowserPlan}}:{}),
       ...(s.facilityRepairCancellation?{facilityRepairCancellation:s.facilityRepairCancellation}:{}),
       ...(s.learningSupportPreview?{learningSupportPreview:s.learningSupportPreview}:{}),
       ...(s.clearanceStatusPreview?{clearanceStatusPreview:s.clearanceStatusPreview}:{}),
@@ -470,7 +479,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.studentLeaveGradePair||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly||s.assignmentTrackerOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.studentLeaveGradePair||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly||s.nativeBrowserProfile||s.assignmentTrackerOnly)return user;
   if(s.fixtureMode===dtmAssignmentListFixtureMode){
     await s.previewGate.assertCurrent();
     user.studentId=await initializeDtmAssignmentListStudent(user,{publishable:s.publishable,fetchImpl:s.boundedFetch,
@@ -507,9 +516,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   else if(clearanceStatusTerms!==undefined)fail('fixture-config','Graduation clearance term bindings require their protected fixture mode.');
   const venueProtectedOnly=fixtureMode===venueProtectedFixtureMode;
   const certificateAwardPreviewOnly=fixtureMode===certificateAwardPreviewMode;
+  const nativeBrowserProfile=nativeBrowserFixtures.has(fixtureMode)?fixtureMode:null;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!assignmentTrackerOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!assignmentTrackerOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly&&!nativeBrowserProfile)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -537,6 +547,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(certificateAwardPreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Certificate awards require the exact protected Preview and isolated disposable owners.');
+  if(nativeBrowserProfile&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Native browser reads require the exact protected Preview and isolated disposable owners.');
   if(facilityRepairCancellationOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Facility repair cancellation requires the exact protected Preview and isolated disposable owners.');
@@ -638,7 +651,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!assignmentTrackerOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!assignmentTrackerOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!learningSupportPreviewOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly&&!nativeBrowserProfile&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -681,7 +694,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
   state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,studentLeaveGradePair,internshipNativeOnly,
-    facilityRepairCancellationOnly,learningSupportPreviewOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,dtmStudyPreviewOnly,teachingSampleOnly,venueProtectedOnly,certificateAwardPreviewOnly,assignmentTrackerOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
+    facilityRepairCancellationOnly,learningSupportPreviewOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,dtmStudyPreviewOnly,teachingSampleOnly,venueProtectedOnly,certificateAwardPreviewOnly,nativeBrowserProfile,assignmentTrackerOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
     admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -720,6 +733,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       await previewGate.assertCurrent();
       state.certificateAwardCatalogDigest=await query(()=>readCertificateAwardPreviewCatalog(state.sql),
         'The existing certificate migration, authenticated RPC and catalog are required before fixture account creation.');
+    }
+    if(nativeBrowserProfile){
+      await previewGate.assertCurrent();
+      await query(()=>nativeBrowserFixtures.get(nativeBrowserProfile).assertSchema(state.sql),
+        'The existing native reader schema and caller permissions are required before fixture identities are created.');
     }
     if(assignmentTrackerOnly){
       await previewGate.assertCurrent();
@@ -770,6 +788,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(certificateAwardPreviewOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['certificate-awards']};
+    }
+    if(nativeBrowserProfile){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:[nativeBrowserProfile]};
     }
     if(facilityRepairCancellationOnly){
       state.prepared=true;
@@ -885,6 +907,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(certificateAwardPreviewOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Certificate award fixture preparation failed.');
       reason.certificateAwardCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(nativeBrowserProfile){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Protected browser fixture preparation failed.');
+      reason.nativeBrowserCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     if(facilityRepairCancellationOnly){
@@ -2193,6 +2220,186 @@ export async function runVenueProtectedPreview({origin,sourceRevision,previewTok
   return report(true);
 }
 
+function verifiedDisposableBrowserOwners(s) {
+  if(s.users.length!==2)fail('fixture-isolation','Protected browser reads require two disposable callers.');
+  return Object.fromEntries(s.users.map(({id},index)=>{
+    const matches=s.identityRequests.filter(row=>row.id===id&&row.runId===s.runId&&row.state==='created');
+    if(matches.length!==1||id===s.protectedOwnerBefore.id)fail('fixture-isolation','Browser caller is outside the reserved lease.');
+    return [index===0?'A':'B',{id,email:matches[0].email,runMarker:s.runId}];
+  }));
+}
+
+async function readPinnedNativeBrowserResponse(s,{fetchImpl,url,caller,status=200,signal}) {
+  await caller.renewSession({signal});
+  const ticket=await s.previewGate.beforeRequest();
+  try{
+    const reply=await fetchImpl(url,{headers:{Authorization:'Bearer '+caller.token},signal:signals(signal)});
+    return await readBoundedFixtureResponse(reply,url,32768,status);
+  }finally{await s.previewGate.afterRequest(ticket);}
+}
+
+async function runScopedNativeBrowserTurn({s,origin,sourceRevision,previewToken,assets,bound,signal,artifactDirectory,runTurn,diagnostics,onJournal}){
+  const caller=s.users[bound.role==='A'?0:1],peer=s.users[bound.role==='A'?1:0];
+  if(!['A','B'].includes(bound.role)||s.users.length!==2||!caller||!peer||caller.id===peer.id)
+    fail('fixture-isolation','Protected browser turn requires a distinct owner and crossed account.');
+  const assertLease=()=>assertRecordedFixtureLease(s,'Protected browser turn');
+  let conversation;
+  return runTurn({origin,sourceRevision,token:previewToken,assets,bound,directory:artifactDirectory,
+    runId:s.runId,signal,assertLease,verifyPin:()=>s.previewGate.assertCurrent(),
+    onDiagnostic:record=>diagnostics.push(record),
+    async getSession(){
+      await caller.renewSession({signal});
+      const auth=new URL('/auth/v1/user',s.url),access_token=caller.token;
+      const reply=await s.boundedFetch(auth,{headers:{apikey:s.publishable,Authorization:'Bearer '+access_token},signal:signals(signal)});
+      const user=await readBoundedFixtureResponse(reply,auth,32768,200);
+      if(user.id!==caller.id||!user.identities?.some(identity=>identity.provider==='google'))
+        fail('fixture-session','The disposable browser session could not be verified.');
+      const {exp:expires_at}=JSON.parse(Buffer.from(access_token.split('.')[1],'base64url').toString('utf8'));
+      // The isolated Chromium context cannot refresh the session. The operator
+      // retains the real refresh token and provides a fresh session per context.
+      return {access_token,refresh_token:'node-owned-qa-session',expires_at,token_type:'bearer',user};
+    },
+    async reserveConversation(id,journal){
+      onJournal(journal);
+      conversation=await reserveScopedFixtureConversation(s,caller.id,{conversationId:id,journal});
+    },
+    async pinReadback(read){
+      await s.previewGate.assertCurrent();
+      const result=await read();
+      await s.previewGate.assertCurrent();
+      return result;
+    },
+    async readConversation({id,expected}){
+      const independent=await conversation.readback();
+      const fetchImpl=createTrustedPreviewFetch({origin,token:previewToken,conversationId:id});
+      const url=new URL('/api/affairs-conversations?id='+id,origin);
+      const saved=await readPinnedNativeBrowserResponse(s,{fetchImpl,url,caller,signal});
+      const denial=await readPinnedNativeBrowserResponse(s,{fetchImpl,url,caller:peer,status:404,signal});
+      if(saved.id!==id||saved.version!==1||saved.title!==expected.title||saved.updated_at!==expected.updatedAt
+        ||!isDeepStrictEqual(saved.messages,expected.messages)||!isDeepStrictEqual(denial,{error:'Conversation not found.'})
+        ||independent.version!==1||independent.messageDigest!==certificateAwardPreviewHash(expected.messages))
+        fail('fixture-state','Saved browser answer did not match the independently read conversation.');
+      return {own:true,crossed:true,version:independent.version,messageDigest:independent.messageDigest};
+    },
+  });
+}
+
+const announcementEmailNativeBrowser={
+  profile:'announcement-email',
+  cases:announcementEmailBrowserCases,
+  build:buildAnnouncementEmailBrowserFixture,
+  seed:seedAnnouncementEmailBrowserFixture,
+  bind:bindAnnouncementEmailBrowserCase,
+  async loadBrowser(){
+    const m=await import('./announcement-email-browser-preview.mjs');
+    return {derive:m.deriveAnnouncementEmailBrowserAssets,runTurn:m.runAnnouncementEmailBrowserTurn};
+  },
+  async observe(s,plan,{fetchImpl,signal}){
+    const stateDigest=await observeAnnouncementEmailBrowserFixture(s.sql,plan);
+    const bootstraps={};
+    for(const [index,role] of ['A','B'].entries()){
+      const caller=s.users[index],url=new URL(announcementEmailBrowserBootstrap,s.origin);
+      const reply=await readPinnedNativeBrowserResponse(s,{fetchImpl,url,caller,signal});
+      bootstraps[role]=inspectAnnouncementEmailBrowserBootstrap(reply,caller.id);
+    }
+    const deliveryConfigured=bootstraps.A.deliveryConfigured;
+    if(bootstraps.B.deliveryConfigured!==deliveryConfigured)
+      fail('fixture-state','The two Preview readers disagree on announcement delivery configuration.');
+    const callers=await observeAnnouncementEmailBrowserCallers(plan,{users:s.users,deliveryConfigured,
+      async readRpc(caller){
+        await caller.renewSession({signal});
+        const url=new URL('/rest/v1/rpc/affairs_read_announcement_email',s.url);
+        const response=await s.boundedFetch(url,{method:'POST',headers:{apikey:s.publishable,Authorization:'Bearer '+caller.token,
+          'Content-Type':'application/json'},body:'{}',redirect:'error',cache:'no-store',signal:signals(signal)});
+        return readBoundedFixtureResponse(response,url,32768);
+      },
+    });
+    if(!isDeepStrictEqual(callers,bootstraps))fail('fixture-state','Preview announcement preferences disagree with independent caller RPC reads.');
+    return {stateDigest,callers};
+  },
+};
+
+export function runAnnouncementEmailBrowserPreview(options){
+  return runNativeBrowserPreview(options,announcementEmailNativeBrowser);
+}
+
+async function runNativeBrowserPreview({origin,sourceRevision,previewToken,browserCase,artifactDirectory,signal,onCheckpoint}={},fixture){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')
+    ||!fixture.cases.some(testCase=>testCase.id===browserCase)||typeof artifactDirectory!=='string'||!artifactDirectory.startsWith('/')
+    ||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
+    fail('fixture-config','Native browser verification requires a frozen case and an exact protected Preview.');
+  const runId=randomUUID(),results=[],browserDiagnostics=[];
+  let manifest=[{id:browserCase}],boundSuiteDigest,conversationJournal,previewGate,prepared=false,finished=false,failure,phase='preflight';
+  let cleanupProof={verified:false,status:'not-started'};
+  const report=terminal=>{
+    const accepted=terminal&&finished&&!failure&&results.length===1&&results[0].passed===true&&cleanupProof.verified===true
+      &&cleanupProof.protectedOwnerUnchanged===true&&cleanupProof.nativeBrowserCleanup===fixture.profile
+      &&cleanupProof.conversationCleanup?.verified===true&&cleanupProof.conversationCleanup.conversationRows===0;
+    return structuredClone({version:1,runId,sourceRevision,origin,terminal,execution:'live-browser',dispatchProfile:fixture.profile,
+      caseIds:manifest.map(row=>row.id),suiteDigest:certificateAwardPreviewHash(manifest),boundSuiteDigest,
+      results,browserDiagnostics,deployment:previewGate?.status()??null,cleanup:cleanupProof,...(failure?{failure}:{}),
+      modelAcceptance:false,browserDispatchAcceptance:accepted,liveAcceptance:accepted});
+  };
+  try{
+    const {sourceIdentity}=await import('./run.mjs');
+    const initial=await sourceIdentity();
+    if(initial.dirty||initial.sourceRevision!==sourceRevision)fail('fixture-target','Native browser verification requires the exact clean deployed source.');
+    const fetchImpl=createTrustedPreviewFetch({origin,token:previewToken});
+    const {discoverClientDispatchSurfaces}=await import('./client-dispatch-inventory.mjs');
+    const inventory=await discoverClientDispatchSurfaces();
+    manifest=inventory.questions.filter(item=>item.id===browserCase);
+    const selected=fixture.cases.find(item=>item.id===browserCase);
+    if(manifest.length!==1||manifest[0].question!==selected.question)fail('fixture-config','The original native browser question did not match the inventory.');
+    phase='browser-assets';
+    const browser=await fixture.loadBrowser();
+    const {assets}=await browser.derive({origin,revision:sourceRevision,token:previewToken,signal});
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:fixture.profile,previewReadbackFetch:fetchImpl});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    const assertScoped=async()=>{
+      await assertRecordedFixtureLease(s,'Native browser fixture');
+      await previewGate.assertCurrent();
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+    };
+    phase='seed';
+    await assertScoped();
+    const plan=fixture.build(runId,verifiedDisposableBrowserOwners(s));
+    s.nativeBrowserPlan=plan;
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>fixture.seed(s.sql,plan)),'Could not stage exact native browser fixture rows.');
+    phase=browserCase;
+    const observe=async()=>{
+      await assertScoped();
+      return fixture.observe(s,plan,{fetchImpl,signal});
+    };
+    const before=await observe(),bound=fixture.bind(plan,before.callers,browserCase);
+    boundSuiteDigest=certificateAwardPreviewHash([bound]);
+    const result=await runScopedNativeBrowserTurn({s,origin,sourceRevision,previewToken,assets,bound,signal,artifactDirectory,
+      runTurn:browser.runTurn,diagnostics:browserDiagnostics,onJournal:journal=>{conversationJournal=journal;}});
+    const after=await observe(),unchanged=isDeepStrictEqual(before,after);
+    results.push({...result,before,after,passed:result.passed&&unchanged});
+    await onCheckpoint?.(report(false));
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==initial.workingTreeHash)
+      fail('fixture-target','Native browser source changed during evaluation.');
+    await previewGate.finish();
+    finished=true;
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.nativeBrowserCleanupProof)cleanupProof=error.nativeBrowserCleanupProof;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected',
+      ...(typeof error?.code==='string'&&/^[a-z-]{3,80}$/u.test(error.code)?{browserDiagnostic:error.code}:{})};
+  }finally{
+    if(prepared)cleanupProof=await captureFixtureCleanup();
+    conversationJournal?.close();
+    await onCheckpoint?.(report(true));
+  }
+  return report(true);
+}
+
 export async function runCertificateAwardPreview({origin,sourceRevision,previewToken,signal,onCheckpoint,browserCase,artifactDirectory}={}){
   const browserMode=browserCase!==undefined;
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function'
@@ -2239,12 +2446,7 @@ export async function runCertificateAwardPreview({origin,sourceRevision,previewT
     };
     phase='seed';
     await assertScoped();
-    if(s.users.length!==2)fail('fixture-isolation','Certificate status requires two disposable callers.');
-    const owners=Object.fromEntries(s.users.map(({id},index)=>{
-      const matches=s.identityRequests.filter(row=>row.id===id&&row.runId===runId&&row.state==='created');
-      if(matches.length!==1||id===s.protectedOwnerBefore.id)fail('fixture-isolation','Certificate caller is outside the reserved lease.');
-      return [index===0?'A':'B',{id,email:matches[0].email,runMarker:runId}];
-    }));
+    const owners=verifiedDisposableBrowserOwners(s);
     const plan=buildCertificateAwardPreviewPlan(runId,owners,s.certificateAwardCatalogDigest);
     const cases=browserMode?[bindCertificateAwardBrowserCase(plan,manifest[0])]:bindCertificateAwardPreviewCases(plan);
     boundSuiteDigest=certificateAwardPreviewHash(cases);
@@ -2264,53 +2466,8 @@ export async function runCertificateAwardPreview({origin,sourceRevision,previewT
       const before=await observe(),caller=s.users.find(user=>user.id===owners[bound.role].id);
       let ticket,result;
       if(browserMode){
-        let conversation;
-        const assertLease=()=>assertRecordedFixtureLease(s,'Certificate browser turn');
-        result=await browser.runCertificateBrowserTurn({origin,sourceRevision,token:previewToken,assets,bound,
-          directory:artifactDirectory,runId,signal,assertLease,verifyPin:()=>previewGate.assertCurrent(),
-          onDiagnostic:record=>browserDiagnostics.push(record),
-          async getSession(){
-            await caller.renewSession({signal});
-            const auth=new URL('/auth/v1/user',s.url),access_token=caller.token;
-            const reply=await s.boundedFetch(auth,{headers:{apikey:s.publishable,Authorization:'Bearer '+access_token},signal:signals(signal)});
-            const user=await readBoundedFixtureResponse(reply,auth,32768,200);
-            if(user.id!==caller.id||!user.identities?.some(identity=>identity.provider==='google'))
-              fail('fixture-session','The disposable browser session could not be verified.');
-            const {exp:expires_at}=JSON.parse(Buffer.from(access_token.split('.')[1],'base64url').toString('utf8'));
-            // Node keeps sole ownership of the real refresh token. Browser
-            // routing rejects attempts to renew or contact another service.
-            return {access_token,refresh_token:'node-owned-qa-session',expires_at,token_type:'bearer',user};
-          },
-          async reserveConversation(id,journal){
-            conversationJournal=journal;
-            conversation=await reserveScopedFixtureConversation(s,caller.id,{conversationId:id,journal});
-          },
-          async pinReadback(read){
-            await previewGate.assertCurrent();
-            const result=await read();
-            await previewGate.assertCurrent();
-            return result;
-          },
-          async readConversation({id,expected}){
-            const independent=await conversation.readback();
-            const scopedFetch=createTrustedPreviewFetch({origin,token:previewToken,conversationId:id});
-            const url=new URL('/api/affairs-conversations?id='+id,origin);
-            const read=async(user,status)=>{
-              await user.renewSession({signal});
-              const pin=await previewGate.beforeRequest();
-              try{
-                const reply=await scopedFetch(url,{headers:{Authorization:'Bearer '+user.token},signal:signals(signal)});
-                return await readBoundedFixtureResponse(reply,url,32768,status);
-              }finally{await previewGate.afterRequest(pin);}
-            };
-            const saved=await read(caller,200),denial=await read(s.users[1],404);
-            if(saved.id!==id||saved.version!==1||saved.title!==expected.title||saved.updated_at!==expected.updatedAt
-              ||!isDeepStrictEqual(saved.messages,expected.messages)||!isDeepStrictEqual(denial,{error:'Conversation not found.'})
-              ||independent.version!==1||independent.messageDigest!==certificateAwardPreviewHash(expected.messages))
-              fail('fixture-state','Saved browser answer did not match the independently read conversation.');
-            return {own:true,crossed:true,version:independent.version,messageDigest:independent.messageDigest};
-          },
-        });
+        result=await runScopedNativeBrowserTurn({s,origin,sourceRevision,previewToken,assets,bound,signal,artifactDirectory,
+          runTurn:browser.runCertificateBrowserTurn,diagnostics:browserDiagnostics,onJournal:journal=>{conversationJournal=journal;}});
       }else{
         try{
           result=await pace(async()=>{
@@ -4577,9 +4734,10 @@ export async function reserveTranscriptConversation({conversationId,journal}={})
 }
 
 async function reserveScopedFixtureConversation(s,ownerId,{conversationId,journal}){
-  if(s.transcriptConversation||s.users[0]?.id!==ownerId)
+  const selected=s.users.find(user=>user.id===ownerId),crossed=s.users.find(user=>user.id!==ownerId);
+  if(s.transcriptConversation||s.users.length!==2||!selected||!crossed)
     fail('fixture-state','This fixture cannot reserve another exact conversation.');
-  const owners=s.users.map(user=>{
+  const owners=[selected,crossed].map(user=>{
     const matches=s.identityRequests.filter(request=>request.id===user.id&&request.runId===s.runId&&request.state==='created');
     if(matches.length!==1)fail('fixture-state','The transcript owner is not an exact disposable identity.');
     return {id:user.id,email:matches[0].email};
@@ -4754,6 +4912,13 @@ export async function cleanup(){
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
       await query(()=>feeTransaction(s,()=>deleteCertificateAwardPreview(s.sql,s.certificateAwardPreviewPlan)),
         'Could not remove the exact disposable certificate award rows.');
+    }
+    if(s.nativeBrowserPlan){
+      await assertRecordedFixtureLease(s,'Native browser fixture cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      const {deletePlan}=nativeBrowserFixtures.get(s.nativeBrowserProfile);
+      await query(()=>feeTransaction(s,()=>deletePlan(s.sql,s.nativeBrowserPlan)),
+        'Could not reconcile the exact native browser fixture rows.');
     }
     if(s.learningSupportPreview){
       await assertRecordedFixtureLease(s,'Learning support fixture cleanup');
@@ -4953,6 +5118,12 @@ export async function cleanup(){
         'Could not prove exact certificate award cleanup.');
       s.certificateAwardPreviewCleanup=true;
     }
+    if(s.nativeBrowserPlan){
+      const {verifyAbsent}=nativeBrowserFixtures.get(s.nativeBrowserProfile);
+      const absent=await query(()=>verifyAbsent(s.sql,s.nativeBrowserPlan),'Could not prove exact native browser cleanup.');
+      if(absent!==true)fail('fixture-cleanup','A disposable native browser record or identity remains.');
+      s.nativeBrowserCleanup=true;
+    }
     if(s.learningSupportPreview){
       await query(()=>verifyLearningSupportPreviewAbsent(s.sql,s.learningSupportPreview),'Could not prove exact learning support cleanup.');
       s.learningSupportPreviewCleanup=true;
@@ -5072,6 +5243,7 @@ export async function cleanup(){
     ...(s.counselingCompoundCleanup?{counselingCompoundCleanup:true}:{}),
     ...(s.venueProtectedCleanup?{venueProtectedCleanup:true}:{}),
     ...(s.certificateAwardPreviewCleanup?{certificateAwardPreviewCleanup:true,certificateAwardCatalogUnchanged:s.certificateAwardCatalogUnchanged}:{}),
+    ...(s.nativeBrowserCleanup?{nativeBrowserCleanup:s.nativeBrowserProfile}:{}),
     ...(s.facilityRepairCancellationCleanup?{facilityRepairCancellationCleanup:true}:{}),
     ...(s.learningSupportPreviewCleanup?{learningSupportPreviewCleanup:true}:{}),
     ...(s.clearanceStatusPreviewCleanup?{clearanceStatusPreviewCleanup:true,clearanceStatusSharedUnchanged:s.clearanceStatusSharedUnchanged}:{}),
