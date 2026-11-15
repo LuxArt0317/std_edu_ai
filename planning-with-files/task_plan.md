@@ -1107,4 +1107,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Reproduce the two-check stop after a transient second review with the first three eligible queued leads unreadable or mirrored.
 - [x] Continue through the bounded queue and independently verify the new notice on check three. Persist the time-limit reason if another page remains unread when the source window closes, and preserve any verified partial answer.
-- [ ] Confirm the protected deployment, public smoke and Quality for `f2f73e0`. Keep production acceptance separate.
+- [x] Check exact `f2f73e0`. Quality passed. Two public smoke cases passed and the unread storage notice retained its link with a generic answer.
+- [x] Replay all three public smoke cases on protected `5e1e662`. Check exact link, named quota and date gaps, signed-out privacy, and founding year.
+- [x] Verify and archive the interrupted Student Profile fixture cleanup. Reclaim local storage from the inactive sparse-ready checkout while preserving report hashes.
+- [ ] Recheck the isolated Announcement Email and Student Profile browser cases on exact `5e1e662`. The prior run supplied four passing cases against the 30-case browser gate.
+- [ ] Verify the follow-up `7461124` on protected Preview, including its different-publication continuation after an unread indexed notice.
