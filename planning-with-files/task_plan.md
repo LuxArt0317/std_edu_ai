@@ -897,7 +897,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Mount a separate six-case Moodle overview packet with paired readbacks for multi-course, empty-account and all-feedback questions. Keep the read outage in the controlled suite.
 - [x] Complete the first native Moodle grade report replay on protected `f5b37da`. Ten authenticated requests and cleanup completed. Seven passed, with three answer text criteria to correct.
 - [x] Preserve verified native course totals, missing reports and complete no-course lookups in bilingual deterministic answers. Keep the original grader.
-- [ ] Replay both native Moodle grade packets on protected Preview with the three corrected answer paths.
+- [x] Run the six Moodle overview cases on protected `2427eee`. The grade index, selected course and empty-account cases passed. Three aggregate or feedback cases need their exact facts preserved. Verified cleanup of both accounts and all report rows.
+- [ ] Replay the ten default Moodle grade cases with the three corrected availability answers.
+- [ ] Fix and recheck the three exact Moodle overview and all-feedback answers.
 - [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
 - [x] Implement and locally verify confirmed facilities report cancellation with a native receipt check and same-page refresh.
 - [ ] Mount a protected facilities cancellation fixture that allows only its expected native event.

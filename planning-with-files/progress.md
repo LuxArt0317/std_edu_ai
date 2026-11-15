@@ -89,3 +89,5 @@
 - 2026-11-15 [#100] Integrated monotonic public evidence coverage and recovery after an actionable rejected draft. A controlled actual-endpoint replay reached a verified fourth check after a rejected third draft, kept verified text on outage, and skipped duplicate-source review. Prepared a separate exact protected candidate for public and corrected Moodle cases.
 
 - 2026-11-15 [#100] Protected `2427eee` passed nine Counseling cancellations and twenty service boundary requests, all pinned to the exact manifest, with verified cleanup. The next Moodle overview run began after the shared lease was released. The integrated candidate passed a forced TypeScript build, 59 focused checks and lint with warnings.
+
+- 2026-11-15 [#100] Completed six protected Moodle overview requests and verified both owners/cleanup. Three passed and three missed typed fact criteria for dashboard, My Courses and all-item feedback. All integrated local API tests passed 1,882, evaluator 1,395 with one optional skip, and unit tests 544. The formatter dependency boundary now explicitly lists the pure DTM question selector.
