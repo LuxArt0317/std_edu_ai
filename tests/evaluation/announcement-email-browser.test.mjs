@@ -14,6 +14,7 @@ import {bindAnnouncementEmailBrowserCase,buildAnnouncementEmailBrowserFixture,de
   observeAnnouncementEmailBrowserCallers,observeAnnouncementEmailBrowserFixture,seedAnnouncementEmailBrowserFixture,
   verifyAnnouncementEmailBrowserFixtureAbsent} from './announcement-email-browser-fixture.mjs';
 import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
+import {seedDisposableNativeBrowserProfiles} from './live-fixtures.mjs';
 
 const runtime=process.env.STU_ANNOUNCEMENT_EMAIL_TEST_PGLITE_ENTRY;
 const chrome=process.env.STU_ANNOUNCEMENT_EMAIL_TEST_CHROME;
@@ -96,7 +97,7 @@ test('actual compiled browser dispatcher selects the two 2-1 read shapes and mak
   });
 
 function pgliteSql(db){
-  return (template,...values)=>{
+  const sql=(template,...values)=>{
     if(!template.raw)return {list:template};
     const parameters=[],param=value=>'$'+parameters.push(value);
     const fragment=value=>{
@@ -108,6 +109,8 @@ function pgliteSql(db){
     const statement=template.reduce((out,part,index)=>out+(index?fragment(values[index-1]):'')+part,'');
     return db.query(statement,parameters).then(result=>result.rows);
   };
+  sql.json=value=>JSON.stringify(value);
+  return sql;
 }
 
 async function request(user,query){
@@ -143,10 +146,29 @@ test('actual 2-1 handler verifies retained preference, inbox boundary, missing p
     for(const owner of Object.values(owners)){
       await db.query('insert into auth.users values($1,$2,now(),$3)',[owner.id,owner.email,{assistant_evaluation_run:runId}]);
       await db.query('insert into auth.identities values($1,$2)',[owner.id,'google']);
-      await db.query("insert into public.affairs_profiles(user_id,email,display_name,role) values($1,$2,'Disposable QA','student')",[owner.id,owner.email]);
     }
     const plan=buildAnnouncementEmailBrowserFixture(runId,owners),sql=pgliteSql(db);
-    await db.exec('begin');await seedAnnouncementEmailBrowserFixture(sql,plan);await db.exec('commit');
+    await t.test('cleanup permits missing profiles only for exact confirmed owners with no stored preference',async()=>{
+      const mismatch={code:'announcement-fixture-mismatch'};
+      await db.exec('begin');
+      try{
+        await deleteAnnouncementEmailBrowserFixture(sql,plan);
+        await assert.rejects(seedAnnouncementEmailBrowserFixture(sql,plan),mismatch);
+        await db.query('update auth.users set raw_user_meta_data=$1 where id=$2',[{},owners.B.id]);
+        await assert.rejects(deleteAnnouncementEmailBrowserFixture(sql,plan),mismatch);
+        await db.query('update auth.users set raw_user_meta_data=$1 where id=$2',[{assistant_evaluation_run:runId},owners.B.id]);
+        await db.query("insert into public.affairs_profiles(user_id,email,display_name,role) values($1,$2,'Disposable QA','admin')",[owners.A.id,owners.A.email]);
+        await assert.rejects(deleteAnnouncementEmailBrowserFixture(sql,plan),mismatch);
+        await db.query("update public.affairs_profiles set role='student' where user_id=$1",[owners.A.id]);
+        await deleteAnnouncementEmailBrowserFixture(sql,plan);
+        await sql`insert into public.affairs_announcement_email_preferences ${sql(plan.row)}`;
+        await assert.rejects(deleteAnnouncementEmailBrowserFixture(sql,plan),mismatch);
+      }finally{await db.exec('rollback');}
+    });
+    await db.exec('begin');
+    await seedDisposableNativeBrowserProfiles(sql,plan);
+    await seedAnnouncementEmailBrowserFixture(sql,plan);
+    await db.exec('commit');
     const before=await observeAnnouncementEmailBrowserFixture(sql,plan),reads=[];
     async function readRpc(user){
       await db.exec('begin; set local role authenticated');

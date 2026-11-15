@@ -17,15 +17,15 @@ export function buildAnnouncementEmailBrowserFixture(runId,owners){
     row:{user_id:owners.A.id,enabled:true,effective_at:future,version:1,updated_at:updated}};
 }
 
-async function observeRows(sql,plan,{lock=false}={}){
+async function observeRows(sql,plan,{lock=false,allowMissingProfiles=false}={}){
   need(isDeepStrictEqual(plan,buildAnnouncementEmailBrowserFixture(plan.runId,plan.owners)));
   const users=roles.map(role=>plan.owners[role].id).sort();
   if(lock)for(const owner of users)await sql`select pg_advisory_xact_lock(hashtextextended('announcement-email:'||${owner},0))`;
   const people=await sql`select u.id,u.email,u.raw_user_meta_data->>'assistant_evaluation_run' as "runMarker",
-    u.email_confirmed_at is not null and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google')
-      and exists(select 1 from public.affairs_profiles p where p.user_id=u.id and p.role='student') as disposable
-    from auth.users u where u.id in ${sql(users)} limit 3`;
-  need(people.length===2&&roles.every(role=>people.some(({disposable,...person})=>disposable===true
+    u.email_confirmed_at is not null and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google') as disposable,
+    p.role as "profileRole"
+    from auth.users u left join public.affairs_profiles p on p.user_id=u.id where u.id in ${sql(users)} limit 3`;
+  need(people.length===2&&roles.every(role=>people.some(({disposable,profileRole,...person})=>disposable===true
     &&isDeepStrictEqual(person,plan.owners[role]))));
   const [guard]=await sql`select now()<${future}::timestamptz-interval '1 day' as inactive,
     exists(select 1 from private.affairs_announcement_email_changes where user_id in ${sql(users)}) as changes,
@@ -34,6 +34,8 @@ async function observeRows(sql,plan,{lock=false}={}){
   const rows=await sql`select user_id,enabled,to_char(effective_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as effective_at,
     version,to_char(updated_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as updated_at
     from public.affairs_announcement_email_preferences where user_id in ${sql(users)} order by user_id limit 3`;
+  need(people.every(({profileRole})=>profileRole==='student'
+    ||(allowMissingProfiles&&rows.length===0&&profileRole===null)));
   return [...rows];
 }
 
@@ -60,7 +62,7 @@ export async function observeAnnouncementEmailBrowserFixture(sql,plan){
 
 /** Reconcile the exact preference before deleting disposable Auth identities. */
 export async function deleteAnnouncementEmailBrowserFixture(sql,plan){
-  const rows=await observeRows(sql,plan,{lock:true});
+  const rows=await observeRows(sql,plan,{lock:true,allowMissingProfiles:true});
   if(rows.length===0)return;
   need(isDeepStrictEqual(rows,[plan.row]));
   const removed=await sql`delete from public.affairs_announcement_email_preferences
