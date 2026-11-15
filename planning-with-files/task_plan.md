@@ -1059,7 +1059,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify local course-and-coaching recovery on provider composition outage, and preserve the normal generated-draft review gate.
 - [x] Pass and independently review the published course/coaching rerun on exact `1fc093f` after the provider outage.
 - [x] Verify the three original Counseling and tuition compounds against migrated local PostgreSQL and actual handlers.
-- [ ] Mount and verify a combined protected Counseling and tuition lease with exact joint journal cleanup.
+- [x] Mount and verify a combined protected Counseling and tuition lease with exact joint journal cleanup.
 
 ### Answer recovery across signed-in sources [Issue #100]
 
@@ -1067,4 +1067,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify both Counseling and named tuition orders plus appointment exclusion when the reviewer rejects, hits quota or has no key. Preserve checked facts when one read fails.
 - [x] Scope modern and Legacy graduation status to the selected report field and caller. Verify empty and crossed-owner reads.
 - [x] Open the assistant on both School Affairs acknowledgment notices and keep focus, persisted history and the exact route on desktop and mobile.
-- [ ] Run these packets serially against the same clean protected Preview. Verify fixture disposal, report source revisions and exact request pins.
+- [x] Replay the three Counseling, four remote-learning, four notice and three graduation status cases on one protected revision with exact cleanup. Preserve the three additional graduation failures.
+- [ ] Add record-backed recovery for the unchanged graduation requirements, course lineage and eligibility-boundary prompts. Re-evaluate with the quota failure unchanged and keep the official eligibility boundary.
