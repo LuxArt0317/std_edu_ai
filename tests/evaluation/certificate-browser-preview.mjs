@@ -59,7 +59,7 @@ export async function createCertificateBrowserSaveJournal({directory,runId,owner
       check(reply.status===200&&id===conversationId&&title===pending.title&&version===1
         &&Array.isArray(messages)&&digest(messages)===pending.messageDigest
         &&reply.certificateReceipt?.id===id&&reply.certificateReceipt.version===version,'save receipt mismatch');
-      const {operation,requestIndex,...receipt}=pending;
+      const {operation:_operation,requestIndex:_requestIndex,...receipt}=pending;
       try{await journal.received(receipt);}catch{check(false,'save journal write failed');}
       expectedSave={...expectedSave,updatedAt:reply.certificateReceipt.updatedAt};
     },

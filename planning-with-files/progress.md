@@ -36,3 +36,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Bound the two frozen 52-1 browser questions to the independent aggregate response oracle. Pinned a 36-asset preflight to `5e6af59`; controlled Chromium and migrated PostgreSQL passed. Mounted the one-case-per-lease browser replay and durable save proof for the next protected revision.
 
 - 2026-11-16 [#100] Both `b156471` browser startup attempts stopped at a denied asset; no answer was sent and both fixture leases were cleared. An isolated shell probe confirmed the declared favicon, now admitted only as a same-origin PNG. 24 transport and asset checks passed.
+
+- 2026-11-16 [#100] Integrated the three frozen Tutor and named tuition questions plus the isolated paired record operator. All 1,970 API tests and both TypeScript checks passed. Protected replay will use a separate exact candidate after the active certificate lease.

@@ -1082,3 +1082,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting.
 - [ ] Mount the first genuine 52-1 signed browser dispatch packet using the existing published certificate fixture and a fixed protected transport profile. Require exact JSON answer, rendered reply and persisted write binding with independent database readback.
 - [ ] Complete signed browser dispatch observations before production acceptance. Use request-scoped server observation for zero-private-read assertions once a graph request is sent.
+
+### Tutor Evaluation and tuition [Issue #100]
+
+- [x] Verify both frozen compound wording orders and explicit questionnaire exclusion through the actual graph and migrated two-account PostgreSQL.
+- [x] Bind the three frozen cases to a protected fixture with two independent unchanged scoped records and exact disposal.
+- [ ] Replay the three original questions on the protected Tutor/tuition revision after the certificate browser lease settles.
