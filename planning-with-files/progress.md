@@ -24,3 +24,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Pinned 17 requests to `9b8767b`. Fourteen passed, including three scoped graduation status cases. The three other graduation prompts withheld after provider quota exhaustion. All fixture leases verified cleanup and no active journals remain. Preserved separate reports and opened the scoped recovery follow-up in the existing issue.
 
 - 2026-11-16 [#100] Quality 43752577095 passed. Added a time reserve for a queued readable school page and verified recovery after a first or third review timeout. The three unchanged graduation questions now pass the actual handler and independent grader against migrated PostgreSQL. Prepared one protected replay for the six status and detail prompts and public continuation smoke checks.
+
+- 2026-11-16 [#100] Preserved the two slow-review baseline failures. All eight protected cases passed on `e3dff23` and both signed-in fixture leases verified disposal. Integrated the six frozen Attendance fixes locally, including the UTC timestamp input and Taipei display. Full local API and evaluator passed. Production remains on `076c79a`.

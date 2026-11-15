@@ -1068,9 +1068,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Scope modern and Legacy graduation status to the selected report field and caller. Verify empty and crossed-owner reads.
 - [x] Open the assistant on both School Affairs acknowledgment notices and keep focus, persisted history and the exact route on desktop and mobile.
 - [x] Replay the three Counseling, four remote-learning, four notice and three graduation status cases on one protected revision with exact cleanup. Preserve the three additional graduation failures.
-- [ ] Add record-backed recovery for the unchanged graduation requirements, course lineage and eligibility-boundary prompts. Re-evaluate with the quota failure unchanged and keep the official eligibility boundary.
+- [x] Add record-backed recovery for the unchanged graduation requirements, course lineage and eligibility-boundary prompts. Verify with a quota-unavailable provider in the controlled handler and pass the same three on protected `e3dff23` with the official eligibility boundary.
 
 ### Slow public review recovery [Issue #100]
 
 - [x] Reserve time when an actual unread official page can resolve a public question. Exercise a slow reviewer, a genuinely different page, a duplicate page and no alternative lead through the real handler.
-- [ ] Verify the integrated suite on the exact candidate before any production decision.
+- [x] Pass the integrated API and evaluator tests on the exact candidate. Verify both public smoke cases and all six graduation cases on protected `e3dff23` with exact disposal.
+- [x] Verify selected-term attendance, roll-call time, a missing current-term setting and an unsupported subterm hour total against the unchanged six questions in the actual handler.
+- [ ] Replay the six Attendance cases and the named Student Affairs workflows on a protected revision. Keep the attendance tests and production gate separate from the prior exact Preview.
