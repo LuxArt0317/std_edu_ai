@@ -66,7 +66,7 @@ import {assertStudentProfileBrowserSchema,bindStudentProfileBrowserCase,buildStu
   deleteStudentProfileBrowserFixture,observeStudentProfileBrowserCallers,observeStudentProfileBrowserFixture,
   seedStudentProfileBrowserFixture,verifyStudentProfileBrowserFixtureAbsent} from './student-profile-browser-fixture.mjs';
 import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
-import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
+import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,validateAidPaymentFixtureOwners,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
 import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
@@ -2235,6 +2235,23 @@ function verifiedDisposableBrowserOwners(s) {
   }));
 }
 
+/** Run inside the fixture seed transaction after reserving the exact owners. */
+export async function seedDisposableNativeBrowserProfiles(sql,{runId,owners}) {
+  const binding=validateAidPaymentFixtureOwners({runId,owners});
+  const rows=Object.entries(binding.owners).map(([role,owner])=>({
+    id:owner.id,email:owner.email,display_name:role==='A'?'Evaluation Student':'Evaluation Other',
+  }));
+  const inserted=await sql`insert into public.affairs_profiles(user_id,email,display_name,role)
+    select u.id,u.email,w.display_name,'student'
+    from jsonb_to_recordset(${sql.json(rows)}) as w(id uuid,email text,display_name text)
+    join auth.users u on u.id=w.id and u.email=w.email
+    where u.email_confirmed_at is not null and u.raw_user_meta_data->>'assistant_evaluation_run'=${binding.runId}
+      and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google')
+    returning user_id`;
+  if(inserted.length!==rows.length||!rows.every(row=>inserted.some(profile=>profile.user_id===row.id)))
+    fail('fixture-isolation','Both reserved browser caller profiles must be bound to verified disposable identities.');
+}
+
 async function readPinnedNativeBrowserResponse(s,{fetchImpl,url,caller,status=200,signal}) {
   await caller.renewSession({signal});
   const ticket=await s.previewGate.beforeRequest();
@@ -2408,7 +2425,10 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
     s.nativeBrowserPlan=plan;
     if(fixture.profile==='student-profile')s.recordIds.add(plan.student.id);
     await saveLedger();
-    await query(()=>feeTransaction(s,()=>fixture.seed(s.sql,plan)),'Could not stage exact native browser fixture rows.');
+    await query(()=>feeTransaction(s,async()=>{
+      await seedDisposableNativeBrowserProfiles(s.sql,plan);
+      await fixture.seed(s.sql,plan);
+    }),'Could not stage exact native browser fixture rows.');
     phase=browserCase;
     const observe=async()=>{
       await assertScoped();
