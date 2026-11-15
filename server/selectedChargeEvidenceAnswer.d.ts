@@ -8,4 +8,4 @@ export const selectedChargeAnswerLimits:Readonly<{sourceBytes:70000;answerCharac
  * institutional completeness. Numeric aggregates retain exact currency groups.
  * Malformed/inconsistent evidence throws TypeError; impossible budgets throw
  * RangeError. Stored identity, dates, contacts and row IDs are never projected. */
-export function formatSelectedChargeEvidence(evidence:VerificationEvidence,options?:{language?:'en'|'zh-TW';includeAuthorityLimit?:boolean;exactBalance?:boolean}):SupplementalAnswerCandidate;
+export function formatSelectedChargeEvidence(evidence:VerificationEvidence,options?:{language?:'en'|'zh-TW';includeAuthorityLimit?:boolean;exactBalance?:boolean;separateCurrency?:boolean}):SupplementalAnswerCandidate;

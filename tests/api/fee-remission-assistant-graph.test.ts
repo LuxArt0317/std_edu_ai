@@ -157,33 +157,49 @@ test('the mixed signed-in graph rereads only the same two authorized sources aft
     assert.match(result.body.answer,/001,000/u);
     assert.ok(result.body.citations.some((row:{url:string})=>row.url===route));
     assert.equal(result.body.proposedAction,undefined);
-  },{withCharges:true,retry:true});
+  },{withCharges:true,chargeFailure:true,retry:true});
 });
 
 const directCases=['all-history','historical-period','zero-amount','null-not-zero','blank-not-null','leading-zero-period','exact-period-absent',
   'student-number-explicit','student-number-not-requested','payout-not-proved','eligibility-not-proved','document-not-created','empty','bounded-omission',
-  'current-term-not-designated','write-boundary'];
-test('the actual handler verifies standalone literal history against the independent fee-remission case bank without a provider',async()=>{
+  'current-term-not-designated','write-boundary','mixed-tuition','mixed-reversed'];
+test('the actual handler verifies literal fee history and independently selected named charges without a provider',async()=>{
   const selected=buildFeeRemissionCases().filter((item:{id:string})=>directCases.includes(item.id.slice('account:fee-remission-'.length)));
   assert.equal(selected.length,directCases.length);
   const original=globalThis.fetch;
   try{
     for(const item of selected){
       const fixture=feeRemissionFixtureForCase(item);
-      let reads=0;
+      let reads=0,chargeReads=0;
+      const isPair=item.id.includes('-mixed-');
       const transportErrors:unknown[]=[];
       globalThis.fetch=async(input,init)=>{
         try{
-          assert.equal(String(input),account.url+'/rest/v1/rpc/affairs_read_fee_remission');
           assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
-          assert.equal(init?.method,'POST');assert.equal(init?.body,'{}');
-          reads++;
-          return Response.json(fixture.response);
+          const target=new URL(String(input));
+          assert.equal(target.origin,account.url);
+          if(target.pathname.endsWith('/rpc/affairs_read_fee_remission')){
+            assert.equal(init?.method,'POST');assert.equal(init?.body,'{}');
+            reads++;
+            return Response.json(fixture.response);
+          }
+          assert.equal(isPair,true,item.id);assert.equal(init?.method,'GET');
+          if(target.pathname.endsWith('/affairs_students')){
+            assert.equal(target.searchParams.get('user_id'),'eq.'+owner);
+            return Response.json([{id:student,user_id:owner}]);
+          }
+          assert.equal(target.pathname,'/rest/v1/affairs_charges');
+          assert.equal(target.searchParams.get('student_id'),'eq.'+student);
+          chargeReads++;
+          return Response.json([{id:charge,student_id:student,label:'QA Tuition instalment',amount_due:28000,amount_paid:5000,currency:'TWD',
+            source_mode:'sample',due_on:null},{id:owner,student_id:student,label:'UNRELATED_CHARGE',amount_due:100,amount_paid:0,currency:'TWD',
+            source_mode:'sample',due_on:null}]);
         }catch(error){transportErrors.push(error);throw error;}
       };
       const result=await call(handler(),item.question);
       assert.deepEqual(transportErrors,[],item.id);
       assert.equal(reads,item.id.endsWith('write-boundary')?0:1,item.id);assert.equal(result.status,200,item.id);
+      assert.equal(chargeReads,Number(isPair),item.id);
       assert.deepEqual(result.body.verification,{status:'verified',attempts:1},item.id);
       assert.equal(result.events.filter(event=>event.kind==='fee-remission-evidence-check'&&event.status==='complete').length,1,item.id);
       const grade=gradeFeeRemissionCase(item,{statusCode:result.status,body:result.body,events:result.events,fixtureKey:item.fixtureKey,execution:'deterministic'});
@@ -229,20 +245,18 @@ test('a mismatched literal fee-remission selector cannot verify or display the r
   }finally{globalThis.fetch=original;}
 });
 
-test('mixed balance and remission use separate checked sources and retain the answer when balance is unavailable',async()=>{
-  for(const [question,chargeFailure] of [[namedBoth,false],[reverseBoth,false],[namedBoth,true]] as const){
-    await withOfflineProviders(async()=>{
-      const result=await call(handler(),question);
-      assert.equal(result.status,200);
-      assert.equal(result.body.verification.status,'verified');
-      assert.match(result.body.answer,/remission amount text is 0/u);
-      assert.match(result.body.answer,chargeFailure?/fee balance could not be read/u:/NT\$23,000/u);
-      const reads=result.events.filter(row=>row.kind.startsWith('account-read:'));
-      assert.ok(reads.some(row=>row.kind==='account-read:feeRemission:1'&&row.status==='complete'));
-      assert.ok(reads.some(row=>row.kind==='account-read:charges:1'&&row.status===(chargeFailure?'unavailable':'complete')));
-      if(chargeFailure)assert.doesNotMatch(JSON.stringify(result.body.views),/Tuition and fees/u);
-    },{withCharges:true,chargeFailure});
-  }
+test('mixed fee-remission and balance keep the literal answer when the other source is unavailable',async()=>{
+  await withOfflineProviders(async()=>{
+    const result=await call(handler(),namedBoth);
+    assert.equal(result.status,200);
+    assert.equal(result.body.verification.status,'verified');
+    assert.match(result.body.answer,/remission amount text is 0/u);
+    assert.match(result.body.answer,/fee balance could not be read/u);
+    const reads=result.events.filter(row=>row.kind.startsWith('account-read:'));
+    assert.ok(reads.some(row=>row.kind==='account-read:feeRemission:1'&&row.status==='complete'));
+    assert.ok(reads.some(row=>row.kind==='account-read:charges:1'&&row.status==='unavailable'));
+    assert.doesNotMatch(JSON.stringify(result.body.views),/Tuition and fees/u);
+  },{withCharges:true,chargeFailure:true});
 });
 
 test('guest sign-in and foreign-subject denial precede both readers',async()=>{
