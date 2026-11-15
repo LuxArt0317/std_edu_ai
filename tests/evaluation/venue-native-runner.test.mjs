@@ -12,7 +12,7 @@ const origin='https://stu.best',revision='a'.repeat(40),date='2026-11-15T01:00:0
 test('authoritative venue inventory records the local route, independent fixtures, sources and scoped tool contracts',async()=>{
   const inventory=await discoverSurfaces(),cases=venueRunnerCases();
   assert.equal(inventory.tools.filter(row=>row.id==='venueRequests').length,1);
-  assert.deepEqual(inventory.routeFamilies.find(row=>row.id==='venue-requests').routes,['/school-affairs/services/44-1']);
+  assert.ok(inventory.routeFamilies.find(row=>row.id==='school-services').routes.includes('/school-affairs/services/44-1'));
   assert.equal(cases.length,9);
   assert.equal(new Set(cases.map(row=>row.id)).size,9);
   assert.deepEqual(venueSetupSummary(cases).caseIds,cases.map(row=>row.id));

@@ -50,7 +50,6 @@ export async function discoverSurfaces() {
     signedIn('school-affairs',['/school-affairs','/school-affairs/records','/school-affairs/notifications','/school-affairs/bookmarks','/school-affairs/search']),
     signedIn('school-menus',menus.flatMap(group=>group.views.map(([view])=>`/school-affairs/menu/${group.id}/${view}`))),
     signedIn('school-services',[...new Set(schoolServiceEntries.map(row=>row.localUrl).filter(route=>route.startsWith('/school-affairs/services/')))]),
-    signedIn('venue-requests',['/school-affairs/services/44-1']),
     signedIn('student-leave',['/school-affairs/services/leave','/school-affairs/services/leave/index','/school-affairs/services/leave/history','/school-affairs/services/leave/archive','/school-affairs/services/leave/periods','/school-affairs/services/leave/edit/:id']),
     signedIn('internship',['/school-affairs/services/internship',...internshipViews.map(([view])=>'/school-affairs/services/internship/'+view)]),
     signedIn('course-catalog',['/school-affairs/services/12-4','/school-affairs/services/12-4?course=:id','/school-affairs/services/12-4?syllabus=:id']),

@@ -55,7 +55,7 @@ function makeCase(def){
     ...(def.required.length?{requireToolExecution:true,verification:def.limitation?'unverified':'verified'}:{}),
     ...(def.limitation?{toolTerminalStates:{[def.fees==='unavailable'?'charges':'venueRequests']:['unavailable','error']}}:{}),
   };
-  return {id:caseId,domain:'venueRequests',routeFamily:'venue-requests',route:venue,endpoint:'/api/affairs-assistant',mode:def.behavior?'boundary':def.limitation?'partial':def.id==='empty'?'empty':'record',
+  return {id:caseId,domain:'venueRequests',routeFamily:'school-services',route:venue,endpoint:'/api/affairs-assistant',mode:def.behavior?'boundary':def.limitation?'partial':def.id==='empty'?'empty':'record',
     language:'en',fixtureKey:fixturePrefix+def.id,fixtureRequirement:requirement,question:def.question,history:[],
     coveredTools:[...requiredAttempted],expected,venueOracle:{caseId,scope:structuredClone(def.venue),fees:def.fees??null,
       attempts:def.attempts??(def.behavior?0:1),fixtureMounted:false,requiresRequestObservations:true}};

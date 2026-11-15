@@ -1,3 +1,4 @@
+import {venueRunnerCases} from './venue-native-runner.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
@@ -179,8 +180,8 @@ test('remote-learning inventory follows the authenticated workspace and distinct
 test('route coverage retains only unresolved semantic cases after adding public assistant guidance',async()=>{
   const inventory=await discoverSurfaces();
   const leaveCases=studentLeaveRunnerCases(),internshipCases=internshipRunnerCases(),assignmentList=dtmAssignmentListCases();
-  const catalogCases=elearningCatalogRunnerCases();
-  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...buildPublicCases(inventory)];
+  const catalogCases=elearningCatalogRunnerCases(),venueCases=venueRunnerCases();
+  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...venueCases,...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
   const expected=[
     '/dtm/dashboard','/dtm/my',
@@ -213,6 +214,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query','public-custom-menu-browser-only',...buildSchoolMenuNativeCases().map(row=>row.id)];
   const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,...leaveCases.map(row=>row.id),'public-study-first-week','anonymous-records-leaveRecords','anonymous-records-dtmMaterials','anonymous-records-internshipRecords',...internshipCases.map(row=>row.id),...buildDtmMaterialCases().map(row=>row.id),...assignmentList.map(row=>row.id),'anonymous-records-dtmAssignmentList'];
   newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog');
+  newIds.push(...venueCases.map(row=>row.id),'anonymous-records-venueRequests');
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
