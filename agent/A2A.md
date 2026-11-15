@@ -907,3 +907,14 @@ packet reached the second monthly answer, then exposed the account-wide
 undated default charge missing from its oracle. Cleanup was independently
 verified. Protected `bb5f650` and `da77afd` are the corrected exact candidates.
 Keep their fixture operators serialized until both reach terminal cleanup.
+
+### Issue #100 exact scoped reads and confirmation
+
+Protected `bb5f650` passed Counseling 9/9 and independently observed unchanged
+state. Protected `da77afd` passed both monthly tuition answers, two same-account
+reads, two crossed-account denials, and anonymous denial. Both runs verified
+cleanup. Finance manager proof remains local. Replay the exact four-turn
+conversation on `da77afd` before leasing the fixture database to the club
+read operator. Club equipment cancellation reuses the existing owner-scoped
+RPC and only writes after the user confirms an exact request revision. Local
+HTTP and the Chromium confirmation and retry checks pass.

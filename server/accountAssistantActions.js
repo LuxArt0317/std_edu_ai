@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
+import {clubEquipmentPath} from './clubEquipmentIntent.js';
 
 const within = (value,min,max) => typeof value==='string' && [...value].length>=min && [...value].length<=max;
 const same = (left,right) => typeof left==='string' && left.normalize('NFKC').toLowerCase()===right.normalize('NFKC').toLowerCase();
@@ -11,6 +12,9 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
   const zh=/[\u3400-\u9fff]/u.test(question);
   const say=(en,cn)=>zh?cn:en;
   const clarify=(en,cn)=>({clarification:say(en,cn)});
+  if(requested.ambiguous&&kind==='cancel_club_equipment')return clarify(
+    'Please ask to cancel one club equipment request. You can give its exact club or item name in quotes, or its pickup date (YYYY-MM-DD).',
+    '請一次取消一筆社團器材借用申請，可用引號標註社團或器材完整名稱，或提供領取日期（YYYY-MM-DD）。');
   if(requested.ambiguous)return clarify('Ask for one change at a time. Quote the exact title or nickname if it contains instructions.',
     '請一次要求一項變更。如果標題或暱稱含有指令文字，請加上引號。');
   const proposal=(label,payload,url='/school-affairs/records')=>Buffer.byteLength(JSON.stringify(payload),'utf8')<=3850
@@ -37,6 +41,21 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
   if(kind==='update_display_name')return within(title,1,80)&&typeof snapshot.profile?.displayName==='string'
     ?proposal(say('Change your stu.best display name to ','將你的 stu.best 顯示名稱改成 ')+title,{display_name:title,expected_name:snapshot.profile.displayName})
     :clarify('What display name would you like to use?','請提供新的顯示名稱。');
+  if(kind==='cancel_club_equipment'){
+    const equipment=snapshot.clubEquipment;
+    if(!equipment||equipment.capped)return clarify('Open [My club equipment requests]('+clubEquipmentPath+') to select the exact request to cancel.',
+      '請從[我的社團器材借用紀錄]('+clubEquipmentPath+')選擇要取消的申請。');
+    const matches=equipment.rows.filter(row=>(!requested.pickup||row.pickup===requested.pickup)
+      &&(!target||same(row.club,target)||row.items.some(item=>same(item,target))));
+    if(matches.length!==1)return clarify('Which club equipment request should I cancel? Give the exact club or item name in quotes, or the pickup date (YYYY-MM-DD).',
+      '請提供要取消的申請，可用引號標註社團或器材完整名稱，或提供領取日期（YYYY-MM-DD）。');
+    const row=matches[0];
+    if(row.status!=='submitted'||row.pickup<equipment.today||row.version>=1_000_000)
+      return clarify('This request is no longer eligible for cancellation. You can review it in [My club equipment requests]('+clubEquipmentPath+').',
+        '這筆申請目前無法取消，可至[我的社團器材借用紀錄]('+clubEquipmentPath+')查看。');
+    return proposal(say(`Cancel ${row.club} · Pickup ${row.pickup} · ${row.items[0]}`,`取消 ${row.club} · 領取日期 ${row.pickup} · ${row.items[0]}`),
+      {id:row.id,expected_version:String(row.version)},clubEquipmentPath);
+  }
   const matches=(snapshot.assignments??[]).filter(row=>target&&same(row.title,target));
   if(matches.length!==1)return clarify('Which personal assignment tracker in stu.best should I update? Please give its exact title.','請提供要更新的個人作業追蹤完整標題。');
   const row=matches[0];

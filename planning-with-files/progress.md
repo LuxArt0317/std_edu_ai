@@ -61,3 +61,5 @@
 - 2026-11-15 [#100] Fixed the dated-history auth-module import exposed by CI and obtained all 544 local unit passes. Protected tuition packet reached B's monthly reply and surfaced a mismatch between charge-level and whole-account legacy expectations. A fresh database read proved zero residual fixture users, charges or ledger rows.
 
 - 2026-11-15 [#100] Integrated both independent grading corrections. Protected `db78083` passed GitHub Quality. Corrected Counseling `bb5f650` and combined tuition `da77afd` are queued for exact protected replays in that order, with verified cleanup required between them. Club equipment records are the next identified private reader gap.
+
+- 2026-11-15 [#100] Exact protected `bb5f650` passed all nine Counseling checks and cleanup. Exact `da77afd` passed both tuition accounts' scoped and crossed reads, both monthly replies, anonymous denial and exact fixture cleanup. Started the four-turn pinned transcript. Added explicit caller-owned club equipment cancellation to the existing chat confirmation and scoped service, with passing controlled handler and Chromium checks.

@@ -314,7 +314,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The selected club attendance page could not be checked.'});}
     return;
   }
-  const clubEquipment=clubEquipmentPlan(question,route,history);
+  const actionRequest=parseExplicitAccountAction(question);
+  const clubEquipment=actionRequest?.kind==='cancel_club_equipment'?null:clubEquipmentPlan(question,route,history);
   if(clubEquipment){
     if(clubEquipment.selection.reason){stream.send(200,clubEquipmentBoundary(question,clubEquipment.selection,true));return;}
     if(Array.isArray(input?.images)&&input.images.length){
@@ -365,14 +366,13 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,searchGuide);
     return;
   }
-  const actionRequest=parseExplicitAccountAction(question);
   if(actionRequest){
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Describe the requested change as text before reviewing it.'});
       return;
     }
     try{
-      const result=await answerRequestedAffairsAction({account,question,selection:actionRequest,deadline,
+      const result=await answerRequestedAffairsAction({account,question,selection:actionRequest,route,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
       stream.send(200,result);
     }catch{

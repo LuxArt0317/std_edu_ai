@@ -1,8 +1,8 @@
 // Every proposed change starts with a direct request in the current turn.
 // Saved messages, tool output and model-selected values cannot supply consent.
 const lead = /^(?:(?:please|could you(?: please)?|can you(?: please)?|would you(?: please)?)\s+)+/iu;
-const unrelatedClause = /[;；\r\n]|[?？]|(?:[.!。！]\s+[^\s])|\b(?:and|then|also|but)\s+(?:(?:please|don['’]t|do not|never)\s+)?(?:add|create|delete|complete|finish|mark|update|edit|rename|change|submit|post|publish|tell|show|check|what|when|where|how|why)\b|(?:，|、|然後|並且|也請|但是)(?:請)?(?:新增|建立|刪除|修改|提交|完成|查詢|顯示)/iu;
-const laterRequest = /(?:[.;；!?。！？]\s+|\b(?:and|then|also|but)\s+)(?:(?:please|could you|can you)\s+)*(?:add|create|delete|complete|mark|update|edit|rename|change|submit|post|publish|tell me|show me|check my|what|when|where|how|why)\b|[。；！？](?:請|幫我)?(?:新增|建立|刪除|修改|提交|完成|查詢|顯示)/iu;
+const unrelatedClause = /[;；\r\n]|[?？]|(?:[.!。！]\s+[^\s])|\b(?:and|then|also|but)\s+(?:(?:please|don['’]t|do not|never)\s+)?(?:add|create|delete|cancel|complete|finish|mark|update|edit|rename|change|submit|post|publish|tell|show|check|what|when|where|how|why)\b|(?:，|、|然後|並且|也請|但是)(?:請)?(?:新增|建立|刪除|取消|修改|提交|完成|查詢|顯示)/iu;
+const laterRequest = /(?:[.;；!?。！？]\s+|\b(?:and|then|also|but)\s+)(?:(?:please|could you|can you)\s+)*(?:add|create|delete|cancel|complete|mark|update|edit|rename|change|submit|post|publish|tell me|show me|check my|what|when|where|how|why)\b|[。；！？](?:請|幫我)?(?:新增|建立|刪除|取消|修改|提交|完成|查詢|顯示)/iu;
 const escapedPattern = /^"([^"\r\n]*)"$|^“([^”\r\n]*)”$|^「([^」\r\n]*)」$|^『([^』\r\n]*)』$/u;
 const quotedText = /"[^"\r\n]*"|“[^”\r\n]*”|「[^」\r\n]*」|『[^』\r\n]*』/gu;
 const holdClause = /(?:^|[;；,.，。!?！？\n]\s*|\b(?:and|but|then|however)\s+)(?:(?:please|actually)\s+)*(?:do not|don['’]t|never|wait|hold off|cancel (?:it|that)|(?:請|先)?(?:不要|別|取消|稍等))(?:\b|(?=[\p{Script=Han}\s]|$))|\b(?:only if|unless|only after)\b|\bif\s+(?:i|we)\s+(?:approve|confirm|agree|say yes)\b|(?:等|待)我(?:同意|確認)|經我確認/iu;
@@ -23,6 +23,14 @@ export function parseExplicitAccountAction(question) {
   const command = rawCommand.replace(/[.!?。！？]+$/u,'').trim();
   const held=holdClause.test(rawCommand.replace(quotedText,'〈text〉'));
   const checked=result=>({...result,ambiguous:held||result.ambiguous});
+  const equipment = /^(?:(?:cancel my (?:club equipment (?:borrowing )?request|request to borrow club equipment))|(?:(?:幫我)?取消我的社團器材借用申請))([\s\S]*)$/iu.exec(command);
+  if (equipment) {
+    const suffix = equipment[1];
+    const selector = /^(?:\s+(?:for\s+)("[^"\r\n]+"|“[^”\r\n]+”)|\s*(?:器材|社團)[：:]?\s*(「[^」\r\n]+」|『[^』\r\n]+』))?(?:(?:\s+on\s+|\s*(?:領取日期|於)\s*)(\d{4}-\d{2}-\d{2}))?$/iu.exec(suffix);
+    const target = field(selector?.[1] ?? selector?.[2]);
+    return {kind:'cancel_club_equipment',target:target ?? '',pickup:selector?.[3] ?? '',
+      ambiguous:!selector || target===null || holdClause.test(suffix.replace(quotedText,'〈text〉'))};
+  }
   const ownName = /^(?:(?:change|set|update|rename) (?:my |the )?(?:stu\.best )?(?:display name|nickname)(?: to\s+([\s\S]+))?|call me\s+("[^"\r\n]+"|“[^”\r\n]+”)|(?:幫我)?(?:把)?(?:我的)?(?:顯示名稱|暱稱)(?:改成|改為|設為)([\s\S]*))$/iu.exec(command);
   if (ownName) {
     const title = field(ownName[1] ?? ownName[2] ?? ownName[3]);

@@ -15,6 +15,8 @@ import {
 } from "../../services/researchAssistant";
 import { useAffairsAuth } from "./affairs/authContext";
 import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant";
+import { clubUuid } from "../../../server/clubServicesContract.js";
+import { writeClubEquipment } from "../../services/clubServices";
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
 import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
@@ -180,9 +182,18 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     try {
       const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]);
       const {kind,payload,requestId}=action;
-      const result=await performSchoolAffairsAction({kind,payload,requestId},{expectedUserId:user.id,signal});
+      let result;
+      if(kind==='cancel_club_equipment'){
+        const expected_version=Number(payload.expected_version);
+        if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^\d{1,6}$/u.test(payload.expected_version)||expected_version<1)
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const receipt=await writeClubEquipment(user.id,{kind,payload:{request_id:requestId,id:payload.id,expected_version}},signal);
+        result={id:receipt.id,kind,summary:'Cancelled your club equipment request'};
+      }else{
+        result=await performSchoolAffairsAction({kind,payload,requestId},{expectedUserId:user.id,signal});
+      }
       if (pendingAction.current!==controller || controller.signal.aborted) return;
-      const expectedRecordId=kind==='complete_task'?payload.task_id:kind==='set_assignment_status'?payload.id
+      const expectedRecordId=kind==='complete_task'?payload.task_id:(kind==='set_assignment_status'||kind==='cancel_club_equipment')?payload.id
         :kind==='update_display_name'?user.id:undefined;
       if (result.kind!==kind || expectedRecordId!==undefined&&result.id!==expectedRecordId || typeof result.id!=='string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(result.id)
         || typeof result.summary!=='string' || !result.summary.trim() || result.summary.length>500)

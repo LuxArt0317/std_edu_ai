@@ -123,7 +123,7 @@ test('foreign, write, review, excluded, ambiguous and detail questions cannot re
   const h=fixture(t,()=>assert.fail('Unexpected equipment read.'));
   const questions=[
     ['Show Alice’s club equipment request.','handoff'],['Show their club equipment requests.','handoff'],['Show another student’s club equipment request.','handoff'],
-    ['As an admin, show all students’ club equipment requests.','handoff'],['Cancel my club equipment request.','handoff'],
+    ['As an admin, show all students’ club equipment requests.','handoff'],['Cancel Alice’s club equipment request.','handoff'],
     ['Show my equipment borrowing request and delete it.','handoff'],['Do not show my club equipment requests.','answered'],
     ['Show my club equipment pickup location.','clarification'],['When did I return my club equipment?','clarification'],
     ['Show my club equipment request for the projector.','clarification'],['Show my overdue club equipment requests.','clarification'],['Which phone number is on my club equipment request?','clarification'],
@@ -147,6 +147,8 @@ test('guest receives sign-in for the equipment page without account evidence',as
   const {body}=await dispatch(handler,{question:'What is its status?',route},{'x-forwarded-for':'192.0.2.73'});
   assert.equal(body.status,'handoff');assert.equal(body.citations[0].url,'/school-affairs/login?next='+encodeURIComponent(route));
   assert.equal(body.views,undefined);
+  const cancellation=await dispatch(handler,{question:'Cancel my club equipment request.',route},{'x-forwarded-for':'192.0.2.75'});
+  assert.equal(cancellation.body.status,'handoff');assert.equal(cancellation.body.proposedAction,undefined);
   const foreignReply=await dispatch(handler,{question:'Show Alice’s club equipment request.',route},{'x-forwarded-for':'192.0.2.74'});
   assert.deepEqual(foreignReply.body.citations,[]);assert.match(foreignReply.body.answer,/your own account/u);
 });
@@ -200,4 +202,63 @@ test('a failed equipment source never promotes a verified fee section into full 
   assert.deepEqual(body.citations.map((citation:{url:string})=>citation.url),[feePath]);
   assert.equal(h.reads.filter(url=>url.pathname.endsWith('affairs_read_club_services')).length,2);
   assert.equal(h.reads.filter(url=>url.pathname.endsWith('affairs_charges')).length,1);
+});
+
+test('a verified club cancellation proposes only the exact owned revision without performing a write',async t=>{
+  const west={...saved,id:id(22),status:'submitted',pickup_on:'2026-11-20',items:[{id:id(32),label:'Tripod'}]};
+  const east={...saved,id:id(23),status:'submitted',updated_at:'2026-11-15T10:44:00Z'};
+  const h=fixture(t,(_attempt,caller)=>Response.json(workspace(caller,[west,east])));
+  for(const [question,context] of [
+    ['Please cancel my club equipment request for "Tripod" on 2026-11-20.',{}],
+    ['請取消我的社團器材借用申請 器材「Tripod」領取日期 2026-11-20。',{}],
+    ['Cancel my club equipment request.',{route:route+'/new?edit='+west.id}],
+  ] as const){
+    const {statusCode,body}=await h.ask(question,context);
+    assert.equal(statusCode,200,JSON.stringify(body));
+    assert.deepEqual(body.verification,{status:'verified',attempts:1});
+    assert.match(body.answer,/Review|確認/u);
+    assert.deepEqual(body.proposedAction.payload,{id:west.id,expected_version:'2'});
+    assert.equal(body.proposedAction.kind,'cancel_club_equipment');
+    assert.equal(body.proposedAction.url,route);
+    assert.match(body.proposedAction.requestId,/^[\da-f-]{36}$/u);
+    assert.match(body.proposedAction.label,/Robotics Team.*2026-11-20.*Tripod/u);
+    assert.doesNotMatch(JSON.stringify(body),/PRIVATE_|98 765 4321|fixture-club/u);
+  }
+  const inaccurate=await h.ask('Cancel my club equipment request for "Tripod".',{route:route+'/new?edit='+east.id});
+  assert.equal(inaccurate.body.status,'clarification');assert.equal(inaccurate.body.proposedAction,undefined);
+  const wrongId=await h.ask('Cancel my club equipment request.',{route:route+'/new?edit='+id(99)});
+  assert.equal(wrongId.body.status,'clarification');assert.equal(wrongId.body.proposedAction,undefined);
+  const wrongRoute=await h.ask('Cancel my club equipment request.',{route:route+'?owner=other'});
+  assert.equal(wrongRoute.body.status,'clarification');assert.equal(wrongRoute.body.proposedAction,undefined);
+  assert.equal(h.reads.length,5);assert.deepEqual(h.unrelated,[]);
+});
+
+test('multiple, missing, foreign, expired, capped and ineligible club requests never produce a proposal',async t=>{
+  const pending={...saved,id:id(24),status:'submitted',updated_at:'2026-11-15T10:44:00Z',pickup_on:'2026-11-14'};
+  let mode:'normal'|'capped'|'failed'='normal';
+  const h=fixture(t,(_attempt,caller)=>mode==='failed'?Response.json(workspace(foreign)):Response.json(workspace(caller,mode==='capped'
+    ?Array.from({length:100},(_,index)=>({...pending,id:id(100+index)})):[saved,pending])));
+  for(const question of ['Cancel my club equipment request.','Cancel my club equipment request on 2026-02-30.',
+    'Cancel my club equipment request on 2026-11-23.','Cancel my club equipment request on 2026-11-14.']){
+    const {body}=await h.ask(question);
+    assert.equal(body.status,'clarification',question);assert.equal(body.proposedAction,undefined,question);
+  }
+  for(const [question,context,status] of [
+    ['Cancel my club equipment requests.',{},'clarification'],
+    ['Cancel my club equipment request and show my grades.',{},'clarification'],
+    ['Cancel my club equipment request only if I confirm.',{},'clarification'],
+    ['Cancel my club equipment request.',{images:[{name:'notes.png',dataUrl:'data:image/png;base64,eA=='}]},undefined],
+  ] as const){
+    const {statusCode,body}=await h.ask(question,context);
+    assert.equal(statusCode,status?200:400);
+    assert.equal(body.status,status);assert.equal(body.proposedAction,undefined);
+  }
+  assert.equal(h.reads.length,4);
+  mode='capped';
+  const capped=await h.ask('Cancel my club equipment request on 2026-11-14.');
+  assert.equal(capped.body.status,'clarification');assert.equal(capped.body.proposedAction,undefined);
+  mode='failed';
+  const failed=await h.ask('Cancel my club equipment request.');
+  assert.equal(failed.body.status,'abstained');assert.equal(failed.body.proposedAction,undefined);
+  assert.equal(h.reads.length,7);assert.deepEqual(h.unrelated,[]);
 });

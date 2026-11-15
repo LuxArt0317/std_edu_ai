@@ -836,13 +836,16 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay the five original payroll failures and all nine executable dormitory cases on a matching protected build.
 - [ ] Verify the direct empty payroll response and run the dormitory housing companion with an independently available academic year 115 semester 1 period.
 - [x] Pass all 16 protected Health Exam cases with two independent caller views and exact cleanup.
-- [ ] Re-run the nine protected Counseling cases after correcting the unchanged-state proof wiring. Preserve their first report and verified cleanup.
+- [x] Pass all nine protected Counseling cases after correcting the unchanged-state proof wiring. Preserve both reports and verified cleanup.
 - [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
 - [x] Verify nine signed-out service boundaries and navigation paths on integrated protected Preview `6c76997`.
 - [ ] Verify the four service boundary families through authenticated protected Preview requests.
 - [x] Add dated tuition payment history, the manager's receipt and reversal screen, and signed-in monthly assistant answers. Preserve aggregate-only legacy payment amounts.
 - [x] Verify the native PostgreSQL lock and replay behavior, manager and student browser routes, and the exact client migration source and RLS catalog.
-- [ ] Complete the protected paired student scope, monthly assistant and fixture cleanup replay; record the independent evidence for staff operation access.
+- [x] Pass the protected paired student scope, monthly assistant and fixture cleanup replay.
+- [ ] Verify the hosted finance manager path using an approved synthetic manager identity.
+- [x] Verify scoped club equipment reads and exact confirmed cancellation locally through the assistant, including zero pre-confirmation writes and a stable retry ID.
+- [ ] Complete the protected equipment read and cancellation replays with independent record readback and fixture cleanup.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.

@@ -35,11 +35,11 @@ function timestamp(value){
   return BigInt(parsed)*1000n+BigInt((match[2]??'').padEnd(6,'0').slice(3));
 }
 
-async function readEquipment(account,selection,deadline){
+async function readOwnedClubEquipmentWorkspace(account,deadline){
   if(!clubUuid.test(account.user.id)||!Number.isFinite(deadline))throw unavailable();
   const response=await requestAffairsRpc({...account,requestDeadline:Math.min(deadline,Date.now()+6500)},'affairs_read_club_services',
     {p_view:'equipment',p_month:null},{readJson:incoming=>readFeeRemissionJson(incoming,maxTransportBytes),errorMessages:{}});
-  if(Date.now()>=deadline||!validClubWorkspace(response,account.user.id,'equipment')||!exact(response,workspaceKeys))throw unavailable();
+  if(Date.now()>=deadline||!validClubWorkspace(response,account.user.id,'equipment')||!exact(response,workspaceKeys)||!actualDate(response.today))throw unavailable();
   const seen=new Set();
   let previous;
   for(const row of response.rows){
@@ -52,6 +52,17 @@ async function readEquipment(account,selection,deadline){
     seen.add(row.id);
     previous={id:row.id,updated};
   }
+  return response;
+}
+
+export async function readClubEquipmentCancellationContext(account,deadline){
+  const {today,rows}=await readOwnedClubEquipmentWorkspace(account,deadline);
+  return {today,capped:rows.length===sourceLimit,rows:rows.map(row=>({id:row.id,club:displayLabel(row.club_name),
+    status:row.status,pickup:row.pickup_on,version:row.version,items:row.items.map(item=>displayLabel(item.label))}))};
+}
+
+async function readEquipment(account,selection,deadline){
+  const response=await readOwnedClubEquipmentWorkspace(account,deadline);
   const matching=response.rows.filter(row=>(!selection.id||row.id===selection.id)&&(!selection.status||row.status===selection.status));
   const fields=new Set(selection.fields);
   const rows=selection.countOnly?[]:matching.slice(0,selection.latest?1:visibleLimit).map(row=>({club:displayLabel(row.club_name),

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Review and confirm an exact saved club equipment cancellation in the School Affairs assistant. The chat verifies the revision and receipt before showing the updated record. [#100]
+
 - The School Affairs assistant verifies the signed-in student’s club equipment status, pickup and return dates, and item names against saved borrowing requests. [#100]
 
 - Let authorized School Affairs managers record and reverse dated payments from the selected student's charge. Preserve the same request when a receipt goes missing, including after reopening the page. [#100]
