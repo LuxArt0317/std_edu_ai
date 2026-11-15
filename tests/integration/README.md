@@ -98,7 +98,38 @@ DTM submission helpers and actual private Storage are checked by `dtm-submission
 
 Use the separate `--preview-browser` mode of `assistant-conversation-http-live.mjs` for the two signed-in browser turns. It requires the two existing conversation migrations, the exact clean deployed revision, the approved generated Preview origin and the client fixture environment. Put that origin in both `ASSISTANT_ORIGIN` and `APPROVED_PREVIEW_ORIGIN`, and use its complete source SHA in `EXPECTED_RELEASE_REVISION`.
 
-Set `ASSISTANT_PREVIEW_BROWSER_ASSETS` to a local JSON file from the exact build. It contains `revision`, the allowlist of relative `assets` paths for the DTM page and campus assistant, and an optional `dataPaths` array of exact owner-data requests. The default data route is `/api/affairs-data`. Keep the allowlist outside tracked files so the checkout stays clean.
+Set `ASSISTANT_PREVIEW_BROWSER_ASSETS` to a fresh output path in an owner-only directory outside the checkout. With the same approved origin and reviewed revision used by the browser operator, derive the allowlist from the deployment before reserving fixtures. Supply the authorized Development OIDC token in the Node environment.
+
+```sh
+node --input-type=module - <<'JS'
+import {writeFile} from 'node:fs/promises';
+import {deriveProtectedConversationBrowserAssets} from './tests/evaluation/protected-conversation-browser-assets.mjs';
+import {createPreviewDevelopmentTokenGuard, previewTrustedHeader} from './tests/evaluation/vercel-preview-transport.mjs';
+
+const origin = process.env.ASSISTANT_ORIGIN;
+const token = process.env.VERCEL_OIDC_TOKEN;
+const assertCurrentToken = createPreviewDevelopmentTokenGuard(token);
+const allowedPath = /^\/(?:dtm|release[.]json|assets\/[a-zA-Z0-9_.-]+[.](?:js|css))$/u;
+const fetchImpl = (url, init) => {
+  const target = new URL(url);
+  if (target.origin !== origin || url !== origin + target.pathname || !allowedPath.test(target.pathname)
+    || init.method !== 'GET' || init.redirect !== 'error' || init.credentials !== 'omit')
+    throw new Error('Unapproved asset discovery request.');
+  assertCurrentToken();
+  const headers = new Headers(init.headers);
+  headers.set(previewTrustedHeader, token);
+  return fetch(url, {...init, headers});
+};
+const result = await deriveProtectedConversationBrowserAssets({
+  origin, approvedPreviewOrigin: process.env.APPROVED_PREVIEW_ORIGIN,
+  revision: process.env.EXPECTED_RELEASE_REVISION, fetchImpl,
+});
+await writeFile(process.env.ASSISTANT_PREVIEW_BROWSER_ASSETS,
+  JSON.stringify(result) + '\n', {mode: 0o600, flag: 'wx'});
+JS
+```
+
+The helper checks the release manifest before and after reading the actual DTM shell, then follows static imports and selected DTM and assistant lazy dependencies. It supplies the required known theme files and keeps the default owner-data route `/api/affairs-data`. The browser still checks that the allowed resources work on the live page. The bundle format and selected lazy edges are tied to this DTM flow, so review a changed route or bundler layout before expanding the list.
 
 ```sh
 node tests/integration/assistant-conversation-http-live.mjs --preview-browser
