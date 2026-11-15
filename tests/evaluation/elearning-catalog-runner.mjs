@@ -1,6 +1,7 @@
 import {isDeepStrictEqual} from 'node:util';
 import {hasBoundMetadataObservation,metadataCasePrefix,metadataEndpoint,metadataFixtureRequirement} from './elearning-metadata-live.mjs';
 import {catalogCases,catalogMetadataCases,forbiddenCatalogEvidence} from './elearning-catalog-native-cases.mjs';
+import {catalogCourseLinksMatch,catalogEndpoint,catalogFixtureRequirement,hasBoundCatalogObservation,hasPublishedCourseProjection} from './elearning-catalog-live.mjs';
 import {gradeCase,extractAnswerLinks} from './grading.mjs';
 
 const tool='elearningCatalog';
@@ -24,14 +25,16 @@ export function elearningCatalogRunnerCases(){
         ?(zh?'找不到符合的已儲存課程':'No saved courses match this search')
         :(zh?'查無已儲存課程':'no saved courses for this category filter')]:[];
     return {id:prefix+row.id,domain:tool,route,question:row.question,mode:row.emptyReason?'empty':'record',language:zh?'zh-Hant':'en',
-      fixtureKey:'offline:elearning-catalog:'+row.id,fixtureRequirement:offline,coveredTools:[tool],
+      executionContract:'live-native',endpoint:catalogEndpoint,
+      fixtureKey:'elearning-catalog:'+row.id,fixtureRequirement:catalogFixtureRequirement,coveredTools:[tool],
       catalogOracle:{ids:row.ids,attempts:1,rpc:row.rpc},expected:{behavior:'answer',requiredText,facts,
         verification:'verified',requireToolExecution:true,requiredTools:[tool],requiredAttemptedTools:[tool],allowedTools:[tool],
         requiredLinks:[route,...row.ids.map(id=>'/elearning/course/'+id)],requiredSourceBindings:[{sourceId:'account:'+tool,url:route}],
         forbiddenText:[...forbiddenCatalogEvidence,'you enrolled','you are enrolled','official enrollment confirmed'],
         forbidPublicResearch:true,localLinksOnly:true,noAction:true}};
   });
-  const original=positive[0];
+  const {executionContract:_contract,endpoint:_endpoint,...original}=positive[0];
+  original.fixtureRequirement=offline;
   const failed={...original,id:prefix+'failed-or-mismatched',fixtureKey:'offline:elearning-catalog:failed',catalogOracle:{ids:[],attempts:2,rpc:original.catalogOracle.rpc},
     expected:{behavior:'unavailable',limitation:true,verification:'unverified',requiredAttemptedTools:[tool],allowedTools:[tool],
       toolTerminalStates:{[tool]:['unavailable']},noAction:true,forbidPublicResearch:true,localLinksOnly:true}};
@@ -64,20 +67,28 @@ export function assertElearningMetadataCase(row){
   if(!expected||!isDeepStrictEqual(row,expected))throw new Error('Digital Academy metadata case is outside its frozen request definition.');
 }
 
-export const elearningCatalogSetupRequired=row=>!isElearningMetadataCase(row)&&(row?.fixtureRequirement===offline
+export const isElearningCatalogReadbackCase=row=>row?.fixtureRequirement===catalogFixtureRequirement
+  ||typeof row?.id==='string'&&row.id.startsWith(prefix)&&hasPublishedCourseProjection(row.id.slice(prefix.length));
+export const isElearningPublishedReadbackCase=row=>isElearningMetadataCase(row)||isElearningCatalogReadbackCase(row);
+
+export const elearningCatalogSetupRequired=row=>!isElearningPublishedReadbackCase(row)&&(row?.fixtureRequirement===offline
   ||typeof row?.id==='string'&&row.id.startsWith(prefix)
   ||typeof row?.fixtureKey==='string'&&row.fixtureKey.startsWith('offline:elearning-catalog:'));
 export function assertElearningCatalogCaseReady(row){
   if(isElearningMetadataCase(row))assertElearningMetadataCase(row);
-  else if(elearningCatalogSetupRequired(row))throw new Error('Digital Academy course catalog fixtures and independent observations are unmounted.');
+  else if(isElearningCatalogReadbackCase(row)){
+    const expected=elearningCatalogRunnerCases().find(candidate=>candidate.id===row.id&&isElearningCatalogReadbackCase(candidate));
+    if(!expected||!isDeepStrictEqual(row,expected))throw new Error('Digital Academy catalog case is outside its frozen request definition.');
+  }else if(elearningCatalogSetupRequired(row))throw new Error('Digital Academy course catalog fixtures and independent observations are unmounted.');
 }
 
 export function elearningCatalogSetupSummary(cases){
   const metadataCases=cases.filter(isElearningMetadataCase);
+  const courseCases=cases.filter(isElearningCatalogReadbackCase);
   const unbound=cases.filter(elearningCatalogSetupRequired);
-  const caseIds=cases.filter(row=>isElearningMetadataCase(row)||elearningCatalogSetupRequired(row)).map(row=>row.id);
-  return {registered:caseIds.length,liveEligible:metadataCases.length,caseIds,
-    metadataCaseIds:metadataCases.map(row=>row.id),unboundCaseIds:unbound.map(row=>row.id)};
+  const caseIds=cases.filter(row=>isElearningPublishedReadbackCase(row)||elearningCatalogSetupRequired(row)).map(row=>row.id);
+  return {registered:caseIds.length,liveEligible:metadataCases.length+courseCases.length,caseIds,
+    metadataCaseIds:metadataCases.map(row=>row.id),courseCaseIds:courseCases.map(row=>row.id),unboundCaseIds:unbound.map(row=>row.id)};
 }
 
 export function gradeElearningCatalogCase(testCase,envelope,options){
@@ -118,6 +129,14 @@ export function gradeElearningCatalogCase(testCase,envelope,options){
     {id:'catalog.attempts',passed:(body.verification?.attempts??0)===oracle.attempts,
       detail:'The shared verification loop made the expected number of bounded attempts.'},
   ];
+  if(isElearningCatalogReadbackCase(testCase)){
+    checks.push({id:'catalog.visible-link-titles',passed:catalogCourseLinksMatch(testCase,answer),
+      detail:'Every displayed course title matches the published record behind that exact link.'});
+    if(['live-native','live-model'].includes(envelope.execution)){
+      checks.push({id:'catalog.request-bound-observation',passed:hasBoundCatalogObservation(testCase,envelope),
+        detail:'Paired caller catalog pages and endpoint progress match the exact pinned assistant request.'});
+    }
+  }
   result.checks.push(...checks);
   result.failures.push(...checks.filter(check=>!check.passed));
   result.passed=result.failures.length===0;

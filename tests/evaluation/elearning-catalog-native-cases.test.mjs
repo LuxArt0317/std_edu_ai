@@ -13,7 +13,10 @@ import {AffairsWorkspaceError} from '../../server/affairsWorkspace.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {readElearningCatalogPage,selectElearningCatalogPage} from '../../server/elearningCatalogPageEvidence.js';
 import {elearningCatalogPageRoute,elearningCatalogGuestRoute,isElearningCatalogPageQuestion} from '../../server/elearningCatalogPageIntent.js';
-import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
+import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
+import {bindCatalogObservation,catalogEndpoint,readCatalogObservations,verifyCatalogProjection} from './elearning-catalog-live.mjs';
+import {metadataDispatchObservation,metadataProject} from './elearning-metadata-live.mjs';
+import {prepare} from './live-fixtures.mjs';
 import {catalogCases,catalogNegativeQuestions,forbiddenCatalogEvidence,catalogMetadataCases} from './elearning-catalog-native-cases.mjs';
 
 const account={
@@ -163,20 +166,20 @@ const accountHandler=createAffairsAssistantHandler({
   },
   loadSnapshot:forbidRemote,publicResearch:forbidRemote,answerAccount:forbidRemote,
 });
-async function invoke(handler,{question,route,token=account.token,history=[],images=[],extra={}}){
+async function invoke(handler,{question,route,token=account.token,history=[],images=[],extra={},requestBody}){
   let statusCode=200,body;
   const parts=[],headers={},events=[];
   const response={status(code){statusCode=code;return response;},json(value){body=value;},setHeader(name,value){headers[name]=value;},
     write(text){parts.push(text);},end(){},flushHeaders(){}};
   await handler({method:'POST',headers:{authorization:'Bearer '+token,'x-forwarded-for':'192.0.2.198'},
-    body:{question,route,history,images,stream:true,...extra}},response);
+    body:requestBody??{question,route,history,images,stream:true,...extra}},response);
   const result=parts.length?await readAssistantReply(new Response(parts.join(''),{headers}),step=>events.push(step)):body;
-  return {body:result,events,statusCode};
+  return {body:result,events,statusCode,correlationId:headers['X-Assistant-Request-Id']};
 }
 
 test('registered catalog cases run through authenticated handler, shared graph and independent oracle',async t=>{
   for(const scenario of elearningCatalogRunnerCases()){
-    if(scenario.metadataOracle)assert.doesNotThrow(()=>assertElearningCatalogCaseReady(scenario));
+    if(!elearningCatalogSetupRequired(scenario))assert.doesNotThrow(()=>assertElearningCatalogCaseReady(scenario));
     else assert.throws(()=>assertElearningCatalogCaseReady(scenario),/unmounted/u,scenario.id);
     if(!scenario.catalogOracle)continue;
     await t.test(scenario.id,async context=>{
@@ -190,7 +193,30 @@ test('registered catalog cases run through authenticated handler, shared graph a
         if(scenario.id.endsWith('failed-or-mismatched'))body.userId='78000000-0000-4000-8000-000000000999';
         return Response.json(body);
       });
-      const result=await invoke(guest?createResearchAssistantHandler():accountHandler,{...scenario,token:guest?'':account.token});
+      const mounted=isElearningCatalogReadbackCase(scenario);
+      const users=[{id:account.user.id,token:account.token},
+        {id:'78000000-0000-4000-8000-000000000102',token:'second-synthetic-token'}];
+      const readCallers=[];
+      const readback=()=>readCatalogObservations(scenario,{users,publishable:account.key,
+        fetchImpl:async(url,init)=>{
+          const [category,term,page]=scenario.catalogOracle.rpc;
+          assert.equal(url.href,'https://'+metadataProject+'.supabase.co/rest/v1/rpc/elearning_catalog');
+          assert.equal(init.method,'POST');
+          assert.equal(init.redirect,'error');
+          assert.equal(init.credentials,'omit');
+          assert.equal(init.headers.apikey,account.key);
+          assert.deepEqual(JSON.parse(init.body),{p_category:category,p_term:term,p_page:page,p_course:null});
+          const caller=users.find(user=>init.headers.Authorization==='Bearer '+user.token);
+          assert.ok(caller);
+          readCallers.push(caller.id);
+          return Response.json({...capturedCatalog([category,term,page]),userId:caller.id});
+        },
+        readResponse:response=>response.json(),
+      });
+      const before=mounted?await readback():null;
+      const requestBody=mounted?JSON.stringify({question:scenario.question,history:[],route:scenario.route,
+        stream:true,consentedResearchUse:false}):undefined;
+      const result=await invoke(guest?createResearchAssistantHandler():accountHandler,{...scenario,requestBody,token:guest?'':account.token});
       assert.equal(result.statusCode,200);
       assert.equal(transport.mock.callCount(),scenario.catalogOracle.attempts);
       for(const id of scenario.catalogOracle.ids){
@@ -203,8 +229,132 @@ test('registered catalog cases run through authenticated handler, shared graph a
       }
       const grade=gradeElearningCatalogCase(scenario,{...result,execution:'deterministic',fixtureKey:scenario.fixtureKey});
       assert.ok(grade.passed,JSON.stringify(grade.failures));
+      if(!mounted)return;
+      const after=await readback();
+      const sourceRevision='a'.repeat(40);
+      const envelope={...result,fixtureKey:scenario.fixtureKey,sourceRevision,execution:'live-native',
+        deploymentCheck:{verified:true,sourceRevision,requestIndex:1},catalogDispatch:metadataDispatchObservation(catalogEndpoint,requestBody)};
+      assert.equal(gradeElearningCatalogCase(scenario,envelope).passed,false,'Assistant telemetry alone cannot pass.');
+      envelope.fixtureReadback={verified:true,projectRef:metadataProject,independentGolden:true,
+        elearningCatalog:bindCatalogObservation(scenario,envelope,{before,after})};
+      const hostedShape=gradeElearningCatalogCase(scenario,envelope);
+      assert.ok(hostedShape.passed,JSON.stringify(hostedShape.failures));
+      assert.deepEqual(readCallers,users.concat(users).map(user=>user.id));
+      assert.equal(users.some(user=>JSON.stringify(envelope).includes(user.id)||JSON.stringify(envelope).includes(user.token)),false);
+      if(scenario.id.endsWith('search-literal-first')){
+        for(const corrupt of [
+          copy=>{copy.fixtureReadback.elearningCatalog.after[1].total++;},
+          copy=>{copy.fixtureReadback.elearningCatalog.before.pop();},
+          copy=>{copy.fixtureReadback.elearningCatalog.caseId+='-different';},
+          copy=>{copy.fixtureReadback.projectRef='another-project';},
+          copy=>{copy.events.pop();},
+          copy=>{copy.events.push({kind:'web-search',status:'complete'});},
+          copy=>{copy.deploymentCheck.requestIndex++;},
+          copy=>{copy.deploymentCheck.sourceRevision='b'.repeat(40);},
+          copy=>{copy.catalogDispatch.endpoint='/api/research-assistant';},
+          copy=>{copy.catalogDispatch.bodySha256='f'.repeat(64);},
+          copy=>{copy.correlationId=users[0].id;},
+        ]){
+          const copy=structuredClone(envelope);corrupt(copy);
+          assert.ok(gradeElearningCatalogCase(scenario,copy).failures.some(failure=>failure.id==='catalog.request-bound-observation'));
+        }
+        const labelSwap=structuredClone(envelope);
+        labelSwap.body.answer=labelSwap.body.answer.replace(/\[[^\]\n]*\]\(\/elearning\/course\/5746\)/u,'[Wrong title](/elearning/course/5746)');
+        assert.ok(gradeElearningCatalogCase(scenario,labelSwap).failures.some(failure=>failure.id==='catalog.visible-link-titles'));
+      }
     });
   }
+});
+
+test('published catalog proof rejects drift, crossed callers and altered course selectors',async()=>{
+  const mounted=elearningCatalogRunnerCases().filter(isElearningCatalogReadbackCase);
+  assert.equal(mounted.length,16);
+  for(const row of mounted){
+    const packet=capturedCatalog(row.catalogOracle.rpc);
+    assert.doesNotThrow(()=>verifyCatalogProjection(packet,account.user.id,row));
+    for(const alter of [
+      copy=>{copy.route+='#changed';},
+      copy=>{copy.question+=' More.';},
+      copy=>{copy.catalogOracle.rpc[2]++;},
+      copy=>{copy.fixtureRequirement='offline_elearning_catalog_page';},
+      copy=>{copy.endpoint='/api/research-assistant';},
+    ]){
+      const copy=structuredClone(row);alter(copy);
+      assert.throws(()=>assertElearningCatalogCaseReady(copy),/frozen request definition/u);
+    }
+    assert.throws(()=>verifyCatalogProjection(packet,'78000000-0000-4000-8000-000000000102',row),/caller or projection shape/u);
+    assert.throws(()=>verifyCatalogProjection({...packet,total:packet.total+1},account.user.id,row),/published catalog oracle/u);
+    if(packet.courses.length>1){
+      const wrongOrder={...packet,courses:[...packet.courses].reverse()};
+      assert.throws(()=>verifyCatalogProjection(wrongOrder,account.user.id,row),/published catalog oracle/u);
+    }
+    if(packet.courses.length){
+      const copy=structuredClone(packet);
+      copy.courses[0].title+=' changed';
+      assert.throws(()=>verifyCatalogProjection(copy,account.user.id,row),/published catalog oracle/u);
+      copy.courses[0].extra='unexpected';
+      assert.throws(()=>verifyCatalogProjection(copy,account.user.id,row),/unexpected fields/u);
+    }
+  }
+  const row=mounted[0];
+  let requests=0;
+  await assert.rejects(readCatalogObservations(row,{users:[{id:account.user.id,token:account.token},{id:account.user.id,token:'other'}],
+    fetchImpl:()=>{requests++;}}),/distinct disposable/u);
+  assert.equal(requests,0);
+});
+
+test('the catalog fixture requires the exact protected Preview before resolving fixture credentials',async()=>{
+  const row=elearningCatalogRunnerCases().find(isElearningCatalogReadbackCase);
+  await assert.rejects(prepare({runId:'78000000-0000-4000-8000-000000000120',cases:[row],now:'2026-11-15T00:00:00Z',
+    origin:'https://stu.best'}),{code:'fixture-target',message:/exact protected Preview/u});
+});
+
+test('actual fixture lifecycle observes both callers before and after and leaves unrelated fixture readers untouched',async()=>{
+  const source=readFileSync(new URL('./live-fixtures.mjs',import.meta.url),'utf8');
+  const section=(start,end)=>source.slice(source.indexOf(start),source.indexOf(end,source.indexOf(start))).replace('export async function','async function');
+  const read=section('export async function forCase(','async function currentOutlineFixture');
+  const recheck=section('export async function afterCase(','export function reconcileFixtureIdentity');
+  const row=elearningCatalogRunnerCases().find(isElearningCatalogReadbackCase);
+  const events=[];
+  const users=[{id:account.user.id,token:account.token},
+    {id:'78000000-0000-4000-8000-000000000102',token:'second-synthetic-token'}]
+    .map(user=>({...user,renewSession:async()=>events.push('renew:'+user.id)}));
+  const state={elearningPublishedReadbackOnly:true,caseIds:new Set([row.id]),users,identityRequests:[],
+    publishable:account.key,previewGate:{assertCurrent:async()=>events.push('pin')},
+    boundedFetch:async(_url,{body,headers})=>{
+      const user=users.find(user=>headers.Authorization==='Bearer '+user.token);
+      const {p_category,p_term,p_page}=JSON.parse(body);
+      events.push('read:'+user.id);
+      return Response.json({...capturedCatalog([p_category,p_term,p_page]),userId:user.id});
+    }};
+  const api=runInNewContext(read+recheck+';({forCase,afterCase})',{
+    nativeInternshipSetupRequired:()=>false,nativeStudentLeaveSetupRequired:()=>false,ready:()=>state,
+    isElearningPublishedReadbackCase,isElearningMetadataCase,assertElearningCatalogCaseReady,readCatalogObservations,bindCatalogObservation,
+    assertRecordedFixtureLease:async()=>events.push('lease'),readBoundedFixtureResponse:response=>response.json(),
+    saveLedger:async()=>events.push('ledger'),PROJECT:metadataProject,readSnapshot:forbidRemote,readNativeBindings:forbidRemote,
+    fail:(_code,message)=>{throw new Error(message);},
+  });
+  assert.equal((await api.forCase(row)).token,account.token);
+  const sourceRevision='a'.repeat(40);
+  const envelope={statusCode:200,execution:'live-native',correlationId:'78000000-0000-4000-8000-000000000202',sourceRevision,
+    deploymentCheck:{verified:true,sourceRevision,requestIndex:1},body:{verification:{attempts:1}},
+    catalogDispatch:metadataDispatchObservation(catalogEndpoint,JSON.stringify({
+      question:row.question,history:[],route:row.route,stream:true,consentedResearchUse:false,
+    })),
+    events:[{kind:'account-read:elearningCatalog:1',status:'running'},{kind:'account-read:elearningCatalog:1',status:'complete'},
+      {kind:'verification-1',status:'running'},{kind:'verification-1',status:'complete'}]};
+  await api.afterCase(row,envelope);
+  const reads=users.map(user=>'read:'+user.id);
+  assert.deepEqual(events,['lease','pin',...users.map(user=>'renew:'+user.id),...reads,'lease',...reads,'ledger']);
+  assert.equal(state.current,null);
+  assert.equal(envelope.fixtureReadback.elearningCatalog.caseId,row.id);
+
+  await api.forCase(row);
+  envelope.body.answer=users[1].token;
+  envelope.events=[{kind:'private',status:'complete',detail:users[1].token}];
+  await assert.rejects(api.afterCase(row,envelope),/disposable caller identity or credential/u);
+  assert.doesNotMatch(JSON.stringify(envelope),/second-synthetic-token/u);
+  assert.equal(state.current,null);
 });
 
 test('guest login return keeps encoded page and filter while rejecting selector drift',async context=>{

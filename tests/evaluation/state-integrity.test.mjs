@@ -1,6 +1,6 @@
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
-import {isElearningMetadataCase} from './elearning-catalog-runner.mjs';
+import {isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -48,7 +48,7 @@ async function pipeline(mutate){
     gates.get(order[0])();await new Promise(setImmediate);gates.get(order[1])();
     const result=await task;observed[phase][user.id]=result;return result;
   }
-  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningMetadataCase,createHash,state,ready:()=>state,timestamp:value=>new Date(value).toISOString(),fixtureForCase,
+  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,createHash,state,ready:()=>state,timestamp:value=>new Date(value).toISOString(),fixtureForCase,
     // Setup/persistence are deliberately in-memory. The actual forCase,
     // afterCase, hash, ownState, scoped reader and readback checks run below.
     assertSupported:()=>{},readNativeBindings:async()=>({rows:{}}),recordsToInsert:()=>({}),

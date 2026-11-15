@@ -3,7 +3,7 @@ import {assertNativeDtmCaseReady,nativeDtmRunnerCases,nativeDtmSetupRequired} fr
 import {accountStatusCases,accountStatusSetupRequired,assertAccountStatusCaseReady} from './account-status-cases.mjs';
 import {learningEntryCases,learningEntrySetupRequired,assertLearningEntryCaseReady} from './learning-entry-cases.mjs';
 import {campusEntryCases,campusEntrySetupRequired,assertCampusEntryCaseReady} from './campus-entry-cases.mjs';
-import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningMetadataCase} from './elearning-catalog-runner.mjs';
+import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import {assertNativeInternshipCaseReady,internshipRunnerCases,nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {assertNativeStudentLeaveCaseReady,nativeStudentLeaveSetupRequired,studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import assert from 'node:assert/strict';
@@ -315,7 +315,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       pace:async(start,_signal,beforeStart)=>{await beforeStart();return start(0);},fetchImpl:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
       URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,assertNativeDtmCaseReady,assertNativeStudentLeaveCaseReady,assertNativeInternshipCaseReady,
-      nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningMetadataCase,
+      nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,
       assertNativeVenueCaseReady,nativeVenueSetupRequired,isClubAttendanceCase:()=>false,isServiceNoteCase:()=>false,
       assertAccountStatusCaseReady,accountStatusSetupRequired,
       assertLearningEntryCaseReady,learningEntrySetupRequired,
@@ -383,8 +383,8 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.equal(suite.cases.filter(nativeStudentLeaveSetupRequired).length,51);
   assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_native_internship'),internshipRunnerCases());
   assert.equal(suite.cases.filter(nativeInternshipSetupRequired).length,34);
-  assert.deepEqual(suite.cases.filter(row=>elearningCatalogSetupRequired(row)||isElearningMetadataCase(row)),elearningCatalogRunnerCases());
-  assert.equal(suite.cases.filter(elearningCatalogSetupRequired).length,19);
+  assert.deepEqual(suite.cases.filter(row=>elearningCatalogSetupRequired(row)||isElearningPublishedReadbackCase(row)),elearningCatalogRunnerCases());
+  assert.equal(suite.cases.filter(elearningCatalogSetupRequired).length,3);
   assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_native_venue_requests'),venueRunnerCases());
   assert.equal(suite.cases.filter(nativeVenueSetupRequired).length,12);
   assert.deepEqual(suite.cases.filter(accountStatusSetupRequired),accountStatusCases());
@@ -417,8 +417,9 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.ok(assessment.releaseBlockers.includes('run.nativeInternshipFixtureUnbound'));
   assert.equal(assessment.elearningCatalogSetup.registered,25);
   assert.equal(assessment.elearningCatalogSetup.metadataCaseIds.length,6);
-  assert.equal(assessment.elearningCatalogSetup.liveEligible,6);
-  assert.equal(assessment.elearningCatalogSetup.unboundCaseIds.length,19);
+  assert.equal(assessment.elearningCatalogSetup.courseCaseIds.length,16);
+  assert.equal(assessment.elearningCatalogSetup.liveEligible,22);
+  assert.equal(assessment.elearningCatalogSetup.unboundCaseIds.length,3);
   assert.equal(assessment.venueSetup.registered,12);
   assert.equal(assessment.venueSetup.liveEligible,0);
   assert.ok(assessment.releaseBlockers.includes('run.nativeVenueFixtureUnbound'));

@@ -2,6 +2,7 @@
 ## Unreleased
 
 - Keep public search leads beyond the initial draft's citations. After stalled verification the assistant can find and read a more specific source, then verify the revised answer and save the observed steps in chat. [#100]
+- Bind sixteen Digital Academy catalog evaluations to two disposable callers, frozen published course projections and exact protected Preview assistant requests. [#100]
 
 - Let model-reviewed signed-in answers take a third verification pass using the same refreshed records, including single-source and fixed-scope questions. [#100]
 

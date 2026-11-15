@@ -27,7 +27,7 @@ The read-only integrations are:
 - Facility repair cases check the saved status and latest handling note for the cited report. The fixture compares persisted rows, both callers' lists and details, and cross-account denials. It records previous and pending plans before writing and rejects any unexpected record change. For compound timetable questions, the independent Taipei clock oracle checks the exact published next class before transport and after readback.
 - Dormitory notice cases distinguish saved empty, saved unknown and missing metadata at 34-2. The fixture verifies complete rows and the absence of actor receipts. Bed assignments and tuition balances come from their own tools, and the notice cannot establish detailed conduct history or official clearance.
 - Remote-learning outline cases compare each requested activity title, section and native link against the published records. Both callers' exact course access and crossed empty responses are verified before and after each answer. The fixture creates disposable access links only and leaves shared course content intact. An empty response without course access cannot establish that materials are absent.
-- Digital Academy catalog cases replay the real assistant handler and verification graph with intercepted catalog RPC responses. Independent expectations cover exact search filters, the visible result order, total counts, the empty page boundary, failed and crossed reads, and the guest sign-in return. The registry marks these cases as offline and keeps six category and notice metadata cases pending.
+- Digital Academy catalog cases replay the real assistant handler and verification graph with intercepted catalog RPC responses. Independent expectations cover exact search filters, the visible result order, total counts, the empty page boundary, failed and crossed reads, and the guest sign-in return. Sixteen ordinary catalog cases and six metadata cases are eligible for protected Preview grading. Fault injection and the guest handoff remain covered by controlled handler tests.
 - Tuition: read the caller's literal settlement statements separately from charge balances. Null, blank text and the literal text `0` have distinct meanings; none proves a payment, issued receipt or completed refund.
 - Tuition remission uses the saved history at School Affairs service 21-3. The independent case bank checks exact literal periods, amount and status, missing fields, unauthorized account references and combined charge requests. Its fixture plan verifies both callers' complete remission and charge records independently. The planned cases remain outside default live execution.
 
@@ -123,14 +123,14 @@ The registered action cases check exact proposed payloads, relevant named reads 
 
 Conversation cleanup binds the serialized message array as text and casts it to JSONB in PostgreSQL before the exact row comparison. The fixture retains its deletion witness when automatic cleanup fails. Record any verified manual recovery separately from the original hosted report.
 
-The six Digital Academy category and notice cases use the authenticated native assistant and its deterministic verifier on an exact protected Preview. The adapter uses two disposable callers to read the exact scoped metadata RPC before and after each assistant request. The grader compares those responses with frozen category and notice projections, and binds the observed endpoint progress to the request and deployment checks. This proof is limited to endpoint telemetry and the independent RPC results. The 19 separate Digital Academy course-list and search cases still require their own live fixtures.
+The Digital Academy Preview packet contains 16 course-list and search cases and six category and notice cases. Two disposable callers independently read the exact authenticated catalog or metadata RPC before and after each assistant request. The grader compares both projections with the committed source oracles and ties the response and verification events to the exact request and deployment. Catalog grading also checks each visible course title against its local link. The isolated adapter uses the existing published catalog without changing it. The two fault-injection cases and the guest handoff still require independent hosted observations.
 
 ```sh
 node tests/evaluation/run.mjs --mode live --origin "$PREVIEW_ORIGIN" \
   --approved-preview-origin "$PREVIEW_ORIGIN" --preview-auth oidc \
   --fixture-module tests/evaluation/live-fixtures.mjs \
-  --only account:elearning-catalog-pending- \
-  --out artifacts/assistant-evaluation/elearning-metadata-live.json
+  --only account:elearning-catalog- --domain elearningCatalog --max-cases 16 \
+  --out artifacts/assistant-evaluation/elearning-courses-live.json
 ```
 
-This subset can record six passing case results while the full release assessment remains blocked by other cases. Supply the authorized Vercel Development OIDC identity for the exact client project.
+For the six metadata questions, use `--only account:elearning-catalog-pending-` and omit the course domain and limit. Supply the authorized Vercel Development OIDC identity for the exact client project. A passing subset does not establish full release acceptance.
