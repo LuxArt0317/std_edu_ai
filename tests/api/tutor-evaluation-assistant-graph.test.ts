@@ -121,7 +121,8 @@ async function offline(fixture:Fixture,exercise:()=>Promise<void>){
     const attempts=fixture.reject?2:1;
     assert.equal(tutorReads,fixture.tutor&&fixture.tutor!=='write'?attempts:0);
     assert.equal(feeReads,fixture.fee?attempts:0);
-    assert.deepEqual(stages,fixture.tutor==='ratings'&&!fixture.fee?[]:['answer_evidence_review',
+    const exactRecord=fixture.tutor&&fixture.tutor!=='failed'&&fixture.tutor!=='write'&&!fixture.fee;
+    assert.deepEqual(stages,exactRecord?[]:['answer_evidence_review',
       ...(fixture.reject?['correct_grounded_answer','answer_evidence_review']:[]),
       ...((fixture.reject??0)>1?['correct_grounded_answer','answer_evidence_review']:[]),
     ]);
@@ -147,16 +148,18 @@ test('native tutor questions select no unrelated account collection or public se
 });
 
 test('answers own saved submission, selected numbered ratings and explicit saved comments through LangGraph',async()=>{
-  for(const [question,tutor,expected]of [[status,'status',/saved in stu.best/u],[rating,'ratings',/Question 3.+4/u],[comment,'comment',/QA saved check-in 1/u],[comment,'blank',/\(blank\)/u]] as const){
+  for(const [question,tutor,expected]of [[status,'status',/saved in stu.best/u],[rating,'ratings',/Question 3.+4/u],[comment,'comment',/QA saved check-in 1/u],
+    [comment,'blank',/\(blank\)/u],[status,'empty',/no saved submission.*stu\.best/u]] as const){
     await offline({tutor},async()=>{
       const result=await ask(question);
       assert.equal(result.verification.status,'verified');assert.match(result.answer,expected);
       assert.equal(result.citations.at(-1).url,route);assert.doesNotMatch(JSON.stringify(result),/PRIVATE_STUDENT/u);
+      assert.deepEqual(result.verification,{status:'verified',attempts:1});
+      assert.ok(result.activity.some(({kind,status}: {kind:string;status:string})=>kind==='tutor-evaluation-evidence-check'&&status==='complete'));
+      if(tutor==='comment')assert.match(result.answer,/saved in stu.best/u);
       if(tutor==='ratings'){
         assert.deepEqual(result.views[0].rows,[['Question 3','4'],['Question 8','3']]);
-        assert.deepEqual(result.verification,{status:'verified',attempts:1});
         assert.match(result.answer,/saved in stu.best/u);
-        assert.ok(result.activity.some(({kind,status}: {kind:string;status:string})=>kind==='tutor-evaluation-ratings-check'&&status==='complete'));
       }
     });
   }
