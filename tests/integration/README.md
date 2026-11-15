@@ -1,5 +1,9 @@
 # Integration checks
 
+`assistant-session-receipts-ui.mjs` uses a compiled local preview and controlled Google, assistant and conversation responses. It checks that an altered save receipt is rejected, retry reuses the same chat version, reopening fetches saved activity, and deleting a chat removes an already-committed account copy after a lost response.
+
+`elearning-catalog-assistant-ui.mjs` runs the compiled page against the actual signed-in and public assistant handlers with synthetic auth and storage. It checks the rendered catalog course link and the guest's exact filter and page return. Run it with `node --experimental-strip-types` and a local `PUBLIC_SITE_ORIGIN`.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).

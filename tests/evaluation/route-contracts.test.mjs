@@ -11,6 +11,7 @@ import {buildDtmMaterialCases} from './dtm-material-cases.mjs';
 import {internshipRunnerCases} from './internship-native-runner.mjs';
 import {dtmAssignmentListCases} from './dtm-assignment-list-cases.mjs';
 import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
+import {elearningCatalogRunnerCases} from './elearning-catalog-runner.mjs';
 
 const revision='offline-route-contract';
 const observe=(route,extra={})=>({route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true,...extra});
@@ -178,7 +179,8 @@ test('remote-learning inventory follows the authenticated workspace and distinct
 test('route coverage retains only unresolved semantic cases after adding public assistant guidance',async()=>{
   const inventory=await discoverSurfaces();
   const leaveCases=studentLeaveRunnerCases(),internshipCases=internshipRunnerCases(),assignmentList=dtmAssignmentListCases();
-  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...buildPublicCases(inventory)];
+  const catalogCases=elearningCatalogRunnerCases();
+  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
   const expected=[
     '/school-affairs/services/12-4?course=%3Aid','/school-affairs/services/12-4?syllabus=%3Aid',
@@ -190,9 +192,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
     '/campus-assistant?embed=1','/campus-directory','/local-pages',
   ];
   const added=[
-    '/elearning/categories','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
-    '/elearning/search?q=%3Aquery',
-    '/elearning/search?page=%3Apage&q=%3Aquery','/elearning/category/:id?page=%3Apage','/elearning/login',
+    '/elearning/login',
     '/school-affairs/services/4-2','/school-sites/elearning.stu.edu.tw','/school-sites/elearning.stu.edu.tw/login/index.php',
     '/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',
   ];
@@ -213,17 +213,18 @@ test('route coverage retains only unresolved semantic cases after adding public 
     'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications'];
   const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query','public-custom-menu-browser-only',...buildSchoolMenuNativeCases().map(row=>row.id)];
   const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,...leaveCases.map(row=>row.id),'public-study-first-week','anonymous-records-leaveRecords','anonymous-records-dtmMaterials','anonymous-records-internshipRecords',...internshipCases.map(row=>row.id),...buildDtmMaterialCases().map(row=>row.id),...assignmentList.map(row=>row.id),'anonymous-records-dtmAssignmentList'];
+  newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog');
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,577);
-  assert.equal(expected.length,20);assert.equal(added.length,12);
+  assert.equal(expected.length,20);assert.equal(added.length,5);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,32);
+  assert.equal(report.coverage.routes.missing.length,25);
   assert.equal(report.browserAcceptance.total,577);assert.equal(report.browserAcceptance.requiredScenarios,587);
   assert.equal(report.coverage.routeFamilies.total,53);
   assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,32);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,25);
 });

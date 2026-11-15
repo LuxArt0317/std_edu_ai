@@ -302,3 +302,7 @@ On exact combined freeze d83c25b7, both assignment lists are verified using call
 ### Reviewed action and assignment-list candidate [Issue #100]
 
 The previous combined Preview `e0f0f4b` is Ready and GitHub Quality passed. The local follow-up verifies current-turn action proposals, authenticated confirmation, exact Moodle list scope and Student Leave UUID identity. Controlled tests and the compiled confirmation flow passed. The latest inventory contains 1,240 questions and 28 paths without semantic cases. The four reported prompts still need authenticated Preview replay.
+
+### Digital Academy and chat checkpoint [Issue #100]
+
+The actions, Moodle lists and leave revision `64a8ccb` is Ready on protected Preview and GitHub Quality passed. Its hosted guest checks preserved the requested Moodle and leave destinations through sign-in. Production still serves `076c79a`. The local follow-up verifies exact Digital Academy catalog results and chat save receipts. It passed 1,717 API/source, 1,153 offline evaluation, 541 unit and both compiled browser checks. The inventory registers 1,266 cases and leaves 21 routes without a semantic case. Six registered Digital Academy metadata cases still need implementation. The remaining in-flight chat deletion race needs database ordering. The pinned transcript requires authorized protected Preview access before starting fixtures.

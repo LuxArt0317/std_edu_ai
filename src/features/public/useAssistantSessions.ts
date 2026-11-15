@@ -135,8 +135,11 @@ export function useAssistantSessions(scope:string|null){
     finally{if(epoch===generation.current){loadingRequest.current=false;setLoadingChat(false);}}
   }
   const conversations=state.scope===scope?[...new Map([...state.remote,...state.chats].map(item=>[item.id,item])).values()]:[];
-  const currentCache=cache?.scope===scope&&cache.chats===state.chats?cache.result:null;
-  const cached=active?currentCache?.chats[active.id]:undefined;
+  const cachedStatus=(chat:AssistantSession)=>{
+    const previous=cache?.scope===scope?cache.chats.find(item=>item.id===chat.id):undefined;
+    return previous&&previous.messages===chat.messages&&previous.title===chat.title?cache?.result.chats[chat.id]:undefined;
+  };
+  const cached=active?cachedStatus(active):undefined;
   const failed=active?saveFailures.get(active.id):undefined;
   const activeFailure=failed&&failed.messages===active?.messages&&failed.title===active.title?failed.error:'';
   const saved=active?savedInputs.current.get(active.id):undefined;
@@ -150,7 +153,7 @@ export function useAssistantSessions(scope:string|null){
         ? accountSaved?'Conversation saved to your private account.':cached?.status==='saved'?'Saved in this browser tab; account save is pending.':'Preparing this conversation for saving…'
         :cached?.status==='saved'?'Conversation saved in this browser tab.':'Preparing this conversation for saving…';
   const unsavedConversationIds=state.chats.filter(chat=>{
-    const cacheFailure=currentCache?.chats[chat.id]?.error,remoteFailure=saveFailures.get(chat.id);
+    const cacheFailure=cachedStatus(chat)?.error,remoteFailure=saveFailures.get(chat.id);
     return cacheFailure||remoteFailure&&remoteFailure.messages===chat.messages&&remoteFailure.title===chat.title;
   }).map(chat=>chat.id);
   function retrySync(){setOperationError('');if(active)setSaveFailures(previous=>{const next=new Map(previous);next.delete(active.id);return next;});setRetry(value=>value+1);}

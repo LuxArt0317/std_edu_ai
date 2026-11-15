@@ -251,6 +251,10 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Bind proposals to the current message, verify exact account context and require a matching confirmation receipt.
 - [x] Verify both Moodle assignment-list scopes and bind Student Leave observations to exact record IDs.
 - [ ] Execute the action and assignment-list cases with an authorized pinned runner, including actual confirmed readback and cleanup.
+- [x] Route exact Digital Academy catalog searches and categories through the verified account reader and register the 25 catalog cases.
+- [ ] Complete scoped category-index and notice reads and bind live Digital Academy catalog observations.
+- [x] Compare the saved chat and activity to the submitted transcript. Send an account-scoped delete for an already committed but unacknowledged save.
+- [ ] Prevent an in-flight first save from recreating a deleted conversation and verify the ordering at the database boundary.
 - [x] Connect the four internship views and independent tuition and timetable lookup to the verified account endpoint. Register the 30-case native bank.
 - [ ] Bind the internship cases to disposable accounts and trusted request observations. Rebind four earlier internship cases against their original requirements.
 - [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures on the protected Preview. Verify the live four-turn conversation and signed-in browser paths.

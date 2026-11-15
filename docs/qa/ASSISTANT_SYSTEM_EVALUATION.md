@@ -261,3 +261,11 @@ The Moodle assignment-list packet independently grades 25 signed-in and guest ou
 The Student Leave observer verifies 18 data cases and 14 boundary cases with controlled two-owner transport. It binds the current request and exact leave selectors to the observed reader calls and projected results. This caught a UUID parsing bug. A complete offline observation records no live answer result.
 
 The combined candidate passed 1,717 API and source checks, 1,096 offline evaluator checks and 541 unit tests. Build, TypeScript, lint, handoff and dependency audit finished successfully. The inventory is 1,240 questions, 94 services, 41 tools and 395 public page captures. There are 28 routes without a semantic case. Pinned live transcript, real browser acceptance and hosted fixture readback remain open.
+
+## Digital Academy catalog and saved chat receipts
+
+The exact Digital Academy search and category reader uses the same filter, page and caller as the open catalog. The independent bank registers 25 cases. Nineteen exercise the actual handler with controlled reads. Six category and notice metadata cases still need a scoped reader. The compiled guest and account cases verify that the link matches the page and that sign-in preserves its search and page.
+
+The compiled conversation test rejects a successful response that omits saved activity, retries with the same conversation ID and version, and restores the activity by reading the saved chat. It also removes a row that already committed before its save response failed. An original create that commits after the delete still needs a database ordering guard.
+
+The integrated local checkpoint passed 1,717 API/source, 1,153 offline evaluation and 541 unit checks. The inventory registers 1,266 questions, 94 services, 42 reader tools and 395 captured pages. Twenty-one paths still have no registered semantic case. Some registered cases, including the six metadata cases, remain pending implementation or fixture admission. The signed-in hosted transcript and end-to-end site acceptance remain pending.

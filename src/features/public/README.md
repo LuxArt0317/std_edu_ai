@@ -14,3 +14,5 @@ The School Affairs account link leaves the embedded assistant frame and opens th
 DTM and School Affairs share a verified Google session for private student records. The direct homepage embeds `/account-status` to show the signed-in account. [DTM](dtm/README.md), [School Affairs](affairs/README.md).
 
 `useAssistantSessions` isolates account and conversation saves, preserves unsaved work after failures, and prevents late responses from another account from restoring private content. `PublicAssistant` displays unsaved state; a failed old conversation does not block a new one.
+
+The session hook checks the saved ID, title, version and sanitized messages before reporting an account save. Deleting a signed-in chat sends an owner-bound delete even when the browser has no save receipt.

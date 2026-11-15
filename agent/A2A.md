@@ -816,3 +816,9 @@ Branch codex/issue100-dtm-list in the isolated checkout starts at d83c25b7aff435
 ### Reviewed actions and Moodle list handoff [Issue #100]
 
 Root joined the explicit action and browser receipt work with the isolated Moodle list and Student Leave observation packets. Digital Academy remains an independent worktree lease. The release coordinator owns publication and any authorized hosted acceptance. The combined runtime does not provision new tables or change client access settings.
+
+### Digital Academy and chat session checkpoint [Issue #100]
+
+Root integrated catalog list and exact-search answers and checked both signed-in and guest browser dispatch. A delegate owns the six remaining category and notice metadata cases. The browser verifies save receipts and sends a delete for a signed-in chat even without a confirmed earlier save. A separate delegate owns the database race between an in-flight version-zero save and a delete. No migration is part of this checkpoint.
+
+The ignored operator transport was corrected and verified against synthetic request and identity data, including the actual four-turn runner. The approved connection and fixture lease are still required for hosted replay. The original operator module remains untouched.
