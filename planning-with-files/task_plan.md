@@ -975,6 +975,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Pass both public companion questions on exact protected `54319c0` with independently checked facts, citation order and the explicit native schedule Activity step in the streamed and returned reply.
 - [x] Pass all 20 isolated fee-remission questions on protected paired-charge `4d7cc15`, with exact paired readbacks, both access boundaries, 62 deployment checks and verified disposal.
 - [x] Wire the exact-origin relay, bounded asset derivation and independently checked owned profile into the protected browser operator. Pass local incremental Activity and refresh tests on desktop and mobile.
-- [ ] Run the protected browser operator on exact `44283cd`. Verify two durable conversations, saved Activity, independent answer and record readbacks, and disposal.
+- [x] Preserve the attempted `44283cd` browser run, including its first saved conversation, second save refusal, provider quota evidence and verified disposal. Reproduce the exact unpaid-tuition scope failure locally and check the corrected answer against an unlinked and a linked account.
+- [x] Pass the same two browser turns on exact `53a7599`. Verify both durable conversations, expanded saved Activity, exact own HTTP and SQL readbacks, crossed-account isolation and disposal.
 - [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
