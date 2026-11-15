@@ -16,8 +16,8 @@ import {accountStatusIntent} from '../server/accountStatusIntent.js';
 import {answerCampusEntry,campusEntryIntent} from '../server/campusEntryContract.js';
 import {answerLearningEntry,learningEntryIntent,legacyDtmWorkspacePath} from '../server/learningEntryContract.js';
 import {answerAccountStatus} from '../server/accountStatusAnswer.js';
-import {graduationReviewStatusKind} from '../server/graduationReview.js';
-import {answerGraduationReviewStatus} from '../server/graduationReviewStatusAnswer.js';
+import {selectGraduationReviewAnswer} from '../server/graduationReview.js';
+import {answerGraduationReview} from '../server/graduationReviewAnswer.js';
 import {answerElearningCatalog,answerElearningMetadata,elearningCatalogBoundary,elearningMetadataBoundary} from '../server/accountElearningCatalogAnswer.js';
 import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../server/elearningCatalogPageIntent.js';
 import {isElearningMetadataQuestion,selectElearningMetadata} from '../server/elearningMetadataIntent.js';
@@ -380,16 +380,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       :'The current School Affairs sign-in could not be checked.'});}
     return;
   }
-  const graduationStatus=question===requestedQuestion?graduationReviewStatusKind(question,route,history):null;
-  if(graduationStatus){
+  const graduationReview=question===requestedQuestion?selectGraduationReviewAnswer(question,route,history):null;
+  if(graduationReview){
     if(Array.isArray(input?.images)&&input.images.length){
-      stream.send(400,{error:'Ask about your saved graduation review status using text.'});
+      stream.send(400,{error:'Ask about your saved graduation review using text.'});
       return;
     }
     try{
-      stream.send(200,await answerGraduationReviewStatus({account,question,kind:graduationStatus,deadline,
+      stream.send(200,await answerGraduationReview({account,question,selection:graduationReview,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
-    }catch{stream.send(503,{error:'The selected graduation review status could not be checked.'});}
+    }catch{stream.send(503,{error:'The selected graduation review could not be checked.'});}
     return;
   }
   const learningEntry=learningEntryIntent(question,route);

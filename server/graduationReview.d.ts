@@ -19,3 +19,7 @@ export function selectGraduationReviewCourses<T extends {title?:unknown;reportId
 };
 export function answerGraduationReview(question:string,snapshot:{profile?:{userId?:string};graduationReview?:GraduationReviewRecords},route?:string,history?:Array<{role:string;content:string}>):{answer:string;title:string;url:string}|null;
 export function graduationReviewStatusKind(question:string,route?:string,history?:Array<{role:string;content:string}>):GraduationReviewKind|null;
+export type GraduationReviewAnswerSelection =
+  | {kind:GraduationReviewKind;view:'status'|'eligibility'}
+  | {kind:GraduationReviewKind;view:'credits'|'matchedCourse';name:string};
+export function selectGraduationReviewAnswer(question:string,route?:string,history?:Array<{role:string;content:string}>):GraduationReviewAnswerSelection|null;
