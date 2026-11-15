@@ -909,11 +909,15 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const evidence = [summarize ? boundedPublicPageEvidence(context) : context.evidence];
                 const seed = publicPageCandidate(context, input.question);
                 const summaryQuestion = chinese
-                    ? '請只用儲存網頁的內文節錄，用一到兩句概述主題，並舉出有足夠依據的資源或服務。不要重複標題、連結或擷取日期。'
-                    : 'In one or two sentences, summarize the topic and principal services or resources in the saved page excerpt. Use only that excerpt. Leave the title, link and capture date to the page caption.';
-                const summaryCandidate = draft => draft?.status === 'answered'
-                    ? publicPageCandidate(context, input.question, { summary: draft.answer })
-                    : { ...seed, status: 'abstained' };
+                    ? '請只用儲存網頁的內文節錄，用一到兩句概述主題，並舉出有足夠依據的資源或服務。以繁體中文撰寫，不要重複標題、連結或擷取日期。'
+                    : 'In one or two sentences, summarize the topic and principal services or resources in the saved page excerpt. Use only that excerpt. Write the summary in English. Keep original service names only when helpful. Leave the title, link and capture date to the page caption.';
+                const summaryCandidate = draft => {
+                    if (draft?.status !== 'answered') return { ...seed, status: 'abstained' };
+                    const han = (draft.answer.match(/\p{Script=Han}/gu) || []).length;
+                    const latin = (draft.answer.match(/\p{Script=Latin}/gu) || []).length;
+                    const matchesLanguage = chinese ? han > 0 && han * 3 >= latin : latin > han;
+                    return matchesLanguage ? publicPageCandidate(context, input.question, { summary: draft.answer }) : { ...seed, status: 'abstained' };
+                };
                 const initialAnswer = summarize ? summaryCandidate(await composeEvidenceAnswer({
                     question: summaryQuestion, candidate: seed, evidence, deadline: Math.min(deadline - 12_000, Date.now() + 8_000),
                 }).catch(() => null)) : seed;
@@ -1010,9 +1014,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 // The indexed destination remains useful when the independent
                 // access check has timed out or found an authentication gate.
                 await indexedRead;
-                const annotated = sourceLeads.append(reply);
-                if (annotated.step) verificationProgress(annotated.step);
-                reply = annotated.reply;
+                const generic = reply.status === 'abstained' && reply.verification?.status === 'unverified' && !reply.citations?.length
+                    && reply.answer === unverifiedAnswer(input.question, reply, [], 0).answer;
+                const annotated = sourceLeads.append(generic ? { ...reply, answer: '' } : reply);
+                if (annotated.step) {
+                    verificationProgress(annotated.step);
+                    reply = annotated.reply;
+                }
             }
             stream.send(200, reply);
         }

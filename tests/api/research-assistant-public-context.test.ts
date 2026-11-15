@@ -47,7 +47,7 @@ test('this-page requests preserve encoded public routes and send actual snapshot
 const overviewSummary='This directory helps current students find School Affairs, Moodle teaching materials, course registration, and student leave services.';
 const captureClaims=['校務資訊系統','Moodle數位教材網','學生選課系統','學生請假'];
 
-test('the compound page question returns a verified summary, exact local title and link, and the capture date',async()=>{
+test('the compound page question corrects a mismatched language and returns a verified summary, exact local title and link, and the capture date',async()=>{
   configure();
   let loads=0,reads=0;
   const saved=await loadPublicPageContext(page.route,Date.now()+5000,{fetchCapture:async url=>{
@@ -67,7 +67,11 @@ test('the compound page question returns a verified summary, exact local title a
     calls.push(name);
     assert.deepEqual(body.evidence,[evidence]);
     if(name==='compose_grounded_answer'){
-      assert.match(body.question,/summarize the topic and principal services/u);
+      assert.match(body.question,/Write the summary in English/u);
+      return modelResponse({status:'answered',answer:'此頁列出校務資訊系統、數位教材網、學生選課及學生請假等服務。',sourceIds:[evidence.id]});
+    }
+    if(name==='correct_grounded_answer'){
+      assert.match(body.question,/Write the summary in English/u);
       return modelResponse({status:'answered',answer:overviewSummary,sourceIds:[evidence.id]});
     }
     assert.equal(name,'answer_evidence_review');
@@ -83,7 +87,7 @@ test('the compound page question returns a verified summary, exact local title a
     return saved;
   },async()=>assert.fail('No outside page can supply an archived summary'));
   assert.equal(result.statusCode,200);
-  assert.deepEqual(result.body.verification,{status:'verified',attempts:1});
+  assert.deepEqual(result.body.verification,{status:'verified',attempts:2});
   assert.equal(result.body.grounding.source,'public-page-context');
   assert.equal(result.body.grounding.webSearched,false);
   assert.equal(result.body.grounding.contentAvailable,true);
@@ -92,7 +96,7 @@ test('the compound page question returns a verified summary, exact local title a
   assert.deepEqual(result.body.citations.map((citation:{url:string})=>citation.url),[page.route]);
   assert.equal(reads,1);assert.equal(loads,1);
   assert.deepEqual(saved,before);
-  assert.deepEqual(calls,['compose_grounded_answer','answer_evidence_review']);
+  assert.deepEqual(calls,['compose_grounded_answer','correct_grounded_answer','answer_evidence_review']);
 });
 
 test('a title-only approval prompts correction against the excerpt or withholds the failed summary',async()=>{

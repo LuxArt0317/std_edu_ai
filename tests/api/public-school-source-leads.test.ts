@@ -167,6 +167,7 @@ for(const verifiedPartial of [false,true])test(`the OneDrive response preserves 
   assert.match(body.answer,/Microsoft 365 and OneDrive storage quotas\]\(https:\/\/dtm\.stu\.edu\.tw\/mod\/page\/view\.php\?id=625803\)/u);
   assert.match(body.answer,/School sign-in is required\. I could not verify the notice contents/u);
   assert.doesNotMatch(JSON.stringify(body),/LOGIN_MARKER|login\/index|987 GB|November 31/u);
+  assert.doesNotMatch(body.answer,/Please try again or specify the course/u);
   assert.deepEqual(body.citations.map((citation:{url:string})=>citation.url),verifiedPartial?[support]:[],JSON.stringify({activity:body.activity,verification:body.verification,direct}));
   assert.equal(body.verification?.status,verifiedPartial?'verified':'unverified');
   assert.equal(events.filter(step=>step.kind==='school-source-lead'&&step.status==='complete').length,1);
