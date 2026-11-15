@@ -3,6 +3,8 @@
 
 - Add a protected Chromium replay for the original certificate status and bank receipt questions. Verify the visible answer, private conversation restore, and account isolation. [#100]
 
+- Add a protected Preview evaluator for the three original Tutor Evaluation and tuition questions with exact caller readback and cleanup. [#100]
+
 - Verify tutor questionnaire status and a named tuition balance from their separate saved records. Keep verified details during a single-source outage and skip the questionnaire when asked. [#100]
 
 - Verify named-course term absence hours directly against the caller's saved attendance statistics. [#100]

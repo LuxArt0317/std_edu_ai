@@ -130,7 +130,16 @@ The ten additional cases selected by `--only account:service-notes-international
 
 The direct tuition payment case is a native signed-in capability check. The response must state the payment limit and link to the pending-fees page without invoking an account reader, model or payment proposal.
 
-The three original Tutor Evaluation plus tuition questions exercise both answer orders and explicit questionnaire exclusion. The separately opt-in `tutor-tuition-compound-postgres.test.mjs` runs the actual assistant against migrated isolated PGlite with two Google fixture identities. Both owners' own and crossed questionnaire and charge views are checked before and after each request. The test also exercises a temporary failure of either source. Supply the absolute existing PGlite module path through `STU_TUTOR_TUITION_TEST_PGLITE_ENTRY`. The protected Tutor runner still admits its 11 standalone cases.
+The three original Tutor Evaluation plus tuition questions exercise both answer orders and explicit questionnaire exclusion. The separately opt-in `tutor-tuition-compound-postgres.test.mjs` runs the actual assistant against migrated isolated PGlite with two Google fixture identities. Both owners' own and crossed questionnaire and charge views are checked before and after each request. The test also exercises a temporary failure of either source and rejects cleanup if either scoped charge was unexpectedly changed. Supply the absolute existing PGlite module path through `STU_TUTOR_TUITION_TEST_PGLITE_ENTRY`.
+
+The separate protected operator uses the exact clean deployed revision and the same Development Preview authorization and disposable lifecycle as the standalone Tutor runner. Run the preflight first. It lists one three-case packet and contacts neither the app nor the database.
+
+```sh
+node tests/evaluation/run-tutor-tuition-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION" --preflight
+node tests/evaluation/run-tutor-tuition-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+The owner-only report requires both fixture cleanup proofs, an unchanged protected owner, three distinct pinned response streams and matched questionnaire and fee readbacks around every request. The exclusion verifies that the assistant emitted only the named charge reader. Readbacks are independent of assistant Activity, which is application-reported. This packet has no downstream egress observer. The two controlled outage behaviors remain local. The original protected Tutor runner and its 11 standalone cases retain their existing command and reports.
 
 
 For Student Leave, `runStudentLeaveDataPreflight` in `live-fixtures.mjs` is the operator-only data check. It requires a clean checkout of the exact protected Preview, the authorized Development Preview token passed as `previewToken`, and the existing client fixture configuration. It creates two disposable callers and checks eight seeded data families. Each family must match the complete stored rows and all eight own/crossed PostgREST results before and after verification. The append-only recovery journal covers reserved IDs, every transition and cleanup. The operator must retain an active recovery ledger if reconciliation cannot be verified.

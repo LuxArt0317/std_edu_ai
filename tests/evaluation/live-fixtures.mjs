@@ -68,6 +68,8 @@ import {isDeepStrictEqual} from 'node:util';
 import {createTutorEvaluationFixture,gradeHostedTutorEvaluation,observeTutorEvaluationCallers,requestTutorEvaluation,
   tutorEvaluationFamily,tutorEvaluationFixtureMode,tutorEvaluationHostedCases,tutorEvaluationHostedGaps,
   validateTutorEvaluationHostedCases} from './tutor-evaluation-hosted.mjs';
+import {gradeHostedTutorTuition,hasTutorTuitionProof,tutorTuitionFixtureMode,tutorTuitionHostedCases,
+  validateTutorTuitionHostedCases} from './tutor-tuition-hosted.mjs';
 import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentHostedRouteCases,clubEquipmentRequirement,
   createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
   validateClubEquipmentHostedCases} from './club-equipment-hosted.mjs';
@@ -91,8 +93,8 @@ import {internshipFixtureKindForCase,internshipHostedCases,internshipPublishedTi
 import {buildInternshipTimetableFixture,cleanupInternshipTimetable,observeInternshipTimetableCallers,observeInternshipTimetableRows,
   readInternshipNextMeeting,stageInternshipTimetable,verifyInternshipTimetableAbsent} from './internship-timetable-fixture.mjs';
 import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
-  stageInternshipCharges,verifyInternshipChargesAbsent,observeOwnedChargeCallers,observeOwnedChargeRows,
-  verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
+  stageInternshipCharges,verifyInternshipChargesAbsent,buildTutorChargeFixture,cleanupOwnedChargeRows,observeOwnedChargeCallers,observeOwnedChargeRows,
+  stageOwnedChargeRows,verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
 import {buildTeachingSampleFixture,createTeachingSampleFixture,observeTeachingSampleCallers,readTeachingSampleCatalog} from './teaching-feedback-sample-fixture.mjs';
 import {requestTeachingSampleCase,teachingOriginalProtectedCases,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -400,6 +402,7 @@ async function saveLedger(){
       ...(s.dtmMaterialPreview?{dtmMaterialPreview:{plan:s.dtmMaterialPreview.plan,
         previous:s.dtmMaterialPreview.variant,pending:s.dtmMaterialPreview.pending}}:{}),
       ...(s.tutorEvaluationJournal?{tutorEvaluationFixture:s.tutorEvaluationJournal}:{}),
+      ...(s.tutorChargePlan?{tutorChargeFixture:s.tutorChargePlan}:{}),
       ...(s.clubEquipmentJournal?{clubEquipmentFixture:s.clubEquipmentJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
@@ -571,12 +574,13 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   }else if(cases.some(row=>row?.fixtureRequirement===clubEquipmentRequirement||typeof row?.id==='string'&&row.id.startsWith('account:club-equipment-')))
     fail('fixture-target','Club equipment cases require their isolated evaluator.');
   const tutorEvaluationOnly=caseFamily===tutorEvaluationFamily;
+  const tutorTuition=tutorEvaluationOnly&&fixtureMode===tutorTuitionFixtureMode;
   if(tutorEvaluationOnly){
-    if(fixtureMode!==tutorEvaluationFixtureMode||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+    if(![tutorEvaluationFixtureMode,tutorTuitionFixtureMode].includes(fixtureMode)||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
       ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
       fail('fixture-target','Tutor evaluation requires the exact protected Preview and its isolated fixture.');
-    validateTutorEvaluationHostedCases(cases);
-  }else if(cases.some(row=>row?.fixtureRequirement==='tutor_evaluation_disposable'))
+    (tutorTuition?validateTutorTuitionHostedCases:validateTutorEvaluationHostedCases)(cases);
+  }else if(cases.some(row=>['tutor_evaluation_disposable','tutor_tuition_disposable'].includes(row?.fixtureRequirement)))
     fail('fixture-target','Tutor evaluation cases must run in their isolated evaluator.');
   const assignmentListOnly=fixtureMode===dtmAssignmentListFixtureMode;
   const healthMetadataOnly=fixtureMode===healthMetadataFixtureMode;
@@ -817,7 +821,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     }
     if(tutorEvaluationOnly){
       state.prepared=true;
-      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['tutorEvaluation']};
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:tutorTuition?['tutorEvaluation','charges']:['tutorEvaluation']};
     }
     if(assignmentListOnly){
       await prepareDtmAssignmentListFixture(state,cases,caseFamily);
@@ -2620,17 +2624,28 @@ export async function runClearanceStatusPreview({origin,sourceRevision,previewTo
   return report(true);
 }
 
-export async function runTutorEvaluationPreview({origin,sourceRevision,previewToken,signal}={}){
-  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+export async function runTutorEvaluationPreview({origin,sourceRevision,previewToken,signal,compound=false,onCheckpoint}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')
+    ||typeof compound!=='boolean'||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
     fail('fixture-config','Tutor evaluation requires an exact protected Preview and source revision.');
   const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
   const identity=await sourceIdentity();
   if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Tutor evaluation requires the exact clean deployed source.');
-  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=tutorEvaluationHostedCases();
+  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID();
+  const cases=compound?tutorTuitionHostedCases():tutorEvaluationHostedCases();
   await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
-    signal,fixtureMode:tutorEvaluationFixtureMode,caseFamily:tutorEvaluationFamily,previewReadbackFetch:readback});
+    signal,fixtureMode:compound?tutorTuitionFixtureMode:tutorEvaluationFixtureMode,caseFamily:tutorEvaluationFamily,previewReadbackFetch:readback});
   const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
-  let cleanupProof;
+  let cleanupProof=null,completed=false;
+  const report=terminal=>{
+    const deployment=s.previewGate.status();
+    return structuredClone({runId,origin,sourceRevision,results,deployment,cleanup:cleanupProof,egressObservation:false,
+      ...(compound?{terminal}:{unmounted:tutorEvaluationHostedGaps()}),
+      liveAcceptance:terminal&&completed&&results.length===cases.length&&results.every(row=>row.passed)
+        &&cleanupProof?.verified===true&&cleanupProof.tutorEvaluationCleanup===true
+        &&(!compound||cleanupProof.tutorChargeCleanup===true&&cleanupProof.protectedOwnerUnchanged===true&&hasTutorTuitionProof(results)
+          &&deployment.status==='finished'&&deployment.issued===cases.length&&deployment.completed===cases.length)});
+  };
   try{
     const owners=Object.fromEntries(s.users.map((user,index)=>{
       const requests=s.identityRequests.filter(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
@@ -2649,6 +2664,18 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
       },
       transaction:work=>feeTransaction(s,work),
     });
+    if(compound){
+      await assertRecordedFixtureLease(s,'Tutor tuition fixture');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await s.previewGate.assertCurrent();
+      const programs=await s.sql`select id from public.affairs_programs where code='SAMPLE-GEN' and source_mode='sample'`;
+      if(programs.length!==1)fail('fixture-create','The existing sample program could not be bound.');
+      s.tutorChargePlan=buildTutorChargeFixture({runId,owners:{A:owners.A.id,B:owners.B.id},programId:programs[0].id});
+      for(const id of s.tutorChargePlan.recordIds)s.recordIds.add(id);
+      await saveLedger();
+      await query(()=>feeTransaction(s,()=>stageOwnedChargeRows(s.sql,s.tutorChargePlan)),
+        'Could not stage the exact disposable Tutor tuition rows.');
+    }
     const observe=async()=>{
       const rowsDigest=await s.tutorEvaluationFixture.observe();
       await Promise.all(s.users.map(user=>user.renewSession({signal})));
@@ -2656,13 +2683,17 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
         users:s.users,publishable:s.publishable,origin,previewFetch:readback,directFetch:s.boundedFetch,
         readResponse:readBoundedFixtureResponse,signal:signals(signal),
       });
-      return {rowsDigest,callers};
+      const charge=s.tutorChargePlan;
+      const charges=charge?{rowsDigest:await observeOwnedChargeRows(s.sql,charge),
+        ...await observeOwnedChargeCallers(charge,{callers:s.users,publishableKey:s.publishable,fetchImpl:s.boundedFetch,
+          readResponse:readBoundedFixtureResponse,signal:signals(signal)})}:null;
+      return {rowsDigest,callers,...(charges?{charges}:{})};
     };
     for(const testCase of cases){
       await s.tutorEvaluationFixture.transition(testCase.fixtureKey.slice('live:'.length));
       const before=await observe();
       const markers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
-        ...s.tutorEvaluationJournal.requestIds];
+        ...s.tutorEvaluationJournal.requestIds,...(s.tutorChargePlan?.recordIds??[])];
       let ticket,request;
       try{
         request=await pace(()=>requestTutorEvaluation({testCase,origin,token:s.users[0].token,signal:signals(signal,65000),
@@ -2670,16 +2701,20 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
       }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
       const after=await observe();
       const {envelope,...requestProof}=request;
-      results.push({...gradeHostedTutorEvaluation(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
+      const grade=compound?gradeHostedTutorTuition:gradeHostedTutorEvaluation;
+      results.push({...grade(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
+      await onCheckpoint?.(report(false));
     }
     const final=await sourceIdentity();
     if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
       fail('fixture-target','Tutor evaluation source changed during verification.');
     await s.previewGate.finish();
-  }finally{cleanupProof=await cleanup();}
-  return {runId,origin,sourceRevision,results,unmounted:tutorEvaluationHostedGaps(),deployment:s.previewGate.status(),
-    cleanup:cleanupProof,egressObservation:false,
-    liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.tutorEvaluationCleanup===true};
+    completed=true;
+  }finally{
+    try{cleanupProof=await cleanup();}
+    finally{await onCheckpoint?.(report(true));}
+  }
+  return report(true);
 }
 
 export async function runClubEquipmentPreview({origin,sourceRevision,previewToken,signal,confirmedCancellation=false,routeContext=false}={}){
@@ -4634,6 +4669,14 @@ export async function cleanup(){
       await s.clubEquipmentFixture.cleanup();
       await s.clubEquipmentFixture.verifyAbsent();
     }
+    if(s.tutorChargePlan){
+      await assertRecordedFixtureLease(s,'Tutor tuition cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>feeTransaction(s,async()=>{
+        await s.sql.unsafe('set transaction isolation level serializable');
+        await cleanupOwnedChargeRows(s.sql,s.tutorChargePlan);
+      }),'Could not reconcile the exact Tutor tuition rows. The recovery ledger is retained.');
+    }
     if(s.tutorEvaluationFixture){
       await s.tutorEvaluationFixture.cleanup();
       await s.tutorEvaluationFixture.verifyAbsent();
@@ -4975,6 +5018,10 @@ export async function cleanup(){
       if(identities.length)fail('fixture-cleanup','A tutor evaluation fixture identity remains.');
       s.tutorEvaluationCleanup=true;
     }
+    if(s.tutorChargePlan){
+      await verifyOwnedChargeRowsAbsent(s.sql,s.tutorChargePlan);
+      s.tutorChargeCleanup=true;
+    }
     if(s.transcriptConversation)s.transcriptConversationCleanup=await s.transcriptConversation.verifyAbsent();
     // A timed-out create with no row yet may still commit later. Keep the
     // exact private recovery intent and never turn an absent row into success.
@@ -5011,6 +5058,7 @@ export async function cleanup(){
     ...(s.dtmMaterialPreviewCleanup?{dtmMaterialPreviewCleanup:true}:{}),
     ...(s.dtmGradePreviewCleanup?{dtmGradePreviewCleanup:true}:{}),
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
+    ...(s.tutorChargeCleanup?{tutorChargeCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
     ...(s.counselingCompoundCleanup?{counselingCompoundCleanup:true}:{}),

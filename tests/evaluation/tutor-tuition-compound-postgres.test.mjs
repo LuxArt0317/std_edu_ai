@@ -7,6 +7,9 @@ import {pathToFileURL} from 'node:url';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {buildPlannedTutorEvaluationCases,buildTutorEvaluationCases,tutorEvaluationFixtureForCase,tutorEvaluationVisibleChecks} from './tutor-evaluation-cases.mjs';
 import {buildTutorEvaluationHostedFixture} from './tutor-evaluation-hosted.mjs';
+import {buildTutorChargeFixture,cleanupOwnedChargeRows,observeOwnedChargeCallers,observeOwnedChargeRows,
+  stageOwnedChargeRows,verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
+import {gradeHostedTutorTuition,tutorTuitionHostedCases} from './tutor-tuition-hosted.mjs';
 import {gradeCase} from './grading.mjs';
 import {readReply} from './run.mjs';
 
@@ -18,6 +21,28 @@ const studentProjection='id,user_id';
 const chargeProjection='id,student_id,label,amount_due,amount_paid,currency,due_on,source_mode,occurrence_on,category,contact_unit,contact_extension,payment_unit';
 const tutorPath='/school-affairs/services/28-1',feePath='/school-affairs/services/39-1';
 const digest=rows=>createHash('sha256').update(JSON.stringify(rows)).digest('hex');
+
+function pgliteSql(db){
+  return function sql(template,...values){
+    if(!template.raw)return {list:template};
+    const parameters=[],param=value=>'$'+parameters.push(value);
+    const fragment=(value,previous)=>{
+      if(!Array.isArray(value?.list))return param(value);
+      const rows=value.list;
+      if(typeof rows[0]!=='object'){
+        if(/select\s+$/u.test(previous)){
+          assert.ok(rows.every(column=>/^[a-z_]+$/u.test(column)));
+          return rows.join(',');
+        }
+        return '('+rows.map(param).join(',')+')';
+      }
+      const columns=Object.keys(rows[0]);
+      return '('+columns.join(',')+') values '+rows.map(row=>'('+columns.map(column=>param(row[column])).join(',')+')').join(',');
+    };
+    const statement=template.reduce((out,part,index)=>out+(index?fragment(values[index-1],template[index-1]):'')+part,'');
+    return db.query(statement,parameters).then(result=>result.rows);
+  };
+}
 
 test('frozen Tutor and named tuition requests verify separate persisted records and both callers on PostgreSQL',
   {skip:!runtime,timeout:30000},async t=>{
@@ -44,28 +69,23 @@ test('frozen Tutor and named tuition requests verify separate persisted records 
     const canonical=buildTutorEvaluationCases().find(row=>row.id===caseIds[0]);
     const independent=tutorEvaluationFixtureForCase(canonical);
     const runId=randomUUID(),users=['A','B'].map(role=>({role,id:randomUUID(),email:'tutor-fee-'+role.toLowerCase()+'@example.invalid',
-      runMarker:runId,studentId:randomUUID(),chargeId:randomUUID(),token:'synthetic-tutor-fee-'+randomUUID()}));
+      runMarker:runId,token:'synthetic-tutor-fee-'+randomUUID()}));
     const owners=Object.fromEntries(users.map(({role,id,email,runMarker})=>[role,{id,email,runMarker}]));
     const tutorPlan=buildTutorEvaluationHostedFixture({runId,owners,fixtureKey:'tutorEvaluation'});
     const {rows:[program]}=await db.query("select id from public.affairs_programs where code='SAMPLE-GEN'");
     const charges=[independent.charges[0],{label:independent.charges[0].label,amountDue:19500,amountPaid:3000,currency:'TWD',sourceMode:'sample'}];
+    const chargePlan=buildTutorChargeFixture({runId,owners:{A:owners.A.id,B:owners.B.id},programId:program.id});
     for(const [index,user] of users.entries()){
-      const own=charges[index],tutor=tutorPlan.rows.find(row=>row.user_id===user.id);
+      const tutor=tutorPlan.rows.find(row=>row.user_id===user.id);
+      user.studentId=chargePlan.students[index].id;
+      user.chargeId=chargePlan.charges[index].id;
       await db.query('insert into auth.users values($1,$2,now(),$3)',[user.id,user.email,{assistant_evaluation_run:runId}]);
       await db.query("insert into auth.identities values($1,'google')",[user.id]);
       await db.query("insert into public.affairs_profiles(user_id,email,display_name) values($1,$2,'Tutor fixture')",[user.id,user.email]);
-      await db.query(`insert into public.affairs_students(id,user_id,student_number,full_name,program_id,year_level,status,source_mode)
-        values($1,$2,$3,'Student Fixture',$4,1,'active','sample')`,[user.studentId,user.id,'QA-'+user.id,program.id]);
-      const {rows:sample}=await db.query('select id,label,source_mode from public.affairs_charges where student_id=$1',[user.studentId]);
-      assert.equal(sample.length,1);
-      assert.equal(sample[0].label,'Sample Fall 2026 tuition');
-      assert.equal(sample[0].source_mode,'sample');
-      await db.query('delete from public.affairs_charges where id=$1 and student_id=$2',[sample[0].id,user.studentId]);
-      await db.query(`insert into public.affairs_charges(id,student_id,label,amount_due,amount_paid,currency,source_mode)
-        values($1,$2,$3,$4,$5,$6,$7)`,[user.chargeId,user.studentId,own.label,own.amountDue,own.amountPaid,own.currency,own.sourceMode]);
       await db.query(`insert into public.affairs_tutor_evaluations(user_id,questionnaire_version,ratings,comment,request_id,submitted_at)
         values($1,1,$2,$3,$4,$5)`,[user.id,tutor.ratings,tutor.comment,tutor.request_id,tutor.submitted_at]);
     }
+    await db.transaction(tx=>stageOwnedChargeRows(pgliteSql(tx),chargePlan));
     const as=(user,read)=>db.transaction(async tx=>{
       await tx.exec('set local role authenticated');
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)",[user.id]);
@@ -75,7 +95,8 @@ test('frozen Tutor and named tuition requests verify separate persisted records 
     const readStudent=(user,owner)=>as(user,async tx=>(await tx.query(
       'select id,user_id from public.affairs_students where user_id=$1 limit 1',[owner.id])).rows);
     const readFees=(user,owner)=>as(user,async tx=>(await tx.query(`select ${chargeProjection} from public.affairs_charges
-      where student_id=$1 order by occurrence_on desc nulls last,id asc limit 500`,[owner.studentId])).rows);
+      where student_id=$1 order by occurrence_on desc nulls last,id asc limit 500`,[owner.studentId])).rows
+      .map(row=>({...row,amount_due:Number(row.amount_due),amount_paid:Number(row.amount_paid)})));
     async function observe(){
       const results=[];
       for(const [index,user] of users.entries()){
@@ -93,7 +114,27 @@ test('frozen Tutor and named tuition requests verify separate persisted records 
         assert.deepEqual(await as(user,async tx=>(await tx.query('select user_id from public.affairs_tutor_evaluations where user_id=$1',[other.id])).rows),[]);
         results.push({tutor,fees});
       }
-      return results;
+      const chargeProof={rowsDigest:await observeOwnedChargeRows(pgliteSql(db),chargePlan),
+        ...await observeOwnedChargeCallers(chargePlan,{callers:users,publishableKey:publishable,
+          async readResponse(response){assert.equal(response.status,200);return response.json();},
+          async fetchImpl(url,init){
+            assert.equal(url.origin,origin);
+            assert.equal(init.method,'GET');
+            const caller=users.find(user=>init.headers.Authorization==='Bearer '+user.token);
+            assert.ok(caller);
+            if(url.pathname==='/rest/v1/affairs_students'){
+              const target=users.find(user=>url.searchParams.get('user_id')==='eq.'+user.id);
+              assert.ok(target);
+              return Response.json(await readStudent(caller,target));
+            }
+            assert.equal(url.pathname,'/rest/v1/affairs_charges');
+            const target=users.find(user=>url.searchParams.get('student_id')==='eq.'+user.studentId);
+            assert.ok(target);
+            return Response.json(await readFees(caller,target));
+          },
+        })};
+      const tutorScopes=results.map(({tutor},index)=>({role:users[index].role,visibleRows:1,projectionSha256:digest(tutor.evaluation)}));
+      return {results,hosted:{rowsDigest:digest(results.map(row=>row.tutor.evaluation)),callers:tutorScopes,charges:chargeProof}};
     }
     const initial=await observe();
     const calls=[],errors=[];
@@ -154,6 +195,10 @@ test('frozen Tutor and named tuition requests verify separate persisted records 
       assert.equal(result.passed,true,JSON.stringify({caseId:row.id,failures:result.failures}));
       assert.ok(tutorEvaluationVisibleChecks(row,envelope.body).every(check=>check.passed));
       const excluded=row.id===caseIds[2];
+      const hosted=tutorTuitionHostedCases().find(item=>item.id===row.id);
+      const hostedScore=gradeHostedTutorTuition(hosted,{...envelope,statusCode:200,execution:'deterministic',fixtureKey:hosted.fixtureKey},
+        before.hosted,after.hosted);
+      assert.equal(hostedScore.passed,true,JSON.stringify(hostedScore.failures));
       assert.deepEqual([...calls].sort(),excluded?['charges','student']:['charges','student','tutorEvaluation']);
       assert.deepEqual(envelope.body.verification,{status:'verified',attempts:1});
       assert.deepEqual(envelope.body.citations.map(row=>row.url).sort(),excluded?[feePath]:[tutorPath,feePath]);
@@ -186,6 +231,14 @@ test('frozen Tutor and named tuition requests verify separate persisted records 
     assert.match(other.body.answer,/16,500/u);
     assert.doesNotMatch(other.body.answer,/23,000|FOREIGN TUTOR COMMENT/u);
     assert.deepEqual(await observe(),initial);
+    const altered=chargePlan.charges[1];
+    await db.query('update public.affairs_charges set amount_paid=20 where id=$1',[altered.id]);
+    await assert.rejects(db.transaction(tx=>cleanupOwnedChargeRows(pgliteSql(tx),chargePlan)),/unrecognized charge or student rows/u);
+    assert.equal((await readFees(users[0],users[0])).length,1);
+    assert.equal((await readFees(users[1],users[1]))[0].amount_paid,20);
+    await db.query('update public.affairs_charges set amount_paid=$1 where id=$2',[altered.amount_paid,altered.id]);
+    await db.transaction(tx=>cleanupOwnedChargeRows(pgliteSql(tx),chargePlan));
+    await verifyOwnedChargeRowsAbsent(pgliteSql(db),chargePlan);
     await db.query('delete from auth.users where id=any($1::uuid[])',[users.map(user=>user.id)]);
     for(const table of ['auth.users','auth.identities','public.affairs_profiles','public.affairs_students','public.affairs_charges','public.affairs_tutor_evaluations'])
       assert.equal((await db.query('select count(*)::integer as count from '+table)).rows[0].count,0,table);

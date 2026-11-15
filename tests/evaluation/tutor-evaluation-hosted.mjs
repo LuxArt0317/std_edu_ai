@@ -222,7 +222,8 @@ export async function requestTutorEvaluation({testCase,origin,token,signal,fetch
     await response.body?.cancel();
     throw new Error('Tutor evaluation assistant did not return a distinct pinned stream.');
   }
-  const envelope={...await readReply(response),statusCode:response.status,fixtureKey:testCase.fixtureKey,execution:'live-model'};
+  const envelope={...await readReply(response),statusCode:response.status,fixtureKey:testCase.fixtureKey,
+    execution:testCase.executionContract==='live-native'?'live-native':'live-model'};
   const raw=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
   if(privateMarkers.some(marker=>marker&&raw.includes(marker.toLowerCase()))
     ||/"(?:user_id|userid|request_id|requestid|student_number|studentnumber|signedurl)"\s*:|foreign tutor comment|storage\/v1\/|object\/sign\//u.test(raw))

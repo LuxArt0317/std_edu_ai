@@ -2,11 +2,25 @@ import {isDeepStrictEqual} from 'node:util';
 import {internshipObservationDigest} from '../../server/internshipObservation.js';
 import {buildInternshipNativeCases,internshipNativeFixtureForCase} from './internship-native-cases.mjs';
 import {buildCounselingAppointmentCases,counselingAppointmentFixtureForCase} from './counseling-appointment-cases.mjs';
+import {buildTutorEvaluationCases,tutorEvaluationFixtureForCase} from './tutor-evaluation-cases.mjs';
 
 const tuitionCase=buildInternshipNativeCases().find(row=>row.id==='account:internship-native-fees');
 const [tuition]=internshipNativeFixtureForCase(tuitionCase).companion.records;
 const counselingCase=buildCounselingAppointmentCases().find(row=>row.id==='account:counseling-appointments-mixed-tuition');
 const [counselingTuition]=counselingAppointmentFixtureForCase(counselingCase).charges;
+const tutorCase=buildTutorEvaluationCases().find(row=>row.id==='account:tutor-evaluation-mixed-tuition');
+const [tutorTuition]=tutorEvaluationFixtureForCase(tutorCase).charges;
+const chargeScenarios={
+  internship:{name:'Internship',firstStudent:611,currency:tuition.currency,charges:[
+    [tuition.label,tuition.remaining+5000,5000],['QA foreign Internship Tuition control',11850,1850],
+  ]},
+  counseling:{name:'Counseling',firstStudent:711,currency:counselingTuition.currency,charges:[
+    [counselingTuition.label,counselingTuition.amountDue,counselingTuition.amountPaid],['FOREIGN COUNSELING TUITION CONTROL',11850,1850],
+  ]},
+  tutor:{name:'Tutor',firstStudent:811,currency:tutorTuition.currency,charges:[
+    [tutorTuition.label,tutorTuition.amountDue,tutorTuition.amountPaid],[tutorTuition.label,19500,3000],
+  ]},
+};
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const roles=['A','B'];
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -24,32 +38,35 @@ export function buildInternshipChargeFixture({runId,owners,programId}){
 }
 
 export function buildCounselingChargeFixture({runId,owners,programId}){
-  return buildOwnedChargeFixture({runId,owners,programId},true);
+  return buildOwnedChargeFixture({runId,owners,programId},'counseling');
 }
 
-function buildOwnedChargeFixture({runId,owners,programId},counseling=false){
+export function buildTutorChargeFixture({runId,owners,programId}){
+  return buildOwnedChargeFixture({runId,owners,programId},'tutor');
+}
+
+function buildOwnedChargeFixture({runId,owners,programId},purpose='internship'){
   if(![runId,owners?.A,owners?.B,programId].every(value=>uuid.test(value??''))
     ||new Set([runId,owners.A,owners.B,programId]).size!==4)fail('invalid identities or sample program');
+  const scenario=chargeScenarios[purpose];
   const id=suffix=>runId.slice(0,24)+'000000000'+suffix;
   const students=roles.map((role,index)=>({
-    id:id((counseling?711:611)+index),user_id:owners[role],student_number:'EVAL-'+id((counseling?711:611)+index),
-    full_name:'Evaluation '+(counseling?'Counseling':'Internship')+' Student '+role,
+    id:id(scenario.firstStudent+index),user_id:owners[role],student_number:'EVAL-'+id(scenario.firstStudent+index),
+    full_name:'Evaluation '+scenario.name+' Student '+role,
     program_id:programId,year_level:1,status:'active',source_mode:'sample',
   }));
-  const charges=students.map((student,index)=>({
-    id:id((counseling?721:621)+index),student_id:student.id,
-    label:counseling?(index?'FOREIGN COUNSELING TUITION CONTROL':counselingTuition.label):(index?'QA foreign Internship Tuition control':tuition.label),
-    amount_due:index?11850:counseling?counselingTuition.amountDue:tuition.remaining+5000,
-    amount_paid:index?1850:counseling?counselingTuition.amountPaid:5000,currency:counseling?counselingTuition.currency:tuition.currency,
+  const charges=scenario.charges.map(([label,due,paid],index)=>({
+    id:id(scenario.firstStudent+10+index),student_id:students[index].id,
+    label,amount_due:due,amount_paid:paid,currency:scenario.currency,
     due_on:null,source_mode:'sample',occurrence_on:null,category:null,contact_unit:null,contact_extension:null,payment_unit:null,
   }));
   const recordIds=[...students,...charges].map(row=>row.id);
   if(recordIds.some(value=>[runId,owners.A,owners.B,programId].includes(value)))fail('reserved identity collision');
-  return {runId,owners:{...owners},programId,students,charges,recordIds,...(counseling?{purpose:'counseling'}:{})};
+  return {runId,owners:{...owners},programId,students,charges,recordIds,...(purpose==='internship'?{}:{purpose})};
 }
 
 function checked(plan){
-  const rebuilt=plan?.purpose==='counseling'?buildCounselingChargeFixture(plan):buildInternshipChargeFixture(plan);
+  const rebuilt=plan?.purpose==='tutor'?buildTutorChargeFixture(plan):plan?.purpose==='counseling'?buildCounselingChargeFixture(plan):buildInternshipChargeFixture(plan);
   if(!isDeepStrictEqual(plan,rebuilt))fail('invalid fixture plan');
   return rebuilt;
 }
