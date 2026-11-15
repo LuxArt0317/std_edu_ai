@@ -210,7 +210,7 @@ node tests/evaluation/run.mjs --mode live --case-family dtm-assignment-list \
   --out artifacts/assistant-evaluation/dtm-assignment-list-live.json
 ```
 
-Use the exact deployed commit, project credentials and Vercel Development OIDC identity. This command evaluates the nine selected cases and records the cleanup result.
+Use the exact deployed commit, project credentials and Vercel Development OIDC identity. This command evaluates 15 fixed cases and records cleanup. Ten cases require verified saved rows, including an explicitly selected sample course. Five require a sign-in, ownership, file, grade, or bulk-submission response with the exact destination where applicable and an empty tool stream. All 15 bind the payload, endpoint, credential presence, and response correlation to before-and-after readbacks from two separate disposable accounts. The guest request goes to the public endpoint without a caller token.
 
 ### Confirmed assistant task actions
 

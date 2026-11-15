@@ -177,13 +177,18 @@ test('real assistant stream matches the protected Preview request observation fo
   for(const item of dtmAssignmentListLiveCases())await t.test(item.id,async()=>{
     const source=bank.find(row=>row.id===item.id);
     const {envelope}=await exercise(source,{stream:true});
+    const authenticated=item.auth==='signed-in';
     Object.assign(envelope,{execution:'live-native',fixtureKey:item.fixtureKey,sourceRevision:revision,
       deploymentCheck:{verified:true,requestIndex:1,sourceRevision:revision},
-      assignmentListDispatch:dtmAssignmentListDispatch('/api/affairs-assistant',JSON.stringify({
+      assignmentListDispatch:dtmAssignmentListDispatch(authenticated?'/api/affairs-assistant':'/api/research-assistant',JSON.stringify({
         question:item.question,history:[],route:item.route,stream:true,consentedResearchUse:false,
-      })),
+      }),authenticated),
     });
     assert.doesNotThrow(()=>bindDtmAssignmentListReadback(item,envelope,{before:observed,after:observed}));
+    if(!item.observation.read){
+      const wrong={...envelope,events:[{kind:'account-read:dtmAssignmentList:1',status:'complete'}]};
+      assert.throws(()=>bindDtmAssignmentListReadback(item,wrong,{before:observed,after:observed}),/two caller readbacks/);
+    }
     const result=gradeDtmAssignmentListLiveCase(item,envelope);
     assert.equal(result.passed,true,JSON.stringify(result.failures));
     const extra='\n[Invalid record](/dtm/course/'+source.observation.courseId+'/assignment/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa)';
