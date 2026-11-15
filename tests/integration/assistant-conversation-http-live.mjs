@@ -12,7 +12,7 @@ import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
 import {createPinnedDeploymentVerifier} from '../evaluation/pinned-deployment.mjs';
 import {conversationDeleteProbeTitles,createTrustedPreviewFetch,isEvaluationPreviewOrigin} from '../evaluation/vercel-preview-transport.mjs';
 import {createProtectedConversationBrowserRelay,validateProtectedConversationBrowserResources} from '../evaluation/vercel-preview-browser-transport.mjs';
-import {installProtectedConversationBrowserRoute,runProtectedConversationBrowser,verifyProtectedBrowserSave}
+import {installProtectedConversationBrowserRoute,protectedConversationQuestions,runProtectedConversationBrowser,verifyProtectedBrowserSave}
   from './helpers/protected-conversation-browser.mjs';
 
 
@@ -409,6 +409,15 @@ export async function main(){
           assert.equal(reservation?.userId,first.id);assert.equal(reservation.question,question);
           const op=operations.find(row=>row.userId===first.id&&row.payload.id===id&&row.state==='saved');
           assert.ok(op&&reservation.expected);
+          if(question===protectedConversationQuestions[0]){
+            const profiles=await sql`select display_name,preferred_name from public.affairs_profiles where user_id=${first.id}`;
+            const expectedName=profiles[0]?.preferred_name||profiles[0]?.display_name;
+            assert.equal(profiles.length,1,'The disposable browser profile must have one stored row.');
+            assert.equal(expectedName,'Conversation acceptance fixture');
+            assert.ok(reservation.expected.answer.includes('Your display name is ` '+expectedName+' `.'),
+              'The browser answer must contain the checked display name from its independently read profile.');
+            assert.ok(reservation.expected.activity.some(step=>step.kind==='account-read:profile:1'&&step.status==='complete'));
+          }
           const wire=await request(first,{id});
           assert.ok(conversationResponseMatches(op,{status:200,body:wire}));
           assert.ok(reconcileConversationWrite(op,await sql`select id,user_id,title,messages,version from public.affairs_conversations where id=${id}`));
