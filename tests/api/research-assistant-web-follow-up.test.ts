@@ -983,12 +983,13 @@ test('verified public detail can advance through four checks and survives stalle
   const entrance='Visitors enter the STU archive exhibition through the North Reading Room.';
   const identity='Visitors bring school identification to the STU archive exhibition. The venue has step-free access.';
   const mirror=officialDirectory+'archive-mirror/';
+  const calendarMirror=eventCalendar+'print/';
   const sourceUrls=[officialDirectory,officialOffice,eventCalendar,officialNotice];
   const gaps=[['entrance PRIVATE_GAP_LABEL','visitor identification','step-free access','opening time'],
     ['visitor identification','step-free access','opening time'],['opening time'],[]];
   const statements=[admissible,entrance,identity,noticeContent];
   const question=testQuestion+' Please also confirm admission, the entrance, visitor identification, and step-free access.';
-  for(const outcome of ['complete','still-partial','rejected-then-recovered','truncated-then-recovered','truncated-no-time','mirror','swapped-gaps','relabeled','outage','time'] as const){
+  for(const outcome of ['complete','still-partial','rejected-then-recovered','truncated-then-recovered','truncated-no-time','same-gaps-with-lead','mirror','swapped-gaps','relabeled','outage','time'] as const){
     configured();
     const unresolved=outcome==='still-partial'?['guide handouts']:[];
     const missingAt=(index:number)=>[...gaps[index],...unresolved];
@@ -998,7 +999,7 @@ test('verified public detail can advance through four checks and survives stalle
     const acquired:string[]=[];
     const claimIndices=(count:number)=>Array.from({length:count},(_,index)=>index);
     const run=createResearchAssistantHandler({readSources:async citations=>citations.map(citation=>{
-      const index=sourceUrls.indexOf(citation.url);
+      const index=sourceUrls.indexOf(citation.url===calendarMirror?eventCalendar:citation.url);
       assert.ok(index>=0||citation.url===mirror, citation.url);
       acquired.push(citation.url);
       return {id:citation.chunkId,url:citation.url,content:citation.url===mirror?'  '+entrance.replace('North','North   ')+'  ':statements[index]};
@@ -1014,7 +1015,8 @@ test('verified public detail can advance through four checks and survives stalle
         assert.doesNotMatch(call.input,/PRIVATE_GAP_LABEL|previousMissingRequestedDetails|REJECTED_(?:DRAFT|FEEDBACK)_MARKER/u);
         assert.ok(index<4,'No fifth discovery pass.');
         const source=outcome==='mirror'&&index===2?mirror:sourceUrls[index];
-        return Response.json(searchPayload([source],admissible+' The entrance, identification, step-free access, and opening time remain unresolved.'));
+        const leads=outcome==='same-gaps-with-lead'&&index===2?[source,calendarMirror,officialNotice]:[source];
+        return Response.json(searchPayload(leads,admissible+' The entrance, identification, step-free access, and opening time remain unresolved.',[source]));
       }
       const context=JSON.parse(call.input[0].content[0].text);
       const evidence=context.evidence as Array<{url:string;id:string;content:string}>;
@@ -1031,10 +1033,14 @@ test('verified public detail can advance through four checks and survives stalle
           assert.match(context.previousAnswer,/free admission.+North Reading Room/u);
           assert.deepEqual(context.unsupportedClaims,[]);
         }
-        const facts=claimIndices(evidence.length).filter(index=>!(outcome==='swapped-gaps'&&evidence.length===3&&index===0));
+        if(outcome==='same-gaps-with-lead'&&evidence.length===4)
+          assert.doesNotMatch(context.previousAnswer,/A_REWORDING_ONLY/u);
+        const facts=claimIndices(evidence.length).filter(index=>!(outcome==='swapped-gaps'&&evidence.length===3&&index===0)
+          &&!(outcome==='same-gaps-with-lead'&&evidence.length===3&&index===2));
         const unverifiedOpening=outcome==='rejected-then-recovered'&&evidence.length===3?' The opening time is 8:00 a.m. REJECTED_DRAFT_MARKER.':'';
         return provider({status:'answered',answer:facts.map(index=>statements[index]).join(' ')
-          +(evidence.length===4?unresolved.length?' I could not verify whether guide handouts are available.':'':' Some requested details remain unverified.')+unverifiedOpening,
+          +(evidence.length===4?unresolved.length?' I could not verify whether guide handouts are available.':'':' Some requested details remain unverified.')+unverifiedOpening
+          +(outcome==='same-gaps-with-lead'&&evidence.length===3?' A_REWORDING_ONLY.':''),
           sourceIds:facts.map(index=>found(index).id)});
       }
       assert.equal(name,'answer_evidence_review');
@@ -1042,7 +1048,7 @@ test('verified public detail can advance through four checks and survives stalle
       const index=reviews++;
       const resolveGap=(name:string)=>name.toLowerCase();
       const reviewResumed=['rejected-then-recovered','truncated-then-recovered'].includes(outcome);
-      const prior=reviewResumed&&index===3?1:index-1;
+      const prior=(reviewResumed||outcome==='same-gaps-with-lead')&&index===3?1:index-1;
       assert.deepEqual(context.previousMissingRequestedDetails,index?missingAt(prior).map(resolveGap):undefined);
       if(outcome.startsWith('truncated-')&&index===2){
         if(outcome==='truncated-no-time')elapsed=44_000;
@@ -1057,23 +1063,26 @@ test('verified public detail can advance through four checks and survives stalle
       }
       if(outcome==='time'&&index===1)elapsed=44_000;
       const swapped=outcome==='swapped-gaps'&&index===2;
-      const claims=claimIndices(index+1).filter(fact=>!swapped||fact!==0).map(fact=>({claim:statements[fact],supported:true,
+      const claims=claimIndices(index+1).filter(fact=>(!swapped||fact!==0)
+        &&!(outcome==='same-gaps-with-lead'&&index===2&&fact===2)).map(fact=>({claim:statements[fact],supported:true,
         evidenceId:found(fact).id,quotes:[found(fact).content],jsonPaths:[]}));
       let missing=missingAt(index);
       if(swapped)missing=['admission','opening time'];
-      else if(index===2)missing=[outcome==='relabeled'?'start time':' Ｏｐｅｎｉｎｇ   Ｔｉｍｅ ',...unresolved];
+      else if(index===2)missing=outcome==='same-gaps-with-lead'?missingAt(1):[outcome==='relabeled'?'start time':' Ｏｐｅｎｉｎｇ   Ｔｉｍｅ ',...unresolved];
       return provider({supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
     };
     const progress:Progress[]=[];
     const answer=await invoke({question:question+(unresolved.length?' Are guide handouts available?':'')},run,'verified-public-continuation-'+outcome,progress);
-    const reachedFourth=['complete','still-partial','rejected-then-recovered','truncated-then-recovered'].includes(outcome);
+    const usedQueuedLead=outcome==='same-gaps-with-lead';
+    const reachedFourth=usedQueuedLead||['complete','still-partial','rejected-then-recovered','truncated-then-recovered'].includes(outcome);
     const expectedReviews=reachedFourth?4:['outage','swapped-gaps','relabeled','truncated-no-time'].includes(outcome)?3:2;
     assert.deepEqual(answer.verification,{status:'verified',attempts:expectedReviews},outcome);
     assert.equal(reviews,expectedReviews,outcome);
     assert.equal(corrections,expectedReviews-1,outcome);
-    assert.equal(searches,reachedFourth?4:outcome==='time'?2:3,outcome);
-    assert.deepEqual(acquired,reachedFourth?sourceUrls:[...sourceUrls.slice(0,2),...(outcome==='time'?[]:[outcome==='mirror'?mirror:eventCalendar])]);
-    assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL|REJECTED_(?:DRAFT|FEEDBACK)_MARKER/u);
+    assert.equal(searches,reachedFourth&&!usedQueuedLead?4:outcome==='time'?2:3,outcome);
+    assert.deepEqual(acquired,usedQueuedLead?[...sourceUrls.slice(0,3),calendarMirror,officialNotice]:reachedFourth?sourceUrls:
+      [...sourceUrls.slice(0,2),...(outcome==='time'?[]:[outcome==='mirror'?mirror:eventCalendar])]);
+    assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL|A_REWORDING_ONLY|REJECTED_(?:DRAFT|FEEDBACK)_MARKER/u);
     assert.ok(answer.answer.includes(entrance),outcome);
     assert.ok(answer.answer.includes(admissible),outcome);
     assert.equal(answer.answer.includes(noticeContent),reachedFourth,outcome);
@@ -1082,7 +1091,8 @@ test('verified public detail can advance through four checks and survives stalle
     assert.deepEqual(answer.citations.map((source:{url:string})=>source.url).sort(),(reachedFourth?[...sourceUrls]:sourceUrls.slice(0,2)).sort());
     assert.equal(progress.some(step=>step.kind==='verification-partial-follow-up-3'),outcome!=='time',outcome);
     assert.equal(progress.some(step=>step.kind==='verification-extended-review'),reachedFourth,outcome);
-    assert.equal(progress.some(step=>step.kind==='web-alternate-discovery'&&step.status==='complete'),reachedFourth,outcome);
+    assert.equal(progress.some(step=>step.kind==='web-alternate-discovery'&&step.status==='complete'),reachedFourth&&!usedQueuedLead,outcome);
+    assert.equal(progress.some(step=>step.kind==='web-extended-source'&&step.status==='complete'),usedQueuedLead,outcome);
     assert.equal(progress.some(step=>step.kind==='verification-kept-partial'),!reachedFourth&&outcome!=='time',outcome);
     if(outcome==='rejected-then-recovered'||outcome==='outage'||outcome.startsWith('truncated-'))
       assert.ok(progress.some(step=>step.kind==='verification-3'&&step.status==='unavailable'));

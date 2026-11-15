@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Follow an unread school source when a draft leaves the same details unanswered. Keep the best checked reply until new evidence verifies more. [#100]
+
 - Verify Student Leave dates and Moodle grades as separate records within one answer. Preserve the verified portion when one source is incomplete. [#100]
 
 - Answer facility repair status and notes directly from saved records. Verify the next-class portion separately and keep the supported details if one read fails. [#100]

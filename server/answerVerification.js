@@ -60,7 +60,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
   question, initialAnswer, loadEvidence, loadDeeperEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
-  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, lookForMissingPublicDetails, priorVerifiedPartial,
+  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, lookForMissingPublicDetails, hasUnreadPublicLead, priorVerifiedPartial,
   hasLocalCorrection = false, deadline = Date.now() + 50_000,
 }) {
   if (maxChecks !== maxAnswerVerificationChecks && maxChecks !== maxPublicAnswerVerificationChecks)
@@ -103,6 +103,8 @@ export async function runAnswerVerification({
   const canFollowLead = attempt => attempt + previousChecks < maxAnswerVerificationChecks || canExtendReview?.() === true;
   // A smaller set can still lose a fact if it adds a newly missing detail.
   const improvesPartial = () => missingRequestedDetails && missingRequestedDetails.length < verifiedPartial.missing.length
+    && missingRequestedDetails.every(detail => verifiedPartial.missing.includes(detail));
+  const retainsSameGaps = () => missingRequestedDetails.length === verifiedPartial.missing.length
     && missingRequestedDetails.every(detail => verifiedPartial.missing.includes(detail));
   const stop = (attempts, reason, attempt) => {
     const cause = reason === 'provider_quota_exhausted' ? 'reviewer_unavailable'
@@ -197,7 +199,7 @@ export async function runAnswerVerification({
     })
     .addNode('retry', state => {
       const nextCheck = state.attempt + previousChecks + 1;
-      if (verifiedPartial && !state.verdict.ok) candidate = verifiedPartial.candidate;
+      if (verifiedPartial) candidate = verifiedPartial.candidate;
       if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Looking for another source',
         'Looking for an unread school page or another publication that can verify the remaining detail.');
       if (state.verdict.ok) {
@@ -219,10 +221,11 @@ export async function runAnswerVerification({
       if(state.attempt + previousChecks >= maxChecks || !withinBudget() || state.verdict.reason === 'source_exhausted')return END;
       if(state.verdict.reason==='provider_quota_exhausted')return hasLocalCorrection&&state.attempt===1?'retry':END;
       if(state.verdict.ok){
-        if(!publicRecovery||!missingRequestedDetails?.length||verifiedPartial&&!improvesPartial()
-          ||!safeToContinue()||!canFollowLead(state.attempt)||!enoughTimeToContinue(state.attempt)
-          ||lookForMissingPublicDetails?.()!==true)return END;
-        verifiedPartial={candidate,missing:missingRequestedDetails};
+        if (!publicRecovery || !missingRequestedDetails?.length || !safeToContinue()
+          || !canFollowLead(state.attempt) || !enoughTimeToContinue(state.attempt)
+          || lookForMissingPublicDetails?.() !== true) return END;
+        if (!verifiedPartial || improvesPartial()) verifiedPartial = {candidate, missing:missingRequestedDetails};
+        else if (!retainsSameGaps() || hasUnreadPublicLead?.() !== true) return END;
         return 'retry';
       }
       if(verifiedPartial){
