@@ -108,7 +108,7 @@ import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuition
   TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
 import {buildDtmTimingPlan,deleteDtmTimingRows,dtmTimingFixtureMode,dtmTimingPreviewCases,dtmTimingRequest,emptyDtmTimingState,
   gradeDtmTimingCase,observeDtmTimingCallers,observeDtmTimingRows,readDtmTimingState,seedDtmTimingRows} from './dtm-submission-timing-preview.mjs';
-import {buildDtmGradeOverviewPreview,buildDtmGradePreview,deleteDtmGradeOverviewRows,deleteDtmGradePreview,dtmGradeOverviewPreviewCases,
+import {assertStudentLeaveGradePairSchema,buildDtmGradeOverviewPreview,buildDtmGradePreview,buildStudentLeaveGradePairFixture,deleteDtmGradeOverviewRows,deleteDtmGradePreview,dtmGradeOverviewPreviewCases,
   dtmGradePreviewCases,dtmGradePreviewDigest,dtmGradePreviewMode,gradeDtmGradePreview,observeDtmGradeOverviewRows,observeDtmGradePreviewRows,
   readDtmGradeOverviewScopes,seedDtmGradeOverviewRows,seedDtmGradePreviewCompanion,unmountedDtmNativeGradeCases,verifyDtmGradePreviewAbsent} from './dtm-grade-report-preview.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
@@ -459,7 +459,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.studentLeaveGradePair||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly)return user;
   if(s.fixtureMode===dtmAssignmentListFixtureMode){
     await s.previewGate.assertCurrent();
     user.studentId=await initializeDtmAssignmentListStudent(user,{publishable:s.publishable,fetchImpl:s.boundedFetch,
@@ -472,9 +472,11 @@ async function createFixtureUser(index){
 }
 
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
-export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch,dtmGradeOverview=false,clearanceStatusTerms}={}){
+export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch,dtmGradeOverview=false,clearanceStatusTerms,studentLeaveGradePair=false}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   const leaveDataOnly=fixtureMode===runStudentLeaveDataPreflight;
+  if(typeof studentLeaveGradePair!=='boolean'||studentLeaveGradePair&&!leaveDataOnly)
+    fail('fixture-config','Moodle grade pairing requires the dedicated Student Leave fixture mode.');
   const counselingOnly=caseFamily==='counseling-appointments';
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
@@ -660,7 +662,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,internshipNativeOnly,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,studentLeaveGradePair,internshipNativeOnly,
     facilityRepairCancellationOnly,learningSupportPreviewOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,dtmStudyPreviewOnly,teachingSampleOnly,venueProtectedOnly,certificateAwardPreviewOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
     admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
@@ -673,6 +675,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(locked[0]?.held!==true)fail('fixture-lease','Another evaluation fixture lifecycle owns the database lock.');state.locked=true;
     await assertNoPendingRecoveryLedgers();
     if(teachingSampleOnly)state.teachingCatalog=await readTeachingSampleCatalog(state.sql);
+    if(studentLeaveGradePair){
+      await previewGate.assertCurrent();
+      try{await assertStudentLeaveGradePairSchema(state.sql);}
+      catch{fail('fixture-schema','The paired Moodle grade schema and caller permissions are required before fixture identities are created.');}
+    }
     if(learningSupportPreviewOnly){
       await previewGate.assertCurrent();
       try{await assertLearningSupportPreviewSchema(state.sql);}
@@ -887,8 +894,18 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
 async function prepareStudentLeaveDataFixture(s,sourceRevision,previewGate,key){
   const [first,second]=s.identityRequests;
   const owner=request=>({id:request.id,email:request.email,runMarker:request.runId});
-  const binding={runId:s.runId,projectRef:PROJECT,origin:s.origin,sourceRevision,owners:{A:owner(first),B:owner(second)},
-    suiteHash:hash({kind:'student-leave-data-preflight',manifest:studentLeaveFixtureManifest})};
+  const owners={A:owner(first),B:owner(second)};
+  const binding={runId:s.runId,projectRef:PROJECT,origin:s.origin,sourceRevision,owners,
+    suiteHash:hash({kind:'student-leave-data-preflight',manifest:studentLeaveFixtureManifest,...(s.studentLeaveGradePair?{companion:'dtmGradeReport'}:{})})};
+  if(s.studentLeaveGradePair){
+    await assertRecordedFixtureLease(s,'Student Leave/Moodle grade setup');
+    await previewGate.assertCurrent();
+    s.dtmGradeOverview=true; // Existing exact grade cleanup and journal.
+    s.dtmGradePreview=buildStudentLeaveGradePairFixture(s.runId,owners);
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedDtmGradeOverviewRows(s.sql,s.dtmGradePreview)),
+      'Could not seed the paired disposable Moodle grade rows.');
+  }
   const lifecycle=createStudentLeaveDatabaseFixture({binding,sql:s.sql,publishableKey:s.publishable,
     journal:await openStudentLeaveFixtureJournal({directory:PRIVATE_DIR,binding:studentLeaveJournalBinding(binding)}),
     async assertLease(){await assertRecordedFixtureLease(s,'Student Leave');return true;},
@@ -899,12 +916,27 @@ async function prepareStudentLeaveDataFixture(s,sourceRevision,previewGate,key){
       if(!user||s.closing)fail('fixture-case','Student Leave data preflight requires its exact disposable caller.');
       await user.renewSession({signal});return {id:user.id,token:user.token};
     },fetchImpl:s.boundedFetch});
-  s.studentLeaveData={binding,lifecycle,previewGate,async observe(plan,testCase,seenCorrelations){
+  s.studentLeaveData={binding,lifecycle,previewGate,async observeGradeReadbacks(){
+    if(!s.studentLeaveGradePair)fail('fixture-case','No paired Moodle grade fixture was prepared.');
+    await assertRecordedFixtureLease(s,'Student Leave/Moodle grade readback');
+    await previewGate.assertCurrent();
+    const fixture=s.dtmGradePreview;
+    const rows=await query(()=>observeDtmGradeOverviewRows(s.sql,fixture),'Could not verify the exact paired Moodle rows.');
+    const fetchImpl=async(...args)=>{
+      const ticket=await previewGate.beforeRequest();
+      try{return await s.previewReadbackFetch(...args);}
+      finally{await previewGate.afterRequest(ticket);}
+    };
+    const callers=await readDtmGradeOverviewScopes(fixture,s.users,{origin:s.origin,signal:s.signal,
+      fetchImpl,readResponse:readBoundedFixtureResponse});
+    return {rows,callers};
+  },async observe(plan,testCase,seenCorrelations){
     await assertRecordedFixtureLease(s,'Student Leave');
     const caller=s.users[0];
     const signal=signals(s.signal,65000);
     await caller.renewSession({signal});
-    return requestObservedStudentLeave({plan,testCase,key,token:caller.token,fetchImpl:s.previewReadbackFetch,signal,seenCorrelations});
+    return requestObservedStudentLeave({plan,testCase,key,token:caller.token,fetchImpl:s.previewReadbackFetch,signal,seenCorrelations,
+      ...(s.studentLeaveGradePair?{gradeOverview:s.dtmGradePreview.overviews.A}:{})});
   }};
   await saveLedger();
 }
@@ -926,20 +958,23 @@ export function runStudentLeaveDataPreflight(options){
 /** Exact caller-owned native cases with hosted request, reader and check proof. */
 export function runStudentLeaveHostedEvaluation({caseIds,...options}={}){
   const selection=studentLeaveHostedSelection(caseIds);
-  return runPreparedStudentLeave(options,async({binding,lifecycle,previewGate,observe})=>{
+  const studentLeaveGradePair=selection.every(row=>row.companion==='dtmGradeReport');
+  return runPreparedStudentLeave({...options,studentLeaveGradePair},async({binding,lifecycle,previewGate,observe,observeGradeReadbacks})=>{
     const results=[],seenCorrelations=new Set();
     const families=new Set(selection.map(row=>row.family));
     for(const family of families){
       const plan=buildStudentLeaveFixturePlan({binding,family});
       const firstProof=await lifecycle.transition(plan);
       for(const {testCase} of selection.filter(row=>row.family===family)){
+        const gradeBefore=studentLeaveGradePair?await observeGradeReadbacks():null;
         const ticket=await previewGate.beforeRequest();
         let result;
         try{result=await observe(plan,testCase,seenCorrelations);}
         finally{await previewGate.afterRequest(ticket);}
         const secondProof=await lifecycle.verifyUnchanged();
         assert.deepEqual(secondProof,firstProof);
-        results.push({...result,fixtureDigest:firstProof.rowDigest});
+        if(gradeBefore)assert.deepEqual(await observeGradeReadbacks(),gradeBefore);
+        results.push({...result,fixtureDigest:firstProof.rowDigest,...(gradeBefore?{gradeFixtureReadback:gradeBefore}:{})});
       }
     }
     return {results,requestObservationsMounted:true,hostedCases:selection.length,
@@ -950,7 +985,7 @@ export function runStudentLeaveHostedEvaluation({caseIds,...options}={}){
   });
 }
 
-async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signal}={},perform){
+async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signal,studentLeaveGradePair=false}={},perform){
   if(!isEvaluationPreviewOrigin(origin)||typeof sourceRevision!=='string'||!/^[a-f0-9]{40}$/u.test(sourceRevision))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and source revision.');
   const {sourceIdentity}=await import('./run.mjs');
@@ -959,7 +994,7 @@ async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signa
   const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
   const runId=randomUUID();
   await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
-    signal,fixtureMode:runStudentLeaveDataPreflight,previewReadbackFetch});
+    signal,fixtureMode:runStudentLeaveDataPreflight,previewReadbackFetch,studentLeaveGradePair});
   const prepared=state.studentLeaveData,{previewGate}=prepared;
   let result,cleanupProof;
   try{
@@ -969,7 +1004,9 @@ async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signa
       fail('fixture-target','The Student Leave source changed during verification.');
     await previewGate.finish();
   }finally{cleanupProof=await cleanup();}
-  return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
+  return {runId,sourceRevision,origin,...result,...(studentLeaveGradePair?{liveAcceptance:result.liveAcceptance
+    &&cleanupProof.verified&&cleanupProof.dtmGradePreviewCleanup===true&&cleanupProof.studentLeaveDataCleanup?.cleaned===true}:{}),
+    deployment:previewGate.status(),cleanup:cleanupProof};
 }
 
 export async function runInternshipPreview({origin,sourceRevision,previewToken,signal,caseIds,publishedTimetable=false,onCheckpoint}={}){

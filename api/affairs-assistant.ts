@@ -287,7 +287,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const observedLeaveBoundary=observation?.purpose==='boundary'&&observedPlan?studentLeaveZeroReadDisposition(observedPlan):null;
   if(hasLeaveProbe&&(!observedPlan||observedPlan.hasOtherQuestion||(observation?.purpose==='boundary'
     ? !observedLeaveBoundary
-    : !observedPlan.selection||observedPlan.selection.reason||studentLeaveSelectedTools(observedPlan).join()!=='leaveRecords'))){
+    : !observedPlan.selection||observedPlan.selection.reason||studentLeaveSelectedTools(observedPlan).join()!==(observation?.companion?'leaveRecords,dtmGradeReport':'leaveRecords')))){
     rejectProbe();return;
   }
   const internshipObservation=hasInternshipProbe?openInternshipObservation({body,identity:probeIdentity,correlationId}):null;
@@ -575,8 +575,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return internshipObservation?internshipObservation.observe(dependencies=>readers.internshipRecords(account,options,dependencies))
         :readers.internshipRecords(account,options);
     };
-    if(gradeQuestion)supplementalReaders.dtmGradeReport=context=>
-      readers.dtmGradeReport(account,{question:gradeQuestion,route:'/dtm/grades',history:[],deadline:Math.min(deadline,context.deadline)});
+    if(gradeQuestion)supplementalReaders.dtmGradeReport=context=>{
+      const options={question:gradeQuestion,route:'/dtm/grades',history:[],deadline:Math.min(deadline,context.deadline)};
+      return observation?.companion==='dtmGradeReport'?observation.observeGrade(dependencies=>readers.dtmGradeReport(account,options,dependencies))
+        :readers.dtmGradeReport(account,options);
+    };
     const nativeQuestion=leaveSelection&&!leaveSelection.reason?leaveSelection.question:internshipPlan?.selection?internshipPlan.question:'';
     const selectedQuestion=[nativeQuestion,feeQuestion,classQuestion,gradeQuestion].filter(Boolean).join('. ');
     try{

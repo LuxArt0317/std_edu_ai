@@ -32,6 +32,7 @@ export const studentLeaveRowsDigest=rows=>studentLeaveObservationDigest(rows.map
   Object.fromEntries(Object.keys(row).sort().map(key=>[key,row[key]]))));
 const requestDigest=(origin,request)=>studentLeaveObservationDigest({method:'POST',url:origin+endpoint,request});
 const isBoundaryBinding=value=>exact(value,[...bindingKeys,'purpose'])&&value.purpose==='boundary';
+const isGradeBinding=value=>exact(value,[...bindingKeys,'companion'])&&value.companion==='dtmGradeReport';
 const validRequest=(request,boundary)=>exact(request,requestKeys)&&typeof request.question==='string'
   &&request.question.length>=2&&request.question.length<=2000&&typeof request.route==='string'
   &&(routePattern.test(request.route)||boundary&&boundaryRoute(request.route))
@@ -56,10 +57,10 @@ function unseal(domain,value,key){
   try{return JSON.parse(Buffer.from(payload,'base64url').toString('utf8'));}catch{return null;}
 }
 
-function createProbe(scope,request,key,now,boundary){
+function createProbe(scope,request,key,now,boundary,grade=false){
   if(!exact(scope,scopeKeys)||!scopeValid(scope)||!validRequest(request,boundary)||!keyIsValid(key)||!Number.isSafeInteger(now))
     throw new Error('Invalid Student Leave observation request.');
-  const binding={...scope,issuedAt:now,requestDigest:requestDigest(scope.origin,request),...(boundary?{purpose:'boundary'}:{})};
+  const binding={...scope,issuedAt:now,requestDigest:requestDigest(scope.origin,request),...(boundary?{purpose:'boundary'}:grade?{companion:'dtmGradeReport'}:{})};
   return {binding,body:{...request,evaluationLeaveProbe:seal('request',binding,key)}};
 }
 
@@ -70,6 +71,17 @@ export function createStudentLeaveProbe(scope,request,key,now=Date.now()){
 export function createStudentLeaveBoundaryProbe(scope,request,key,now=Date.now()){
   return createProbe(scope,request,key,now,true);
 }
+
+export function createStudentLeaveGradeProbe(scope,request,key,now=Date.now()){
+  return createProbe(scope,request,key,now,false,true);
+}
+
+function canonicalJson(value){
+  if(Array.isArray(value))return value.map(canonicalJson);
+  if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(name=>[name,canonicalJson(value[name])]));
+  return value;
+}
+export const studentLeaveGradeReadDigest=read=>studentLeaveObservationDigest(canonicalJson(read));
 
 function evidenceDigest(result){
   const {content,id,title,url,urls,provenance}=result.evidence;
@@ -85,16 +97,16 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
   const {evaluationLeaveProbe,...request}=body;
   const key=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY;
   const binding=unseal('request',evaluationLeaveProbe,key);
-  const boundary=isBoundaryBinding(binding);
-  if((!boundary&&!exact(binding,bindingKeys))||!scopeValid(binding)||!validRequest(request,boundary)
+  const boundary=isBoundaryBinding(binding),grade=isGradeBinding(binding);
+  if((!boundary&&!grade&&!exact(binding,bindingKeys))||!scopeValid(binding)||!validRequest(request,boundary)
     ||binding.origin!=='https://'+env.VERCEL_URL||binding.sourceRevision!==env.VERCEL_GIT_COMMIT_SHA
     ||binding.ownerId!==identity?.id||binding.runId!==identity?.runMarker||identity.email!=='evaluation.student@example.invalid'
     ||!Number.isSafeInteger(binding.issuedAt)||!Number.isSafeInteger(now)||binding.issuedAt>now+5000||now-binding.issuedAt>lifetimeMs
     ||binding.requestDigest!==requestDigest(binding.origin,request))return null;
-  const attempts=[],completedModelOperations=[];
+  const attempts=[],gradeAttempts=[],completedModelOperations=[];
   let invalid=false,nativeChecked=false;
   return {
-    purpose:boundary?'boundary':'read',
+    purpose:boundary?'boundary':'read',companion:grade?'dtmGradeReport':null,
     async observe(reader){
       if(boundary){
         invalid=true;
@@ -111,18 +123,38 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
       try{attempt.evidenceDigest=evidenceDigest(value);}catch{invalid=true;}
       return value;
     },
+    async observeGrade(reader){
+      if(!grade||gradeAttempts.length>=maxAnswerVerificationChecks){
+        invalid=true;
+        throw new Error('A Student Leave probe requires the exact Moodle grade scope.');
+      }
+      const reads=[];
+      const attempt={reads,evidenceDigest:null};
+      gradeAttempts.push(attempt);
+      const value=await reader({observeOverview(read){
+        if(reads.length||read.callerId!==binding.ownerId||read.method!=='POST'
+          ||read.path!=='/rest/v1/rpc/dtm_grade_report_overview'||!exact(read.body,[]))invalid=true;
+        else reads.push(studentLeaveGradeReadDigest(read));
+      }});
+      try{
+        if(value.evidence.id!=='account:dtmGradeReport'||value.evidence.url!=='/dtm/grades')invalid=true;
+        else attempt.evidenceDigest=evidenceDigest(value);
+      }catch{invalid=true;}
+      return value;
+    },
     modelCompleted(operation){
       if(boundary||nativeChecked||completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
       else completedModelOperations.push(operation);
     },
     nativeCheckCompleted(){
-      if(boundary||nativeChecked||completedModelOperations.length)invalid=true;
+      if(boundary||grade||nativeChecked||completedModelOperations.length)invalid=true;
       else nativeChecked=true;
     },
     finish(payload){
       if(boundary||invalid||!attempts.length||attempts.some(row=>!row.reads.length||!sha.test(row.evidenceDigest)))return null;
+      if(grade&&(gradeAttempts.length!==attempts.length||gradeAttempts.some(row=>row.reads.length!==1||!sha.test(row.evidenceDigest))))return null;
       return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod:nativeChecked?'native-exact':'model',
-        responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
+        ...(grade?{gradeAttempts}:{}),responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
     },
     finishBoundary(payload,boundaryDisposition){
       if(!boundary||invalid||attempts.length||completedModelOperations.length||nativeChecked
@@ -135,10 +167,12 @@ export function openStudentLeaveObservation({body,identity,correlationId},env=pr
 
 export function verifyStudentLeaveObservation({receipt,binding,correlationId,body},key){
   const observed=unseal('receipt',receipt,key);
-  const boundary=isBoundaryBinding(binding);
+  const boundary=isBoundaryBinding(binding),grade=isGradeBinding(binding);
+  const validAttempt=(row,max)=>exact(row,attemptKeys)&&sha.test(row.evidenceDigest)
+    &&Array.isArray(row.reads)&&row.reads.length>=1&&row.reads.length<=max&&row.reads.every(read=>sha.test(read));
   const receiptKeys=['binding','correlationId','attempts','completedModelOperations','verificationMethod','responseDigest'];
-  if(!exact(observed,boundary?[...receiptKeys,'boundaryDisposition']:receiptKeys)
-    ||!(boundary?isBoundaryBinding(observed.binding):exact(observed.binding,bindingKeys))
+  if(!exact(observed,boundary?[...receiptKeys,'boundaryDisposition']:grade?[...receiptKeys,'gradeAttempts']:receiptKeys)
+    ||!(boundary?isBoundaryBinding(observed.binding):grade?isGradeBinding(observed.binding):exact(observed.binding,bindingKeys))
     ||Object.keys(observed.binding).some(name=>observed.binding[name]!==binding?.[name])
     ||!uuid.test(correlationId)||observed.correlationId!==correlationId
     ||observed.responseDigest!==studentLeaveObservationDigest({statusCode:200,body})
@@ -149,7 +183,8 @@ export function verifyStudentLeaveObservation({receipt,binding,correlationId,bod
     ||observed.completedModelOperations.length>maxModelOperations||observed.completedModelOperations.some(operation=>!modelOperations.has(operation))
     ||!['native-exact','model'].includes(observed.verificationMethod)
     ||observed.verificationMethod==='native-exact'&&observed.completedModelOperations.length!==0
-    ||observed.attempts.some(row=>!exact(row,attemptKeys)||!sha.test(row.evidenceDigest)
-      ||!Array.isArray(row.reads)||row.reads.length<1||row.reads.length>2||row.reads.some(read=>!sha.test(read))))return null;
+    ||observed.attempts.some(row=>!validAttempt(row,2))
+    ||grade&&(observed.verificationMethod!=='model'||!Array.isArray(observed.gradeAttempts)
+      ||observed.gradeAttempts.length!==observed.attempts.length||observed.gradeAttempts.some(row=>!validAttempt(row,1))))return null;
   return observed;
 }

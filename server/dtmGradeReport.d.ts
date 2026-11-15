@@ -28,5 +28,6 @@ export function parseDtmGradeReportReceipt(value:unknown,kind:DtmGradeReportKind
 export function loadDtmGradeReport(account:DtmGradeReportAccount,options:{courseId:string}):Promise<DtmGradeReportData>;
 export function loadDtmGradeReportAdmin(account:DtmGradeReportAccount,options:{userId:string;courseId:string}):Promise<DtmGradeReportData>;
 export function loadDtmGradeReportCoursesAdmin(account:DtmGradeReportAccount,options:{userId:string;afterId?:string}):Promise<DtmGradeReportCoursesData>;
-export function loadDtmGradeReportOverview(account:DtmGradeReportAccount,options?:{afterId?:string}):Promise<DtmGradeReportOverviewData>;
+export type DtmGradeOverviewObservation={callerId:string;method:'POST';path:'/rest/v1/rpc/dtm_grade_report_overview';body:{p_after_id?:string};raw:unknown};
+export function loadDtmGradeReportOverview(account:DtmGradeReportAccount,options?:{afterId?:string},observeRead?:(read:DtmGradeOverviewObservation)=>void):Promise<DtmGradeReportOverviewData>;
 export function manageDtmGradeReport(account:DtmGradeReportAccount,kind:DtmGradeReportKind,payload:unknown):Promise<DtmGradeReportReceipt>;
