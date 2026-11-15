@@ -835,7 +835,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay the identified payroll and dormitory precision regressions through the real local handlers with independent facts and scoped reads.
 - [x] Replay the five original payroll failures and all nine executable dormitory cases on a matching protected build.
 - [ ] Verify the direct empty payroll response and run the dormitory housing companion with an independently available academic year 115 semester 1 period.
-- [ ] Verify the protected Health Exam and Counseling packets, each with two independent caller views and fixture cleanup.
+- [x] Pass all 16 protected Health Exam cases with two independent caller views and exact cleanup.
+- [ ] Re-run the nine protected Counseling cases after correcting the unchanged-state proof wiring. Preserve their first report and verified cleanup.
 - [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
 - [x] Verify nine signed-out service boundaries and navigation paths on integrated protected Preview `6c76997`.
 - [ ] Verify the four service boundary families through authenticated protected Preview requests.

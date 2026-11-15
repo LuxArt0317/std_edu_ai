@@ -56,3 +56,6 @@
 
 - 2026-11-15 [#100] Integrated dated tuition history and the staff receipt/reversal flow. Passed full local API and evaluator checks, typed build, three local browser suites and actual multi-connection PostgreSQL lock tests. Applied only the two exact tuition ledger migrations after rollback preflight and verified their stored bytes, zero historical date backfill, 173 applied versions and 207 public RLS tables.
 - 2026-11-15 [#100] Published protected Health Exam and Counseling candidate `ea1e9a0`. Local independent tests pass the reproduced Health defects and the nine Counseling timestamp cases. Began the exact protected Health packet and staged a private separate Counseling report path.
+
+- 2026-11-15 [#100] Protected `ea1e9a0` passed 16/16 Health cases and exact cleanup. Counseling passed its nine answer/readback/activity checks and cleanup. All nine full grades failed the same harness proof field. Corrected the grader without dropping the no-write check.
+- 2026-11-15 [#100] Fixed the dated-history auth-module import exposed by CI and obtained all 544 local unit passes. Protected tuition packet reached B's monthly reply and surfaced a mismatch between charge-level and whole-account legacy expectations. A fresh database read proved zero residual fixture users, charges or ledger rows.
