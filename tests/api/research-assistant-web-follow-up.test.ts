@@ -1122,6 +1122,38 @@ test('a truncated managed reviewer can verify the answer with an independently r
   assert.equal(progress.some(step => step.kind === 'verification-stop'), false);
 });
 
+test('a truncated deeper public review can still check an unread official notice', async () => {
+  const attempt = harness('fourth-check');
+  const controlledFetch = globalThis.fetch;
+  let searches = 0;
+  let reviews = 0;
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith('/v1/responses')) {
+      const request = JSON.parse(String(init?.body));
+      const operation = request.text.format.name;
+      if (operation === 'stu_web_answer' && ++searches === 2) {
+        // The follow-up reads two leads immediately and queues the third.
+        return Response.json(searchPayload([officialOffice, eventCalendar, officialNotice], unsafeDraft, [officialOffice]));
+      }
+      if (operation === 'answer_evidence_review' && [2, 3].includes(++reviews)) {
+        return Response.json({ status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' } });
+      }
+    }
+    return controlledFetch(input, init);
+  };
+
+  const progress: Progress[] = [];
+  const answer = await invoke({ question: testQuestion }, attempt.run, 'public-review-output-limit', progress);
+  assert.equal(searches, 2);
+  assert.equal(reviews, 4);
+  assert.deepEqual(attempt.acquiredUrls, [officialDirectory, officialOffice, eventCalendar, officialNotice]);
+  assert.deepEqual(answer.verification, { status: 'verified', attempts: 4 });
+  assert.match(answer.answer, /opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({ url }: { url: string }) => url), [officialNotice]);
+  assert.deepEqual(progress.filter(({ kind }) => kind === 'verification-4').map(({ status }) => status), ['running', 'complete']);
+  assert.equal(progress.some(({ kind }) => kind === 'verification-stop'), false);
+});
+
 test('a managed verified partial searches fresh public evidence while preserving its supported source',async()=>{
   const question=knowledgeQuestion+' Also explain how to contact the exhibition staff.';
   const baseline='Archive visitors can contact the library staff through the visitor directory. The exhibition opening time is still unverified.';

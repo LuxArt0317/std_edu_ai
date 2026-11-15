@@ -1421,7 +1421,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return different;
                 }
                 let fresh = [];
-                if (needsPublicEvidence(previousFailure) && canRecover) {
+                // A deeper review can retry a truncated review on the same
+                // evidence. The last check still needs a different source.
+                if (canRecover && (needsPublicEvidence(previousFailure) || (extended && previousFailure === 'verification_output_limit'))) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
                     if (readUntil - Date.now() >= 1_000) {
                         const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
