@@ -10,6 +10,7 @@ The university's flowchart documents an explicit decision to proceed after readi
 
 ## Verification
 
+- `node --test tests/evaluation/clearance-owned-packet.test.mjs` replays frozen questions through both School Affairs routes with two synthetic signed-in callers. It checks application-window and office-note scope, the empty account, denied assistant and native actions, and unchanged records before and after requests. The hosted question packet still requires reviewed existing term and period bindings.
 - `node tests/integration/graduation-clearance-db.mjs --rollback-preflight` exercises the migration against the exact client schema and rolls all successful writes back. Use `--deployed` to test the installed schema. It covers manager-only actions, confirmed submission, appropriate offices, retries, stale writes and isolation.
 - `node --experimental-strip-types tests/integration/graduation-clearance-http.mjs --verify-client` exercises real Supabase sessions, exact fixture cleanup, and bilingual assistant status. Set `EXPECTED_RELEASE_REVISION` for the production handlers.
 - `node tests/integration/graduation-clearance-ui.mjs` exercises compiled navigation, acknowledgement, retry, administrator edits, saved status on reload, responsive rendering and the guest return. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for the deployed bundle. The browser uses intercepted data, while the HTTP and rollback suites exercise persistence.

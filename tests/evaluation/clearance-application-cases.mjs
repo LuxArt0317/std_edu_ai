@@ -102,7 +102,7 @@ export function clearanceApplicationFixtureForCase(testCase){
   if(!canonical||canonical.fixtureKey!==testCase.fixtureKey)throw new Error('Unknown clearance fixture.');
   const kind=canonical.fixtureKey.split(':').at(-1);
   const app=(index,term=terms[index])=>({id:id(index+1),termId:id(index+201),term,track:'undergraduate',submittedAt:index===0?'2026-11-03T02:00:00Z':'2026-05-03T02:00:00Z',
-    reviews:offices.map((office,position)=>({office,status:statuses[index%2][position],note:noteAt(index,office),reviewedAt:statuses[index%2][position]==='pending'?null:index%2===0?'2026-11-04T03:00:00Z':'2026-05-04T03:00:00Z',version:1}))});
+    reviews:offices.map((office,position)=>({office,status:statuses[index%2][position],note:noteAt(index,office),reviewedAt:statuses[index%2][position]==='pending'?null:index%2===0?'2026-11-04T03:00:00Z':'2026-05-04T03:00:00Z',version:1})).sort((a,b)=>a.office.localeCompare(b.office))});
   const period=(index,term=terms[index])=>({termId:id(index+201),term,opensAt:index===0?'2026-11-01T00:00:00Z':'2026-05-01T00:00:00Z',closesAt:index===0?'2026-12-01T00:00:00Z':'2026-06-01T00:00:00Z',version:1,state:index===0?'open':'closed',candidate:{track:'undergraduate',international:false,version:1}});
   let applications=[app(0),app(1)],periods=[period(0),period(1)];
   if(kind==='empty'){applications=[];periods=[];}if(kind==='no-applications')applications=[];

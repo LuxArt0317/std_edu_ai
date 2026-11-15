@@ -35,6 +35,7 @@
 
 - Let signed-in students review and confirm a local learning-support submission in chat. The assistant verifies the quoted topic and details, and retries with the same native request ID after an uncertain receipt. [#100]
 - Extend protected learning support evaluation to verify submission drafts, one confirmed row and receipt, safe replay, and exact cleanup with two disposable callers. [#100]
+- Keep combined graduation-clearance status and window questions within the caller’s clearance records. Exercise both routes and deny chat approval and manager access in two-caller evaluation. [#100]
 
 - Add a signed zero-read check for 14 Student Leave navigation and access questions while preserving the separate 18-case owned-record evaluation. [#100]
 
