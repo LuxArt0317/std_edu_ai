@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Explain which public notice details could not be checked when the relevant source requires school sign-in. Keep its direct link in the reply. [#100]
+
 - Add a protected graduation-clearance status and notes evaluation using disposable callers and two reviewed existing terms. [#100]
 
 - Keep transcript grades, warning remarks, credits and rankings in the requested academic term, including compact semester references. Check the saved English requirement display independently of semester filters. [#100]

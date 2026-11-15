@@ -89,6 +89,18 @@ export function createPublicSchoolSourceLeads(question){
       if(!selected.length)return {reply,step:null};
       const anyBlocked=selected.some(lead=>blocked.has(lead.url));
       const hasLibrary=selected.some(lead=>lead.kind==='library-service');
+      let answer=reply.answer;
+      // If the caller asked about a specific notice and the sources are behind
+      // sign-in, the original notice is the useful handoff. Preserve any answer
+      // or limitation that has already been supported by readable evidence.
+      if(reply.status==='handoff'&&reply.grounding?.source==='helpful-fallback'&&!cited.size
+        &&selected.every(lead=>lead.id?.startsWith('notice:')&&blocked.has(lead.url))){
+        const quota=query.has('quota')||/配額|容量/u.test(question);
+        const date=/\b(?:date|cutoff|deadline)\b|日期|截止|期限/iu.test(question.normalize('NFKC'));
+        if(sameLanguage)answer=quota&&date?'我無法從可讀取的公開資料核實儲存空間配額與日期。':'我無法從可讀取的公開資料核實您詢問的公告內容。';
+        else answer=quota&&date?'I couldn’t verify the storage quota or the date you asked about from public sources.'
+          :'I couldn’t verify the notice details you asked about from the public pages I could read.';
+      }
       const title=sameLanguage?'校方相關連結':'Official source links';
       const rows=selected.map(lead=>{
         const name=(sameLanguage?lead.titleZh:lead.titleEn)??(sameLanguage?'開啟校方來源':'Open the school source');
@@ -105,7 +117,7 @@ export function createPublicSchoolSourceLeads(question){
         :anyBlocked
         ?(sameLanguage?'保留需要校方登入的原始連結。':'Kept the original school link that requires sign-in.')
         :(sameLanguage?'保留校方公告索引的原始連結。':'Kept the original link listed in the school notice index.')};
-      return {reply:{...reply,answer:[reply.answer,`**${title}**\n${rows.join('\n')}`].filter(Boolean).join('\n\n'),
+      return {reply:{...reply,answer:[answer,`**${title}**\n${rows.join('\n')}`].filter(Boolean).join('\n\n'),
         activity:[...(reply.activity??[]).filter(item=>item.kind!==step.kind),step]},step};
     },
   };
