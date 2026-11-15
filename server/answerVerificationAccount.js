@@ -12,6 +12,7 @@ import {isOwnTutorEvaluationTrackingNoteQuestion,selectTutorEvaluationEvidence} 
 import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
+import {selectFeeRemissionEvidence} from './feeRemissionEvidenceIntent.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel,savedFeeBalanceFollowup,standaloneFeeBalanceLabel} from './pendingFeesAnswer.js';
 import { answerPrivateAffairsQuestion, accountQuestionIntent,composeAccountOverviewEvidence,composeCurrentStudyEvidence,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
@@ -949,6 +950,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
   const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
   const tutorSelection=scopedSupplementalTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
+  const remissionSelection=scopedSupplementalTool==='feeRemission'?selectFeeRemissionEvidence(question,fullRoute,history):null;
   const scopedTimetable=Boolean(clearanceTimetableQuestion(question,pageLookup));
   const scopedClearance=pageLookup.tools.includes('graduationClearance')&&pageLookup.readerOnly;
   const scopedCounseling=pageLookup.tools.includes('counselingAppointments')&&(pageLookup.readerOnly||pageLookup.feeAndBalance);
@@ -973,7 +975,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   ]);
   const exactTutorRecord=Boolean(tutorSelection&&!tutorSelection.reason&&!tutorSelection.unavailableDetails
     &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState));
-  const exactSupplemental=(conductCount||exactTutorRecord||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
+  const exactFeeRemission=Boolean(remissionSelection&&!remissionSelection.reason&&!remissionSelection.currentTerm&&!remissionSelection.operation
+    &&firstSupplemental.length===1&&['ok','empty','partial'].includes(firstSupplemental[0].readState));
+  const exactSupplemental=(conductCount||exactTutorRecord||exactFeeRemission||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
       ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
@@ -1313,7 +1317,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ||JSON.parse(supplemental[0].evidence.content).selection?.projection!=='count'))return null;
     if(exactTutorRecord&&(!['ok','empty'].includes(supplemental[0].readState)
       ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,tutorSelection)))return null;
+    if(exactFeeRemission&&(!['ok','empty','partial'].includes(supplemental[0].readState)
+      ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,remissionSelection)))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
+    if(exactFeeRemission&&rendered.status!=='answered')return null;
     if(scopedSupplementalTool!=='dormitoryConduct')return answerLinksSupported(rendered.answer,sources)?rendered:null;
     const bed=withScopedBed?housingAnswer(sources):null;
     if(withScopedBed&&!bed)return null;
@@ -1408,7 +1415,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     }
   }
   const fixedEvidenceScope=directNoteCompanion||exactSupplemental||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
-    ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected;
+    ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected
+    ||Boolean(remissionSelection);
   // Fixed scope limits refresh and replanning. A deeper model review reuses
   // the refreshed evidence even when it comes from one scoped reader.
   const modelRepairs=activeTools.length>0&&!emptyHousing&&!directServiceNotes&&!directNoteCompanion&&!exactSupplemental&&!scopedOverview&&!directStudy;
@@ -1467,6 +1475,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
           emit({kind:'tutor-evaluation-evidence-check',label:zh?'已核對導師評量紀錄':'Verified the tutor evaluation record',
             detail:zh?'比對送出狀態、所查詢的已儲存欄位和問卷連結。':'Matched the saved submission status, requested fields and questionnaire link.',status:'complete'});
+          return {ok:true};
+        }
+        if(exactFeeRemission){
+          const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          emit({kind:'fee-remission-evidence-check',label:zh?'已核對學雜費減免紀錄':'Verified your saved fee-remission records',
+            detail:zh?'已比對所選期間、紀錄筆數和原文欄位。':'Matched the selected period, record counts and literal fields to your saved history.',status:'complete'});
           return {ok:true};
         }
         if(context.attempt>1){
@@ -1561,7 +1575,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     ?'我這次無法確認回覆內容。你可以提供一個真實例子，或說明想練習的部分。'
     :'I couldn’t check a draft this time. Share a real example or tell me what you’d like to practise.';
   const viewSources=verified?supplemental:supplemental.filter(source=>
-    !servicePlan&&source.evidence.id!=='account:dtmAssignment'&&!(dtmCompound&&source.evidence.id==='account:dtmGradeReport'));
+    !servicePlan&&source.evidence.id!=='account:dtmAssignment'&&!(dtmCompound&&source.evidence.id==='account:dtmGradeReport')
+    &&!(exactFeeRemission&&source.evidence.id==='account:feeRemission'));
   const supplementalViews=viewSources.length?formatSupplementalAccountAnswers(viewSources,{question}).views:[];
   const repairClarification=activeTools.length===1&&['facilityRepairs','elearningOutline','feeRemission','healthExaminations'].includes(activeTools[0])
     &&supplemental.some(source=>source.evidence.id==='account:facilityRepairs'?JSON.parse(source.evidence.content).requiresClarification===true

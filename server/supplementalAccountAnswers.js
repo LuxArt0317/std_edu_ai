@@ -1193,9 +1193,9 @@ function sectionFor(parsed,question,zh){
     // A verified read limitation is an answer candidate, never a successful data
     // read. Keep completeness false and require independent source review.
     section.usable=true;
-    section.lead.push(t('These are saved local fee-remission cells at service 21-3, not proof of official university synchronization, approval or payment. Amount and check status are independent literal text; no deduction from your tuition balance has been calculated.',
-      '以下為 21-3 服務儲存的站內學雜費減免欄位，不能證明校方同步、核准或付款。金額與檢核狀態是獨立的原文欄位；未計算或扣減您的學費餘額。'));
-    if(/paid|payout|disburse|bank|付款|撥款|入帳/iu.test(question))section.lead.push(t('Official payout: not verified by these saved cells.','校方實際撥款：這些已儲存欄位未提供驗證。'));
+    section.lead.push(t('From your saved fee-remission history on stu.best.',
+      '來源為您在 stu.best 已儲存的學雜費減免歷史。'));
+    if(/\b(?:paid|payout|disburs\w*|bank|reimburse\w*)\b|付款|撥款|入帳/iu.test(question))section.lead.push(t('Official payout: not verified. These saved entries do not confirm bank payment.','校方實際撥款：尚未驗證。這些已儲存欄位無法確認銀行入帳。'));
     if(/eligib|qualify|qualifies|資格|符合/iu.test(question))section.lead.push(t('Official eligibility: not verified by these saved cells.','校方資格：這些已儲存欄位未提供驗證。'));
     if(p.selection?.document)section.lead.push(t('I cannot provide an official certificate or download a verified document. No document issuance was performed by this lookup.','此查詢不能核發或下載可驗證文件；本次查詢未執行文件核發。'));
     if(envelope.readState==='unavailable'){
@@ -1214,12 +1214,12 @@ function sectionFor(parsed,question,zh){
     const c=p.counts;section.complete=p.complete;
     section.lead.push(t(`Remission record count in this local read: ${c.available}. Matching remission records: ${c.matching}. Included: ${c.included}. Omitted: ${c.omitted}.`,
       `本次站內減免紀錄筆數：${c.available}。符合條件：${c.matching}。納入：${c.included}。略去：${c.omitted}。`));
-    if(!c.matching)section.lead.push(c.available===0?t('No saved remission records were returned by this successful local read. This does not establish that no history exists elsewhere.','這次成功的站內查詢未回傳已儲存減免紀錄，不代表其他系統沒有歷史。')
+    if(!c.matching)section.lead.push(c.available===0?t('No saved remission records were found. There is no history to display.','沒有找到已儲存的學雜費減免紀錄。')
       :t('No matching saved remission records were returned for the exact selected period. Other saved periods remain separate.','所選確切期間未回傳符合的已儲存減免紀錄；其他已儲存期間另計。'));
     if(c.omitted)section.lead.push(t('Evidence omits whole matching records. Their values remain unknown; this is not the complete selected history.','證據略去部分完整符合紀錄，其欄位值仍未知，並非完整所選歷史。'));
     const fields=feeRemissionFields.filter(([key])=>key!=='student_number'||p.selection.studentNumber);
     const labels={academic_year_text:t('Academic year','學年'),semester_text:t('Semester','學期'),student_number:t('Student number','學號'),category_text:t('Category','類別'),amount_text:t('Amount','金額'),check_status_text:t('Check status','檢核狀態'),notes_text:t('Notes','備註說明')};
-    view(fields.map(([key])=>labels[key]),c.included,t('Literal saved cells; not recorded differs from blank and from the text 0. No payment, eligibility or balance is inferred.','已儲存原文欄位；未記錄、空字串與文字 0 不同。未推論付款、資格或餘額。'));
+    view(fields.map(([key])=>labels[key]),c.included,t('Saved values are shown as entered. A missing value, a blank entry and 0 are distinct.','欄位以儲存原文顯示。未記錄、空白與文字 0 各有不同。'));
     for(const record of p.records){group(t('Fee remission record','減免紀錄'),record.category_text);for(const [key,,max]of fields)item(labels[key],record[key],false,max*2);section.viewCandidates.push(row(...fields.map(([key])=>record[key])));}
     return section;
   }
