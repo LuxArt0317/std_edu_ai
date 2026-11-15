@@ -64,7 +64,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
           assert.equal(url.searchParams.get('select'),fields);
           assert.equal(headers.get('prefer'),'count=exact');
           if(sourceRead.state==='unavailable')return Response.json({}, {status:503});
-          const projected=rows.filter((item:any)=>item.service_key==='internship'&&item.user_id===owner&&item.record_type===sourceRead.recordType)
+          const projected:Record<string,unknown>[]=rows.filter((item:any)=>item.service_key==='internship'&&item.user_id===owner&&item.record_type===sourceRead.recordType)
             .map((item:any)=>({ ...Object.fromEntries(selected.map(key=>[key,key==='status'&&checked&&item.status==='filed'?'withdrawn':item[key]])),
               ...(review?{review_request_id:item.review_request_id,site_review:requests.find((request:any)=>request.id===item.review_request_id)??null}:{})}));
           // Exercise the existing model-verification path with a real capped
