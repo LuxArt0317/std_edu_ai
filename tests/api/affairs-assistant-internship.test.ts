@@ -57,7 +57,7 @@ async function invoke(handler:any,body:Body,host?:string){
   return captured;
 }
 
-async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false,published=false}={}){
+async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false,published=false,chargeUnavailable=false}={}){
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
@@ -120,7 +120,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         assert.equal(url.searchParams.get('student_id'),'eq.'+studentId);
         if(companion==='charges'){
           assert.equal(url.pathname,'/rest/v1/affairs_charges');
-          return Response.json([charge]);
+          return chargeUnavailable?Response.json({}, {status:503}):Response.json([charge]);
         }
         assert.equal(url.pathname,'/rest/v1/affairs_enrollments');
         const id=(n:number)=>'53010000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -154,7 +154,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         const supported=!retry||checked>1;
         const claims=[{claim:'Saved internship facts',supported,evidenceId:'account:internshipRecords',jsonPaths:paths,quotes:[]}];
         if(companion==='charges')claims.push({claim:'Independent saved balance',supported,evidenceId:'account:charges',
-          jsonPaths:['/records/0/amountDue','/records/0/amountPaid'],quotes:[]});
+          jsonPaths:chargeUnavailable?['/unavailableReason']:['/records/0/amountDue','/records/0/amountPaid'],quotes:[]});
         if(companion==='courses')claims.push({claim:'Independent scheduled meeting',supported,evidenceId:'account:courses',
           jsonPaths:published?['/calendar/records/next/day','/calendar/records/next/course/code','/calendar/records/next/course/title',
             '/calendar/records/next/course/startsAt','/calendar/records/next/course/room']:['/calendar/records/next/course/title'],quotes:[]});
@@ -193,8 +193,13 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
       if(chargePlan||timetable){
         assert.equal(graded.companionReadDigests.length,2*graded.readCount);
         assert.equal(graded.companionProjectionDigests.length,graded.readCount);
-        assert.equal(graded.verificationMethod,'model');
+        assert.equal(graded.verificationMethod,timetable?'model':'native-exact');
         if(timetable)assert.equal(graded.completedEvidenceReviews,1);
+        else{
+          assert.equal(graded.completedNativeCheck,true);
+          assert.equal(graded.completedEvidenceReviews,0);
+          assert.equal(graded.completedModelCalls,0);
+        }
       }
       assert.equal(graded.completedModelCalls,row.auth==='anonymous'?null:model.length);
       assert.deepEqual(errors,[]);
@@ -392,7 +397,8 @@ test('all 26 mounted independent hosted rubrics grade the real handlers and expe
   t.mock.timers.enable({apis:['Date'],now:new Date(internshipNativeManifest.asOf)});
   for(const testCase of internshipHostedCases()){
     t.mock.timers.setTime(Date.now()+61_000);
-    await exercise(testCase.id.replace(/^account:internship-native-/u,''),{hosted:true});
+    await exercise(testCase.id.replace(/^account:internship-native-/u,''),{hosted:true,
+      providerAbsent:testCase.observationExpectation.companion==='charges'});
   }
 });
 
@@ -401,4 +407,25 @@ test('the independent protected published timetable packet binds both orders and
   t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-15T00:00:00.000Z')});
   await exercise('next-class',{hosted:true,published:true});
   await exercise('next-class-reversed',{hosted:true,published:true});
+});
+
+test('complete Internship and fee blocks preserve their exact facts and question order without a model',async()=>{
+  for(const suffix of ['fees','fees-reversed']){
+    const {result,model}=await exercise(suffix,{providerAbsent:true});
+    assert.deepEqual(model,[],suffix);
+    assert.deepEqual(result.body.verification,{status:'verified',attempts:1},suffix);
+    assert.deepEqual(result.body.citations.map((entry:{chunkId:string})=>entry.chunkId),['account:internshipRecords','account:charges']);
+    const firstContract=result.body.answer.indexOf(internshipNativeFixtureForCase(rowFor(suffix)).sourceRead!.records[0].title);
+    const tuition=result.body.answer.indexOf('QA Internship Tuition');
+    assert.ok(firstContract>=0&&tuition>=0,suffix);
+    assert.equal(tuition<firstContract,suffix==='fees-reversed',suffix);
+    assert.match(result.body.answer,/Remaining balance ` NT\$23,000 `/u,suffix);
+  }
+});
+
+test('an unavailable fee reader stays outside the exact paired rendering',async()=>{
+  const {result,model}=await exercise('fees',{chargeUnavailable:true});
+  assert.ok(model.includes('answer_evidence_review'));
+  assert.equal(result.body.activity.some((step:{kind:string})=>step.kind==='internship-evidence-check'),false);
+  assert.doesNotMatch(result.body.answer,/23,?000/u);
 });

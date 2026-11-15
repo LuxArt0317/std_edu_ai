@@ -15,7 +15,8 @@ export function internshipAssistantPlan(question,route,history){
   const explicitCompanion=lookup.reason!=='unsupported_operation'||independentRead.test(companion);
   const feeQuestion=explicitCompanion&&lookup.companion==='charges'&&(!label||literalTuitionLabel.test(label))?companion:'';
   const classQuestion=explicitCompanion&&lookup.companion==='courses'?companion:'';
-  return {...lookup,feeQuestion,feeLabel:feeQuestion?label:null,classQuestion,gradeQuestion:'',
+  const feeFirst=Boolean(feeQuestion&&question.normalize('NFKC').trimStart().startsWith(lookup.otherQuestion));
+  return {...lookup,feeQuestion,feeLabel:feeQuestion?label:null,feeFirst,classQuestion,gradeQuestion:'',
     hasOtherQuestion:Boolean(companion&&!feeQuestion&&!classQuestion&&!excluded.test(companion))};
 }
 

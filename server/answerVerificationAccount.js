@@ -1004,32 +1004,65 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         checkedAt:snapshot.checkedAt,degraded:checked.verification?.status!=='verified'},activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
     }
   }
+  const internshipFees=Boolean(internshipPlan?.feeQuestion);
   if(internshipPlan?.selection&&!internshipPlan.reason&&!internshipPlan.hasOtherQuestion
-    &&!internshipPlan.feeQuestion&&!internshipPlan.classQuestion&&!internshipPlan.gradeQuestion
-    &&activeTools.length===1&&activeTools[0]==='internshipRecords'){
-    let results=firstSupplemental;
+    &&!internshipPlan.classQuestion&&!internshipPlan.gradeQuestion
+    &&activeTools.join(',')===(internshipFees?'internshipRecords,charges':'internshipRecords')){
+    let results=firstSupplemental,current=snapshot;
+    const feeSourceFor=()=>{
+      if(!internshipFees)return null;
+      try{
+        return accountEvidence(current,['charges'],{...context,question:internshipPlan.feeQuestion,history:[],scopedReadOnly:true})
+          .find(source=>source.id==='account:charges')??null;
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+    };
+    let feeSource=feeSourceFor();
+    const sources=()=>[...results.map(result=>result.evidence),...(feeSource?[feeSource]:[])];
+    const zh=supplementalAnswerLanguage(question)==='zh-TW';
     const render=()=>{
       if(results.length!==1)return null;
       const [result]=results,payload=parseInternshipEvidence(result);
       if(!payload?.complete||!isDeepStrictEqual(payload.selection,internshipPlan.selection))return null;
       try{
         const answer=formatSupplementalAccountAnswers(results,{question});
-        return answer.status==='answered'&&answer.complete&&answerLinksSupported(answer.answer,[result.evidence])?answer:null;
+        if(answer.status!=='answered'||!answer.complete)return null;
+        if(!internshipFees)return answerLinksSupported(answer.answer,sources())?answer:null;
+        const fees=boundedFeeAnswer(sources());
+        // An incomplete read, absent row or truncated display cannot attest to
+        // both parts. Leave those cases with the ordinary evidence flow.
+        if(!fees?.complete||!fees.views.length)return null;
+        const combined={...answer,answer:(internshipPlan.feeFirst?[fees.answer,answer.answer]:[answer.answer,fees.answer]).join('\n\n'),
+          citations:[...answer.citations,...fees.citations],sourceIds:[...answer.sourceIds,...fees.sourceIds],views:[...answer.views,...fees.views]};
+        return combined.answer.length<=selectedChargeAnswerLimits.answerCharacters
+          &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=selectedChargeAnswerLimits.resultBytes
+          &&answerLinksSupported(combined.answer,sources())?combined:null;
       }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
     };
     const initial=render();
     if(initial){
-      const zh=supplementalAnswerLanguage(question)==='zh-TW';
       const checked=await runAnswerVerification({question,deadline,initialAnswer:initial,onProgress:emit,
         async loadEvidence({attempt}){
-          if(attempt>1)results=await readSupplemental(snapshot,attempt);
-          return results.map(result=>result.evidence);
+          if(attempt>1){
+            if(internshipFees){
+              const refreshed=await loadSnapshot();
+              if(refreshed.profile?.userId!==snapshot.profile?.userId)throw new Error('Account scope changed during evidence refresh.');
+              current=refreshed;
+              feeSource=feeSourceFor();
+            }
+            results=await readSupplemental(current,attempt);
+          }
+          if(internshipFees)emit({kind:'account-read:charges:'+attempt,label:zh?'查閱已儲存的費用紀錄':'Checked your saved fee records',
+            detail:zh?'僅讀取目前登入帳戶的費用。':'Read the fee records for this signed-in account.',status:feeSource?'complete':'unavailable'});
+          return sources();
         },
         verify({candidate,evidence}){
-          const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?render():null;
+          const expected=isDeepStrictEqual(evidence,sources())?render():null;
           if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
-          emit({kind:'internship-evidence-check',label:zh?'核對已儲存的實習紀錄':'Verified your saved internship records',
-            detail:zh?'逐筆核對欄位及其紀錄頁面。':'Matched each displayed field and the page link to the selected records.',status:'complete'});
+          emit({kind:'internship-evidence-check',
+            label:internshipFees?(zh?'核對已儲存的實習紀錄與費用':'Verified your saved internship records and fees')
+              :zh?'核對已儲存的實習紀錄':'Verified your saved internship records',
+            detail:internshipFees?(zh?'逐筆核對實習紀錄及費用餘額。':'Matched each internship row and recalculated the balance from the selected fee rows.')
+              :zh?'逐筆核對欄位及其紀錄頁面。':'Matched each displayed field and the page link to the selected records.',status:'complete'});
           return {ok:true};
         },
         repair:async()=>render()??{status:'abstained',answer:'',citations:[],views:[]},
@@ -1037,7 +1070,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       const verified=checked.verification?.status==='verified';
       if(verified)onNativeInternshipVerified?.();
       return {...checked,views:checked.views??[],suggestedQuestions:[],
-        grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!verified},
+        grounding:{source:'account',webSearched:false,checkedAt:current.checkedAt,degraded:!verified},
         activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
     }
   }

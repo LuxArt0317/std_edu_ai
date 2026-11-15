@@ -1,6 +1,6 @@
 import type { InternshipHistory,InternshipLookupContext } from './internshipEvidenceIntent.js';
 export type InternshipAssistantPlan=InternshipLookupContext&{
-  feeQuestion:string;feeLabel:string|null;classQuestion:string;gradeQuestion:'';hasOtherQuestion:boolean;
+  feeQuestion:string;feeLabel:string|null;feeFirst:boolean;classQuestion:string;gradeQuestion:'';hasOtherQuestion:boolean;
 };
 export function internshipAssistantPlan(question:string,route:string,history:InternshipHistory):InternshipAssistantPlan|null;
 export function internshipSelectedTools(plan:InternshipAssistantPlan):Array<'internshipRecords'|'charges'|'courses'>;

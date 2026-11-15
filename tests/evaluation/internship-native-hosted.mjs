@@ -121,6 +121,8 @@ export async function requestInternshipHostedCase({testCase,plan,chargePlan,time
             ||observation.companionAttempts.some(attempt=>!isDeepStrictEqual(attempt,expectedCompanion)))
             failures.push('observation.'+(companion==='charges'?'charge':'timetable')+'_read_or_projection');
         }else if(observation.companionAttempts.length)failures.push('observation.unexpected_companion');
+        if(companion==='charges'&&observation.verificationMethod!=='native-exact')
+          failures.push('observation.expected_native_fee_check');
         const checks=body.verification?.attempts;
         // Account verification refreshes scoped rows once. Its deeper review
         // may then use that same evidence without authorizing a third read.

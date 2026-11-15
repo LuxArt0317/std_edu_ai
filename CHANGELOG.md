@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify complete Internship and tuition-balance answers directly against both saved sources so corrections retain each contract status and exact balance. [#100]
+
 - Continue public verification when initial school pages cannot be read or the managed reviewer runs out of output. Recheck a transient read, look for a different official publication, and preserve the search outcome in the conversation. [#100]
 
 - Add a separate protected Internship and published sample timetable packet, with exact owned-enrollment receipts and independently dated meeting facts. [#100]

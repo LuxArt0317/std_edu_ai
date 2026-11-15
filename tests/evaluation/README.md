@@ -124,7 +124,7 @@ The [teaching feedback evaluation](../../docs/qa/TEACHING_FEEDBACK_LIVE_EVALUATI
 The 12 native Moodle material cases are in `dtm-material-cases.mjs`. `dtm-material-assistant.test.ts` grades replies from the actual account handler with controlled PostgREST responses and exact route, ownership, projection, and retry checks. Hosted evaluation still requires a caller-bound disposable fixture. A passed controlled check supplies no live acceptance credit.
 ### Native internship
 
-Complete standalone Internship answers verify the selected typed fields, text, table and record link without an external model. Protected Preview receipts distinguish that native check from model review and from requests that perform no read. The grader still verifies raw paired reads, the selected projection and the same row-level facts in the answer. Partial, unclear, compound and failed reads retain the regular verification path.
+Complete standalone Internship answers and complete Internship plus tuition balance answers verify the selected typed fields, text, tables and record links without an external model. Protected Preview receipts distinguish that native check from model review and from requests that perform no read. The grader still verifies raw paired reads, the selected projection and the same row-level facts in the answer. Partial, unclear, failed and other compound reads retain the regular verification path.
 
 [The internship packet](../../docs/qa/INTERNSHIP_NATIVE_READ.md) registers 30 bilingual native questions for the contract, self-assessment, company application and directory. It retains four prior questions with a fixture rebind requirement. The default runner reports the unresolved setup before calling a hosted model or creating fixtures.
 
@@ -132,7 +132,7 @@ The School Affairs directory adds 22 bilingual catalog cases and an explicit bro
 
 The protected operator mounts 26 of these questions. Run `node tests/evaluation/run-internship-preview.mjs --preflight` for the exact case counts and fixture states. See the linked packet for authorized Preview replay, independent caller and query proofs, and the remaining controlled-only cases.
 
-The protected Internship operator includes both question orders that ask for saved contracts and the tuition balance. It binds the charge companion in the signed request, verifies the caller’s student lookup and charge projection independently before and after each answer, and checks that each disposable account can read only its own rows. The model verification count is shared across both sources. The two transport-failure cases remain controlled. The two frozen next-class cases still need a safe catalog binding for the exact dated meeting.
+The protected Internship operator includes both question orders that ask for saved contracts and the tuition balance. It binds the charge companion in the signed request, verifies the caller’s student lookup and charge projection independently before and after each answer, and checks that each disposable account can read only its own rows. The compound tuition cases require a native verification event and no provider operations. The grader checks the exact recalculated balance in the answer alongside each Internship record’s state. The two transport-failure cases remain controlled. The two frozen next-class cases still need a safe catalog binding for the exact dated meeting.
 
 ### Confirmed facilities repair cancellation
 
