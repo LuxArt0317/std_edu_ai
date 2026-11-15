@@ -83,6 +83,8 @@ import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
 import { isHousingRecordQuestion } from '../server/housingRecords.js';
+import {readChargePaymentHistory} from '../server/chargePaymentHistory.js';
+import {answerChargePaymentHistory,chargePaymentHistoryBoundary,selectChargePaymentHistory} from '../server/accountChargePaymentHistory.js';
 import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
@@ -271,6 +273,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const stream=createAssistantStream(input?.stream===true,response);
   const payment=answerDirectTuitionPayment(requestedQuestion);
   if(payment){stream.send(200,payment);return;}
+  const paymentHistory=selectChargePaymentHistory(requestedQuestion,route,history,now);
+  if(paymentHistory){
+    if(paymentHistory.reason){stream.send(200,chargePaymentHistoryBoundary(paymentHistory));return;}
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your payment history using text.'});return;
+    }
+    try{
+      stream.send(200,await answerChargePaymentHistory({account,selection:paymentHistory,question:requestedQuestion,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)},readChargePaymentHistory));
+    }catch{stream.send(503,{error:'Your saved payment history could not be checked.'});}
+    return;
+  }
   const campusEntry=campusEntryIntent(question,route);
   if(campusEntry){stream.send(200,answerCampusEntry(question,campusEntry,true));return;}
   if(accountStatusIntent(question,route)){

@@ -14,6 +14,11 @@
 
 `courseWithdrawal.js` and its contract validate account and term binding, confirmed withdrawal or restore receipts, and direct assistant answers from the saved window and course records.
 
+
+## Dated charge payment history
+
+`accountChargePaymentHistory.js` handles exact signed-in date and month questions before the aggregate fees path. It reads the caller’s saved payment entries through the shared payment ledger contract and uses the verification graph on the same date selection. The answer uses exact cents and reports reversals separately. Tuition totals use the saved category, and uncategorized rows remain separate. Undated paid totals and unread or incomplete histories never contribute to a dated amount. The source link opens the private payment history page with its date filter.
+
 ## Verified account assistant (Issue #99)
 
 `accountStatusIntent` limits sign-in questions to the current session. `accountStatusAnswer` uses the verified Google identity and projects the email only when the user asks for it. The lookup does not load a student profile or contact the model.
