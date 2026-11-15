@@ -1,4 +1,3 @@
-import {isDeepStrictEqual} from 'node:util';
 import {asksOnlyDtmCourseTotal,selectExactDtmGradeReportFields} from './dtmGradeEvidenceIntent.js';
 import {parseInternshipEvidence} from './internshipEvidenceContract.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
@@ -700,14 +699,13 @@ function literalRecordText(value){
   return `${fence} ${text} ${fence}`;
 }
 
-export function formatExactClearanceAnswer(result,question,{selection,refusal}){
+export function formatExactClearanceAnswer(result,question,refusal){
   if(result?.evidence?.id!=='account:graduationClearance')return null;
   const {payload}=parse(result);
-  if(!isDeepStrictEqual(payload.selection,selection))return null;
   if(refusal){
     if(result.readState!=='unavailable'||result.reason!==refusal)return null;
   }else if(!['ok','empty'].includes(result.readState)||result.reason!==null||!payload.complete
-    ||selection.periodsRequested&&result.readState!=='empty')return null;
+    ||payload.selection.periodsRequested&&result.readState!=='empty')return null;
   const {status,answer,citations,views,complete,formatting}=formatSupplementalAccountAnswers([result],{question});
   if(status!=='answered'||formatting.limited||!refusal&&!complete)return null;
   return refusal?{status:'handoff',answer,citations:[],views:[]}:{status,answer,citations,views};
