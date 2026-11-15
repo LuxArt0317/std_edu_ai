@@ -61,20 +61,21 @@ export async function runClubAttendanceBrowserTurn(options){
 export function verifiedClubAttendanceBrowserObservation({result,question,sourceRevision,origin}){
   const row=result?.results?.[0],deployment=result?.deployment,cleanup=result?.cleanup;
   const hex=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
-  const dispatched=result?.browserDiagnostics?.some(context=>context.observations?.some(event=>
-    event.request===clubAttendanceBrowserProfile+'-answer'&&event.method==='POST'&&event.forwarded===true))===true;
-  const passed=dispatched&&clubAttendanceBrowserCaseIds.includes(question?.id)&&result.origin===origin
+  const answerRequests=result?.browserDiagnostics?.flatMap(context=>context.observations??[]).filter(event=>
+    event.request===clubAttendanceBrowserProfile+'-answer'&&event.method==='POST'&&event.forwarded===true)??[];
+  const dispatched=answerRequests.length>0;
+  const passed=answerRequests.length===1&&clubAttendanceBrowserCaseIds.includes(question?.id)&&result.origin===origin
     &&result.sourceRevision===sourceRevision&&result.execution==='live-browser'&&result.terminal===true
     &&isDeepStrictEqual(result.caseIds,[question.id])&&result.suiteDigest===certificateAwardPreviewHash([question])
     &&result.liveAcceptance===true&&result.browserDispatchAcceptance===true&&result.modelAcceptance===false
-    &&deployment?.status==='finished'&&deployment.origin===origin&&deployment.sourceRevision===sourceRevision&&deployment.completed===6
+    &&deployment?.status==='finished'&&deployment.origin===origin&&deployment.sourceRevision===sourceRevision&&deployment.issued===6&&deployment.completed===6
     &&result.results.length===1&&row?.caseId===question.id&&row.passed===true&&row.native?.passed===true
     &&hex(row.proofDigest)&&hex(row.scopeDigest)&&hex(row.requestDigest)
     &&row.requestDigest===row.native.requestDigest&&hex(row.responseDigest)&&row.responseDigest===row.native.responseDigest
     &&hex(row.before)&&row.before===row.after&&row.browserTurn?.answerRequests===1&&row.browserTurn.saveRequests===1
     &&row.browserRestore?.restoreRequests===1&&row.readback?.own===true&&row.readback.crossed===true&&row.readback.version===1
     &&hex(row.readback.messageDigest)&&cleanup?.verified===true&&cleanup.protectedOwnerUnchanged===true
-    &&cleanup.clubAttendanceBrowserCleanup===true&&cleanup.conversationCleanup?.verified===true&&cleanup.conversationCleanup.conversationRows===0;
+    &&cleanup.createdUsers===2&&cleanup.clubAttendanceBrowserCleanup===true&&cleanup.conversationCleanup?.verified===true&&cleanup.conversationCleanup.conversationRows===0;
   return {id:question.id,dispatched,passed:Boolean(passed),cleanupVerified:cleanup?.verified===true,
     reportDigest:digest(result),requestDigest:row?.requestDigest??null,responseDigest:row?.responseDigest??null};
 }

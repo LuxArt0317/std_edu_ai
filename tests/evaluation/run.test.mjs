@@ -46,7 +46,7 @@ test('CLI rejects unknown modes, malformed limits, missing values and invalid da
 test('signed browser profiles require the protected non-injected live runner',async()=>{
   const origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
   const args=['--mode','live','--origin',origin,'--approved-preview-origin',origin,'--preview-auth','oidc'];
-  for(const profile of ['certificate-awards','announcement-email','student-profile','protected-native']){
+  for(const profile of ['certificate-awards','announcement-email','student-profile','club-attendance','protected-native']){
     const flag=['--client-dispatch',profile];
     assert.equal(options([...args,...flag]).clientDispatch,profile);
     for(const invalid of [['--mode','inventory'],['--mode','live'],args.slice(0,-2)])assert.throws(()=>options([...invalid,...flag]));
@@ -83,6 +83,33 @@ test('announcement browser proof requires one forwarded native answer, paired re
     proof=>{proof.cleanup.conversationCleanup.conversationRows=1;},
   ]){
     const altered=structuredClone(result);change(altered);assert.equal(verify(altered).passed,false);
+  }
+});
+
+test('the aggregate runner requires exactly one Club Attendance graph POST and its scoped proof',async()=>{
+  const {questions}=await discoverClientDispatchSurfaces();
+  const question=questions.find(row=>row.id==='client:club-activity-attendance:multipart');
+  const sourceRevision='a'.repeat(40),origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
+  const receipt='b'.repeat(64),requestDigest='c'.repeat(64),responseDigest='d'.repeat(64);
+  const result={sourceRevision,origin,execution:'live-browser',terminal:true,modelAcceptance:false,
+    liveAcceptance:true,browserDispatchAcceptance:true,caseIds:[question.id],suiteDigest:certificateAwardPreviewHash([question]),
+    deployment:{sourceRevision,origin,status:'finished',issued:6,completed:6},
+    browserDiagnostics:[{observations:[{request:'club-attendance-answer',method:'POST',forwarded:true}]}],
+    cleanup:{verified:true,createdUsers:2,protectedOwnerUnchanged:true,clubAttendanceBrowserCleanup:true,
+      conversationCleanup:{verified:true,conversationRows:0}},
+    results:[{caseId:question.id,passed:true,proofDigest:receipt,scopeDigest:receipt,requestDigest,responseDigest,
+      native:{passed:true,requestDigest,responseDigest},before:receipt,after:receipt,
+      browserTurn:{answerRequests:1,saveRequests:1},browserRestore:{restoreRequests:1},
+      readback:{own:true,crossed:true,version:1,messageDigest:receipt}}]};
+  const verify=proof=>verifiedNativeBrowserObservation({result:proof,question,sourceRevision,origin,profile:'club-attendance'});
+  assert.equal(verify(result).passed,true);
+  for(const alter of [
+    proof=>{proof.browserDiagnostics[0].observations.push(proof.browserDiagnostics[0].observations[0]);},
+    proof=>{proof.browserDiagnostics[0].observations[0].method='GET';},
+    proof=>{proof.deployment.issued=7;},proof=>{proof.results[0].proofDigest=null;},
+    proof=>{proof.results[0].readback.crossed=false;},proof=>{proof.cleanup.createdUsers=1;},
+  ]){
+    const changed=structuredClone(result);alter(changed);assert.equal(verify(changed).passed,false);
   }
 });
 

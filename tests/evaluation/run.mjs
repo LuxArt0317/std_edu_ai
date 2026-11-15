@@ -41,6 +41,7 @@ import {assertPublishedNextClassClock} from './published-next-class.mjs';
 import {certificateAwardPreviewHash,certificateBrowserCaseIds} from './certificate-award-preview.mjs';
 import {announcementEmailBrowserCases} from './announcement-email-browser-turn.mjs';
 import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
+import {clubAttendanceBrowserCaseIds,verifiedClubAttendanceBrowserObservation} from './club-attendance-browser-preview.mjs';
 
 const browserDispatchProfiles=new Map([
   ['certificate-awards',{ids:certificateBrowserCaseIds,operation:'runCertificateAwardPreview',request:'certificate-answer',pinnedReads:2,
@@ -49,6 +50,7 @@ const browserDispatchProfiles=new Map([
     request:'announcement-email-answer',pinnedReads:6,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='announcement-email'}],
   ['student-profile',{ids:studentProfileBrowserCases.map(row=>row.id),operation:'runStudentProfileBrowserPreview',
     request:'student-profile-answer',pinnedReads:2,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='student-profile'}],
+  ['club-attendance',{ids:clubAttendanceBrowserCaseIds,operation:'runClubAttendancePreview',verify:verifiedClubAttendanceBrowserObservation}],
 ]);
 
 const liveClientObservations=new WeakMap();
@@ -317,6 +319,7 @@ export function gradeRetrievalCase(testCase,evidence,metadata={}){
 export function verifiedNativeBrowserObservation({result,question,sourceRevision,origin,profile}){
   const scope=browserDispatchProfiles.get(profile);
   if(!scope?.ids.includes(question?.id))throw new Error('The signed browser report is outside the frozen profile.');
+  if(scope.verify)return scope.verify({result,question,sourceRevision,origin});
   const [row]=result.results;
   const {cleanup,deployment}=result;
   const answerRequests=result.browserDiagnostics?.flatMap(context=>context.observations).filter(event=>
