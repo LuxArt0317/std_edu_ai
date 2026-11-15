@@ -14,6 +14,8 @@ import {gradeCase} from '../evaluation/grading.mjs';
 import {internshipHostedCases,internshipFixtureKindForCase,requestInternshipHostedCase} from '../evaluation/internship-native-hosted.mjs';
 // @ts-expect-error Fixture setup is a standalone JavaScript module.
 import {buildInternshipFixturePlan} from '../evaluation/internship-native-fixture.mjs';
+// @ts-expect-error Companion fixture code is a standalone JavaScript module.
+import {buildInternshipChargeFixture} from '../evaluation/internship-charge-fixture.mjs';
 
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const owner=internshipNativeManifest.owners.A;
@@ -40,6 +42,12 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
+  const chargePlan=hosted&&companion==='charges'?buildInternshipChargeFixture({runId,owners:internshipNativeManifest.owners,
+    programId:'53010000-0000-4000-8000-000000000653'}):undefined;
+  const studentId=chargePlan?.students[0].id??student;
+  const charge=chargePlan?.charges[0]??{id:'53010000-0000-4000-8000-000000000611',student_id:student,label:'QA Internship Tuition',
+    amount_due:28000,amount_paid:5000,currency:'TWD',due_on:null,source_mode:'sample',occurrence_on:null,
+    category:null,contact_unit:null,contact_extension:null,payment_unit:null};
   const originalFetch=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY;
   const calls:string[]=[],model:string[]=[],errors:unknown[]=[],readDigests:string[]=[];
   let checked=0,lastDraft='',broadReads=0;
@@ -79,14 +87,12 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         assert.ok(companion,'Unexpected independent reader');
         if(url.pathname==='/rest/v1/affairs_students'){
           assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
-          return Response.json([{id:student,user_id:owner}]);
+          return Response.json([{id:studentId,user_id:owner}]);
         }
-        assert.equal(url.searchParams.get('student_id'),'eq.'+student);
+        assert.equal(url.searchParams.get('student_id'),'eq.'+studentId);
         if(companion==='charges'){
           assert.equal(url.pathname,'/rest/v1/affairs_charges');
-          return Response.json([{id:'53010000-0000-4000-8000-000000000611',student_id:student,label:'QA Internship Tuition',
-            amount_due:28000,amount_paid:5000,currency:'TWD',due_on:null,source_mode:'sample',occurrence_on:null,
-            category:null,contact_unit:null,contact_extension:null,payment_unit:null}]);
+          return Response.json([charge]);
         }
         assert.equal(url.pathname,'/rest/v1/affairs_enrollments');
         const id=(n:number)=>'53010000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -142,7 +148,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
     if(hosted){
       const testCase=internshipHostedCases([row.id])[0],plan=buildInternshipFixturePlan({runId,owners:internshipNativeManifest.owners},
         internshipFixtureKindForCase(testCase));
-      const graded=await requestInternshipHostedCase({testCase,plan,origin:previewOrigin,sourceRevision:previewRevision,runId,
+      const graded=await requestInternshipHostedCase({testCase,plan,chargePlan,origin:previewOrigin,sourceRevision:previewRevision,runId,
         token:account.token,key:operatorKey,privateMarkers:[...Object.values(plan.ids).flat(),account.token],correlations:new Set(),
         fetchImpl:async (endpoint:URL,init:RequestInit)=>{
           const payload=JSON.parse(String(init.body));
@@ -152,7 +158,12 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
           return Response.json(actual.body,{status:actual.status,headers:actual.headers});
         },readResponse:(response:Response)=>response.json()});
       assert.equal(graded.passed,true,row.id+' '+JSON.stringify(graded.failures));
-      assert.equal(graded.readCount,row.auth==='anonymous'?null:calls.length);
+      assert.equal(graded.readCount,row.auth==='anonymous'?null:calls.filter(path=>path.endsWith('/affairs_service_records')).length);
+      if(chargePlan){
+        assert.equal(graded.companionReadDigests.length,2*graded.readCount);
+        assert.equal(graded.companionProjectionDigests.length,graded.readCount);
+        assert.equal(graded.verificationMethod,'model');
+      }
       assert.equal(graded.completedModelCalls,row.auth==='anonymous'?null:model.length);
       assert.deepEqual(errors,[]);
       assert.equal(broadReads,0);
@@ -318,6 +329,8 @@ test('an internship probe cannot reach a different release, caller, route or mal
   const bankRow=rowFor('contract-list');
   const request={question:bankRow.question,route:bankRow.route,history:[],stream:false,consentedResearchUse:false} as const;
   const {body}=createInternshipProbe(scope,{...request,history:[]},operatorKey);
+  const wrongCompanion=createInternshipProbe({...scope,companion:'charges'},{...request,history:[]},operatorKey).body;
+  const missingCompanion=createInternshipProbe(scope,{...request,history:[],question:rowFor('fees').question},operatorKey).body;
   for(const [env,altered,host,identity] of [
     [{...previewEnv,VERCEL_ENV:'production'},body,previewEnv.VERCEL_URL,owner],
     [previewEnv,body,'invalid.example',owner],
@@ -325,6 +338,8 @@ test('an internship probe cannot reach a different release, caller, route or mal
     [previewEnv,body,previewEnv.VERCEL_URL,internshipNativeManifest.owners.B],
     [previewEnv,{...body,route:rowFor('company-list').route},previewEnv.VERCEL_URL,owner],
     [previewEnv,{...body,evaluationLeaveProbe:'other'},previewEnv.VERCEL_URL,owner],
+    [previewEnv,wrongCompanion,previewEnv.VERCEL_URL,owner],
+    [previewEnv,missingCompanion,previewEnv.VERCEL_URL,owner],
   ] as const){
     const before=Object.fromEntries(Object.keys(previewEnv).map(name=>[name,process.env[name]]));
     Object.assign(process.env,env);
@@ -341,7 +356,7 @@ test('an internship probe cannot reach a different release, caller, route or mal
   }
 });
 
-test('all 24 mounted independent hosted rubrics grade the real handlers and expected read digests under controlled providers',async t=>{
+test('all 26 mounted independent hosted rubrics grade the real handlers and expected read digests under controlled providers',async t=>{
   t.mock.timers.enable({apis:['Date'],now:new Date(internshipNativeManifest.asOf)});
   for(const testCase of internshipHostedCases()){
     t.mock.timers.setTime(Date.now()+61_000);

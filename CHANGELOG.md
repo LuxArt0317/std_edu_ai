@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add protected checks for both orders of Internship and tuition balance questions, with separately signed reads for tuition and saved Internship records. [#100]
+
 - Verify complete standalone internship answers directly against the selected saved records. Keep each tracking or review status with its own record in English and Traditional Chinese. [#100]
 
 - Replay saved housing bed, costs and dormitory notice questions against a published term in scratch PostgreSQL, with paired owner isolation and unchanged-record checks. [#100]

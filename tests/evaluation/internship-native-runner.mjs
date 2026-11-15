@@ -8,7 +8,7 @@ const legacyIds=new Set(['account:internship-period',
   ...['record','empty','action-boundary'].map(mode=>'service:53-1:'+mode),
 ]);
 const protectedIds=new Set(buildInternshipNativeCases()
-  .filter(row=>!row.observationExpectation.companion&&row.observationExpectation.read?.state!=='unavailable').map(row=>row.id));
+  .filter(row=>[null,'charges'].includes(row.observationExpectation.companion)&&row.observationExpectation.read?.state!=='unavailable').map(row=>row.id));
 const detail='The general evaluator cannot attest internship requests. Use the isolated protected operator for its mounted cases.';
 export const internshipCaseHasProtectedBinding=testCase=>protectedIds.has(testCase?.id);
 

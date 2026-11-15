@@ -8,7 +8,7 @@ export function requestAffairsRpc(account:AffairsAccount&{requestDeadline?:numbe
 export function loadAffairsSnapshot(account:AffairsAccount,includeAdmin?:boolean,options?:{initialize?:boolean;deadline?:number;includeServiceRecords?:boolean}):Promise<Record<string,unknown>>;
 export type AffairsCharge={id:string;label:string;amountDue:number;amountPaid:number;currency:string;dueOn:string|null;sourceMode:string;
   occurrenceOn:string|null;category:string|null;contactUnit:string|null;contactExtension:string|null;paymentUnit:string|null};
-export function loadOwnAffairsCharges(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number}):Promise<{
+export function loadOwnAffairsCharges(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number;observeRead?:(read:unknown)=>void}):Promise<{
   checkedAt:string;profile:{userId:string};studentRecordFound:boolean;charges:AffairsCharge[];
 }>;
 export function loadOwnAffairsActionContext(account:AffairsAccount,selection:ExplicitAccountAction,options?:{deadline?:number;onRead?:(tool:string,status:'running'|'complete'|'unavailable')=>void}):Promise<Record<string,unknown>>;

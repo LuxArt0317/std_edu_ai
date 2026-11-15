@@ -278,7 +278,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const internshipObservation=hasInternshipProbe?openInternshipObservation({body,identity:probeIdentity,correlationId}):null;
   const observedInternship=internshipObservation?internshipAssistantPlan(question,route,history):null;
   if(hasInternshipProbe&&(!internshipObservation||!observedInternship||observedInternship.selection&&observedInternship.hasOtherQuestion
-    ||internshipSelectedTools(observedInternship).some(tool=>tool!=='internshipRecords'))){
+    ||(internshipObservation.companion==='charges'
+      ? !observedInternship.selection||observedInternship.reason||observedInternship.feeLabel!==null
+        ||internshipSelectedTools(observedInternship).join()!=='internshipRecords,charges'
+      : internshipSelectedTools(observedInternship).some(tool=>tool!=='internshipRecords')))){
     rejectProbe();return;
   }
   const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
@@ -498,11 +501,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }
     const loadServiceCompanions=async()=>{
       const base={checkedAt:new Date().toISOString(),profile:{userId:account.user.id}};
+      const readFees=async(observeRead?:(read:unknown)=>void)=>{
+        const saved=await loadOwnAffairsCharges(account,{deadline,observeRead});
+        const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
+        return feeLabel?{...saved,chargeSelectionLabel:feeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(feeLabel))}:saved;
+      };
       const [fees,timetable]=await Promise.all([
-        feeQuestion?loadOwnAffairsCharges(account,{deadline}).then(saved=>{
-          const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
-          return feeLabel?{...saved,chargeSelectionLabel:feeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(feeLabel))}:saved;
-        },()=>({charges:[],chargeReadUnavailable:true})):null,
+        feeQuestion?(internshipObservation?.companion==='charges'?internshipObservation.observeCharges(readFees):readFees())
+          .catch(()=>({charges:[],chargeReadUnavailable:true})):null,
         classQuestion?loadOwnAffairsTimetable(account,{deadline}).catch(()=>({courses:[],timetableReadUnavailable:true})):null,
       ]);
       if(fees&&timetable&&'studentRecordFound' in fees&&'studentRecordFound' in timetable&&fees.studentRecordFound!==timetable.studentRecordFound)

@@ -58,6 +58,8 @@ import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {buildInternshipFixturePlan,createInternshipFixture,internshipFixtureMode,observeInternshipCallerRows} from './internship-native-fixture.mjs';
 import {internshipFixtureKindForCase,internshipHostedCases,requestInternshipHostedCase} from './internship-native-hosted.mjs';
+import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
+  stageInternshipCharges,verifyInternshipChargesAbsent} from './internship-charge-fixture.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 import {assertElearningCatalogCaseReady,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
@@ -339,6 +341,7 @@ async function saveLedger(){
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.internshipJournal?{internshipFixture:s.internshipJournal}:{}),
+      ...(s.internshipChargePlan?{internshipChargeFixture:s.internshipChargePlan}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
         activeFamily:s.counselingFixture?.fixtureKey??null,pendingFamily:s.pendingCounselingFixture?.fixtureKey??null,
         ...(s.counselingCancellation?{cancellation:s.counselingCancellation.command}:{}),
@@ -775,12 +778,14 @@ export async function runInternshipPreview({origin,sourceRevision,previewToken,s
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
     fail('fixture-config','Internship requires the exact protected Preview and source revision.');
   const cases=internshipHostedCases(caseIds),runId=randomUUID(),results=[],correlations=new Set();
+  const requiresCharges=cases.some(row=>row.observationExpectation.companion==='charges');
   let phase='preflight',prepared=false,previewGate,failure;
   let cleanupProof={verified:false,status:'not-started'};
   const report=()=>({runId,origin,sourceRevision,selectedCases:cases.map(row=>row.id),results,
     ...(failure?{failure}:{}),deployment:previewGate?.status()??null,cleanup:cleanupProof,
     liveAcceptance:!failure&&results.length===cases.length&&results.every(row=>row.passed)
-      &&previewGate?.status().status==='finished'&&cleanupProof.verified&&cleanupProof.internshipCleanup===true});
+      &&previewGate?.status().status==='finished'&&cleanupProof.verified&&cleanupProof.internshipCleanup===true
+      &&(!requiresCharges||cleanupProof.internshipChargeCleanup===true)});
   try{
     const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
     const identity=await sourceIdentity();
@@ -822,13 +827,30 @@ export async function runInternshipPreview({origin,sourceRevision,previewToken,s
       const verified=await s.sql`select user_id from public.affairs_profiles where user_id in ${s.sql(s.users.map(user=>user.id))} and role='student'`;
       if(verified.length!==2)fail('fixture-isolation','Internship disposable roles could not be verified.');
     });
-    const observe=async plan=>{
+    if(requiresCharges){
+      phase='seed-charges';
+      await assertRecordedFixtureLease(s,'Internship charges');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await previewGate.assertCurrent();
+      const programs=await s.sql`select id from public.affairs_programs where code='SAMPLE-GEN' and source_mode='sample'`;
+      if(programs.length!==1)fail('fixture-create','The existing sample program could not be bound.');
+      s.internshipChargePlan=buildInternshipChargeFixture({...binding,programId:programs[0].id});
+      for(const id of s.internshipChargePlan.recordIds)s.recordIds.add(id);
+      await saveLedger();
+      await feeTransaction(s,()=>stageInternshipCharges(s.sql,s.internshipChargePlan));
+    }
+    const observe=async(plan,companion)=>{
       const rowsDigest=await s.internshipFixture.observe();
       const bounded=signals(signal);
       await Promise.all(s.users.map(user=>user.renewSession({signal:bounded})));
-      const callers=await observeInternshipCallerRows(plan,{callers:s.users,publishableKey:s.publishable,
-        fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:bounded});
-      return {rowsDigest,callerDigest:callers.digest,callerChecks:callers.checks};
+      const callerOptions={callers:s.users,publishableKey:s.publishable,fetchImpl:s.boundedFetch,
+        readResponse:readBoundedFixtureResponse,signal:bounded};
+      const callers=await observeInternshipCallerRows(plan,callerOptions);
+      const charges=companion==='charges'?{
+        rowsDigest:await observeInternshipChargeRows(s.sql,s.internshipChargePlan),
+        ...await observeInternshipChargeCallers(s.internshipChargePlan,callerOptions),
+      }:null;
+      return {rowsDigest,callerDigest:callers.digest,callerChecks:callers.checks,...(charges?{charges}:{})};
     };
     // Group equal row states while retaining exact question order within each state.
     for(const kind of new Set(cases.map(internshipFixtureKindForCase))){
@@ -837,16 +859,17 @@ export async function runInternshipPreview({origin,sourceRevision,previewToken,s
       const plan=s.internshipFixture.current();
       for(const testCase of cases.filter(row=>internshipFixtureKindForCase(row)===kind)){
         phase=testCase.id;
-        const before=await observe(plan);
+        const companion=testCase.observationExpectation.companion;
+        const before=await observe(plan,companion);
         const privateMarkers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
-          ...Object.values(plan.ids).flat()];
+          ...Object.values(plan.ids).flat(),...(s.internshipChargePlan?[...s.internshipChargePlan.recordIds,s.internshipChargePlan.charges[1].label]:[])];
         let ticket,result;
         try{
-          result=await pace(()=>requestInternshipHostedCase({testCase,plan,origin,sourceRevision,runId,token:s.users[0].token,
+          result=await pace(()=>requestInternshipHostedCase({testCase,plan,chargePlan:s.internshipChargePlan,origin,sourceRevision,runId,token:s.users[0].token,
             key:s.internshipObservationKey,signal:signals(signal,65000),fetchImpl:readback,readResponse:readBoundedFixtureResponse,
             privateMarkers,correlations}),signal,async()=>{ticket=await previewGate.beforeRequest();});
         }finally{if(ticket)await previewGate.afterRequest(ticket);}
-        const after=await observe(plan);
+        const after=await observe(plan,companion);
         if(!isDeepStrictEqual(before,after))fail('fixture-unapproved-write','Internship fixtures changed during a read-only case.');
         results.push({...result,before,after,requestIndex:ticket.requestIndex});
         await onCheckpoint?.(report());
@@ -3275,6 +3298,12 @@ export async function cleanup(){
       await s.feeFixture.lifecycle.cleanup();
       await saveLedger();
     }
+    if(s.internshipChargePlan){
+      await assertRecordedFixtureLease(s,'Internship charge cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>feeTransaction(s,()=>cleanupInternshipCharges(s.sql,s.internshipChargePlan)),
+        'Could not reconcile the exact disposable Internship companion rows; the cleanup ledger is retained.');
+    }
     if(s.internshipFixture){
       await s.internshipFixture.cleanup();
       s.internshipObservationKey=undefined;
@@ -3474,6 +3503,10 @@ export async function cleanup(){
     }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
     if(s.internshipFixture)await s.internshipFixture.verifyAbsent();
+    if(s.internshipChargePlan){
+      await verifyInternshipChargesAbsent(s.sql,s.internshipChargePlan);
+      s.internshipChargeCleanup=true;
+    }
     if(s.clubEquipmentFixture){
       await s.clubEquipmentFixture.verifyAbsent();
       const ids=s.users.map(user=>user.id);
@@ -3527,6 +3560,7 @@ export async function cleanup(){
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
     ...(s.internshipFixture?{internshipCleanup:true}:{}),
+    ...(s.internshipChargeCleanup?{internshipChargeCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }

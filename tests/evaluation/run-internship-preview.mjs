@@ -8,7 +8,7 @@ async function main(args){
   if(args.length===1&&args[0]==='--preflight'){
     const cases=internshipHostedCases();
     console.log(JSON.stringify({registered:30,mounted:cases.length,signed:cases.filter(row=>row.auth!=='anonymous').length,
-      exactReadCases:cases.filter(row=>row.observationExpectation.read).length,fixtureStates:[...new Set(cases.map(internshipFixtureKindForCase))]}));
+      chargeCompanionCases:cases.filter(row=>row.observationExpectation.companion==='charges').length,exactReadCases:cases.filter(row=>row.observationExpectation.read).length,fixtureStates:[...new Set(cases.map(internshipFixtureKindForCase))]}));
     return;
   }
   const [origin,sourceRevision,option,selected,...extra]=args;

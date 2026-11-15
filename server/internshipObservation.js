@@ -7,15 +7,15 @@ const preview=/^https:\/\/stdedu-[a-z0-9]{9}-v1-d286\.vercel\.app$/u;
 const route=/^\/school-affairs\/services\/internship\/(?:contract|self_assessment|company|directory)$/u;
 const keyPattern=/^[^\s\p{Cc}]{40,4096}$/u;
 const requestKeys=['question','route','history','stream','consentedResearchUse'];
-const scopeKeys=['ownerId','runId','origin','sourceRevision','nonce'];
-const receiptKeys=['binding','correlationId','attempts','modelOperations','verificationMethod','responseDigest'];
+const scopeKeys=['ownerId','runId','origin','sourceRevision','nonce','companion'];
+const receiptKeys=['binding','correlationId','attempts','chargeAttempts','modelOperations','verificationMethod','responseDigest'];
 const modelOperationsAllowed=new Set(['compose_grounded_answer','answer_evidence_review','correct_grounded_answer']);
 export const internshipObservationHeader='X-Internship-Observation';
 
 const exact=(value,keys)=>value!==null&&typeof value==='object'&&!Array.isArray(value)
   &&Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const keyValid=key=>typeof key==='string'&&keyPattern.test(key);
-const scopeValid=scope=>exact(scope,scopeKeys)&&scopeKeys.every(key=>typeof scope[key]==='string')
+const scopeValid=scope=>exact(scope,scopeKeys)&&scopeKeys.filter(key=>key!=='companion').every(key=>typeof scope[key]==='string')&&[null,'charges'].includes(scope.companion)
   &&uuid.test(scope.ownerId)&&uuid.test(scope.runId)&&uuid.test(scope.nonce)&&preview.test(scope.origin)&&/^[a-f0-9]{40}$/u.test(scope.sourceRevision);
 const requestValid=request=>exact(request,requestKeys)&&typeof request.question==='string'
   &&request.question.length>=2&&request.question.length<=2000&&typeof request.route==='string'&&route.test(request.route)
@@ -41,6 +41,7 @@ function unseal(domain,value,key){
 }
 
 export function createInternshipProbe(scope,request,key,now=Date.now()){
+  scope={companion:null,...scope};
   if(!scopeValid(scope)||!requestValid(request)||!keyValid(key)||!Number.isSafeInteger(now))
     throw new Error('Invalid internship observation request.');
   const binding={...scope,issuedAt:now,requestDigest:requestDigest(scope.origin,request)};
@@ -60,9 +61,22 @@ export function openInternshipObservation({body,identity,correlationId},env=proc
     ||!['evaluation.student@example.invalid','evaluation.other.'+scope.runId+'@example.invalid'].includes(identity.email)
     ||!Number.isSafeInteger(issuedAt)||!Number.isSafeInteger(now)||issuedAt>now+5000||now-issuedAt>120000
     ||declaredDigest!==requestDigest(scope.origin,request))return null;
-  const attempts=[],modelOperations=[];
+  const attempts=[],chargeAttempts=[],modelOperations=[];
   let invalid=false,nativeChecked=false;
   return {
+    companion:scope.companion,
+    async observeCharges(reader){
+      const reads=[],attempt={reads,evidenceDigest:null};
+      if(scope.companion!=='charges'||chargeAttempts.length>=2)invalid=true;
+      else chargeAttempts.push(attempt);
+      const value=await reader(read=>{
+        if(reads.length>=2)invalid=true;
+        else reads.push(internshipObservationDigest(read));
+      });
+      if(typeof value?.studentRecordFound!=='boolean'||!Array.isArray(value.charges))invalid=true;
+      else attempt.evidenceDigest=internshipObservationDigest({studentRecordFound:value.studentRecordFound,charges:value.charges});
+      return value;
+    },
     async observe(reader){
       const reads=[],attempt={reads,evidenceDigest:null};
       if(attempts.length>=maxAnswerVerificationChecks)invalid=true;
@@ -82,15 +96,18 @@ export function openInternshipObservation({body,identity,correlationId},env=proc
       else modelOperations.push(operation);
     },
     nativeCheckCompleted(){
-      if(nativeChecked||modelOperations.length)invalid=true;
+      if(nativeChecked||scope.companion!==null||modelOperations.length)invalid=true;
       else nativeChecked=true;
     },
     finish(payload,expectsRead){
       if(invalid||expectsRead!==Boolean(attempts.length)||!expectsRead&&modelOperations.length
         ||nativeChecked&&(!expectsRead||attempts.some(attempt=>attempt.reads.length!==1))
+        ||scope.companion==='charges'&&(!expectsRead||chargeAttempts.length!==attempts.length||!chargeAttempts.length
+          ||chargeAttempts.some(attempt=>attempt.reads.length!==2||!sha.test(attempt.evidenceDigest)))
+        ||scope.companion===null&&chargeAttempts.length!==0
         ||attempts.some(attempt=>!sha.test(attempt.evidenceDigest)))return null;
       const verificationMethod=nativeChecked?'native-exact':expectsRead?'model':'none';
-      return seal('response',{binding,correlationId,attempts,modelOperations,verificationMethod,
+      return seal('response',{binding,correlationId,attempts,chargeAttempts,modelOperations,verificationMethod,
         responseDigest:internshipObservationDigest({statusCode:200,body:payload})},key);
     },
   };
@@ -105,6 +122,11 @@ export function verifyInternshipObservation({receipt,binding,correlationId,body}
     ||!Array.isArray(observed.attempts)||observed.attempts.length>maxAnswerVerificationChecks
     ||observed.attempts.some(row=>!exact(row,['reads','evidenceDigest'])||!sha.test(row.evidenceDigest)
       ||!Array.isArray(row.reads)||row.reads.length>1||row.reads.some(digest=>!sha.test(digest)))
+    ||!Array.isArray(observed.chargeAttempts)||observed.chargeAttempts.length>2
+    ||(observed.binding.companion==='charges'?(observed.chargeAttempts.length!==observed.attempts.length||observed.verificationMethod!=='model')
+      :observed.binding.companion!==null||observed.chargeAttempts.length!==0)
+    ||observed.chargeAttempts.some(row=>!exact(row,['reads','evidenceDigest'])||!sha.test(row.evidenceDigest)
+      ||!Array.isArray(row.reads)||row.reads.length!==2||row.reads.some(read=>!sha.test(read)))
     ||!Array.isArray(observed.modelOperations)||observed.modelOperations.length>maxAnswerVerificationChecks*2
     ||observed.modelOperations.some(operation=>!modelOperationsAllowed.has(operation))
     ||!['native-exact','model','none'].includes(observed.verificationMethod)

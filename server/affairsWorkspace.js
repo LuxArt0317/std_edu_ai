@@ -37,7 +37,7 @@ export async function verifyAffairsToken(token) {
 }
 
 async function request(account, table, options = {}) {
-  const {rpc=false,body,query={},exactCount=false,readJson,errorMessages}=options;
+  const {rpc=false,body,query={},exactCount=false,readJson,errorMessages,observeRead}=options;
   const target=new URL(`${account.url}/rest/v1/${rpc?'rpc/':''}${table}`);
   for (const [name,value] of Object.entries(query)) if (value !== undefined) target.searchParams.set(name,String(value));
   let response;
@@ -67,7 +67,10 @@ async function request(account, table, options = {}) {
   if (!raw && rpc) return null; // PostgREST void RPCs may return 204 without JSON.
   try {
     const value=JSON.parse(raw);
-    if(!exactCount)return value;
+    if(!exactCount){
+      observeRead?.({method:'GET',url:target.href,ownerId:account.user.id,rows:value});
+      return value;
+    }
     const range=/^(?:(\d+)-(\d+)|\*)\/(\d+)$/u.exec(response.headers.get('content-range')||'');
     if(!range||!Array.isArray(value)||query.offset!==undefined
       ||(value.length?Number(range[1])!==0||Number(range[2])!==value.length-1:range[1]!==undefined)
@@ -84,11 +87,11 @@ export function requestAffairsRpc(account,name,body,{readJson,errorMessages}={})
 const own=(userId,limit=50)=>({select:'*',user_id:`eq.${userId}`,limit});
 const byIds=(ids)=>ids.length?`in.(${ids.join(',')})`:'eq.00000000-0000-0000-0000-000000000000';
 // PostgREST caps each response. A student's past terms can span many pages.
-async function readAccountRows(account, table, query) {
+async function readAccountRows(account, table, query, observeRead) {
   const rows = [];
   const pageSize = 500;
   for (let offset = 0; ; offset += pageSize) {
-    const page = await request(account, table, {query:{...query,limit:pageSize,offset}});
+    const page = await request(account, table, {query:{...query,limit:pageSize,offset},observeRead});
     if (!Array.isArray(page)) throw new AffairsWorkspaceError('School Affairs returned invalid records.');
     rows.push(...page);
     if (page.length < pageSize) return rows;
@@ -180,7 +183,7 @@ export async function loadOwnAffairsActionContext(account,selection,{deadline=Da
 }
 
 /** Read only the caller's charges. First-use provisioning belongs to the workspace. */
-export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000}={}) {
+export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,observeRead}={}) {
   const userId=account?.user?.id;
   if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
     ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
@@ -189,13 +192,13 @@ export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000}=
     throw new AffairsWorkspaceError('Invalid School Affairs read deadline.');
   const scoped={user:{id:userId},url:account.url,token:account.token,key:account.key,
     requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
-  const students=await request(scoped,'affairs_students',{query:{select:'id,user_id',user_id:`eq.${userId}`,limit:1}});
+  const students=await request(scoped,'affairs_students',{query:{select:'id,user_id',user_id:`eq.${userId}`,limit:1},observeRead});
   if(!Array.isArray(students)||students.length>1||students.some(row=>row?.user_id!==userId||typeof row.id!=='string'||!chargeUuid.test(row.id)))
     throw new AffairsWorkspaceError('The student record could not be verified.');
   const student=students[0];
   if(!student)return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:false,charges:[]};
   const fields='id,student_id,label,amount_due,amount_paid,currency,due_on,source_mode,occurrence_on,category,contact_unit,contact_extension,payment_unit';
-  const rows=await readAccountRows(scoped,'affairs_charges',{select:fields,student_id:`eq.${student.id}`,order:chargeOrder});
+  const rows=await readAccountRows(scoped,'affairs_charges',{select:fields,student_id:`eq.${student.id}`,order:chargeOrder},observeRead);
   const ids=new Set();
   for(const row of rows){
     if(row?.student_id!==student.id||typeof row.id!=='string'||!chargeUuid.test(row.id)||ids.has(row.id)

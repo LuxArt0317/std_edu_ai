@@ -132,6 +132,8 @@ The School Affairs directory adds 22 bilingual catalog cases and an explicit bro
 
 The protected operator mounts 24 of these questions. Run `node tests/evaluation/run-internship-preview.mjs --preflight` for the exact case counts and fixture states. See the linked packet for authorized Preview replay, independent caller and query proofs, and the remaining controlled-only cases.
 
+The protected Internship operator includes both question orders that ask for saved contracts and the tuition balance. It binds the charge companion in the signed request, verifies the caller’s student lookup and charge projection independently before and after each answer, and checks that each disposable account can read only its own rows. The model verification count is shared across both sources. The two transport-failure cases remain controlled. The two frozen next-class cases still need a safe catalog binding for the exact dated meeting.
+
 ### Moodle assignment lists
 
 `dtm-assignment-list-handler.test.mjs` grades all 25 list cases through the actual endpoint using synthetic callers and controlled row requests. It checks the selected course, global personal/sample fallback, Taipei dates, exact counts, tracker states, access, retry and distinct submission and grade capabilities. Four original cases retain their earlier oracles and wait for updated fixture binding.
@@ -250,7 +252,7 @@ Pass `--confirmed-cancellation` to continue with the disposable owner's submitte
 
 The replay grades the existing positive 34-1 bed and costs questions and the combined 34-2 conduct and housing question against fixed facts. The actual HTTP handlers read two synthetic Google student accounts under the real ownership policies. SQL verifies both crossed-owner denials and checks that the published period, records, receipts and audit rows stay unchanged. The transport uses a controlled answer reviewer and a private Unix socket. Hosted and model acceptance require separate runs.
 
-The test skips unless you opt in. With PostgreSQL's `initdb` and `pg_ctl` on PATH, run this from the repository root:
+The test skips unless you opt in. Run the command from the repository root with PostgreSQL's `initdb` and `pg_ctl` on PATH.
 
 ```sh
 (

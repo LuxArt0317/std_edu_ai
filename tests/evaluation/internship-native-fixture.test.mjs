@@ -7,6 +7,8 @@ import postgres from 'postgres';
 import {buildInternshipFixturePlan,createInternshipFixture,internshipFixtureMode,observeInternshipCallerRows} from './internship-native-fixture.mjs';
 import {internshipHostedCases} from './internship-native-hosted.mjs';
 import {prepare,runInternshipPreview} from './live-fixtures.mjs';
+import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
+  stageInternshipCharges,verifyInternshipChargesAbsent} from './internship-charge-fixture.mjs';
 
 const binding={runId:'53020000-0000-4000-8000-000000000110',owners:{A:'53020000-0000-4000-8000-000000000111',B:'53020000-0000-4000-8000-000000000112'}};
 const origin='https://stdedu-abcdef012-v1-d286.vercel.app',sourceRevision='a'.repeat(40);
@@ -16,11 +18,12 @@ const socket=process.env.STU_INTERNSHIP_TEST_PG_SOCKET;
 
 test('the isolated packet binds distinct owners and keeps three scoped empty states separate',()=>{
   const cases=internshipHostedCases();
-  assert.equal(cases.length,24);
-  assert.equal(cases.filter(row=>row.auth!=='anonymous').length,23);
-  assert.equal(cases.filter(row=>row.observationExpectation.read).length,17);
+  assert.equal(cases.length,26);
+  assert.equal(cases.filter(row=>row.auth!=='anonymous').length,25);
+  assert.equal(cases.filter(row=>row.observationExpectation.read).length,19);
   assert.throws(()=>internshipHostedCases(['account:internship-native-reader-failed']),/Invalid protected/u);
   assert.throws(()=>internshipHostedCases(['account:internship-native-next-class']),/Invalid protected/u);
+  assert.equal(cases.filter(row=>row.observationExpectation.companion==='charges').length,2);
   assert.throws(()=>buildInternshipFixturePlan({...binding,owners:{A,B:A}}),/binding/u);
   for(const kind of ['normal','contract','self_assessment','company']){
     const plan=buildInternshipFixturePlan(binding,kind);
@@ -95,7 +98,8 @@ test('scratch migrations enforce exact own/crossed Internship rows, journal reco
     create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
     grant usage on schema public,auth,private to authenticated;`);
   for(const name of ['20261105010000_school_affairs_workspace.sql','20261105020000_dtm_sample_workspace.sql',
-    '20261106010000_affairs_academic_records.sql','20261112010000_student_workspace.sql','20261112020000_leave_application_fields.sql'])
+    '20261106010000_affairs_academic_records.sql','20261112010000_student_workspace.sql','20261112020000_leave_application_fields.sql',
+    '20261112080000_pending_fees.sql'])
     await sql.unsafe(await readFile(new URL('../../supabase/migrations/'+name,import.meta.url),'utf8'));
   for(const id of [A,B,protectedOwner]){
     const email=id+'@example.invalid';
@@ -146,4 +150,43 @@ test('scratch migrations enforce exact own/crossed Internship rows, journal reco
   assert.equal((await sql`select id from public.affairs_service_records where id<>${control.id}`).length,0);
   assert.equal((await sql`select id from public.affairs_service_requests`).length,0);
   assert.deepEqual(Array.from(await sql`select id from public.affairs_service_records`),[control]);
+
+  const [program]=await sql`select id from public.affairs_programs where code='SAMPLE-GEN'`;
+  const chargePlan=buildInternshipChargeFixture({...binding,programId:program.id});
+  const [own,other]=chargePlan.charges;
+  await fixtureTransaction(sql,()=>stageInternshipCharges(sql,chargePlan));
+  const rowsDigest=await observeInternshipChargeRows(sql,chargePlan);
+  const chargeReadOptions={...callerOptions,fetchImpl:async(url,init)=>{
+    const caller=init.headers.Authorization==='Bearer synthetic-A'?A:B;
+    const fields=url.searchParams.get('select').split(',');
+    const values=await reader.begin(async tx=>{
+      await tx.unsafe('set local role authenticated');
+      await tx`select set_config('request.jwt.claim.sub',${caller},true)`;
+      if(url.pathname.endsWith('/affairs_students')){
+        const userId=url.searchParams.get('user_id').slice(3);
+        return tx`select ${tx(fields)} from public.affairs_students where user_id=${userId}`;
+      }
+      assert.ok(url.pathname.endsWith('/affairs_charges'));
+      const studentId=url.searchParams.get('student_id').slice(3);
+      const rows=await tx`select ${tx(fields)} from public.affairs_charges where student_id=${studentId}`;
+      return rows.map(row=>({...row,amount_due:Number(row.amount_due),amount_paid:Number(row.amount_paid)}));
+    });
+    return Response.json(values);
+  }};
+  assert.equal((await observeInternshipChargeCallers(chargePlan,chargeReadOptions)).checks,8);
+  assert.equal(await observeInternshipChargeRows(sql,chargePlan),rowsDigest);
+  await sql`update public.affairs_charges set label='Unexpected local control' where id=${other.id}`;
+  await assert.rejects(fixtureTransaction(sql,()=>cleanupInternshipCharges(sql,chargePlan)),/unrecognized charge or student rows/u);
+  assert.equal((await sql`select 1 from public.affairs_charges where id in (${own.id},${other.id})`).length,2);
+  await sql`update public.affairs_charges set label=${other.label} where id=${other.id}`;
+  await fixtureTransaction(sql,()=>cleanupInternshipCharges(sql,chargePlan));
+  await verifyInternshipChargesAbsent(sql,chargePlan);
+  assert.deepEqual(Array.from(await sql`select id from public.affairs_service_records`),[control]);
+
 });
+
+async function fixtureTransaction(sql,work){
+  await sql.unsafe('begin');
+  try{await work();await sql.unsafe('commit');}
+  catch(error){await sql.unsafe('rollback');throw error;}
+}

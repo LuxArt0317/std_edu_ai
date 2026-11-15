@@ -26,7 +26,7 @@ test('the full runner retains all native internship views and explicit independe
   assert.deepEqual(lookup('foreign-prefix').expected.allowedTools,[]);
   assert.deepEqual(lookup('failed-companion').expected.requiredTools,['charges']);
   assert.equal(internshipSetupSummary(cases).liveEligible,0);
-  assert.equal(internshipSetupSummary(cases).protectedEligible,24);
+  assert.equal(internshipSetupSummary(cases).protectedEligible,26);
 });
 
 test('legacy adapter denies the native suite from prepare and forCase before creating fixtures',async()=>{

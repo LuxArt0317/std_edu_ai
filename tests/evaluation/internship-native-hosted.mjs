@@ -6,6 +6,7 @@ import {
 import {gradeCase} from './grading.mjs';
 import {maxAnswerVerificationChecks} from '../../src/services/assistantVerificationLimits.js';
 import {internshipCaseHasProtectedBinding,internshipRunnerCases} from './internship-native-runner.mjs';
+import {expectedInternshipChargeRead} from './internship-charge-fixture.mjs';
 import {internshipNativeFixtureForCase} from './internship-native-cases.mjs';
 
 const cases=internshipRunnerCases().filter(internshipCaseHasProtectedBinding);
@@ -52,10 +53,12 @@ export function expectedInternshipRead(plan,testCase){
     evidenceDigest:internshipObservationDigest(projection)};
 }
 
-export async function requestInternshipHostedCase({testCase,plan,origin,sourceRevision,runId,token,key,signal,fetchImpl,readResponse,privateMarkers,correlations}){
-  const source=testCase.observationExpectation.read,guest=testCase.auth==='anonymous';
+export async function requestInternshipHostedCase({testCase,plan,chargePlan,origin,sourceRevision,runId,token,key,signal,fetchImpl,readResponse,privateMarkers,correlations}){
+  const source=testCase.observationExpectation.read,guest=testCase.auth==='anonymous',companion=testCase.observationExpectation.companion;
+  if(companion&&(!chargePlan||companion!=='charges'||chargePlan.runId!==runId||!isDeepStrictEqual(chargePlan.owners,plan.owners)))
+    throw new Error('The approved Internship charge fixture is missing.');
   const request={question:testCase.question,route:testCase.route,history:testCase.history,stream:false,consentedResearchUse:false};
-  const probe=guest?null:createInternshipProbe({ownerId:plan.owners.A,runId,origin,sourceRevision,nonce:randomUUID()},request,key);
+  const probe=guest?null:createInternshipProbe({ownerId:plan.owners.A,runId,origin,sourceRevision,nonce:randomUUID(),companion},request,key);
   const endpoint=new URL(guest?'/api/research-assistant':'/api/affairs-assistant',origin);
   const response=await fetchImpl(endpoint,{method:'POST',signal,headers:{'Content-Type':'application/json',Accept:'application/json',
     ...(guest?{}:{Authorization:'Bearer '+token})},body:JSON.stringify(probe?.body??request)});
@@ -79,6 +82,11 @@ export async function requestInternshipHostedCase({testCase,plan,origin,sourceRe
       operations=observation.modelOperations.length;
       if(expected){
         if(!observation.attempts.length||observation.attempts.some(attempt=>!isDeepStrictEqual(attempt,expected)))failures.push('observation.read_or_projection');
+        if(companion==='charges'){
+          const expectedCharge=expectedInternshipChargeRead(chargePlan);
+          if(observation.chargeAttempts.length!==observation.attempts.length
+            ||observation.chargeAttempts.some(attempt=>!isDeepStrictEqual(attempt,expectedCharge)))failures.push('observation.charge_read_or_projection');
+        }else if(observation.chargeAttempts.length)failures.push('observation.unexpected_companion');
         const checks=body.verification?.attempts;
         // Account verification refreshes scoped rows once. Its deeper review
         // may then use that same evidence without authorizing a third read.
@@ -99,7 +107,8 @@ export async function requestInternshipHostedCase({testCase,plan,origin,sourceRe
         failures.push('observation.unexpected_lookup');
     }
   }
-  if(activity.some(step=>String(step.kind).startsWith('account-read:')&&(!source||!/^account-read:internshipRecords:[12]$/u.test(step.kind))))
+  const allowedRead=companion==='charges'?/^account-read:(?:internshipRecords|charges):[12]$/u:/^account-read:internshipRecords:[12]$/u;
+  if(activity.some(step=>String(step.kind).startsWith('account-read:')&&(!source||!allowedRead.test(step.kind))))
     failures.push('observation.unrelated_activity');
   if(body.grounding?.webSearched!==false)failures.push('observation.public_research');
   const execution=guest||completedNativeCheck||observation?.verificationMethod==='none'?'live-native'
@@ -111,5 +120,7 @@ export async function requestInternshipHostedCase({testCase,plan,origin,sourceRe
     verificationChecks:body.verification?.attempts??null,completedEvidenceReviews:observation?reviews:null,completedModelCalls:observation?operations:null,
     completedNativeCheck,verificationMethod:observation?.verificationMethod??null,observed:observation!==null,...(observation?{correlationId,responseDigest:observation.responseDigest,
       receiptDigest:internshipObservationDigest(receipt),readDigests:observation.attempts.flatMap(attempt=>attempt.reads),
-      projectionDigests:observation.attempts.map(attempt=>attempt.evidenceDigest)}:{}),failures};
+      projectionDigests:observation.attempts.map(attempt=>attempt.evidenceDigest),
+      ...(companion==='charges'?{companionReadDigests:observation.chargeAttempts.flatMap(attempt=>attempt.reads),
+        companionProjectionDigests:observation.chargeAttempts.map(attempt=>attempt.evidenceDigest)}:{})}:{}),failures};
 }
