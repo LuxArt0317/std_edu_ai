@@ -31,6 +31,7 @@ import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,nor
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
 import {formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
+import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
 import {mentionsDtmSubmissionDetail,needsSeparateDtmTracker,isNativeDtmGradeOnlyQuestion} from './dtmGradeEvidenceIntent.js';
 import {hasIndependentDtmWork,independentElearningQuestion,isElearningEvidenceQuestion} from './elearningEvidenceIntent.js';
@@ -481,7 +482,7 @@ function housingBedView(snapshot,context){
   const cell=value=>value==null?'Not recorded':String(value).slice(0,200);
   return [{id:'housing',title:'Saved accommodation beds and fees',url:'/school-affairs/services/34-1',
     columns:['Bed number','Accommodation fee','Data'],rows:rows.slice(0,12).map(row=>[cell(row.bedNumber),cell(row.accommodationFee),cell(row.sourceMode)]),
-    total:rows.length,checkedAt:snapshot.checkedAt,note:`Showing ${Math.min(12,rows.length)} of ${rows.length} owned saved assignment rows. Literal fees are not payment confirmation; local records do not establish official university synchronization.`}];
+    total:rows.length,checkedAt:snapshot.checkedAt,note:`Showing ${Math.min(12,rows.length)} of ${rows.length} saved accommodation assignments. Fee amounts are shown as recorded.`}];
 }
 
 function boundHousingSource(source,budget,unavailable){
@@ -863,7 +864,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const boundedFeeAnswer=sources=>{
     const fees=sources.find(source=>source.id==='account:charges');
     if(!(nativeAndFees||noteFees||aidFees||teachingFees||housingFees||assignmentFees||serviceFees)||!fees)return null;
-    try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question)});}
+    try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question),includeAuthorityLimit:asksAboutOfficialRecords(question)});}
     catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
   };
   emit({kind:'account-tools',label:'Selected account lookups',detail:plan.tools.map(key=>accountTools[key]||supplementalAccountTools[key]).join('; ').slice(0,480)||(intent.kind==='coaching'?'No private record lookup is needed for this wording advice.':'No specific record collection was identified; a focused question may be needed.'),status:'complete'});

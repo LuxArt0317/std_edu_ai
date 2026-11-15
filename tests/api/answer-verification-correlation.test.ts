@@ -63,6 +63,11 @@ test('generation failures and explicit abstentions log fixed stages without chan
     ]);
     assert.doesNotMatch(JSON.stringify(logs),/PRIVATE_|fake|sourceIds|previousAnswer/);
     assert.equal(JSON.stringify(requests).includes(correlationId),false);
+    for(const request of requests){
+      assert.match(request.instructions,/short affirmative source label/u);
+      assert.match(request.instructions,/Explain a source boundary only when the question asks about official verification/u);
+      assert.match(request.instructions,/Never imply authority or action the evidence does not establish/u);
+    }
   });
 });
 

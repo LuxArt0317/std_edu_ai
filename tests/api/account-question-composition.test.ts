@@ -31,10 +31,11 @@ test('shared intent requires both course and profile records for the exact multi
 test('current courses and year are composed from literal own records on every incidental route',async()=>{
   for(const route of ['/','/school-affairs','/dtm']){
     const result=await draft(question,fixture(),route);
-    assert.equal(result.status,'answered');assert.match(result.answer,/Year level: 3\./);
+    assert.equal(result.status,'answered');assert.match(result.answer,/Year level: 3 \(sample\)\./);
     for(const name of ['SAMP101 Campus Orientation','SAMP102 Digital Literacy','SAMP103 Student Services Practice'])assert.ok(result.answer.includes(name));
     assert.doesNotMatch(result.answer,/SAMP090|SAMP201|DROP100|FOREIGN|Foreign Secret|DTM301/);
-    assert.match(result.answer,/not a live university sync/);assert.match(result.answer,/demonstration data/);
+    assert.match(result.answer,/Your saved stu.best records/);assert.match(result.answer,/\(sample\)/);
+    assert.doesNotMatch(JSON.stringify(result),/not a live university sync|official university/u);
     assert.equal(result.proposedAction,undefined);assert.equal(result.grounding.webSearched,false);
     assert.equal((result.citations[0] as {url:string}).url,'/school-affairs/records/subjects');
   }
@@ -59,7 +60,7 @@ test('missing year is an explicit partial limitation while literal zero remains 
     assert.doesNotMatch(result.answer,/Year level: (?:0|115|2026|3)/);
   }
   const snapshot=fixture() as any;snapshot.student.yearLevel=0;
-  assert.match((await draft(question,snapshot)).answer,/Year level: 0\./);
+  assert.match((await draft(question,snapshot)).answer,/Year level: 0 \(sample\)\./);
 });
 
 test('exact overview returns bounded actual records rather than only capability boilerplate',async()=>{
@@ -69,7 +70,7 @@ test('exact overview returns bounded actual records rather than only capability 
   const snapshot=fixture() as any;snapshot.housing={privateContact:'DO NOT DISCLOSE'};snapshot.charges.push({id:'foreign',userId:other});
   const result=await draft(q,snapshot);
   for(const fact of ['Test Student','Information Studies','Year level: 3','SAMP101','SAMP102','SAMP103','DTM301','DTM102','1 assignments, 2 charge items, 1 tasks and 0 requests'])assert.ok(result.answer.includes(fact),fact);
-  assert.match(result.answer,/Separately saved DTM courses/);assert.match(result.answer,/not a complete university history/);
+  assert.match(result.answer,/Separately saved DTM courses/);assert.doesNotMatch(result.answer,/university (?:history|sync)/u);
   assert.doesNotMatch(result.answer,/You can ask about|test@example.invalid|TEST-001|DO NOT DISCLOSE|FOREIGN|DTM preview/);
 });
 
@@ -157,7 +158,7 @@ test('recorded or current year clauses retain profile in multipart requests with
     }
     const direct=`Tell me my ${year}.`,intent=accountQuestionIntent(direct);
     assert.equal(intent.year,true);assert.equal(intent.recognized,true);assert.deepEqual(intent.baseTools,['profile']);
-    assert.match((await draft(direct)).answer,/Year level: 3\./);
+    assert.match((await draft(direct)).answer,/Year level: 3 \(sample\)\./);
   }
   for(const question of ['Show my current year tuition.','Show my current year courses.','Show my recorded year payments.','Show my current academic year.']){
     const intent=accountQuestionIntent(question);assert.equal(intent.year,false,question);assert.ok(!intent.baseTools.includes('profile'),question);

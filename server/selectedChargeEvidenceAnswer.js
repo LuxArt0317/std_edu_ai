@@ -64,12 +64,14 @@ const decimal=value=>(value/100).toLocaleString('en-US',{minimumFractionDigits:2
 const money=(value,currency)=>(currency==='TWD'?'NT$':currency+' ')+(value/100).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:true});
 
 export function formatSelectedChargeEvidence(source,options={}){
-  if(!keys(options,[],['language'])||options.language!==undefined&&!['en','zh-TW'].includes(options.language))invalid();
+  if(!keys(options,[],['language','includeAuthorityLimit'])
+    ||options.language!==undefined&&!['en','zh-TW'].includes(options.language)
+    ||options.includeAuthorityLimit!==undefined&&typeof options.includeAuthorityLimit!=='boolean')invalid();
   const {p,c,rows,state}=validate(source),zh=options.language==='zh-TW',t=(en,tw)=>zh?tw:en;
   const title=t('Selected local tuition and fee records','選定的站內學費及費用紀錄');
   const citation={chunkId:sourceId,claim:title,title,sourceName:'stu.best account records',url:path,locator:null,effectiveAt:null,reviewedAt:null};
-  const provenance=t('This source concerns saved stu.best charge records, not evidence of a live university or bank connection. “Paid” is a saved amount; this lookup does not confirm a transfer or make a payment. Sample records are fictional demonstration data. A verified source mode is a stored label, not proof of live synchronization.',
-    '以下是 stu.best 儲存的費用紀錄，不能證明已連線至校方或銀行。「已繳」是儲存金額；此次查詢不確認匯款，也不執行付款。sample 是虛構示範資料；verified 是儲存來源標記，並不證明即時同步。');
+  const authority=options.includeAuthorityLimit?t('I can show saved fee amounts. Official balances and bank transfers require separate verification.',
+    '此處可查看已儲存的費用金額，校方正式餘額與銀行匯款需另行確認。'):'';
   const lead=[],selection=p.selectionLabel;
   if(selection!==undefined&&!rows.length)lead.push(selection.length<=600?t('Selected charge: ','選定費用：')+literal(selection):t('One exact charge label was selected; its long text is omitted from this display.','已選定一個精確費用名稱；名稱過長，未在此顯示。'));
   if(state==='failed')lead.push(t('The selected fee records could not be read, so the balance is unknown. This is not a zero balance or a successful empty result.','無法讀取選定費用，因此餘額未知。這不代表餘額為零，也不是成功讀取後沒有紀錄。'));
@@ -105,10 +107,10 @@ export function formatSelectedChargeEvidence(source,options={}){
     }
     const scopeNote=t('This answer covers only the selected local charge evidence, not every financial obligation.','此回答僅涵蓋選定站內費用證據，並非所有財務義務。');
     const modes=[...new Set(shown.map(row=>row.sourceMode))];
-    const brief=shown.length?t('Saved local amounts only; ','僅為站內儲存金額；')+(modes.includes('sample')?t('sample rows are demonstration data. ','sample 為示範資料。'):'')
-      +(modes.includes('verified')?t('“Verified” is a saved source label. ','verified 是儲存來源標記。'):'')+t('These do not confirm university balances or bank transfers.','這些資料不確認校方餘額或銀行匯款。'):'';
-    const answer=[...lead,...lines,...notes,brief,`[${t('Open saved fee records','開啟已儲存費用紀錄')}](${path})`].filter(Boolean).join('\n\n');
-    const viewNote=[provenance,counts,scopeNote,...notes].filter(Boolean).join(' ');
+    const provenance=[modes.includes('sample')?t('Sample fee records.','範例費用紀錄。'):'',
+      modes.includes('verified')?t('“Verified” is a saved source label.','verified 是儲存來源標記。'):''].filter(Boolean).join(' ');
+    const answer=[...lead,...lines,...notes,provenance,authority,`[${t('Open saved fee records','開啟已儲存費用紀錄')}](${path})`].filter(Boolean).join('\n\n');
+    const viewNote=[counts,scopeNote].filter(Boolean).join(' ');
     return {status:'answered',answer,citations:[citation],sourceIds:[sourceId],complete,
       views:state==='records'&&rows.length?[{id:'charges',title,url:path,columns,rows:shown.map(row=>[row.label,row.currency,decimal(row.due),decimal(row.paid),decimal(row.remaining),row.sourceMode]),
         total:rows.length,checkedAt:p.checkedAt,note:viewNote}]:[],

@@ -139,8 +139,9 @@ export function accountRecordViews(snapshot,tools,context={}){
   const priority=tools.filter(key=>Object.hasOwn(nativePredicates,key)&&(!context.question||nativePredicates[key](context.question,route,context.history||[])));
   return [...new Set([...priority,...tools])].filter(key=>Object.hasOwn(definitions,key)).slice(0,3).map(key=>{
     const [title,url,columns,records,values,scope,coverage]=definitions[key],native=Object.hasOwn(nativePredicates,key);
+    const shown=Math.min(12,records.length);
+    const count=native?`${shown}/${records.length} rows shown, history completeness unknown.`:`Showing ${shown} of ${records.length} selected rows.`;
     return {id:key,title,url,columns,rows:records.slice(0,12).map(row=>values(row).map(native?nativeClean:clean)),total:records.length,checkedAt:snapshot.checkedAt,
-      note:native?`Own loaded snapshot: ${Math.min(12,records.length)}/${records.length} rows shown. local_demo; no university sync; history completeness unknown. ${scope} Compact fields; long cells abbreviated.${coverage.projectionPartial?' Some source values were suppressed.':''}`
-        :`Retrieved stu.best records. “sample” means demonstration data. This is not a live university sync. Showing ${Math.min(12,records.length)} of ${records.length} selected rows. ${scope||'Collections may be limited as described in the answer.'}`};
+      note:[count,scope,native?'Sample records with long cells abbreviated.':'',coverage?.projectionPartial?'Some source values were suppressed.':''].filter(Boolean).join(' ')};
   });
 }

@@ -60,7 +60,10 @@ test('native grade report formats literal item and independent saved total cells
   assert.equal(answerLinksSupported(out.answer,[source.evidence]),true);
   assert.match(out.answer,/Numeric score metadata: ` 20 `/);assert.match(out.answer,/Displayed percentage text: ` not derived `/);
   assert.match(out.answer,/Displayed grade text: ` \(blank\) `/);assert.match(out.answer,/Displayed rank text: ` \(blank\) `/);
-  assert.match(out.answer,/no declared source mode/);assert.match(out.answer,/not an official transcript/);
+  assert.match(out.answer,/no declared source mode/);assert.match(out.answer,/Saved local_demo Moodle grade report/);
+  assert.doesNotMatch(JSON.stringify(out),/an official transcript|university sync/iu);
+  const official=format([source],{question:'Is this the official Moodle transcript?'});
+  assert.match(official.answer,/official transcript or live Moodle grade requires separate verification/iu);
   assert.doesNotMatch(out.answer,/20%|you passed|GPA|\/assignment\//);assert.doesNotMatch(JSON.stringify(out),new RegExp(owner+'|'+id(900)+'|'+id(901)+'|SECRET-CALLER'));
 });
 
@@ -253,7 +256,7 @@ test('pure formatter is compatible with all three actual reader envelopes and do
   const module=await readFile(new URL('../../server/supplementalAccountAnswers.js',import.meta.url),'utf8');
   assert.doesNotMatch(module,/\b(?:fetch|loadSyllabusSearch|loadEnrollmentCertificate|createClient)\s*\(/m);
   assert.deepEqual([...module.matchAll(/^import .+ from '([^']+)';$/gm)].map(match=>match[1]),[
-    './internshipEvidenceContract.js','./internshipAssistantPlan.js','./internshipEvidenceIntent.js',
+    './internshipEvidenceContract.js','./accountAnswerLanguage.js','./internshipAssistantPlan.js','./internshipEvidenceIntent.js',
     './dtmAssignmentEvidenceContract.js','./studentLeaveEvidenceIntent.js','./aidPaymentsContract.js','./feeRemissionContract.js','./healthExaminationContract.js','./tutorEvaluationContract.js',
     './teachingFeedbackContract.js','./teachingFeedbackEvidenceIntent.js','./teachingFeedbackAnswerEvidence.js',
   ]);

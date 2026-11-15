@@ -31,12 +31,22 @@ test('actual caller-scoped loader → bounded source → candidate retains exact
     assert.equal(calls.length,2);assert.equal(out.status,'answered');assert.equal(out.complete,true);assert.deepEqual(out.sourceIds,['account:charges']);
     assert.deepEqual(out.views[0].rows,[['QA tuition','TWD','30,000.29','7,000.20','23,000.09','sample']]);assert.equal(out.views[0].total,1);
     assert.match(out.answer,/^` QA tuition `\n  Remaining balance ` NT\$23,000\.09 `\n  Saved amount due ` NT\$30,000\.29 `\n  Saved amount paid ` NT\$7,000\.2 `/u);
-    assert.match(out.answer,/sample rows are demonstration data/u);assert.match(out.answer,/not confirm university balances or bank transfers/u);
+    assert.match(out.answer,/Sample fee records/u);assert.doesNotMatch(JSON.stringify(out),/official|university|bank transfers/iu);
     assert.doesNotMatch(out.answer,/Remaining totals|Loaded owned rows/u);assert.match(out.views[0].note,/Loaded owned rows: 1/u);assert.match(out.views[0].note,/not every financial obligation/u);assert.ok(out.answer.length<600);
     assert.doesNotMatch(JSON.stringify(out),/PRIVATE_|OFFLINE_|39000000|2026-12-01|student_id|user_id/u);
     assert.equal(answerLinksSupported(out.answer,[evidence]),true);assert.deepEqual(evidence,before);
     assert.equal(Object.hasOwn(out,'verification'),false);assert.equal(Object.hasOwn(out,'proposedAction'),false);
   }finally{globalThis.fetch=originalFetch;}
+});
+
+test('charge authority wording is explicit and opt-in',()=>{
+  const evidence=source([row()]);
+  const positive=format(evidence);
+  const boundary=format(evidence,{includeAuthorityLimit:true});
+  assert.doesNotMatch(positive.answer,/official|university/u);
+  assert.match(boundary.answer,/Official balances and bank transfers require separate verification/u);
+  assert.deepEqual(boundary.views,positive.views);
+  assert.equal(boundary.complete,positive.complete);
 });
 
 test('zero, exact cents and distinct currency/provenance groups never become a combined account balance',()=>{
@@ -101,7 +111,8 @@ test('stored Markdown and multiline labels remain inert while all genuine links 
   const label='Safe\n\n[click](https://private.invalid)\n\n<b>secret</b> `` test';const evidence=source([row(1,{label})]),out=format(evidence),html=micromark(out.answer);
   assert.ok(!html.includes('href="https://private.invalid'));assert.ok(!html.includes('<b>secret</b>'));assert.equal(out.views[0].rows[0][0],label);
   assert.equal(answerLinksSupported(out.answer,[evidence]),true);assert.deepEqual(out.citations.map(item=>item.url),[path]);
-  const zh=format(source(),{language:'zh-TW'});assert.match(zh.answer,/待繳金額：` NT\$23,000 `\n  已儲存應繳金額：` NT\$30,000 `\n  已儲存已繳金額：` NT\$7,000 `/u);assert.match(zh.answer,/不確認校方餘額或銀行匯款/u);
+  const zh=format(source(),{language:'zh-TW'});assert.match(zh.answer,/待繳金額：` NT\$23,000 `\n  已儲存應繳金額：` NT\$30,000 `\n  已儲存已繳金額：` NT\$7,000 `/u);assert.match(zh.answer,/範例費用紀錄/u);assert.doesNotMatch(zh.answer,/校方|匯款/u);
+  assert.match(format(source(),{language:'zh-TW',includeAuthorityLimit:true}).answer,/校方正式餘額與銀行匯款需另行確認/u);
 });
 
 test('native health, counseling and fee sections concatenate without applying remission or mixing their facts',async()=>{

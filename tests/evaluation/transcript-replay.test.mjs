@@ -7,8 +7,8 @@ const plan=()=>buildTranscriptReplayPlan({runId:'17000000-0000-4000-8000-0000000
 const clone=structuredClone;
 function memoryStore(){let saved=null;const writes=[];return {writes,read:async()=>clone(saved),write:async({session,expectedRevision})=>{
   assert.equal(saved?.revision??0,expectedRevision);saved=clone(session);writes.push(clone(saved));},replace:value=>{saved=clone(value);}};}
-const current='Current subjects: SAMP101 Campus Orientation; SAMP102 Digital Learning Basics; SAMP103 Student Services Practice.\n\nYear level: 3.\n\nThese are sample demonstration records, not a live university sync.';
-const overview='Program: Sample General Studies. Year level: 3.\n\nCurrent School Affairs subjects: SAMP101 Campus Orientation; SAMP102 Digital Learning Basics; SAMP103 Student Services Practice.\n\nSeparately saved Moodle course: DTM301 Learning Research. These sample demonstration and personal records are not a live university sync.\n\nYou can ask about your saved assignments or current subjects next.';
+const current='Current School Affairs subjects (sample): SAMP101 Campus Orientation; SAMP102 Digital Learning Basics; SAMP103 Student Services Practice.\n\nYear level: 3 (sample).';
+const overview='Program: Sample General Studies. Year level: 3 (sample).\n\nCurrent School Affairs subjects (sample): SAMP101 Campus Orientation; SAMP102 Digital Learning Basics; SAMP103 Student Services Practice.\n\nSaved Moodle course: DTM301 Learning Research.\n\nYou can ask about your saved assignments or current subjects next.';
 const coaching='Start with one example you can truthfully explain, and describe your contribution.\n\nFill-in template; replace brackets only with true details: “In [project], I used [tool] to build [result].”\n\nWhich project, if any, would you like to describe?';
 const answers=[overview,current,'Saved local stu.best sample tuition charge.\nRemaining balance: NT$23,000.\nCharged: NT$28,000.\nPaid: NT$5,000.',coaching];
 function envelope(testCase,answer,index){return {statusCode:200,execution:'recorded',sourceRevision:'a'.repeat(40),fixtureKey:testCase.fixtureKey,body:{status:'answered',answer,
@@ -214,6 +214,9 @@ test(rejectedCoaching?'exact four-turn conversation uses safe interview practice
       return {statusCode,body,events:body?.activity??[],sourceRevision:p.sourceRevision,fixtureKey:testCase.fixtureKey,execution:'deterministic'};
     }});
     assert.equal(run.report.complete,true);assert.equal(workspaceReads,0);assert.ok(run.session.results.every(row=>row.envelope.body.verification?.status==='verified'));
+    for(const {envelope:{body}} of run.session.results)
+      assert.doesNotMatch(JSON.stringify([body.answer,body.views,body.activity]),/not (?:an? )?(?:live|official|verified) university|no university sync|並非校方/iu);
+    for(const {envelope:{body}} of run.session.results.slice(0,3))assert.match(body.answer,/sample/u);
     const first=reviewEvidence.find(row=>row.turn===0);assert.deepEqual(first.ids,['account-scope','account:profile','account:courses','account:dtm','account:assignments','account:charges','account:tasks','account:requests']);
     for(const [collection,total]of Object.entries({assignments:3,charges:2,tasks:2,requests:1})){
       const source=JSON.parse(first.sources.find(row=>row.id==='account:'+collection).content);
@@ -228,7 +231,8 @@ test(rejectedCoaching?'exact four-turn conversation uses safe interview practice
     assert.deepEqual(reviewEvidence.find(row=>row.turn===1).ids,['account-scope','account:profile','account:courses']);
     assert.deepEqual(reviewEvidence.find(row=>row.turn===2).ids,['account-scope','account:charges']);assert.deepEqual(reviewEvidence.find(row=>row.turn===3).ids,[]);
     assert.deepEqual(providerHistory.find(row=>row.turn===3).history,[],'Explicit interview coaching needs no previous account replies at the model provider.');assert.equal(transport.some(row=>row.turn===3),false);
-    assert.equal(run.report.results[1].passed,true);assert.equal(run.report.results[2].passed,true);assert.equal(run.report.results[3].independentReview.status,'pending');
+    for(const index of [1,2])assert.equal(run.report.results[index].passed,true,JSON.stringify(run.report.results[index].failures));
+    assert.equal(run.report.results[3].independentReview.status,'pending');
     const coaching=run.session.results[3].envelope.body;
     assert.equal(coaching.grounding.source,'general-guidance');
     assert.equal(coaching.grounding.webSearched,false);

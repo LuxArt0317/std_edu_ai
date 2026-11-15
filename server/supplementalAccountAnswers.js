@@ -1,4 +1,5 @@
 import {parseInternshipEvidence} from './internshipEvidenceContract.js';
+import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {internshipEvidenceUrls} from './internshipAssistantPlan.js';
 import {internshipEvidencePath} from './internshipEvidenceIntent.js';
 import {parseDtmAssignmentEvidence} from './dtmAssignmentEvidenceContract.js';
@@ -1184,8 +1185,8 @@ function sectionFor(parsed,question,zh){
   }
   if(id==='account:dtmAssignment'){
     section.usable=true;section.complete=p.complete;section.limited=p.omittedFields.length>0;
-    section.lead.push(t('These are saved local assignment fields, not an official university record. Tracker status does not prove a committed file or a reviewed revision. No edit, upload or submission was performed.',
-      '以下為站內儲存作業欄位，並非校方正式紀錄。追蹤狀態不代表已提交檔案或已評閱版本；未執行修改、上傳或繳交。'));
+    if(asksAboutOfficialRecords(question))section.lead.push(t('I can show the saved assignment fields. Official submission or review requires separate verification.',
+      '此處可以查看已儲存的作業欄位，校方正式繳交或評閱需另行確認。'));
     if(envelope.readState==='unavailable'){
       section.lead.push(t('The assignment lookup is unavailable. The saved instructions and deadline remain unknown.',
         '作業查詢目前無法使用，已儲存說明與截止時間仍未知。'));return section;
@@ -1196,6 +1197,8 @@ function sectionFor(parsed,question,zh){
     if(own(record,'title'))group(t('Assignment','作業'),record.title);
     for(const [key,en,cn]of [['details','Saved instructions','儲存說明'],['dueAt','Saved deadline','儲存截止時間'],['trackerStatus','Personal tracker status','個人追蹤狀態'],['trackerSubmittedAt','Personal tracker submitted time','個人追蹤繳交時間']])
       if(own(record,key))item(t(en,cn),record[key],false,key==='details'?5000:360);
+    if(own(record,'trackerStatus')||own(record,'trackerSubmittedAt'))section.lead.push(t('Tracker status does not prove a committed file or a reviewed revision.',
+      '追蹤欄位顯示已儲存的狀態；檔案送達與評閱需另外確認。'));
     item(t('Record source','紀錄來源'),record.sourceMode);
     if(own(record,'dueAt'))section.lead.push(record.dueAt===null?t('No deadline is recorded here; submission permission and lateness are unknown.','此處未記錄截止時間，能否繳交與是否遲交仍未知。')
       :t('The saved deadline retains its recorded time-zone offset. No lateness was calculated.','儲存截止時間保留原時區偏移，未計算是否遲交。'));
@@ -1204,8 +1207,10 @@ function sectionFor(parsed,question,zh){
     return section;
   }
   if(id==='account:dtmGradeReport'){
-    section.lead.push(t('These are literal local_demo Moodle grade-report cells, not an official transcript, a live university sync, grade-tracker entries or file-review results. No grades, totals, percentages, weights, ranks or passing status are calculated.',
-      '以下為 local_demo 站內 Moodle 成績報告原文，並非正式成績單、即時校方同步、個人成績追蹤或檔案評閱結果；不計算成績、總分、百分比、權重、排名或及格狀態。'));
+    section.lead.push(t('Saved local_demo Moodle grade report. Values are shown as recorded.',
+      '已儲存的 local_demo Moodle 範例成績報告，欄位照原文顯示。'));
+    if(asksAboutOfficialRecords(question))section.lead.push(t('An official transcript or live Moodle grade requires separate verification.',
+      '正式成績單或 Moodle 即時成績需另行確認。'));
     if(evidence.url==='/dtm/grades')section.lead.push(`[${t('Open saved grade-report overview','開啟已儲存成績報告綜覽')}](/dtm/grades)`);
     section.complete&&=p.complete&&!p.requiresClarification;section.limited=p.excerpted;
     if(envelope.readState==='unavailable'){
@@ -1230,7 +1235,7 @@ function sectionFor(parsed,question,zh){
       const choices=p.requiresClarification;
       view(choices?[t('Course','課程'),t('Code','代碼'),t('Literal term','學期原文')]
         :[t('Course','課程'),t('Code','代碼'),t('Literal term','學期原文'),t('Saved total grade text','儲存總成績文字')],p.courses.length,
-        t('Included saved course metadata only; neither enrollment nor an official transcript is inferred.','僅顯示納入的站內課程資料，不推定選課或正式成績單。'));
+        t('Saved course metadata and any recorded total.','已儲存的課程資料及總分。'));
       for(const course of p.courses){
         group(t('Saved course','已儲存課程'),course.title);item(t('Course code','課程代碼'),course.code);item(t('Literal term label','學期標籤原文'),course.term);
         if(!choices)item(t('Saved total grade text','儲存總成績文字'),course.gradeText);
