@@ -7,3 +7,4 @@ export function clearanceNavigationView(question:string):'apply'|'status'|null;
 export function withoutExcludedClearanceClause(question:string):string;
 export function isExactClearanceNextClassQuestion(question:string):boolean;
 export function clearanceTimetableQuestion(question:string,pageContext:{clearanceAndNextClass:boolean;otherQuestion:string}):string|null;
+export function exactClearanceVerification(question:string,route?:string,history?:Array<{role:string;content:string}>):{selection:ClearanceEvidenceSelection;refusal:'restricted_view'|'unsupported_operation'|null}|null;
