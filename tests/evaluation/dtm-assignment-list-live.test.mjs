@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {buildDtmAssignmentListFixture,readDtmAssignmentListFixture,dtmAssignmentListDispatch,
   bindDtmAssignmentListReadback,dtmAssignmentListFamilies,dtmAssignmentListLiveCases,assertDtmAssignmentListLiveCases,
-  dtmAssignmentListExpectedReadCounts,
+  dtmAssignmentListExpectedReadCounts,initializeDtmAssignmentListStudent,
   verifiedDtmAssignmentListReadback} from './dtm-assignment-list-live.mjs';
 import {dtmAssignmentListCases} from './dtm-assignment-list-cases.mjs';
 import {nativeDtmSetupRequired} from './dtm-native-runner.mjs';
@@ -12,7 +12,7 @@ import {options} from './run.mjs';
 const users=['A','B'].map(role=>({id:randomUUID(),studentId:randomUUID(),token:'synthetic-'+role}));
 const plan=buildDtmAssignmentListFixture(users);
 const readResponse=async response=>response.json();
-function transport({leak=false,alter=false,fixture=plan}={}){
+function transport({leak=false,alter=false,extra=false,fixture=plan}={}){
   return async (url,{method,redirect,headers})=>{
     assert.equal(url.origin,'https://xiftudmvxphxcjtmfmib.supabase.co');
     assert.equal(method,'GET');
@@ -22,17 +22,49 @@ function transport({leak=false,alter=false,fixture=plan}={}){
     const user=users.find(owner=>headers.Authorization==='Bearer '+owner.token);
     assert.ok(user);
     const courseRead=url.pathname.endsWith('/dtm_courses');
-    const key=courseRead?'id':'dtm_course_id';
-    assert.equal(url.searchParams.get(key),'in.('+fixture.courses.map(row=>row.id).join(',')+')');
-    assert.equal(url.searchParams.has('user_id'),false);
-    assert.equal(url.searchParams.has('student_id'),false);
+    const key=courseRead?'user_id':'student_id';
+    const ownerKey=courseRead?'id':'studentId';
+    assert.equal(url.searchParams.get(key),'in.('+users.map(row=>row[ownerKey]).join(',')+')');
+    assert.equal(url.searchParams.get('dtm_course_id'),courseRead?null:'not.is.null');
     const all=courseRead?fixture.courses:fixture.assignments;
     const rows=structuredClone(all.filter(row=>leak||(courseRead?row.user_id===user.id:row.student_id===user.studentId)));
     if(alter&&!courseRead)rows[0].due_at='2026-11-15T10:00:00+00:00';
+    if(extra&&!courseRead)rows.push({...rows[0],id:randomUUID(),dtm_course_id:randomUUID(),title:'Unplanned sample assignment'});
     return Response.json(rows.reverse());
   };
 }
 const readOptions={publishable:'test-publishable',readResponse};
+
+test('assignment fixtures initialize only School Affairs and bind a single owned student',async()=>{
+  const user=users[0];
+  const request=({foreign=false,wrongProfile=false}={})=>{
+    const paths=[];
+    const read=initializeDtmAssignmentListStudent(user,{...readOptions,fetchImpl:async (url,init)=>{
+      assert.equal(url.origin,'https://xiftudmvxphxcjtmfmib.supabase.co');
+      assert.equal(init.redirect,'error');
+      assert.equal(init.headers.Authorization,'Bearer '+user.token);
+      paths.push(url.pathname);
+      if(paths.length===1){
+        assert.equal(init.method,'POST');assert.equal(init.body,'{}');
+        assert.equal(url.pathname,'/rest/v1/rpc/affairs_initialize_account');
+        return Response.json({user_id:wrongProfile?users[1].id:user.id,role:'student'});
+      }
+      assert.equal(init.method,'GET');
+      assert.equal(url.pathname,'/rest/v1/affairs_students');
+      assert.equal(url.searchParams.get('user_id'),'eq.'+user.id);
+      return Response.json([{user_id:foreign?users[1].id:user.id,id:user.studentId}]);
+    }});
+    return {read,paths};
+  };
+  const accepted=request();
+  assert.equal(await accepted.read,user.studentId);
+  assert.deepEqual(accepted.paths,['/rest/v1/rpc/affairs_initialize_account','/rest/v1/affairs_students']);
+  const wrongProfile=request({wrongProfile:true});
+  await assert.rejects(wrongProfile.read,/student profile/);
+  const foreign=request({foreign:true});
+  await assert.rejects(foreign.read,/exactly one disposable student/);
+});
+
 
 test('only the exact fixed-clock Moodle packet can request protected Preview fixtures',()=>{
   const cases=dtmAssignmentListLiveCases();
@@ -69,6 +101,7 @@ test('paired independent readback requires owner isolation and literal persisted
   assert.notEqual(observed[0].sha256,observed[1].sha256);
   await assert.rejects(readDtmAssignmentListFixture(plan,users,{...readOptions,fetchImpl:transport({leak:true})}),/owner boundary/);
   await assert.rejects(readDtmAssignmentListFixture(plan,users,{...readOptions,fetchImpl:transport({alter:true})}),/different rows/);
+  await assert.rejects(readDtmAssignmentListFixture(plan,users,{...readOptions,fetchImpl:transport({extra:true})}),/different rows/);
   const duplicated=structuredClone(users);
   duplicated[1].token=duplicated[0].token;
   await assert.rejects(readDtmAssignmentListFixture(plan,duplicated,{...readOptions,fetchImpl:transport()}),/matching caller/);
