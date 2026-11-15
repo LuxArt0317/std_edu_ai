@@ -65,15 +65,16 @@ test('each caller reads its own four exact tables and gets empty crossed results
 test('protected result requires the independent factual grade, stable readbacks, exact request and an academic-only scope',()=>{
   const testCase=academicGradesPreviewCases()[0],request=academicGradesPreviewRequest(testCase);
   const observed={rows:'a'.repeat(64),callers:{sha256:'b'.repeat(64),ownReads:8,crossedReads:8}};
-  const envelope={statusCode:200,fixtureKey:testCase.fixtureKey,execution:'live-model',requestIndex:1,
+  const envelope={statusCode:200,fixtureKey:testCase.fixtureKey,execution:'live-native',requestIndex:1,
     requestSha256:request.sha256,correlationId:identities[0].id,
-    events:[{kind:'account-read:academicGrades:1',status:'complete'}],
+    events:[{kind:'account-read:academicGrades:1',status:'complete'},{kind:'academic-grades-evidence-check',status:'complete'}],
     body:{status:'answered',answer:'Saved local transcript grade. Database Design: 87.',verification:{status:'verified',attempts:1},
       citations:[{url:testCase.route}]}};
   const grade=(result=envelope,after=observed)=>gradeAcademicGradesPreview(testCase,result,{before:observed,after});
   assert.equal(grade().passed,true,JSON.stringify(grade().failedChecks));
   assert.ok(grade({...envelope,body:{...envelope.body,answer:'Saved local transcript grade. Database Design: 84.'}}).failedChecks.includes('fact.0'));
   assert.ok(grade({...envelope,requestSha256:'c'.repeat(64)}).failedChecks.includes('academic-preview.dispatch'));
+  assert.ok(grade({...envelope,events:envelope.events.slice(0,1)}).failedChecks.includes('academic-preview.scope'));
   assert.ok(grade({...envelope,events:[...envelope.events,{kind:'account-read:charges:1',status:'complete'}]}).failedChecks.includes('academic-preview.scope'));
   assert.ok(grade(envelope,{...observed,rows:'c'.repeat(64)}).failedChecks.includes('academic-preview.source'));
 });

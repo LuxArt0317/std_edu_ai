@@ -1517,7 +1517,7 @@ export async function runAcademicGradesPreview({origin,sourceRevision,previewTok
       const correlationId=response.headers.get('x-assistant-request-id');
       const after=await observe();
       const deniedMarkers=[...plan.ownerIds,...plan.profiles.map(row=>row.email),...s.users.map(user=>user.token)];
-      const graded=gradeAcademicGradesPreview(testCase,{...parsed,statusCode:response.status,execution:'live-model',fixtureKey:testCase.fixtureKey,
+      const graded=gradeAcademicGradesPreview(testCase,{...parsed,statusCode:response.status,execution:'live-native',fixtureKey:testCase.fixtureKey,
         correlationId,requestIndex:ticket.requestIndex,requestSha256:request.sha256},{before,after,deniedMarkers});
       if(seen.has(correlationId)){graded.passed=false;graded.failedChecks.push('academic-preview.duplicate-request');}
       seen.add(correlationId);results.push({...graded,requestIndex:ticket.requestIndex});

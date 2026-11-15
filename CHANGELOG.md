@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify complete standalone Academic Services answers directly from their selected saved records. Match the answer, table and link without calling a model, and check unsupported grade views against their capability limits. [#100]
+
 - Verify exact graduation-clearance status and note answers from saved rows without a model call. Retry a transient read and refuse chat writes and manager access before querying records. [#100]
 
 - Read standalone Academic Services grades without initializing School Affairs or Moodle records. Add a protected evaluation of the 11 frozen grade questions with both caller scopes and exact cleanup. [#100]

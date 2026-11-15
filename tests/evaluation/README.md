@@ -14,7 +14,7 @@ System-wide question bank, independent grading, discovered coverage and per-case
 
 `academic-grades-handler.test.mjs` replays 11 frozen Academic Services questions through the streaming handler and native row validator with controlled transport. It checks compact semester selectors, named courses, saved summaries and rankings, null versus zero, English requirement metadata, and records owned by another student. Standalone requests read only the tables for the selected view. Unsupported grade views use the capability description without a database read.
 
-The protected Academic Services operator binds those 11 questions to two disposable callers. It checks the four native grade tables against the journaled rows and verifies both owned and crossed JWT scopes before and after every pinned answer. The null and zero case uses the second caller. Cleanup proves the reserved rows and identities are absent. The operator checks that neither fixture acquires a School Affairs student record or a Moodle course.
+The protected Academic Services operator binds those 11 questions to two disposable callers. It checks the four native grade tables against the journaled rows and verifies both owned and crossed JWT scopes before and after every pinned answer. The operator requires native verification that rebuilds the answer, table and citation from complete caller-owned data for the selected term and view. Ambiguous or excerpted evidence retains the general verification path. The null and zero case uses the second caller. Cleanup proves the reserved rows and identities are absent. The operator checks that neither fixture acquires a School Affairs student record or a Moodle course.
 
 ```sh
 node tests/evaluation/run-academic-grades-preview.mjs --preflight

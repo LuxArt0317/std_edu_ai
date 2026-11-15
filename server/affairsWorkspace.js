@@ -219,7 +219,7 @@ export async function loadOwnAcademicGrades(account,view,{deadline=Date.now()+12
     throw new AffairsWorkspaceError('Invalid academic grades inquiry.',400);
   const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
   const academicGrades=await loadNativeGradeView(userId,view,(table,query)=>readAccountRows(scoped,table,query));
-  return {checkedAt:new Date().toISOString(),profile:{userId},academicGrades,academicGradesOnly:true};
+  return {checkedAt:new Date().toISOString(),profile:{userId},academicGrades,academicGradesOnly:true,academicGradesView:view};
 }
 
 /** Narrow read for explicitly selected private notes. A capped, inconsistent
