@@ -3,6 +3,7 @@ import {test} from 'node:test';
 import affairsData from '../../api/affairs-data.ts';
 import affairsManage from '../../api/affairs-manage.ts';
 import {readChargePaymentHistory} from '../../server/chargePaymentHistory.js';
+import {chargePaymentHistoryAdminScope} from '../../server/chargePaymentContract.js';
 
 const origin = 'https://xiftudmvxphxcjtmfmib.supabase.co';
 const user = '7c390000-0000-4000-8000-000000000001';
@@ -27,6 +28,8 @@ const {chargeLabel: _label, chargeCategory: _category, ...paymentEntry} = paymen
 const savedReceipt = {...paymentEntry,studentId:student,amountPaid:'50.25',legacyAmountPaid:'10.00'};
 const reverseReceipt = {...savedReceipt,id:reversal,entryKind:'reversal',paidOn:reversalRow.paidOn,reversesPaymentId:payment,amountPaid:'10.00'};
 const history = (rows:unknown[] = [],total = rows.length) => ({userId:user,studentRecordFound:true,rows,total,hasUndatedPaidAmount:true});
+const adminHistory=(rows:unknown[] = [],total=rows.length)=>({studentId:student,chargeId:charge,rows,total,hasUndatedPaidAmount:true});
+const adminQuery={scope:chargePaymentHistoryAdminScope,student_id:student,charge_id:charge};
 type Query = Record<string,string|string[]|undefined>;
 
 async function invoke(handler = affairsData,{method = 'GET',query,body,bearer = token}:{method?:string;query?:Query;body?:unknown;bearer?:string} = {}) {
@@ -187,4 +190,63 @@ test('the shared own reader rejects an expired deadline before issuing a request
       {status:503});
     assert.deepEqual(calls,[]);
   },()=>assert.fail('The deadline is already expired'));
+});
+
+test('the staff GET binds the exact student and charge and permits an out-of-window reversal flag',async()=>{
+  const selected=adminHistory([{...paymentRow,canReverse:false}],26);
+  await simulate(async calls=>{
+    const result=await invoke(affairsData,{query:{...adminQuery,from:paidOn,through:paidOn,page:'2'}});
+    assert.equal(result.code,200);
+    assert.deepEqual(result.body,selected);
+    assert.deepEqual(calls,[{rpc:'affairs_read_charge_payment_history_admin',body:{
+      p_student_id:student,p_charge_id:charge,p_from:paidOn,p_through:paidOn,p_offset:25,p_limit:25,
+    }}]);
+  },()=>Response.json(selected));
+});
+
+test('staff payment history rejects missing, malformed, duplicate and alternate scope selectors',async()=>{
+  await simulate(async calls=>{
+    for (const query of [{...adminQuery,student_id:undefined},{...adminQuery,charge_id:undefined},{...adminQuery,user_id:user},
+      {...adminQuery,student_id:[student,other]},{...adminQuery,charge_id:[charge,other]},{...adminQuery,page:'202'},
+      {...adminQuery,from:'2026-10-02',through:'2026-10-01'},{...adminQuery,scope:[scope,chargePaymentHistoryAdminScope]},
+      {...adminQuery,scope:[chargePaymentHistoryAdminScope,chargePaymentHistoryAdminScope]},{...adminQuery,resource:'conversations'}]) {
+      assert.equal((await invoke(affairsData,{query})).code,400,JSON.stringify(query));
+    }
+    assert.equal((await invoke(affairsData,{query:adminQuery,method:'POST'})).code,405);
+    assert.equal((await invoke(affairsData,{query:adminQuery,bearer:''})).code,401);
+    assert.deepEqual(calls,[]);
+  },()=>assert.fail('Malformed or anonymous requests must stop before staff readback'));
+});
+
+test('staff payment history keeps verified database denial and unavailable charge responses private',async()=>{
+  let status=403;
+  await simulate(async calls=>{
+    for(status of [403,404,503]) {
+      const result=await invoke(affairsData,{query:adminQuery});
+      assert.equal(result.code,status);
+      assert.doesNotMatch(JSON.stringify(result.body),/private details/u);
+    }
+    assert.deepEqual(calls.map(({rpc})=>rpc),Array(3).fill('affairs_read_charge_payment_history_admin'));
+  },()=>Response.json({message:'private details'},{status}));
+});
+
+test('staff receipt selection rejects foreign identities and conflicting reversal flags',async()=>{
+  const original={...paymentRow,canReverse:false};
+  const correction={...reversalRow,canReverse:false};
+  const valid=adminHistory([correction,original]);
+  const responses:unknown[]=[valid,adminHistory([{...paymentRow,canReverse:true}]),{...valid,studentId:other},
+    {...valid,chargeId:other},{...valid,userId:user},{...valid,total:4},adminHistory([{...original,chargeId:other}]),
+    adminHistory([{...correction,canReverse:true},original]),adminHistory([correction,{...original,canReverse:true}]),
+    adminHistory([paymentRow]),adminHistory([{...original,canReverse:'false'}]),adminHistory([{...original,requestId}])];
+  let index=0;
+  await simulate(async()=>{
+    for(;index<responses.length;index++){
+      const result=await invoke(affairsData,{query:adminQuery});
+      if(index<2){assert.equal(result.code,200);assert.deepEqual(result.body,responses[index]);}
+      else {
+        assert.equal(result.code,503,`invalid staff response ${index}`);
+        assert.deepEqual(result.body,{error:'The selected payment history response could not be verified.'});
+      }
+    }
+  },()=>Response.json(responses[index]));
 });

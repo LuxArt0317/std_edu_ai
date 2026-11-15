@@ -1,4 +1,5 @@
 export const chargePaymentHistoryScope = 'fee-payment-history';
+export const chargePaymentHistoryAdminScope = 'fee-payment-history-admin';
 export const chargePaymentHistoryPath = '/school-affairs/services/39-1/payment-history';
 export const chargePaymentPageSize = 25;
 export const chargePaymentMaxPage = 201;
@@ -38,9 +39,28 @@ export function chargePaymentSelection(value = {}) {
 export function chargePaymentQuery(query) {
   if (!plain(query) || query.scope !== chargePaymentHistoryScope
     || Object.keys(query).some(key => !['scope', 'from', 'through', 'charge_id', 'page'].includes(key))) return null;
+  return querySelection(query);
+}
+
+function querySelection(query) {
   const {from, through, charge_id: chargeId, page} = query;
   if (page !== undefined && (typeof page !== 'string' || !/^[1-9]\d{0,2}$/u.test(page))) return null;
   return chargePaymentSelection({from, through, chargeId, page: page === undefined ? 1 : Number(page)});
+}
+
+export function chargePaymentAdminSelection(value) {
+  if (!plain(value)) return null;
+  const {studentId, ...filter} = value;
+  if (!uuid(studentId) || !uuid(filter.chargeId)) return null;
+  const selection = chargePaymentSelection(filter);
+  return selection && {...selection, studentId};
+}
+
+export function chargePaymentAdminQuery(query) {
+  if (!plain(query) || query.scope !== chargePaymentHistoryAdminScope
+    || Object.keys(query).some(key => !['scope', 'student_id', 'from', 'through', 'charge_id', 'page'].includes(key))) return null;
+  const selection = querySelection(query);
+  return selection && chargePaymentAdminSelection({...selection, studentId: query.student_id});
 }
 
 function validEntry(value) {
@@ -55,14 +75,32 @@ export function parseChargePaymentHistory(value, userId, filter = {}) {
   const selection = chargePaymentSelection(filter);
   if (!selection || !exact(value, ['userId', 'studentRecordFound', 'rows', 'total', 'hasUndatedPaidAmount']) || !uuid(userId)
     || value.userId !== userId || typeof value.studentRecordFound !== 'boolean' || typeof value.hasUndatedPaidAmount !== 'boolean'
-    || !Number.isSafeInteger(value.total) || value.total < 0 || !Array.isArray(value.rows)
     || !value.studentRecordFound && (value.hasUndatedPaidAmount || value.total !== 0)) invalid();
+  validateHistoryRows(value, selection, invalid);
+  return value;
+}
+
+export function parseChargePaymentAdminHistory(value, filter) {
+  const invalid = () => {throw new TypeError('Invalid administrator payment history.');};
+  const selection = chargePaymentAdminSelection(filter);
+  if (!selection || !exact(value, ['studentId', 'chargeId', 'rows', 'total', 'hasUndatedPaidAmount'])
+    || value.studentId !== selection.studentId || value.chargeId !== selection.chargeId
+    || typeof value.hasUndatedPaidAmount !== 'boolean') invalid();
+  validateHistoryRows(value, selection, invalid, true);
+  return value;
+}
+
+function validateHistoryRows(value, selection, invalid, admin = false) {
+  if (!Number.isSafeInteger(value.total) || value.total < 0 || !Array.isArray(value.rows)) invalid();
   const {from, through, chargeId, page} = selection;
   if (value.rows.length !== Math.min(chargePaymentPageSize, Math.max(0, value.total - (page - 1) * chargePaymentPageSize))) invalid();
+  const keys = [...entryKeys, 'chargeLabel', 'chargeCategory'];
+  if (admin) keys.push('canReverse');
   const byId = new Map(), reversals = new Set();
   let previous;
   for (const row of value.rows) {
-    if (!exact(row, [...entryKeys, 'chargeLabel', 'chargeCategory']) || !validEntry(row) || byId.has(row.id)
+    if (!exact(row, keys) || !validEntry(row) || byId.has(row.id)
+      || admin && (typeof row.canReverse !== 'boolean' || row.entryKind === 'reversal' && row.canReverse)
       || !boundedText(row.chargeLabel) || !row.chargeLabel.trim() || row.chargeCategory !== null && !boundedText(row.chargeCategory)
       || from && row.paidOn < from || through && row.paidOn > through
       || chargeId && row.chargeId !== chargeId || row.reversesPaymentId && reversals.has(row.reversesPaymentId)
@@ -74,9 +112,9 @@ export function parseChargePaymentHistory(value, userId, filter = {}) {
   for (const row of value.rows) {
     const original = byId.get(row.reversesPaymentId);
     if (original && (original.entryKind !== 'payment' || row.chargeId !== original.chargeId
-      || chargePaymentCents(row.amount) !== chargePaymentCents(original.amount) || row.paidOn < original.paidOn)) invalid();
+      || chargePaymentCents(row.amount) !== chargePaymentCents(original.amount) || row.paidOn < original.paidOn
+      || admin && original.canReverse)) invalid();
   }
-  return value;
 }
 
 const taipeiDate = new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit'});

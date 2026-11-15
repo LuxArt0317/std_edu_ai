@@ -58,8 +58,8 @@ import { DtmDashboardLayoutError, loadDtmDashboardLayout } from '../server/dtmDa
 import { DtmGradeReportError, loadDtmGradeReport, loadDtmGradeReportAdmin, loadDtmGradeReportCoursesAdmin, loadDtmGradeReportOverview } from '../server/dtmGradeReport.js';
 import { DtmCourseContentError, loadDtmCourseContent, loadDtmCourseContentAdmin, loadDtmCourseContentCoursesAdmin, loadDtmCourseContentAssignment } from '../server/dtmCourseContent.js';
 import { DtmCourseResourceError, loadDtmCourseResource } from '../server/dtmCourseResource.js';
-import { readChargePaymentHistory } from '../server/chargePaymentHistory.js';
-import { chargePaymentHistoryScope, chargePaymentQuery } from '../server/chargePaymentContract.js';
+import { readChargePaymentAdminHistory, readChargePaymentHistory } from '../server/chargePaymentHistory.js';
+import { chargePaymentAdminQuery, chargePaymentHistoryAdminScope, chargePaymentHistoryScope, chargePaymentQuery } from '../server/chargePaymentContract.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;end?:(data:Buffer)=>void};
@@ -68,8 +68,9 @@ export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
   const chargePaymentScope=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(chargePaymentHistoryScope));
-  const chargePaymentSelection=chargePaymentScope?chargePaymentQuery(request.query):null;
-  if(chargePaymentScope&&!chargePaymentSelection){
+  const chargePaymentAdminSelection=request.query?.scope===chargePaymentHistoryAdminScope?chargePaymentAdminQuery(request.query):null;
+  const chargePaymentSelection=request.query?.scope===chargePaymentHistoryScope?chargePaymentQuery(request.query):null;
+  if(chargePaymentScope&&!chargePaymentSelection&&!chargePaymentAdminSelection){
     response.setHeader('Cache-Control','no-store, max-age=0');
     response.setHeader('X-Content-Type-Options','nosniff');
     response.status(400).json({error:'Invalid payment history filters.'});
@@ -124,6 +125,10 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(chargePaymentAdminSelection){
+      response.status(200).json(await readChargePaymentAdminHistory({...account,requestDeadline},chargePaymentAdminSelection));
+      return;
+    }
     if(chargePaymentSelection){
       response.status(200).json(await readChargePaymentHistory({...account,requestDeadline},chargePaymentSelection));
       return;
