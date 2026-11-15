@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Answer which Google account is signed in from the caller's verified session. [#100]
 - Verify Digital Academy category and notice details and the signed-in student's saved club attendance from the selected page. [#100]
 - Verify saved venue requests and tuition independently when a question asks for both. [#100]
 - End teaching feedback reads when their shared deadline expires. [#100]

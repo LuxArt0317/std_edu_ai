@@ -1,5 +1,9 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The sign-in follow-up adds verified caller identity answers and seven independent evidence cases. Inventory reaches 1,285 questions, 45 tools and 18 paths without semantic cases. The compiled Moodle browser test verifies both a restored answer and the appended answer after changing the viewport and reopening the page. The updated runtime and the older browser's cross-version chat compatibility remain outside the frozen migration preflight.
+
+Read-only client preflight matched 105 changed paths from protected `64a8ccb` to local `749fd3f`, verified both pending migrations and zero existing UUIDv7 chats, and found that the available Preview and Production use the same database. The automated protected Preview request returned HTTP 302. [Preflight evidence](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6887882546)
+
 The integrated local candidate verifies the selected course and syllabus, exact Digital Academy category and notice details, selected club attendance, and saved venue plus tuition. The teaching evidence reader closes its shared deadline immediately when a read times out. All 1,763 API/source, 1,173 evaluator and 541 unit checks passed. Compiled Chromium reproduced both exact catalog sign-in returns and the chat receipt and Digital Academy flows, and opened 94 of 94 School Affairs catalog destinations. The inventory has 1,277 questions and 19 paths without semantic cases.
 
 Versioned chat RPCs and private bounded markers passed local PostgreSQL and two-runtime browser compatibility. The exact four-turn replay passed the offline runner with the generated protected chat ID, including durable readback. Client preflight for both additive migrations, the separate old-runtime cutover, protected production-like replay and independent review remain pending. The verified hosted baseline is protected Preview `64a8ccb` and production `076c79a`.

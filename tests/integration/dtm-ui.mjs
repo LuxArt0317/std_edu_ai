@@ -124,7 +124,7 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>document.activeElement?.matches('.dtm-user'));
   const materialRoute='/dtm/course/'+course.id+'/material/'+material.id;
-  for(const width of [1440,390]){
+  for(const [index,width] of [1440,390].entries()){
     await page.setViewportSize({width,height:900});
     await page.goto(base+materialRoute);
     await page.getByRole('heading',{name:material.title,exact:true}).waitFor();
@@ -133,7 +133,9 @@ try {
     const chat=page.getByRole('dialog',{name:/Assistant/});
     await chat.getByPlaceholder('Ask a school question…').fill('What is this saved material about?');
     await chat.getByRole('button',{name:'Send',exact:true}).click();
-    await chat.getByText('The verified saved material description is Sample guide.').waitFor();
+    const answers=chat.getByText('The verified saved material description is Sample guide.',{exact:true});
+    await answers.nth(index).waitFor();
+    assert.equal(await answers.count(),index+1,'each material question adds one answer to the restored chat');
     assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Material chat overflow at ${width}`);
     await page.keyboard.press('Escape');
   }
