@@ -842,7 +842,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   emit({kind:'account-tools',label:'Selected account lookups',detail:accountTools.charges,status:'complete'});
   const firstEvidence=readEvidence();
   const result=await runAnswerVerification({
-    question,initialAnswer:candidateFrom(firstEvidence)??withheld(),deadline,onProgress:emit,
+    question,initialAnswer:candidateFrom(firstEvidence)??withheld(),deadline,onProgress:emit,hasLocalCorrection:true,
     loadEvidence:async({attempt})=>{
       if(attempt>1){
         const refreshed=await loadSnapshot();
@@ -1414,6 +1414,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const modelRepairs=activeTools.length>0&&!emptyHousing&&!directServiceNotes&&!directNoteCompanion&&!exactSupplemental&&!scopedOverview&&!directStudy;
   const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,
     allowDeeperReview:modelRepairs,
+    hasLocalCorrection:Boolean(exactSupplemental||scopedOverview||directStudy),
     loadEvidence:async({attempt,feedback=[]})=>{
       evidenceAttempt=attempt;
       if (attempt>1&&!recordFreeCoaching) {

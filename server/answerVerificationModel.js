@@ -37,8 +37,11 @@ export async function verificationModelCall(name, schema, instructions, input, d
   if (!response.ok) {
     const failure=await response.json().catch(()=>null);
     const safe=value=>typeof value==='string'&&/^[A-Za-z0-9_.[\]-]{1,100}$/.test(value)?value:null;
-    console.warn('Answer verification provider rejected request',{operation:name,status:response.status,type:safe(failure?.error?.type),code:safe(failure?.error?.code),param:safe(failure?.error?.param)});
-    throw new Error('Verification provider unavailable');
+    const type=safe(failure?.error?.type),code=safe(failure?.error?.code);
+    console.warn('Answer verification provider rejected request',{operation:name,status:response.status,type,code,param:safe(failure?.error?.param)});
+    const quotaExhausted=response.status===429&&(type==='insufficient_quota'
+      ||['credit_balance_exhausted','insufficient_quota','organization_spend_limit_exceeded','project_spend_limit_exceeded','organization_usage_limit_exceeded'].includes(code));
+    throw Object.assign(new Error('Verification provider unavailable'),quotaExhausted?{code:'VERIFICATION_QUOTA_EXHAUSTED'}:{});
   }
   const payload = await response.json();
   if (payload.status && payload.status !== 'completed') {

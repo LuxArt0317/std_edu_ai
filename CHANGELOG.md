@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Stop remote evidence checks when the reviewer reports exhausted quota. When the records can be checked locally, reread them and verify the answer directly. [#100]
+
 - Check a named tuition instalment against its selected saved charge and keep that scope if verification needs a fresh read. Recognize common tuition-and-fees balance wording. [#100]
 
 - Answer public library questions alongside a registrar contact or Wi-Fi setup request. Keep the verified directory details when library research cannot verify the second part. [#100]

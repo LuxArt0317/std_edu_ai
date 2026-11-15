@@ -54,6 +54,38 @@ test('incomplete reviews remain withheld with safe diagnostic codes and no recor
  } finally {globalThis.fetch=savedFetch;console.warn=savedWarn;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
 
+test('quota exhaustion stops model retries while a transient rate limit can still get another check',async t=>{
+ const savedKey=process.env.OPENAI_API_KEY;
+ process.env.OPENAI_API_KEY='test';
+ t.after(()=>{if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;});
+ const warning=t.mock.method(console,'warn',()=>{});
+ let requests=0;
+ let code='credit_balance_exhausted',type='insufficient_quota';
+ t.mock.method(globalThis,'fetch',async()=>{
+  requests++;
+  if(requests===1)return Response.json({error:{code,type,message:'RAW PROVIDER TEXT'}},{status:429});
+  return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{"ok":true}'}]}]});
+ });
+ const candidate={status:'answered',answer:'Saved record',citations:[]};
+ let repairs=0;
+ const run=()=>runAnswerVerification({question:'What is saved?',initialAnswer:candidate,
+  loadEvidence:async()=>[{id:'record',content:'Saved record'}],
+  verify:()=>verificationModelCall('answer_evidence_review',{},'',{},Date.now()+5000),
+  repair:async()=>{repairs++;return candidate;}});
+ const exhausted=await run();
+ assert.equal(exhausted.status,'abstained');
+ assert.deepEqual(exhausted.verification,{status:'unverified',attempts:1,reason:'provider_quota_exhausted'});
+ assert.equal(requests,1);
+ assert.equal(repairs,0);
+ assert.match(JSON.stringify(exhausted.activity),/automatic evidence reviewer is unavailable/u);
+ assert.doesNotMatch(JSON.stringify([exhausted,warning.mock.calls.map(call=>call.arguments)]),/RAW PROVIDER TEXT/u);
+ requests=0;code='rate_limit_exceeded';type='rate_limit_error';
+ const recovered=await run();
+ assert.deepEqual(recovered.verification,{status:'verified',attempts:2});
+ assert.equal(requests,2);
+ assert.equal(repairs,1);
+});
+
 test('replacement and independent review both require precise missing fields without echoing unsupported values',async()=>{
  const originalFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY;
  const requests:{instructions:string;text:{format:{name:string}}}[]=[];
