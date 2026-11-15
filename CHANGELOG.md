@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep verified course and year results when tailored interview wording is temporarily unavailable. Offer a clearly separated interview practice guide. [#100]
+
 - Read only the saved courses and explicitly requested year for a combined course-list and interview-writing question. Verify the answer against those same records. [#100]
 
 - Check the saved note, tracking status, and assistant access on seven School Affairs service pages. Verify the mobile Group Insurance sign-in return. [#100]

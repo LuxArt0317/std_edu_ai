@@ -14,3 +14,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Added a bounded temporary-source reread. Exact `85133e4` passed 61 focused checks and three pinned public probes. The integrated suite passed 1,966 API tests. The local cumulative candidate `b910a80` passed 12 targeted checks with the three migrated PostgreSQL suites enabled.
 
 - 2026-11-16 [#100] Exact `ebc5092` passed all certificate, confirmed tracker and portable clock packets with cleanup. All four original turns passed after independent review on the same release. Chromium passed 561 comparisons over 265 routes. Added scoped course/coaching reads, a separate published-sample test, 13 original Teaching Feedback cases and Counseling/tuition local acceptance.
+
+- 2026-11-16 [#100] Integrated fallback for the mixed course/coaching provider outage. Local scoped and route-contract verification passed 29 checks. The protected run at `7868e8e` keeps its original revision.
