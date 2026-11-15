@@ -1123,4 +1123,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Reproduce the three exact prompts on protected `2616472` in sequence, including the class-absence question diverted to private leave history.
 - [x] Route all three to evidence-backed public guidance in guest and signed endpoints, including signed-in Moodle and an existing private transcript. Confirm that these turns read no records or provider.
-- [ ] Replay the exact sequence against the fixed protected Preview. Continue signed Browser Membership and the broader release evaluation independently.
+- [x] Replay the exact sequence on protected `473f17a` through streaming and Chromium, including saved Activity after reload.
+- [ ] Continue hosted signed-in service checks, including Club Membership, and the broader release evaluation independently.
