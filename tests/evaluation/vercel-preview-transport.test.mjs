@@ -60,6 +60,29 @@ test('other projects, environments, expiry, redirects and transport error detail
   await assert.rejects(redirected(origin+'/release.json'),/unexpected redirect/u);
 });
 
+test('confirmed task transport grants one exact POST to its bound caller and rejects cross-purpose requests',async()=>{
+  const requestId='10000000-0000-4000-8000-000000000012',token=tokenAt(time),sent=[];
+  const body={kind:'create_task',requestId,payload:{title:'QA assistant task 400a8c03c7ff'}};
+  const bound={callerToken:caller.slice(7),body};
+  const opts={origin,token,now:()=>time*1000,fetchImpl:async(url,init)=>{sent.push({url,init});return Response.json({ok:true});}};
+  const endpoint=origin+'/api/affairs-action',init={...post,body:JSON.stringify(body)};
+  await assert.rejects(createTrustedPreviewFetch(opts)(endpoint,init),/unapproved request operation/u);
+  for(const invalid of [{...bound,body:{...body,payload:{title:'Live student task'}}},
+    {...bound,body:{...body,requestId:null}},{...bound,body:{...body,kind:'publish_announcement'}}])
+    assert.throws(()=>createTrustedPreviewFetch({...opts,confirmedTaskCommand:invalid}),/invalid confirmed task fixture/u);
+  const relay=createTrustedPreviewFetch({...opts,confirmedTaskCommand:bound});
+  for(const [url,req] of [[origin+'/api/affairs-assistant',init],[origin+'/api/affairs-data',{headers:init.headers}],
+    [endpoint,{...init,headers:{...init.headers,Authorization:'Bearer another.caller.signature'}}],
+    [endpoint,{...init,body:JSON.stringify({...body,payload:{title:body.payload.title+' revised'}})}],
+    [endpoint+'?id='+requestId,init]])
+    await assert.rejects(relay(url,req),/unapproved request operation/u);
+  await relay(endpoint,init);
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent.length,1);
+  assert.equal(sent[0].init.headers.get(trusted),token);
+  assert.equal(sent[0].init.headers.get('authorization'),caller);
+});
+
 test('CLI enables OIDC only on the approved exact project Preview',()=>{
   assert.equal(options(argv).previewAuth,'oidc');
   for(const rejected of [argv.map(value=>value==='live'?'inventory':value),argv.map(value=>value===origin?'https://stu.best':value),

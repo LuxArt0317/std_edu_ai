@@ -130,7 +130,17 @@ node tests/evaluation/run.mjs --mode live --case-family dtm-assignment-list \
 
 Use the exact deployed commit, project credentials and Vercel Development OIDC identity. This command evaluates the nine selected cases and records the cleanup result.
 
-The registered action cases check exact proposed payloads, relevant named reads and review text. `confirmed-assistant-action.test.ts` runs the real handlers with controlled authentication and database transport. The compiled browser check `tests/integration/assistant-confirmed-action-ui.mjs` verifies confirmation, receipt mismatch handling and reuse of the same operation ID. Run it against the local compiled preview. Hosted writes require separate acceptance.
+### Confirmed assistant task actions
+
+`confirmed-assistant-action.test.ts` runs the real handlers with controlled authentication and database transport. The compiled browser check `tests/integration/assistant-confirmed-action-ui.mjs` verifies the **Confirm action** button, receipt mismatch handling and reuse of the same operation ID. Run it against the local compiled preview.
+
+The protected operator checks verified proposals, zero writes before the operator submits the confirmation, owned creation and completion, exact same-body replays, changed-payload conflict, and crossed-owner denial while the task is open and after a receipt exists. It reads the task, audit and receipt tables independently after each stage. It serializes two disposable caller identities under the shared fixture lease and verifies the task, audit, receipt and identity cleanup. The protection identity and caller JWT travel in separate headers. [Vercel Trusted Sources](https://vercel.com/changelog/trusted-sources-for-deployment-protection)
+
+```sh
+node tests/evaluation/run-confirmed-task-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Run from the clean deployed client revision with the authorized exact-client environment and Vercel Development identity. The owner-only report lists the completed operations and readback digests. This packet covers local task actions; service requests, profile changes, assignment tracking and administrative publishing have separate acceptance requirements.
 
 Conversation cleanup binds the serialized message array as text and casts it to JSONB in PostgreSQL before the exact row comparison. The fixture retains its deletion witness when automatic cleanup fails. Record any verified manual recovery separately from the original hosted report.
 

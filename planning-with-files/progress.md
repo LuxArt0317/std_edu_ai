@@ -37,3 +37,5 @@
 - 2026-11-15 [#100] Protected `16787a5` passed four live public checks, including third-check recovery after two rejected OneDrive drafts. Independently checked the cited capture and FAQ excerpts. API/source checks passed 1,802. Integrated the two new signed-in learning evaluation packets at `aa31201` and started their pinned Preview acceptance sequence.
 
 - 2026-11-15 [#100] Verified 9 Moodle and 16 Academy native signed-in Preview replies with release pin, separate readback evidence and fixture cleanup. GitHub Quality 43685077545 passed for the public recovery build. Replayed the actual protected OneDrive reply in desktop and mobile Chrome and checked saved Activity after reload.
+
+- 2026-11-15 [#100] Built the isolated confirmed-task Preview evaluator and tested transport binding, no write before confirmation, replay, ownership and cleanup checks offline. The dormitory conduct Preview packet found four answer-precision regressions and a published housing-period fixture mismatch.

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add a protected Preview evaluator for confirmed task creation and completion. Check two-account isolation, exact replay, audit receipts and cleanup against independent database reads. [#100]
+
 - Keep public search leads beyond the initial draft's citations. After stalled verification the assistant can find and read a more specific source, then verify the revised answer and save the observed steps in chat. [#100]
 - Bind sixteen Digital Academy catalog evaluations to two disposable callers, frozen published course projections and exact protected Preview assistant requests. [#100]
 - Add a protected Preview evaluator for nine Moodle assignment-list questions with two-account readbacks, exact Taipei date and tracker-state checks, and verified fixture cleanup. [#100]
