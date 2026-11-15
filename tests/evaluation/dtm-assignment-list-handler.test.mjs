@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
-import {bindDtmAssignmentListReadback,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListLiveCases,dtmAssignmentListExpectedReadCounts,gradeDtmAssignmentListLiveCase} from './dtm-assignment-list-live.mjs';
+import {bindDtmAssignmentListReadback,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListLiveCases,dtmAssignmentListLiveFixture,dtmAssignmentListExpectedReadCounts,gradeDtmAssignmentListLiveCase} from './dtm-assignment-list-live.mjs';
 import {readReply} from './run.mjs';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import research from '../../api/research-assistant.ts';
@@ -25,7 +25,7 @@ const mockResult=async(handler,body,{authenticated=true}={})=>{
 
 async function exercise(item,{tamper=null,stream=false}={}){
   const oracle=item.observation;
-  const {courses,records,identity:{caller,asOf}}=dtmAssignmentListFixture(item);
+  const {courses,records,identity:{caller,asOf}}=item.assignmentListClock?dtmAssignmentListLiveFixture(item):dtmAssignmentListFixture(item);
   const calls=[],failures=[];
   let failed=false;
   const original=globalThis.fetch;
@@ -63,7 +63,9 @@ async function exercise(item,{tamper=null,stream=false}={}){
       const dayEdges={today:['2026-11-16T16:00:00.000Z','2026-11-17T16:00:00.000Z'],
         tomorrow:['2026-11-17T16:00:00.000Z','2026-11-18T16:00:00.000Z'],
         '2026-11-16':['2026-11-15T16:00:00.000Z','2026-11-16T16:00:00.000Z']};
-      const edges=dayEdges[oracle.period];
+      const edges=item.assignmentListClock?.period==='calendar'&&['today','tomorrow'].includes(oracle.period)
+        ?[0,1].map(delta=>new Date(Date.parse(item.assignmentListClock.opensAt)+(delta+Number(oracle.period==='tomorrow'))*86_400_000).toISOString())
+        :dayEdges[oracle.period];
       assert.equal(query.and,edges?'(due_at.gte.'+edges[0]+',due_at.lt.'+edges[1]+')':undefined);
       if(oracle.period==='overdue')assert.equal(query.due_at,'lt.'+asOf);
       else assert.equal(query.due_at,undefined);
@@ -173,19 +175,25 @@ test('native list cases and unchanged legacy oracles reject live setup before pr
 
 test('real assistant stream matches the protected Preview request observation for the mounted packet',async t=>{
   const revision=randomUUID().replaceAll('-','')+'b'.repeat(8);
-  for(const item of dtmAssignmentListFamilies.flatMap(dtmAssignmentListLiveCases))await t.test(item.id,async()=>{
+  const now='2026-12-01T11:30:00.000Z';
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-16T16:15:00.000Z')});
+  for(const item of dtmAssignmentListFamilies.flatMap(family=>dtmAssignmentListLiveCases(family,{now})))await t.test(item.id,async()=>{
     const observed=dtmAssignmentListExpectedReadCounts(item).map((count,index)=>({count,sha256:(index?'b':'a').repeat(64)}));
-    const source=bank.find(row=>row.id===item.id);
+    const clock=item.assignmentListClock;
+    const source=clock?item:bank.find(row=>row.id===item.id);
+    if(clock)t.mock.timers.setTime(Date.parse(clock.referenceAt));
     const {envelope}=await exercise(source,{stream:true});
     const authenticated=item.auth==='signed-in';
     Object.assign(envelope,{execution:'live-native',fixtureKey:item.fixtureKey,sourceRevision:revision,
       deploymentCheck:{verified:true,requestIndex:1,sourceRevision:revision},
       assignmentListDispatch:dtmAssignmentListDispatch(authenticated?'/api/affairs-assistant':'/api/research-assistant',JSON.stringify({
         question:item.question,history:[],route:item.route,stream:true,consentedResearchUse:false,
-      }),authenticated),
+      }),authenticated,clock?new Date(Date.now()-100).toISOString():undefined),
     });
-    assert.doesNotThrow(()=>bindDtmAssignmentListReadback(item,envelope,{before:observed,after:observed}),
-      ()=>JSON.stringify({events:envelope.events,verification:envelope.body.verification}));
+    if(clock)assert.equal(envelope.body.grounding.checkedAt,clock.referenceAt);
+    const readback=bindDtmAssignmentListReadback(item,envelope,{before:observed,after:observed,
+      checkedAfter:clock?new Date(Date.now()+100).toISOString():undefined});
+    envelope.fixtureReadback={verified:true,independentGolden:true,projectRef:'xiftudmvxphxcjtmfmib',dtmAssignmentList:readback};
     if(!item.observation.read){
       const wrong={...envelope,events:[{kind:'account-read:dtmAssignmentList:1',status:'complete'}]};
       assert.throws(()=>bindDtmAssignmentListReadback(item,wrong,{before:observed,after:observed}),/two caller readbacks/);

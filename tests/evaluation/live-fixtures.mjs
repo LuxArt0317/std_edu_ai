@@ -70,7 +70,7 @@ import {requestClubEquipmentCancellation,verifyClubEquipmentCancellation} from '
 import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataCase,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
-import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamilies,
+import {assertDtmAssignmentListClock,assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamilies,
   dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,initializeDtmAssignmentListStudent,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
 import {counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
   cleanupCounselingCancellation,transitionCounselingFixtures,validateCounselingHostedCases,verifyCounselingCancellationAbsent} from './counseling-appointment-hosted.mjs';
@@ -576,7 +576,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(!dtmAssignmentListFamilies.includes(caseFamily)||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
       ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
       fail('fixture-target','Moodle assignment-list fixtures require the exact protected Preview and isolated case packet.');
-    assertDtmAssignmentListLiveCases(cases,caseFamily);
+    assertDtmAssignmentListLiveCases(cases,caseFamily,{now});
+    assertDtmAssignmentListClock(cases[0],new Date().toISOString(),{reserveMs:65_000});
   }else if(cases.some(row=>row?.fixtureRequirement===dtmAssignmentListRequirement))
     fail('fixture-unsupported','Moodle assignment-list fixtures must use their isolated case packet.');
   if(!assignmentListOnly&&cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||row?.fixtureRequirement==='legacy_dtm_assignment_list_rebind'||typeof row?.id==='string'
@@ -2986,11 +2987,13 @@ async function healthMetadataObservation(s,page,signal){
 async function prepareDtmAssignmentListFixture(s,cases,family){
   await assertRecordedFixtureLease(s,'Moodle assignment list');
   await s.previewGate.assertCurrent();
-  const plan=buildDtmAssignmentListFixture(s.users,family);
+  assertDtmAssignmentListClock(cases[0],new Date().toISOString(),{reserveMs:65_000});
+  const plan=buildDtmAssignmentListFixture(s.users,family,{now:s.now});
   const occupied=await query(()=>s.sql`select id from public.dtm_courses where id in ${s.sql(plan.recordIds)}
     union all select id from public.affairs_assignments where id in ${s.sql(plan.recordIds)}`,
     'Could not check the reserved Moodle assignment-list IDs.');
   if(occupied.length)fail('fixture-state','A reserved Moodle assignment-list ID already exists.');
+  assertDtmAssignmentListClock(cases[0],new Date().toISOString(),{reserveMs:65_000});
   s.dtmAssignmentListPlan=plan;
   s.dtmAssignmentListFamily=family;
   s.dtmAssignmentListCases=new Map(structuredClone(cases).map(testCase=>[testCase.id,testCase]));
@@ -3957,6 +3960,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==s.dtmAssignmentListFamily
       ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
       fail('fixture-case','The Moodle assignment-list case is outside its isolated fixture.');
+    assertDtmAssignmentListClock(testCase,new Date().toISOString(),{reserveMs:65_000});
     const before=await dtmAssignmentListObservation(s,signal);
     s.current={caseId:testCase.id,dtmAssignmentList:before};
     return testCase.fixtureKey==='anonymous'?{}:{token:s.users[0].token};
@@ -4168,7 +4172,8 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
       }
       const after=await dtmAssignmentListObservation(s,signal);
       envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
-        dtmAssignmentList:bindDtmAssignmentListReadback(testCase,envelope,{before:current.dtmAssignmentList,after})};
+        dtmAssignmentList:bindDtmAssignmentListReadback(testCase,envelope,{before:current.dtmAssignmentList,after,
+          checkedAfter:testCase.assignmentListClock?new Date().toISOString():undefined})};
       return;
     }
     if(current.elearningPublishedReadback){

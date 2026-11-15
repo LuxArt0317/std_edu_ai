@@ -78,5 +78,8 @@ export async function answerDtmAssignmentList({account,selection,question,deadli
     },
     repair:async({evidence})=>evidence.length?format(evidence):initial,
   });
-  return {...checked,activity:[...attempts,...(checked.activity||[])]};
+  // Report the same server-clock instant that bounded both the read and retry.
+  const relative=['today','tomorrow','overdue'].includes(expected.period);
+  return {...checked,...(relative?{grounding:{...checked.grounding,checkedAt:new Date(asOf).toISOString()}}:{}),
+    activity:[...attempts,...(checked.activity||[])]};
 }
