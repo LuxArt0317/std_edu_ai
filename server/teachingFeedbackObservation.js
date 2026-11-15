@@ -1,5 +1,6 @@
 import {createHash,createHmac,timingSafeEqual} from 'node:crypto';
 import {maxAnswerVerificationChecks} from '../src/services/assistantVerificationLimits.js';
+import {exactTeachingFeedbackRead,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
 
 export const teachingObservationHeader='X-Teaching-Feedback-Observation';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[a-f0-9]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
@@ -74,6 +75,7 @@ export function openTeachingObservation({body,identity,correlationId},env=proces
     ||!Number.isSafeInteger(issuedAt)||!Number.isSafeInteger(now)||issuedAt>now+5000||now-issuedAt>120000
     ||declaredDigest!==requestDigest(scope.origin,request))return null;
 
+  const nativeViews=exactTeachingFeedbackRead(teachingFeedbackLookupContext(request.question,request.route,request.history))?.views??[];
   const attempts=[],modelOperations=[];
   let invalid=false,nativeChecked=false;
   return Object.freeze({
@@ -93,8 +95,8 @@ export function openTeachingObservation({body,identity,correlationId},env=proces
       else modelOperations.push(operation);
     },
     nativeCheckCompleted(){
-      if(nativeChecked||modelOperations.length||attempts.length!==1||attempts[0].reads.length!==1
-        ||!sha.test(attempts[0].projectionDigest))invalid=true;
+      if(nativeChecked||modelOperations.length||attempts.length!==1||!nativeViews.length||attempts[0].reads.length!==nativeViews.length
+        ||attempts[0].reads.some((read,index)=>read.view!==nativeViews[index])||!sha.test(attempts[0].projectionDigest))invalid=true;
       else nativeChecked=true;
     },
     finish(body,expectsRead){
@@ -123,6 +125,6 @@ export function verifyTeachingObservation({receipt,binding,correlationId,body},k
     ||observed.verificationMethod==='none'&&(observed.attempts.length!==0||observed.modelOperations.length!==0)
     ||observed.verificationMethod==='model'&&observed.attempts.length===0
     ||observed.verificationMethod==='native-exact'&&(observed.modelOperations.length!==0||observed.attempts.length!==1
-      ||observed.attempts[0].reads.length!==1))return null;
+      ||!observed.attempts[0].reads.length))return null;
   return observed;
 }

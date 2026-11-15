@@ -103,7 +103,7 @@ test('phase comparison requires a unique native term and section identity',async
     if(sharedTerm)assert.match(answer?.answer??'',/Final — NET201 completion: not completed/u);
     else assert.equal(answer,null);
   }
-  for(const inference of ['Does reviewed in my immediate teaching feedback prove my teacher read it?',
+  for(const inference of ['Does reviewed in my immediate teaching feedback prove my teacher read it while I was absent?',
     'Does completing NET201 in my midterm teaching evaluation mean my teacher changed the lesson?']){
     assert.equal(exactTeachingFeedbackRead(teachingFeedbackLookupContext(inference,'/school-affairs/services/7-5')),null);
   }

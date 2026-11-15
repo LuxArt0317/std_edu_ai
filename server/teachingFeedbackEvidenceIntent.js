@@ -19,6 +19,7 @@ const explicitSurveyCompletion=/\b(?:completion|(?:did|have) i (?:already )?(?:c
 const navigation=/\bwhere (?:can|do|should) i (?:find|open|view|see|access|check|fill)|\bhow (?:can|do) i (?:find|open|access|fill|submit|complete)|\b(?:give|show|send) me (?:the |a )?link|\b(?:link to|open) (?:my |the )?(?:teaching|course|immediate|real[- ]time)\b|在哪|哪個(?:頁面|連結)|如何(?:開啟|進入|填寫)|給我.*連結/iu;
 const operation=/^(?:(?:please|also|then)\s+)*(?:submit|send|post|publish|save|cancel|delete|edit|change|remove|create|update|fill|rate|mark|release|approve)\b|\b(?:(?:can|could|would) you|i (?:want|need) you to|help me(?: to)?)\s+(?:submit|send|post|publish|save|cancel|delete|edit|change|update|fill|rate|mark|release|approve)\b|(?:請|请)?(?:幫我|替我)?(?:取消|刪除|修改|更改|提交|送出|核准|批准|新增|更新|代填|標記已檢閱)/iu;
 const independent=/\b(?:tuition|fees?|balance|payments?|next class|year level|what year|which year|housing|dormitory|scholarship|salary|counseling|health|clearance|tutor evaluation|mentor evaluation|timetable|schedule|grades?|assignments?|homework|moodle|dtm|quiz)\b|學費|餘額|下堂課|下一堂|年級|幾年|宿舍|助學|薪資|諮商|健檢|離校|導師評量|課表|成績|作業|數位教材|測驗/iu;
+const administratorAggregate=/^(?:(?:please )?(?:show|give|list)(?: me)? )?(?:the )?(?:administrator|manager|staff)(?:['’]s)? aggregate (?:teaching|course) (?:evaluations?|surveys?|questionnaires?) results(?: and (?:all )?student comments)?$/iu;
 const clean=value=>typeof value==='string'&&value.length<=12000&&!/[\p{Cc}\p{Cs}]/u.test(value.replace(/[\r\n\t]/gu,''))?value.normalize('NFKC').trim():'';
 const latestUser=history=>Array.isArray(history)?clean(history.slice(-6).findLast(item=>item?.role==='user'&&typeof item.content==='string')?.content):'';
 function masked(value){
@@ -150,7 +151,8 @@ export function teachingFeedbackLookupContext(question,route='',history=[]){
   const requestedViews=[...states.keys()],activeRows=nativeParts.filter(row=>row.views.some(view=>states.has(view))),questionParts=activeRows.map(row=>row.part);
   // A latest explicit foreign subject cannot become the caller's record merely
   // because the next user asks for its status or saved comment.
-  const nativeQuestion=questionParts.join('\n'),stoppedForeign=Boolean(requestedViews.length&&(foreign(nativeQuestion)||from==='history'&&prior.some(foreign)));
+  const nativeQuestion=questionParts.join('\n'),aggregateRequest=administratorAggregate.test(nativeQuestion);
+  const stoppedForeign=Boolean(requestedViews.length&&(!aggregateRequest&&foreign(nativeQuestion)||from==='history'&&prior.some(foreign)));
   const hasExplicit=Boolean(nativeQuestion),ownCourse=selectionCourse(nativeQuestion),inheritedCourse=from==='history'&&!ownCourse.course&&!ownCourse.invalid?selectionCourse(prior.join('\n')):null;
   const course=inheritedCourse?.course||inheritedCourse?.invalid?inheritedCourse:ownCourse;
   const excludedCourse=activeRows.some(row=>negative.test(row.part)&&courseClause(row.part.replace(negative,'').trim()));
@@ -161,7 +163,7 @@ export function teachingFeedbackLookupContext(question,route='',history=[]){
   const anonymousSurveyRow=row=>row.views.includes('survey')&&anonymousResponses.test(masked(row.part));
   const unavailableDetails=positiveParts.some(part=>unsupported.test(masked(part)))||commentFor('survey')||activeRows.some(row=>!negative.test(row.part)&&anonymousSurveyRow(row));
   const support=activeRows.some(row=>!negative.test(row.part)&&supported.test(masked(row.part))&&(!anonymousSurveyRow(row)||explicitSurveyCompletion.test(masked(row.part))))||commentsRequested;
-  const reason=!routeInfo.valid?'invalid_route':stoppedForeign?'foreign_request':positiveParts.some(part=>operation.test(masked(part)))?'unsupported_operation':excludedCourse||course.invalid?'ambiguous_selector':unavailableDetails&&!support?'outside_scope':null;
+  const reason=!routeInfo.valid?'invalid_route':stoppedForeign?'foreign_request':positiveParts.some(part=>operation.test(masked(part)))?'unsupported_operation':excludedCourse||course.invalid?'ambiguous_selector':aggregateRequest||unavailableDetails&&!support?'outside_scope':null;
   const selection=hasExplicit&&requestedViews.length?Object.freeze({views:Object.freeze(reason?[]:requestedViews),requestedViews:Object.freeze(requestedViews),from,question:nativeQuestion,
     commentRequested:!reason&&requestedViews.includes('immediate')&&commentsRequested,unavailableDetails,reason,...(!reason&&course.course?{course:course.course}:{})}):null;
   return Object.freeze({selection,question:nativeQuestion,otherQuestion:otherParts.join('\n'),foreign:stoppedForeign,excluded,
@@ -185,9 +187,20 @@ export function teachingFeedbackSurveyPresentation(question){
 export function exactTeachingFeedbackRead(context){
   const selection=context.selection;
   const comparison=selection?.views[0]==='survey'&&teachingFeedbackSurveyPresentation(selection.question)?.kind==='comparison';
-  return selection?.views.length===1&&!selection.reason&&!selection.unavailableDetails&&!context.otherQuestion
-    &&!context.excluded&&!context.foreign&&!context.navigation.length&&(comparison||!unscopedOutcome.test(masked(selection.question)))
+  const reviewMeaning=selection?.views[0]==='immediate'&&teachingFeedbackReviewMeaning(selection.question);
+  const pairedStatus=selection?.views.length===2&&teachingFeedbackPairedStatus(selection.question);
+  return (selection?.views.length===1||pairedStatus)&&!selection.reason&&!selection.unavailableDetails&&!context.otherQuestion
+    &&(!context.excluded||selection.from==='question')&&!context.foreign&&!context.navigation.length
+    &&(comparison||reviewMeaning||!unscopedOutcome.test(masked(selection.question)))
       ?selection:null;
+}
+export function teachingFeedbackPairedStatus(question){
+  const text=clean(question).replace(/[.!?。！？]+$/u,'').replace(/\s+/gu,' ');
+  return /^(?:(?:show|list) )?my teaching (?:evaluation|survey|questionnaire) window status (?:and )?(?:my )?immediate teaching feedback status(?: separately)?$/iu.test(text);
+}
+export function teachingFeedbackReviewMeaning(question){
+  const text=clean(question).replace(/[.!?。！？]+$/u,'').replace(/\s+/gu,' ');
+  return /^does (?:the )?(?:saved )?reviewed(?: status)? in my immediate teaching feedback (?:prove|mean|establish) (?:that )?my teacher (?:has )?read it(?: and changed the lesson)?$/iu.test(text);
 }
 export function isTeachingFeedbackEvidenceQuestion(question,route='',history=[]){return selectTeachingFeedbackEvidence(question,route,history)!==null;}
 export function teachingFeedbackNavigation(question){
