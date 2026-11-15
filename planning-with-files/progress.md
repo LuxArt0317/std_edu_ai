@@ -94,3 +94,5 @@
 - 2026-11-15 [#100] Integrated exact learning entry links, sign-in continuation handling and 24 actual-handler cases. Added all 80 questions for the seven local-note services and verified the two-owner fixture and isolation in disposable PostgreSQL. Recorded 61 eligible and 19 deferred cases. The combined inventory rose to 1,408 questions, with all 1,226 offline evaluator checks passing.
 
 - 2026-11-15 [#100] Verified the separate authorized Vercel CLI with the exact protected `64a8ccb0` manifest. The baseline replay stopped at fixture readback and verified cleanup with zero model calls. The isolated diagnostic located the missing Moodle material target link. Updated the oracle and persistence mapping and passed all 1,227 offline checks.
+
+- 2026-11-15 [#100] Collected four hosted baseline answers with durable readback. The record overview passed independent AI review; the course/year and interview turns abstained and the correct balance failed the strict provenance wording check. Reproduced the cleanup JSONB binding defect, fixed the comparison, and separately proved exact disposable cleanup and protected owner preservation.

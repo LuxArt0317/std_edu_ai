@@ -34,7 +34,7 @@ function harness(){
     if(text.includes('from private.affairs_assistant_operations'))return structuredClone(state.actions);
     if(text.startsWith('select id,user_id,title,messages')){assert.deepEqual(params,[[ownerId,otherId],conversationId]);assert.match(text,/user_id=any\(\$1::uuid\[\]\) or id=\$2::uuid/u);return structuredClone(state.rows.filter(row=>[ownerId,otherId].includes(row.user_id)||row.id===conversationId).sort((a,b)=>a.id.localeCompare(b.id)).slice(0,3));}
     if(text.startsWith('delete from public.affairs_conversations')){
-      assert.ok(transaction);assert.match(text,/messages is not distinct from \$4::jsonb.*version=\$5::integer.*created_at=\$6::timestamptz.*updated_at=\$7::timestamptz/u);
+      assert.ok(transaction);assert.match(text,/messages is not distinct from \$4::text::jsonb.*version=\$5::integer.*created_at=\$6::timestamptz.*updated_at=\$7::timestamptz/u);
       if(state.casDrift)state.rows[0].title='Unexpected concurrent title';
       const found=state.rows.find(row=>row.id===params[0]&&row.user_id===params[1]&&row.title===params[2]&&hash(row.messages)===hash(JSON.parse(params[3]))&&row.version===params[4]&&row.created_at===params[5]&&row.updated_at===params[6]);
       if(!found)return [];state.rows=state.rows.filter(row=>row!==found);

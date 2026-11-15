@@ -129,7 +129,8 @@ export function createTranscriptConversationFixture({runId,owners,conversationId
           const row=current[0];if(deletion)requireValue(deletion.rowDigest===digest(row),'reconciliation_required');
           deletion={expectedVersion:row.version,messageDigest:view.saves.at(-1).pending.messageDigest,rowDigest:digest(row),createdAt:row.created_at,updatedAt:row.updated_at};
           await persistState('deleting',view);
-          const removed=await query('delete from public.affairs_conversations where id=$1::uuid and user_id=$2::uuid and title is not distinct from $3::text and messages is not distinct from $4::jsonb and version=$5::integer and created_at=$6::timestamptz and updated_at=$7::timestamptz returning id,user_id',
+          // Send serialized JSON as text so the driver does not encode it a second time.
+          const removed=await query('delete from public.affairs_conversations where id=$1::uuid and user_id=$2::uuid and title is not distinct from $3::text and messages is not distinct from $4::text::jsonb and version=$5::integer and created_at=$6::timestamptz and updated_at=$7::timestamptz returning id,user_id',
             [conversationId,ownerId,row.title,JSON.stringify(row.messages),row.version,row.created_at,row.updated_at]);
           requireValue(Array.isArray(removed)&&removed.length===1&&exact(removed[0],['id','user_id'])&&removed[0].id===conversationId&&removed[0].user_id===ownerId,'delete_mismatch');
         }
