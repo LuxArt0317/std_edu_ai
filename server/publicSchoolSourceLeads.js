@@ -90,11 +90,10 @@ export function createPublicSchoolSourceLeads(question){
       const anyBlocked=selected.some(lead=>blocked.has(lead.url));
       const hasLibrary=selected.some(lead=>lead.kind==='library-service');
       let answer=reply.answer;
-      // If the caller asked about a specific notice and the sources are behind
-      // sign-in, the original notice is the useful handoff. Preserve any answer
-      // or limitation that has already been supported by readable evidence.
+      // A known notice is a useful handoff even when the read failed before
+      // we could establish why. Preserve any answer backed by readable evidence.
       if(reply.status==='handoff'&&reply.grounding?.source==='helpful-fallback'&&!cited.size
-        &&selected.every(lead=>lead.id?.startsWith('notice:')&&blocked.has(lead.url))){
+        &&selected.every(lead=>lead.id?.startsWith('notice:'))){
         const quota=query.has('quota')||/配額|容量/u.test(question);
         const date=/\b(?:date|cutoff|deadline)\b|日期|截止|期限/iu.test(question.normalize('NFKC'));
         if(sameLanguage)answer=quota&&date?'我無法從可讀取的公開資料核實儲存空間配額與日期。':'我無法從可讀取的公開資料核實您詢問的公告內容。';

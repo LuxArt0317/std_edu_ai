@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Name the missing details and keep the indexed school notice link when its public read fails. Require an observed sign-in redirect before reporting a sign-in requirement. [#100]
+
 - Create the two reserved browser-test profiles in the same transaction as the signed-in native fixtures. [#100]
 
 - Verify the saved record overview, current subjects and year, and standalone balances directly against their selected record fields and counts. Refresh the authorized read when those fields cannot be validated. [#100]

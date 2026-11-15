@@ -124,9 +124,10 @@ const provider=(body:unknown)=>Response.json({output:[{type:'message',content:[{
 const search=(url:string,answer:string)=>Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url,title:'STU Cloud Storage'}]}},
   {type:'message',content:[{text:JSON.stringify({status:'answered',source_urls:[url],answer})}]}]});
 
-for(const scenario of ['unavailable','verified','needs-copy-repair','no-source-answer'] as const)test(`the OneDrive response preserves its original login-gated lead with ${scenario}`,async t=>{
+for(const scenario of ['unavailable','verified','needs-copy-repair','no-source-answer','no-source-read-timeout'] as const)test(`the OneDrive response preserves its original notice link with ${scenario}`,async t=>{
   const verifiedPartial=scenario==='verified'||scenario==='needs-copy-repair';
-  const noSourceAnswer=scenario==='no-source-answer';
+  const timedOut=scenario==='no-source-read-timeout';
+  const noSourceAnswer=scenario==='no-source-answer'||timedOut;
   const old={key:process.env.OPENAI_API_KEY,url:process.env.VITE_SUPABASE_URL,publish:process.env.VITE_SUPABASE_PUBLISHABLE_KEY};
   process.env.OPENAI_API_KEY='controlled-public-leads-key';process.env.VITE_SUPABASE_URL='https://controlled-public-leads.supabase.co';
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY='controlled-publishable-key';
@@ -167,7 +168,10 @@ for(const scenario of ['unavailable','verified','needs-copy-repair','no-source-a
   const handler=createResearchAssistantHandler({readSources:(citations,deadline,dependencies)=>readVerificationSources(citations,deadline,{
     ...dependencies,captures:[],acquire:async (url,options)=>{
       direct.push(url);
-      if(url===notice){(options?.onRedirect as (to:string)=>void)(login);assert.fail('Login page would have been followed.');}
+      if(url===notice){
+        if(timedOut)throw timeout();
+        (options?.onRedirect as (to:string)=>void)(login);assert.fail('Login page would have been followed.');
+      }
       assert.equal(url,support);
       return {...html(`<html><body><p>${content}</p></body></html>`),finalUrl:support};
     },
@@ -180,7 +184,10 @@ for(const scenario of ['unavailable','verified','needs-copy-repair','no-source-a
   },end(){}};
   await handler({method:'POST',body:{question,stream:true},headers:{'x-forwarded-for':scenario==='needs-copy-repair'?'192.0.2.48':verifiedPartial?'192.0.2.47':noSourceAnswer?'192.0.2.49':'192.0.2.46'}},sink);
   assert.match(body.answer,/Microsoft 365 and OneDrive storage quotas\]\(https:\/\/dtm\.stu\.edu\.tw\/mod\/page\/view\.php\?id=625803\)/u);
-  assert.match(body.answer,/School sign-in is required\. I could not verify the notice contents/u);
+  if(timedOut){
+    assert.match(body.answer,/notice index lists this link/u);
+    assert.doesNotMatch(body.answer,/School sign-in is required/u);
+  }else assert.match(body.answer,/School sign-in is required\. I could not verify the notice contents/u);
   assert.doesNotMatch(JSON.stringify(body),/LOGIN_MARKER|login\/index|987 GB|November 31/u);
   assert.doesNotMatch(body.answer,/Please try again or specify the course|URL or text/u);
   assert.equal(corrections,scenario==='needs-copy-repair'?1:0);
