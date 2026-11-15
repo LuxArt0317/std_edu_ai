@@ -1399,6 +1399,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             let addedEvidenceOnLastPass = false;
             let foundOnlyMirroredContent = false;
             let reviewedUnresolvedSources = false;
+            const hasUnreadPublicLead = () => [...pendingLeads.keys()].some(url => canRead(url) && !readAttempts.has(url));
             const canExtendReview = () => canRecover && (
                 addedEvidenceOnLastPass || [...pendingLeads.keys()].some(canRead)
                 || (!triedAlternateSearch && (foundOnlyMirroredContent || reviewedUnresolvedSources))
@@ -1465,7 +1466,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 ...(managedPartial ? { priorVerifiedPartial: managedPartial } : {}),
                 ...(canRecover ? {
                     loadDeeperEvidence: recoverPublicEvidence, maxChecks: maxPublicAnswerVerificationChecks, canExtendReview,
-                    lookForMissingPublicDetails: () => !publicStudyGuidance&&([...pendingLeads.keys()].some(url=>canRead(url)&&!readAttempts.has(url))||kind.fresh),
+                    hasUnreadPublicLead,
+                    lookForMissingPublicDetails: () => !publicStudyGuidance && (hasUnreadPublicLead() || kind.fresh),
                 } : {}),
                 async loadEvidence(context) {
                     if (context.attempt > 1) return recoverPublicEvidence(context);
