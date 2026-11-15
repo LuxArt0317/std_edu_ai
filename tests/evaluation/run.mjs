@@ -16,6 +16,7 @@ import {feeRemissionLivePlanManifest,feeRemissionLiveFamilyForCase} from './fee-
 import {fixtureForCase} from './fixtures.mjs';
 import {teachingFeedbackRunnerCases,teachingFeedbackCaseAdmission,assertTeachingFeedbackCaseReady,gradeEvaluationCase,teachingFeedbackSetupSummary} from './teaching-feedback-runner.mjs';
 import {assessCoverage} from './coverage.mjs';
+import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
@@ -102,7 +103,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   if(caseFamily!==undefined&&caseFamily!=='fee-remission')throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():[...buildServiceCases(),...buildAccountCases({now}),...teachingFeedbackRunnerCases(),...buildPublicCases(inventory)];
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():[...buildServiceCases(),...buildAccountCases({now}),...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -272,6 +273,11 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     assessment.teachingFeedbackSetup=teachingSetup;
     integrity.push({id:'run.teachingFixtureUnbound',detail:'Registered teaching cases still require isolated fixtures and independent request-bound read observations; offline declarations cannot establish live acceptance.'});
   }
+  const nativeDtmSetup=cases.filter(nativeDtmSetupRequired).map(row=>row.id);
+  if(nativeDtmSetup.length){
+    assessment.nativeDtmSetup={registered:nativeDtmSetup.length,liveEligible:0,caseIds:nativeDtmSetup};
+    integrity.push({id:'run.nativeDtmFixtureUnbound',detail:'Native DTM record cases require caller-bound fixture and request observations before live execution.'});
+  }
   if(inventory.clientDispatch?.questions.length){
     const missing=inventory.clientDispatch.questions.map(item=>item.id);
     assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
@@ -395,7 +401,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(!selected.length)throw new Error('No cases match.');
   // Do not pass an unmounted teaching case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
-  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row));
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -454,6 +460,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
       try{
         assertTeachingFeedbackCaseReady(testCase);
+        assertNativeDtmCaseReady(testCase);
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
           if(feeOnly||testCase.fixtureKey!=='anonymous'){

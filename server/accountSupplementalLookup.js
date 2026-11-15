@@ -1,3 +1,5 @@
+import {isDtmAssignmentEvidenceQuestion} from './dtmAssignmentEvidenceIntent.js';
+import {dtmAssignmentEvidenceMaxBytes,unavailableDtmAssignmentEvidence} from './accountDtmAssignmentEvidence.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
 import {selectTutorEvaluationEvidence,isTutorEvaluationFieldClause,withoutExcludedTutorEvaluationClause} from './tutorEvaluationEvidenceIntent.js';
 import {tutorEvaluationEvidenceMaxBytes,unavailableTutorEvaluationEvidence} from './accountTutorEvaluationEvidence.js';
@@ -40,6 +42,7 @@ export const supplementalAccountTools=Object.freeze({
   studentLoan:'Own saved student loan application state, progress and history metadata. No disbursement, payment or official approval.',
   tuition:'Own literal saved tuition settlement statements/periods at49-1, plus explicit unavailable file capabilities at48-1/48-3 and extended-study records at48-2; not charges, balances or payment ledger.',
   aidPayments:'Own saved student aid claims and salary records, with separate counts, exact periods, amounts, deductions and approval text. Independent from financial aid applications, student loans, tuition, and bank transfers.',
+  dtmAssignment:'Own exact DTM assignment title, instructions and deadline, with explicit personal tracker status. No file contents, committed submission proof, edits or official status.',
   dtmGradeReport:'Own native DTM grade report and grades overview. Literal report items, feedback and saved total values. Separate from the personal grade tracker, file reviews, and School Affairs transcript.',
   elearningEnrollments:'Saved local remote-learning Moodle course enrollments and joined times. Separate from DTM and School Affairs. Does not contain personal remote-learning grades, assignments, submissions or attendance.',
   facilityRepairs:'Own saved local facility-repair reports and exact status; requested latest saved handling note with unknown event author. Separate from housing and generic service trackers. No cancellation, technician messaging, dispatch or proof of physical repair.',
@@ -52,11 +55,11 @@ export const supplementalAccountTools=Object.freeze({
   healthExaminations:'Own saved health examination codes and report availability, scoped to the selected page at service 36-1. No clinical results, dates, identity details, file access or writes.',
   elearningOutline:'Authorized local remote-learning course outline, section/activity titles and local video/slides/feedback/attendance-form links. No personal attendance, grades, submissions, video contents or completion records. Read-only.',
 });
-const predicates={courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence,
+const predicates={dtmAssignment:isDtmAssignmentEvidenceQuestion,courseCatalog:isCatalogEvidenceQuestion,enrollmentCertificate:isCertificateEvidenceQuestion,dtmSubmissions:isSubmissionEvidenceQuestion,tuition:isTuitionEvidenceQuestion,studentConduct:isStudentConductEvidenceQuestion,studentLoan:isStudentLoanEvidenceQuestion,aidPayments:isAidPaymentsEvidenceQuestion,dtmGradeReport:shouldReadNativeDtmGrades,elearningEnrollments:isElearningEvidenceQuestion,facilityRepairs:isFacilityRepairEvidenceQuestion,dormitoryConduct:isDormitoryConductEvidenceQuestion,elearningOutline:isElearningOutlineEvidenceQuestion,feeRemission:selectFeeRemissionEvidence,healthExaminations:selectHealthExaminationEvidence,counselingAppointments:selectCounselingEvidence,graduationClearance:selectClearanceEvidence,tutorEvaluation:selectTutorEvaluationEvidence,
   teachingFeedback:(question,route,history)=>Boolean(selectTeachingFeedbackEvidence(question,route,history)?.views.length)};
 const keys=Object.keys(supplementalAccountTools),plain=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
 const bytes=value=>Buffer.byteLength(JSON.stringify(value),'utf8');
-const sourceLimits={courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes,
+const sourceLimits={dtmAssignment:dtmAssignmentEvidenceMaxBytes,courseCatalog:18000,enrollmentCertificate:12000,dtmSubmissions:24000,tuition:16000,studentConduct:studentConductEvidenceMaxBytes,studentLoan:studentLoanEvidenceMaxBytes,aidPayments:aidPaymentsEvidenceMaxBytes,dtmGradeReport:dtmGradeReportEvidenceMaxBytes,elearningEnrollments:elearningEvidenceMaxBytes,facilityRepairs:facilityRepairEvidenceMaxBytes,dormitoryConduct:dormitoryConductEvidenceMaxBytes,elearningOutline:elearningOutlineEvidenceMaxBytes,feeRemission:feeRemissionEvidenceMaxBytes,healthExaminations:healthExaminationEvidenceMaxBytes,counselingAppointments:counselingEvidenceMaxBytes,graduationClearance:clearanceEvidenceMaxBytes,tutorEvaluation:tutorEvaluationEvidenceMaxBytes,
   teachingFeedback:teachingFeedbackEvidenceLimits.responseBytes};
 export const supplementalEvidenceBudget=54000;
 export const withoutExcludedNativePageClause=question=>withoutExcludedTutorEvaluationClause(withoutExcludedClearanceClause(withoutExcludedCounselingClause(withoutExcludedHealthClause(question))));
@@ -236,6 +239,7 @@ function unavailable(key,reason){
   if(key==='dormitoryConduct')return unavailableDormitoryConductEvidence(reason);
   if(key==='elearningOutline')return unavailableElearningOutlineEvidence(reason);
   if(key==='facilityRepairs')return unavailableFacilityRepairEvidence(reason);
+  if(key==='dtmAssignment')return unavailableDtmAssignmentEvidence(reason);
   if(key==='dtmGradeReport')return unavailableDtmGradeReportEvidence(reason);
   if(key==='elearningEnrollments')return unavailableElearningEvidence(reason);
   if(key==='aidPayments')return unavailableAidPaymentsEvidence(reason);

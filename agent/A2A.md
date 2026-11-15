@@ -787,3 +787,7 @@ The follow-up also exercises both hosted guest reproductions. The three-part hou
 ### Housing receipt and native Moodle grade candidate [Issue #100]
 
 The isolated receipt, Moodle and teaching admission checkpoint is based on `4be7b0c`. It changes no migration or fixture records. Use the frozen candidate manifest for the protected Preview. Whole-system and reported four-turn acceptance still require the serialized authenticated model and Supabase run. The teaching cases remain setup failures in the runner. A separate offline immediate-feedback fixture lifecycle is ready for later review once request observations can be bound.
+
+### Native Moodle assignment checkpoint [Issue #100]
+
+The integration checkout is `std_edu_ai-issue100` on disk, based on protected Preview `eac8ecf0`. The frozen change includes assignment detail and combined native grade routing, plus offline case registration. It changes no migration or hosted records. The release coordinator owns publication, provider access and the serialized live evaluation. Leave records and the teaching fixture/observation modules are separate follow-ups.

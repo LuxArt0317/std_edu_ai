@@ -240,6 +240,7 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 
 - [x] Integrate housing receipt scope, direct native Moodle grades and the teaching question bank on the protected menu-context revision.
 - [x] Check compound receipt and Moodle reads through the API with a controlled reviewer, preserve card metadata, and keep deferred teaching cases in the denominator.
+- [x] Add scoped Moodle assignment details, preserve independent native grade clauses, and register their 32 acceptance cases.
 - [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
 
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.

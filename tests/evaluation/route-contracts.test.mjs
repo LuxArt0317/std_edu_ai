@@ -213,7 +213,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const dormitoryIds=['saved-empty','saved-unknown','missing-metadata','empty-not-clearance','details-unavailable','document-unavailable',
     'follow-up','chinese-empty','mixed-housing','mixed-tuition'].map(id=>'account:dormitory-conduct-'+id);
   const receiptIds=['housing-receipt-metadata','housing-receipt-term-prefix','housing-receipt-and-bed','housing-bed-and-receipt','housing-receipt-and-balance','housing-receipt-excluded','housing-receipt-foreign','empty-housingApplications'].map(id=>'account:'+id);
-  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport',
+  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-dtmAssignment',
     'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications'];
   const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query'];
   const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,'public-study-first-week'];

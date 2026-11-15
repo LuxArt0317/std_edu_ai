@@ -1,5 +1,9 @@
 ## Assistant evaluation resumed [Issue #100]
 
+The Moodle assignment checkpoint extends protected Preview `eac8ecf0` in an isolated disk-backed checkout. It uses the existing assignment RPC and holds the grade report to its own evidence in combined questions. The 32 native Moodle cases are registered and their live fixtures remain pending. Production remains `076c79a`. The pinned four-turn signed-in replay still requires authorized access to the protected Preview.
+
+Local checks passed 1,683 API tests, 541 unit tests and 935 evaluator tests, plus API type checking, build assets and handoff. The inventory discovered 1,104 questions across 94 services, 37 tools and 395 public pages. Its release-readiness result is false until live coverage and browser acceptance are verified.
+
 The housing receipt and native Moodle grade checkpoint builds on protected Preview `4be7b0c`. Receipt and bed scopes are separate and the combined receipt/Moodle test exercises both selected readers without loading the general snapshot. Receipt cards retain count, time and scope on save. Production remains `076c79a`. Teaching feedback contributes 40 independent questions to the full runner, with fixture setup blocked until trusted observations are available. The 14 native DTM grade cases use offline observations. The live four-turn replay, fixture cleanup and full browser/semantic acceptance remain open.
 
 The local menu context follow-up adds coverage for the School Affairs search and General Affairs input/query routes. Both authenticated and public handler tests answer from the local catalog while excluding the other menu's entries. The full route and live-model gates remain pending.

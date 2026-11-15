@@ -502,7 +502,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);

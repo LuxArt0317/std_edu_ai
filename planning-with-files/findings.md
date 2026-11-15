@@ -1,3 +1,7 @@
+## Native Moodle assignment context [Issue #100]
+
+An assignment URL identifies two records. The caller-bound RPC validates both the parent course and assignment before any result reaches the assistant. Assignment metadata, native grade cells and committed file reviews come from separate sources. A grade citation must point to a grade cell or the recorded availability of that grade data. An unverified response withholds the scoped result cards.
+
 ## Remote-learning catalog expansion [Issue #98]
 
 The source selector exposed 43 categories and 191 visible listing pages. All were followed to an observed end. The archive contains 3,291 unique course IDs and titles. Only course metadata was extracted. The expansion preserves existing workshop enrollments and serves 20 results per page.

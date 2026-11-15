@@ -1,3 +1,6 @@
+import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
+import {dtmAssignmentLookupContext} from '../server/dtmAssignmentEvidenceIntent.js';
+import {readDtmAssignmentEvidence} from '../server/accountDtmAssignmentEvidence.js';
 import {studentConductScope} from '../server/studentConductEvidenceScope.js';
 import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {studentConductGuide} from '../server/studentConductGuide.js';
@@ -172,11 +175,11 @@ export function createAffairsAssistantHandler(dependencies:{
   verifyToken?:typeof verifyAffairsToken;
   loadSnapshot?:typeof loadAffairsSnapshot;
   answerAccount?:typeof answerAccountWithVerification;
-  readers?:{courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
+  readers?:{dtmAssignment?:typeof readDtmAssignmentEvidence;courseCatalog?:typeof readCatalogEvidence;enrollmentCertificate?:typeof readCertificateEvidence;dtmSubmissions?:typeof readSubmissionEvidence;tuition?:typeof readTuitionEvidence;studentConduct?:typeof readStudentConductEvidence;studentLoan?:typeof readStudentLoanEvidence;aidPayments?:typeof readAidPaymentsEvidence;dtmGradeReport?:typeof readDtmGradeReportEvidence;elearningEnrollments?:typeof readElearningEvidence;facilityRepairs?:typeof readFacilityRepairEvidence;dormitoryConduct?:typeof readDormitoryConductEvidence;elearningOutline?:typeof readElearningOutlineEvidence;feeRemission?:typeof readFeeRemissionEvidence;healthExaminations?:typeof readHealthExaminationEvidence;counselingAppointments?:typeof readCounselingEvidence;graduationClearance?:typeof readClearanceEvidence;tutorEvaluation?:typeof readTutorEvaluationEvidence;teachingFeedback?:typeof readTeachingFeedbackEvidence;housingBed?:typeof readHousingBedEvidence;housingApplications?:typeof readHousingApplicationEvidence};
 }={}) {
 const publicResearch=dependencies.publicResearch??researchHandler;
 const verifyToken=dependencies.verifyToken??verifyAffairsToken,loadSnapshot=dependencies.loadSnapshot??loadAffairsSnapshot,answerAccount=dependencies.answerAccount??answerAccountWithVerification;
-const readers={courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
+const readers={dtmAssignment:dependencies.readers?.dtmAssignment??readDtmAssignmentEvidence,courseCatalog:dependencies.readers?.courseCatalog??readCatalogEvidence,enrollmentCertificate:dependencies.readers?.enrollmentCertificate??readCertificateEvidence,
   dtmSubmissions:dependencies.readers?.dtmSubmissions??readSubmissionEvidence,tuition:dependencies.readers?.tuition??readTuitionEvidence,
   studentConduct:dependencies.readers?.studentConduct??readStudentConductEvidence,studentLoan:dependencies.readers?.studentLoan??readStudentLoanEvidence,
   aidPayments:dependencies.readers?.aidPayments??readAidPaymentsEvidence,
@@ -234,6 +237,24 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,searchGuide);
     return;
   }
+  const nativeDtm=dtmNativeClauseScope(question,route,history);
+  const dtmCompound=nativeDtm.recognized&&nativeDtm.compound?nativeDtm:null;
+  if(dtmCompound&&!dtmCompound.tools.length){
+    stream.send(200,{status:'handoff',answer:dtmNativeClauseNotice(dtmCompound,question),citations:[],suggestedQuestions:[],
+      grounding:{source:'account',webSearched:false}});
+    return;
+  }
+  const assignment=dtmCompound
+    ?{selection:dtmCompound.assignment?.selection??null,otherQuestion:'',excluded:false}
+    :dtmAssignmentLookupContext(question,route,history);
+  if(assignment.selection?.reason||assignment.excluded&&!assignment.selection&&!assignment.otherQuestion){
+    const reason=assignment.selection?.reason;
+    const answer=reason==='foreign_request'?"I can only check your own saved assignment. I cannot show another student's records.":reason==='unsupported_operation'?'I cannot edit, submit or delete an assignment through this lookup. No action was performed.':reason?'Open the exact local assignment page or provide both its course ID and assignment ID. No assignment record was read.':'The excluded assignment record was not read.';
+    stream.send(200,{status:reason==='foreign_request'?'handoff':'clarification',answer,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false}});return;
+  }
+  if(assignment.excluded&&!assignment.selection&&assignment.otherQuestion){question=assignment.otherQuestion;history=[];route='';}
+  const assignmentOnly=Boolean(assignment.selection&&!assignment.otherQuestion);
+  const assignmentFees=Boolean(assignment.selection&&(isOwnFeeBalanceQuestion(assignment.otherQuestion)||ownFeeBalanceLabel(assignment.otherQuestion)!==null));
   const application=housingApplicationLookupContext(question,route,history);
   const applicationSelection=application.selection&&!application.selection.reason?application.selection:null;
   const applicationGuidance=!applicationSelection&&(application.selection||application.navigation||application.foreign||application.excluded)
@@ -297,7 +318,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const withLocalGuidance=<T extends {answer:string;citations?:unknown[]}>(answer:T)=>conductNavigation||foreignYearMessage||teachingNotes||housingGuidance||housingCompanionBoundary||applicationGuidance
     ?{...answer,answer:[foreignYearMessage,conductNavigation?.answer,teachingNotes?.answer,applicationGuidance?.answer,housingGuidance?.answer,housingCompanionBoundary,answer.answer].filter(Boolean).join('\n\n'),
       citations:[...(conductNavigation?.citations??[]),...(teachingNotes?.citations??[]),...(housingGuidance?.citations??[]),...(applicationGuidance?.citations??[]),...(answer.citations??[])]}:answer;
-  const foreignDtmGrades=isForeignDtmGradesQuestion(question,route);
+  const foreignDtmGrades=!dtmCompound&&isForeignDtmGradesQuestion(question,route);
   const foreignElearning=isForeignElearningRecordsQuestion(question,route);
   const foreignRepair=isForeignFacilityRepairQuestion(question);
   const pageContext=nativePageLookupContext(housingSelection||applicationSelection?housing.otherQuestion:notes.keys.length?notes.otherQuestion:question,
@@ -377,10 +398,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
-  const chargeLabel=pageContext.feeChargeLabel??(housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
-  const chargesOnly=isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
+  const chargeLabel=pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
-  const needsRecords=Boolean(housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const needsRecords=Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;
   if(navigation) {
@@ -420,7 +441,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const noteScopeOnly=ownNoteRead&&(!notes.otherQuestion||noteFees||noteNext);
     const nativeDtmOnly=isNativeDtmGradeOnlyQuestion(residual,residualRoute,residualHistory)
       &&!notes.keys.length&&!teachingSelection&&!pageContext.selected;
-    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(nativeDtmOnly||noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
+    const selectedReaderOnly=!chargesOnly&&!timetableOnly&&(dtmCompound||nativeDtmOnly||assignmentOnly||noteScopeOnly||pageContext.readerOnly||remoteOnly||repairOnly||aidOnly||teachingSelection&&!studyQuestion);
     const scopedSnapshot=()=>({checkedAt:new Date().toISOString(),profile:{userId:account.user.id}});
     if(housingOnly)stream.progress('account','Checking saved dormitory assignments','Only the requested accommodation fields and any requested fee or timetable records will be checked.');
     else if(overviewOnly)stream.progress('account','Checking your saved overview','Checking course lists and counts from your signed-in account.');
@@ -432,7 +453,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees&&!housingFees)throw error;
+        if(!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
         return {...scopedSnapshot(),charges,chargeReadUnavailable:true};
       }
@@ -504,14 +525,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return Math.min(deadline,selected);
     };
     const supplementalReaders:SupplementalAccountReaders={
+      dtmAssignment:context=>readers.dtmAssignment(account,{question:dtmCompound?.assignment?.question||assignment.selection?.question||context.question,
+        route:dtmCompound?.assignment?.route??route,history:dtmCompound?.assignment?.history??history,deadline:readDeadline(context.deadline)}),
       courseCatalog:context=>readers.courseCatalog(account,{question:residual||question,route,query:context.catalogQuery,deadline:readDeadline(context.deadline)}),
       enrollmentCertificate:context=>readers.enrollmentCertificate(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       dtmSubmissions:context=>readers.dtmSubmissions(account,{question:residual||question,route,history,snapshot:context.snapshot,deadline:readDeadline(context.deadline)}),
       studentConduct:context=>readers.studentConduct(account,{question:pageContext.questions.studentConduct||conduct.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
       studentLoan:context=>readers.studentLoan(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       aidPayments:context=>readers.aidPayments(account,{question:aid.selection?.question||residual||question,route,history,deadline:readDeadline(context.deadline)}),
-      dtmGradeReport:context=>readers.dtmGradeReport(account,{question:residual||question,route,
-        history:residualHistory,deadline:readDeadline(context.deadline)}),
+      dtmGradeReport:context=>readers.dtmGradeReport(account,{question:dtmCompound?.grades?.question||(residual||question),route:dtmCompound?.grades?.route??route,
+        history:dtmCompound?.grades?.history??residualHistory,deadline:readDeadline(context.deadline)}),
       elearningEnrollments:context=>readers.elearningEnrollments(account,{question:residual||question,route,history,deadline:readDeadline(context.deadline)}),
       facilityRepairs:context=>readers.facilityRepairs(account,{question:repairContext.repairQuestion,route,history,deadline:readDeadline(context.deadline)}),
       dormitoryConduct:context=>readers.dormitoryConduct(account,{question:pageContext.questions.dormitoryConduct||question,route,history,deadline:readDeadline(context.deadline)}),

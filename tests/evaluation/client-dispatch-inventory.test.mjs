@@ -13,7 +13,7 @@ test('the five direct readers and verified graph dispatch remain separately visi
     'certificate-awards','announcement-email','student-profile','venue-requests']);
   assert.equal(new Set(inventory.questions.map(row=>row.id)).size,25);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
-    {id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
+    {id:'dtm-assignment-detail',graphTool:'dtmAssignment'},{id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments'},{id:'facility-repairs',graphTool:'facilityRepairs'},
     {id:'dormitory-conduct',graphTool:'dormitoryConduct'},{id:'elearning-outline',graphTool:'elearningOutline'},
     {id:'fee-remission',graphTool:'feeRemission'},

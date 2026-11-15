@@ -349,6 +349,9 @@ async function createFixtureUser(index){
 export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||typeof row?.id==='string'
+    &&(row.id.startsWith('account:dtm-native-route-')||row.id.startsWith('account:dtm-assignment-native-'))))
+    fail('fixture-unsupported','Native DTM route cases require the isolated fixture and observation adapter.');
   if(cases.some(row=>row?.fixtureRequirement==='offline_native_teaching_feedback'||typeof row?.id==='string'&&row.id.startsWith('account:teaching-native-')))
     fail('fixture-unsupported','Teaching feedback requires an isolated fixture and trusted request observation; the legacy adapter cannot prepare this offline packet.');
   let transcriptCaseIds;

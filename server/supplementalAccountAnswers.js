@@ -1,3 +1,4 @@
+import {parseDtmAssignmentEvidence} from './dtmAssignmentEvidenceContract.js';
 /** Pure presentation of already validated, caller-scoped reader
  * envelopes. This is not an authorization boundary or a verification verdict.
  * Never pass raw RPC results, a workspace snapshot, or browser input here. */
@@ -20,6 +21,7 @@ const definitions={
   'account:elearningOutline':{title:['Saved remote-learning course outline','已儲存數位學園課程大綱'],path:'/elearning'},
   'account:facilityRepairs':{title:['Saved facility repair records','已儲存設施報修紀錄'],path:'/school-affairs/services/45-1/history'},
   'account:elearningEnrollments':{title:['Remote-learning Moodle enrollments','數位學園選課紀錄'],path:'/elearning/my-courses'},
+  'account:dtmAssignment':{title:['Saved DTM assignment detail','已儲存 DTM 作業明細'],path:'/dtm/assignments'},
   'account:dtmGradeReport':{title:['Local Moodle grade report','站內 Moodle 成績報告'],path:'/dtm/grades'},
   'account:aidPayments':{title:['Saved student aid and salary records','已儲存助學請款與薪資紀錄'],path:aidPaymentsPaths.claims},
   'account:courseCatalog':{title:['Published course catalog','公開課程目錄'],path:'/school-affairs/services/12-4'},
@@ -490,6 +492,7 @@ function allowedUrl(id,url){
     }catch{return false;}
   }
   if(id==='account:elearningEnrollments')return url===definitions[id].path||typeof url==='string'&&/^\/elearning\/course\/[1-9]\d{0,9}$/u.test(url)&&Number(url.split('/').at(-1))<=2147483647;
+  if(id==='account:dtmAssignment')return url==='/dtm/assignments'||typeof url==='string'&&detailRoute.test(url);
   if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
   if(id==='account:aidPayments'){
     if(typeof url!=='string')return false;
@@ -510,7 +513,8 @@ function parse(envelope){
   if(evidence.urls!==undefined&&(!Array.isArray(evidence.urls)||evidence.urls.some(url=>!allowedUrl(id,url))))invalid();
   let payload;try{payload=JSON.parse(evidence.content);}catch{invalid();}
   if(!object(payload)||typeof payload.checkedAt!=='string'||!Number.isFinite(Date.parse(payload.checkedAt)))invalid();
-  if(id==='account:tutorEvaluation')validateTutorEvaluationPayload(envelope,payload,evidence);
+  if(id==='account:dtmAssignment'){if(!parseDtmAssignmentEvidence(envelope))invalid();}
+  else if(id==='account:tutorEvaluation')validateTutorEvaluationPayload(envelope,payload,evidence);
   else if(id==='account:teachingFeedback'){if(!validateTeachingFeedbackAnswerEvidence(envelope,payload))invalid();}
   else if(id==='account:graduationClearance')validateClearancePayload(envelope,payload,evidence);
   else if(id==='account:counselingAppointments')validateCounselingPayload(envelope,payload,evidence);
@@ -1021,6 +1025,27 @@ function sectionFor(parsed,question,zh){
       section.items.push({text:'['+t('Open course','開啟課程')+']('+course.url+')',label:'Course link',group:section.group,header:false});
       section.viewCandidates.push(row(course.title,course.joinedAt));
     }
+    return section;
+  }
+  if(id==='account:dtmAssignment'){
+    section.usable=true;section.complete=p.complete;section.limited=p.omittedFields.length>0;
+    section.lead.push(t('These are saved local assignment fields, not an official university record. Tracker status does not prove a committed file or a reviewed revision. No edit, upload or submission was performed.',
+      '以下為站內儲存作業欄位，並非校方正式紀錄。追蹤狀態不代表已提交檔案或已評閱版本；未執行修改、上傳或繳交。'));
+    if(envelope.readState==='unavailable'){
+      section.lead.push(t('The assignment lookup is unavailable. The saved instructions and deadline remain unknown.',
+        '作業查詢目前無法使用，已儲存說明與截止時間仍未知。'));return section;
+    }
+    if(p.recordPresent===false){section.lead.push(t('No matching saved assignment was returned for this exact course and assignment. This does not establish absence in another course or system.',
+      '在這組確切課程與作業識別中未回傳相符站內作業，不代表其他課程或系統沒有紀錄。'));return section;}
+    const record=p.record;
+    if(own(record,'title'))group(t('Assignment','作業'),record.title);
+    for(const [key,en,cn]of [['details','Saved instructions','儲存說明'],['dueAt','Saved deadline','儲存截止時間'],['trackerStatus','Personal tracker status','個人追蹤狀態'],['trackerSubmittedAt','Personal tracker submitted time','個人追蹤繳交時間']])
+      if(own(record,key))item(t(en,cn),record[key],false,key==='details'?5000:360);
+    item(t('Record source','紀錄來源'),record.sourceMode);
+    if(own(record,'dueAt'))section.lead.push(record.dueAt===null?t('No deadline is recorded here; submission permission and lateness are unknown.','此處未記錄截止時間，能否繳交與是否遲交仍未知。')
+      :t('The saved deadline retains its recorded time-zone offset. No lateness was calculated.','儲存截止時間保留原時區偏移，未計算是否遲交。'));
+    if(p.omittedFields.length)section.lead.push(t('Some requested fields exceed the evidence limit and are not included. Open the assignment to read them.',
+      '部分要求欄位超過證據上限而未納入，請開啟作業頁查看。'));
     return section;
   }
   if(id==='account:dtmGradeReport'){

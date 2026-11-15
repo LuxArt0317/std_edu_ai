@@ -1,3 +1,4 @@
+import {assertNativeDtmCaseReady,nativeDtmRunnerCases} from './dtm-native-runner.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFile} from 'node:fs/promises';
@@ -306,7 +307,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       adapter:{forCase:async()=>{setupCalls++;return {token:'synthetic-token'};},afterCase:async()=>{}},
       pace:async(start,_signal,beforeStart)=>{await beforeStart();return start(0);},fetchImpl:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
-      URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
+      URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,assertNativeDtmCaseReady,persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);
     if(kind==='bound'){assert.equal(setupCalls,1);assert.equal(modelCalls,1);assert.equal(pinChecks,3);assert.equal(report.results[0].executed,true);}
@@ -364,11 +365,16 @@ test('full bank includes every source page and catalog entry without duplicate c
   const suite=await evaluationSuite('2026-11-13T02:00:00Z');
   assert.equal(new Set(suite.cases.map(row=>row.id)).size,suite.cases.length);
   assert.equal(suite.inventory.clientDispatch.questions.length,25);
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
+  assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_dtm_native_fixture'),nativeDtmRunnerCases());
+
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});
   assert.equal(assessment.clientDispatch.executed,0);
+  assert.equal(assessment.nativeDtmSetup.registered,32);
+  assert.equal(assessment.nativeDtmSetup.liveEligible,0);
+  assert.ok(assessment.releaseBlockers.includes('run.nativeDtmFixtureUnbound'));
   assert.ok(assessment.releaseBlockers.includes('client_dispatch_acceptance_missing'));
 
   for(const page of suite.inventory.publicPages)assert.ok(suite.cases.some(row=>row.domain==='public-page-context'&&row.route===page.route),page.route);

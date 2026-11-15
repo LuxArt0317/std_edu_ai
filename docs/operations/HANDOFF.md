@@ -600,3 +600,7 @@ Full client verification passed after190000 at129 migrations/146 RLS tables: own
 ### Issue #100 housing receipt and native Moodle grade checkpoint
 
 The isolated candidate extends the protected menu-context revision `4be7b0c`. Verify the candidate manifest and rerun Quality on its exact deployed tree. Keep production at the currently accepted revision until the signed-in model, persistence, independent review and cleanup gates pass. The protected four-turn replay remains outstanding. The receipt fixture requires the existing published period, and the new teaching cases are still unexecuted setup failures.
+
+### Issue #100 native Moodle assignment checkpoint
+
+Use the frozen assignment manifest against protected Preview base `eac8ecf0`. The change reuses the deployed assignment and grade RPCs. Verify Quality on the exact protected candidate and record the signed-in live replay separately. The native Moodle fixture and trusted reader observations must be present before the new cases can count as live coverage.

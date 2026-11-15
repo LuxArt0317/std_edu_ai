@@ -1,3 +1,4 @@
+import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
 import {buildTeachingFeedbackNativeCases,teachingFeedbackNativeManifest} from './teaching-feedback-native-cases.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
@@ -25,10 +26,16 @@ test('the bank declares all registered tools while actual DTM file fixtures rema
   const base=Object.keys(accountTools),supplemental=Object.keys(supplementalAccountTools),registered=[...base,...supplemental];
   assert.equal(base.length,18);
   assert.ok(base.includes('housingApplications'));
-  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
+  assert.deepEqual(supplemental.sort(),['aidPayments','counselingAppointments','courseCatalog','dormitoryConduct','dtmAssignment','dtmGradeReport','dtmSubmissions','elearningEnrollments','elearningOutline','enrollmentCertificate','facilityRepairs','feeRemission','graduationClearance','healthExaminations','studentConduct','studentLoan','teachingFeedback','tuition','tutorEvaluation'].sort());
   assert.equal(new Set(registered).size,registered.length,'Base and supplemental registrations must not shadow each other.');
-  const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set(cases.flatMap(row=>row.expected.requiredTools))];
+  const cases=buildAccountCases({includePlannedFeeRemission:true,includePlannedHealthExaminations:true,includePlannedCounselingAppointments:true,includePlannedClearanceApplications:true,includePlannedTutorEvaluation:true}),declared=[...new Set([...cases,...nativeDtmRunnerCases()].flatMap(row=>row.expected.requiredTools))];
   assert.deepEqual(declared.sort(),registered.filter(key=>key!=='teachingFeedback').sort());
+  const nativeDtm=nativeDtmRunnerCases();
+  assert.equal(nativeDtm.length,32);
+  assert.equal(new Set(nativeDtm.map(row=>row.id)).size,32);
+  assert.ok(nativeDtm.every(nativeDtmSetupRequired));
+  assert.deepEqual(nativeDtm.filter(row=>!row.route.startsWith('/dtm/')).map(row=>[row.id,row.route]),[['account:dtm-native-route-followup','/']]);
+  for(const row of nativeDtm)assert.throws(()=>assertNativeDtmCaseReady(row),/fixture and independent request observations/u);
   assert.ok(buildTeachingFeedbackNativeCases().some(row=>row.toolPolicy.required.includes('teachingFeedback')));
   assert.equal(teachingFeedbackNativeManifest.mounted,false);
   const actualFileCases=cases.filter(row=>row.expected.requiredTools.includes('dtmSubmissions'));

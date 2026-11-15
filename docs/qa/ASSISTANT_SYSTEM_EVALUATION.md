@@ -40,6 +40,7 @@ Runtime and question-bank fingerprints accompany reports. A source change during
 
 ## Repairs under evaluation
 
+- Native Moodle assignment and grade clauses select distinct readers and use field-level references. Failed verification withholds the new scoped result cards. The 32 native Moodle questions count toward the suite, and their independent live fixture remains pending.
 - The LangGraph retry can reconsider omitted read tools, refresh owned records, and perform one correction followed by a second verification. Retry cannot change the original proposed action or initiate a new public search.
 - Question, record reference, course, academic term and route selection happen before byte budgeting. Whole records, ownership, parent/child lineage and explicit omission counts survive the bounded evidence projection. Citation destinations come only from included records.
 - Saved notes can be queried across all service trackers. A local note, filed tracking status or personal assignment flag is never evidence of an official submission, approval or payment.

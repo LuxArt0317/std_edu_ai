@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Verify the saved Moodle assignment title, instructions, deadline and tracker fields from its exact course and assignment. Check native grade questions independently in the same reply, and withhold these results when verification fails. [#100]
+- Register 32 native Moodle assignment and grade questions in the systemwide evaluation. Report missing live fixture coverage explicitly. [#100]
+
 - Verify saved housing application receipts, submission times and academic terms separately from dormitory bed assignments. Keep related Moodle grades, tuition and the next class tied to their own sources. [#100]
 - Read native Moodle grades directly for focused grade questions. Preserve listed, blank, zero and unavailable grade values, and refresh the same source if the first verification fails. [#100]
 - Add independent housing receipt, native Moodle and teaching feedback evaluation cases. The report tracks unmounted teaching fixtures as unresolved. [#100]

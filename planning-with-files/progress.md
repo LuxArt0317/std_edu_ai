@@ -1,5 +1,7 @@
 # Progress
 
+- 2026-11-15 [#100] Recovered the assignment and combined Moodle evaluation work after a restart, verified source hashes, and moved the candidate to a disk-backed checkout. Checked scoped routing and verification through the actual handler with controlled records and reviewers.
+
 - 2026-11-14 [#98] Measured the university aid and salary tables. Applied the scoped migration after rollback verification and verified local navigation, pagination, masking, retry and account boundaries.
 
 - 2026-11-14 [#98] Applied the activity-purpose migration after rollback verification. The authenticated SQL and local HTTP checks verified the classified activity lists, account isolation and fixture cleanup.
