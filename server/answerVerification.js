@@ -7,6 +7,15 @@ const VerificationState = Annotation.Root({
 const standardChecks = 2;
 const deeperReviewBudgetMs = 18_000;
 const deeperReviewReasons = new Set(['unsupported_claims', 'no_supported_answer', 'snapshot_provenance_missing', 'verification_output_limit']);
+const reviewFailureDetails = new Map([
+  ['unsupported_claims', 'Some claims could not be matched to the available evidence.'],
+  ['no_supported_answer', 'The available evidence did not answer the requested detail.'],
+  ['snapshot_provenance_missing', 'The draft did not establish when the source was captured.'],
+  ['evidence_unavailable', 'The evidence needed for this check was unavailable.'],
+  ['verification_output_limit', 'The reviewer reached its output limit.'],
+  ['verification_timeout', 'The reviewer ran out of time.'],
+  ['verifier_unavailable', 'The reviewer could not complete this check.'],
+]);
 
 export function unverifiedAnswer(question, candidate, activity, attempts, reason) {
   const chinese = /[\u3400-\u9fff]/.test(question);
@@ -90,8 +99,9 @@ export async function runAnswerVerification({
             : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
           verdict = { ok: false, reason };
         }
-        emit(`verification-${state.attempt}`, verdict.ok ? 'Answer checked against evidence' : 'Answer could not be verified',
-          verdict.ok ? 'The answer passed the evidence checks.' : 'The current draft was withheld.', verdict.ok ? 'complete' : 'unavailable');
+        emit(`verification-${state.attempt}`, verdict.ok ? 'Answer checked against evidence' : 'Draft did not pass verification',
+          verdict.ok ? 'The answer passed the evidence checks.' : reviewFailureDetails.get(verdict.reason) || 'This draft did not pass the evidence checks.',
+          verdict.ok ? 'complete' : 'unavailable');
       } else {
         verdict ||= { ok: false, reason: 'timeout' };
         emit(`verification-preparation-${state.attempt}`, 'Could not prepare an answer to check',
@@ -103,7 +113,7 @@ export async function runAnswerVerification({
     .addNode('retry', state => {
       if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
         'Reconsidering the unresolved claims using the same authorized evidence.');
-      else emit('verification-retry', 'Rechecking and correcting the answer', 'Reloading the evidence and preparing one corrected draft.');
+      else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
       return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.reason };
     })
     .addEdge(START, 'retrieve')

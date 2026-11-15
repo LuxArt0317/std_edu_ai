@@ -30,6 +30,7 @@ test('LangGraph rejects a wrong draft, reloads records, corrects, and verifies a
   assert.deepEqual(result.verification,{status:'verified',attempts:2});
   assert.deepEqual(result.proposedAction,draft.proposedAction); // Only proposed, never executed.
   assert.ok(steps.some(step=>step.kind==='verification-retry'));
+  assert.equal(result.activity?.[0]?.detail,'Some claims could not be matched to the available evidence.');
   assert.deepEqual(result.activity?.map(step=>step.kind),['verification-1','verification-retry','verification-2']);
 });
 
