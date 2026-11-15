@@ -2,6 +2,7 @@ import type { PortalProgram } from './model';
 
 export const leavePath: string;
 export const teachingAssistantPath: '/school-affairs/services/25-1';
+export const learningSupportPath: '/school-affairs/services/27-1';
 export const tutorEvaluationPath: '/school-affairs/services/28-1';
 export const schoolSubjectRecordsPath: '/school-affairs/records/subjects';
 export const interdisciplinaryProgramsPath: '/school-affairs/services/12-6';

@@ -33,6 +33,7 @@ test('the four direct readers and verified graph dispatch remain separately visi
     {id:'counseling-appointments',graphTool:'counselingAppointments'},
     {id:'graduation-clearance',graphTool:'graduationClearance'},
     {id:'tutor-evaluation',graphTool:'tutorEvaluation'},
+    {id:'learning-support-requests',graphTool:'learningSupport'},
     {id:'student-conduct',graphTool:'studentConduct'},
     {id:'local-service-notes',graphTool:'serviceRecords'},
     {id:'teaching-feedback',graphTool:'teachingFeedback'},
@@ -84,6 +85,8 @@ test('native questions require the fields the reader actually supplies and discl
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/clearanceEvidenceIntent.js'));
   assert.ok(inventory.verifiedDispatch.some(row=>row.id==='tutor-evaluation'&&row.graphTool==='tutorEvaluation'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/tutorEvaluationEvidenceIntent.js'));
+  assert.deepEqual(inventory.verifiedDispatch.find(row=>row.id==='learning-support-requests').serviceKeys,['27-1']);
+  assert.ok(inventory.sourceManifest.some(row=>row.path==='server/learningSupportAssistant.js'));
   assert.deepEqual(inventory.verifiedDispatch.find(row=>row.id==='local-service-notes').serviceKeys,['27-1','30-1','30-2','31-1','31-2','32-1','35-1']);
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/serviceNoteIntent.js'));
   assert.equal(inventory.navigationOnly.some(row=>row.scopes.includes('counseling-appointments')),false);

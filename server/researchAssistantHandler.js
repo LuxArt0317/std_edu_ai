@@ -1,3 +1,5 @@
+import {learningSupportGuest} from './learningSupportAssistant.js';
+import {learningSupportQuestion} from './learningSupportAssistantIntent.js';
 import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
 import {catalogDetailGuestRoute,catalogDetailIntent} from './catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestPlan} from './venueRequestIntent.js';
@@ -511,6 +513,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if(leave){stream.send(200,studentLeaveGuestAnswer(leave,input.question));return;}
         const internship=!input.images.length&&internshipAssistantPlan(input.question,input.route,input.history);
         if(internship){stream.send(200,internshipGuestAnswer(internship,input.question));return;}
+        const learningSupport=!input.images.length&&learningSupportQuestion(input.question,input.route);
+        if(learningSupport){stream.send(200,learningSupportGuest(learningSupport));return;}
         const noteDestination=!input.images.length
             ?serviceNoteNavigationAnswer(input.question,serviceNotePageNavigation(input.question,input.route),false)
                 ??serviceNoteNavigationAnswer(input.question,serviceOperationPageNavigation(input.question,input.route),false,false):null;

@@ -14,10 +14,18 @@ Migration `20261116100000_learning_support_requests.sql` adds owner-only rows an
 
 Each response binds the request ID, record ID, local status and version. Reuse the same request ID and payload after an uncertain response. A changed payload, expired record version, or disallowed transition returns a conflict.
 
+## Workspace and assistant
+
+Students can submit, view and withdraw their own requests at `/school-affairs/services/27-1`. The page links to tracking notes at `/school-affairs/services/27-1/notes`. Authorized administrators can open `/school-affairs/services/27-1/review`. Each write requires confirmation. The confirmation retains the same command for a retry after an uncertain response.
+
+Ask the campus assistant “What is my learning support application status?” or “How many learning support requests do I have?” The status answer identifies the most recently updated saved request. The assistant checks the existing School Affairs session, uses saved status and count, and links to the 27-1 workspace. The topic, request text and review note stay in the workspace.
+
 ## Verification
 
 ```sh
 node --test tests/evaluation/learning-support-workflow.test.mjs
+node --test tests/evaluation/learning-support-assistant.test.mjs
+npx tsx --tsconfig tsconfig.unit.json --test tests/unit/learning-support-routing.test.tsx
 npm run typecheck:api
 ```
 

@@ -1,3 +1,4 @@
+import {learningSupportQuestion} from '../../server/learningSupportAssistantIntent.js';
 import {parseExplicitAccountAction} from '../../server/accountActionIntent.js';
 import {accountStatusIntent} from '../../server/accountStatusIntent.js';
 import {campusEntryIntent} from '../../server/campusEntryContract.js';
@@ -82,7 +83,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question)
     ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question)
     ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
-    ||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
+    ||learningSupportQuestion(question,route)||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
     ||isTeachingFeedbackScopeQuestion(question,route,history)
     ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history)||clubAttendanceSelection(question,route)||clubEquipmentPlan(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);

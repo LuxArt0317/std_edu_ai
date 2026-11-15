@@ -132,6 +132,7 @@ export function inspectClientDispatchSource(source){
     clearanceQuestion:['graduationClearanceContract','question'],
     isTutorEvaluationEvidenceQuestion:['tutorEvaluationEvidenceIntent','question,route,history'],
     tutorEvaluationNavigation:['tutorEvaluationEvidenceIntent','question'],
+    learningSupportQuestion:['learningSupportAssistantIntent','question,route'],
     isStudentConductScopeQuestion:['studentConductEvidenceScope','question,route,history'],
     isServiceNoteEvidenceQuestion:['serviceNoteIntent','question,route,history'],
     isTeachingFeedbackScopeQuestion:['teachingFeedbackEvidenceIntent','question,route,history'],
@@ -174,6 +175,7 @@ export function inspectClientDispatchSource(source){
     {id:'counseling-appointments',graphTool:'counselingAppointments',source:dispatchPath,line:first.line},
     {id:'graduation-clearance',graphTool:'graduationClearance',source:dispatchPath,line:first.line},
     {id:'tutor-evaluation',graphTool:'tutorEvaluation',source:dispatchPath,line:first.line},
+    {id:'learning-support-requests',graphTool:'learningSupport',serviceKeys:['27-1'],source:dispatchPath,line:first.line},
     {id:'student-conduct',graphTool:'studentConduct',serviceKeys:['38-1'],source:dispatchPath,line:first.line},
     {id:'local-service-notes',graphTool:'serviceRecords',serviceKeys:['27-1','30-1','30-2','31-1','31-2','32-1','35-1'],source:dispatchPath,line:first.line},
     {id:'teaching-feedback',graphTool:'teachingFeedback',serviceKeys:['7-5','7-6'],source:dispatchPath,line:first.line},
@@ -215,6 +217,7 @@ export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const sources=[...new Set([dispatchPath,apiPath,'server/campusEntryContract.js','server/learningEntryContract.js','server/accountStatusIntent.js','server/accountStatusAnswer.js','server/clubAttendanceIntent.js','server/accountClubAttendanceAnswer.js','server/clubEquipmentIntent.js','server/accountClubEquipmentAnswer.js','server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/elearningMetadataIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
+    'server/learningSupportAssistantIntent.js','server/learningSupportAssistant.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
     'src/features/public/elearning/ElearningWorkspace.tsx'])];
   const entries=await Promise.all(sources.map(async path=>[path,await read(path)]));

@@ -1,3 +1,5 @@
+import {answerLearningSupport} from '../server/learningSupportAssistant.js';
+import {learningSupportQuestion} from '../server/learningSupportAssistantIntent.js';
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
 import {openVenueObservation,venueObservationHeader} from '../server/venueObservation.js';
 import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
@@ -633,6 +635,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return;
     }
     question=ownCoursesBesideForeignYear;history=[];
+  }
+  const learningSupport=learningSupportQuestion(question,route);
+  if(learningSupport){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about saved learning support requests with text.'});return;
+    }
+    try{
+      stream.send(200,await answerLearningSupport({account,selection:learningSupport,question,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'Your saved learning support requests could not be checked.'});}
+    return;
   }
   const noteDestination=!(Array.isArray(input?.images)&&input.images.length)
     ?serviceNoteNavigationAnswer(question,serviceNotePageNavigation(question,route),true)
