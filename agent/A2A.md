@@ -925,3 +925,9 @@ disposal passed. Combined protected `6f9fb5e` includes the failed public lead
 recovery, captured-page recheck, exact club action, and native Moodle timing.
 Keep the disposable club read replay serialized. Public production was
 reverified at `076c79a`.
+
+Protected `6f9fb5e` is Ready and the five public stream probes finished.
+The paired club read packet passed 9/9 with exact cleanup and the protected
+owner unchanged. The shared club read fixture lease has been released.
+The confirmed cancellation browser proof still needs an actual protected
+mutation replay. Production still serves `076c79a`.

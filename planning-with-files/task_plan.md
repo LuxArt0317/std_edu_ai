@@ -845,7 +845,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Pass the protected paired student scope, monthly assistant and fixture cleanup replay.
 - [ ] Verify the hosted finance manager path using an approved synthetic manager identity.
 - [x] Verify scoped club equipment reads and exact confirmed cancellation locally through the assistant, including zero pre-confirmation writes and a stable retry ID.
-- [ ] Complete the protected equipment read and cancellation replays with independent record readback and fixture cleanup.
+- [x] Pass all nine protected equipment read checks on `6f9fb5e` with paired owner readbacks and exact fixture cleanup.
+- [ ] Verify confirmed equipment cancellation against disposable records on protected Preview.
 - [x] Verify exact Moodle submission timing locally, including prior deadline, date boundaries and ambiguous revision questions.
 - [ ] Replay signed-in Moodle submission timing on the protected deployment.
 
@@ -875,4 +876,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Recover when the first batch of fresh public sources is unreadable after two managed checks. Cover a transient reread, a previously unread lead, and a timed stop.
 - [x] Allow a deeper check for the same archived page, with a regression proving identical capture contents and no web search.
-- [ ] Replay both paths on the new protected Preview and verify the public manifest before promotion.
+- [x] Replay five public queries on protected `6f9fb5e`, including the captured student page and a fresh evidence read after a rejected storage draft.
+- [ ] Complete broader protected acceptance before promotion. The public manifest still serves `076c79a`.
