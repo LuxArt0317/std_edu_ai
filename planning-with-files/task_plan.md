@@ -942,4 +942,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay four pinned public questions on exact protected `0c0ac77`. Verify the OneDrive reply recovered on check three, pursued another lead and kept its verified partial. Confirm both archive languages.
 - [x] Correct the library source selection and response language in controlled real-handler tests, including independently readable primary contents and human-verification fallback.
 - [x] Follow another eligible publisher after a known notice sign-in gate and an empty targeted search. Verify exact recovery, exhausted search, deadline, and non-gated controls.
+- [x] Reproduce the hard two-check stop on the production code revision. Verify a third check using already-read evidence in the remaining time and a fourth after discovering a different publication. Preserve actual review counts, saved activity and the final stop reason.
+- [x] Verify the revised Teaching Feedback, equipment routes and Conduct counts on the same protected revision with exact scoped read and cleanup proofs.
+- [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
