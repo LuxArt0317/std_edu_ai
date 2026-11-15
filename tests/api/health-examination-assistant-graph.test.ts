@@ -281,6 +281,10 @@ test('named charges keep the exact health page, question order and deliberate he
     assert.deepEqual(actual.body.verification,{status:'verified',attempts:targetPage?1:2});
     const graded=gradeCase(testCase,{body:actual.body,statusCode:actual.status,events:actual.steps,execution:'deterministic',fixtureKey:testCase.fixtureKey});
     assert.equal(graded.passed,true,JSON.stringify(graded.failures));
+    if(targetPage){
+      const healthCode=targetPage===1?'QA HEALTH A-01':'QA HEALTH PAGE 26';
+      assert.equal(actual.body.answer.indexOf(healthCode)<actual.body.answer.indexOf('QA Health Tuition instalment'),targetPage===1);
+    }
     const ownedReads=['/rest/v1/affairs_charges','/rest/v1/affairs_students'];
     const expected=targetPage?[...ownedReads,'/rest/v1/rpc/affairs_read_health_examinations']:[...ownedReads,...ownedReads,'review'];
     assert.deepEqual(calls.sort(),expected.sort());
