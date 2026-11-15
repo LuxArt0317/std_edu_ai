@@ -900,7 +900,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Preserve complete Internship and tuition facts in both question orders. Exercise both through the actual handler and unchanged independent grader.
 - [ ] Run both corrected Internship and tuition questions on protected Preview with signed source and owner readbacks.
-- [ ] Correct the class-first Internship and timetable answer and rerun both published timetable question orders.
+- [x] Correct the class-first Internship and timetable answer. Preserve complete next meeting facts in both question orders and retain scoped review for an incomplete or ambiguous timetable.
+- [ ] Replay both published timetable question orders on protected Preview with the independent Taipei clock and caller-bound rows.
 - [x] Bind separate teaching feedback and venue packets to scoped disposable records. Test the signed observations and both caller boundaries.
 - [ ] Replay the 11 teaching feedback questions and seven venue questions on protected Preview. Preserve the distinct role, workspace, and unmounted case requirements.
 
