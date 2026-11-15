@@ -33,11 +33,14 @@ The actual-handler evaluator verifies own and manager query boundaries, rejected
 
 ## Protected Preview evaluation
 
-The 17-case packet in `tests/evaluation/learning-support-native-packet.mjs` is ready for a protected operator to supply four adapters.
+The dedicated runner uses the existing client fixture lease with two disposable Google accounts. It checks the applied `20261116100000` version, RLS policies and required SQL permissions before creating either account.
 
-- `readRaw` uses `readLearningSupportNativeRows` and the two exact disposable owners. Seed the three reserved requests and record their identity lease, row IDs and original values in the private fixture journal before evaluating.
-- `readNative` reads the paired `/api/affairs-data?scope=learning-support&page=1` pages with each account’s own token. The packet compares the two pages to the independent SQL snapshot.
-- `ask` uses the signed-in endpoint for A or B and the public endpoint for the guest handoff. Pass the response status, JSON thread activity, and signed-in correlation ID to the packet.
-- `confirm` dispatches the oracle’s exact native action to `/api/affairs-action`. Bind one `confirmedLearningSupportCommand` per deliberate POST to that caller token and unchanged JSON body. Persist the proposed row ID, expected version and operation ID before the first action probe. A repeated attempt gets a fresh relay for the same command.
+Run from the exact clean revision deployed to the approved protected Preview. The operator uses the project’s existing Vercel Development OIDC and fixture credentials.
 
-An operator must hold the existing client fixture lease, verify the exact clean deployment and applied migration, and recheck the pinned origin and release throughout the run. Cleanup must compare the full original or once-withdrawn fixture snapshot under the native actor locks, then remove the exact synthetic rows, receipts and identities. Keep credentials, raw fixtures and real caller fields out of the report. Hosted acceptance requires the 17 case results and verified cleanup. The transport and paired oracle run offline with `node --test tests/evaluation/vercel-preview-transport.test.mjs tests/evaluation/learning-support-native-packet.test.mjs`.
+```sh
+node tests/evaluation/run-learning-support-preview.mjs APPROVED_PREVIEW_ORIGIN FULL_SOURCE_REVISION
+```
+
+The 17-case packet compares both native page responses with independent SQL readbacks before and after each question or action. It journals the proposed command before the first action probe and binds each deliberate POST to its exact caller, payload and origin. Acceptance requires an exact pinned release for all application requests, a single mutation and operation receipt, byte-identical replay, and verified removal of the three synthetic requests, their operation, and both identities. The runner checks the protected administrator fingerprint during setup and cleanup.
+
+The redacted report is written to `artifacts/assistant-evaluation/`. A private recovery ledger is retained if the exact SQL cleanup cannot be proven. The packet and transport can be exercised offline with `node --test tests/evaluation/learning-support-native-packet.test.mjs tests/evaluation/learning-support-preview.test.mjs tests/evaluation/vercel-preview-transport.test.mjs`.

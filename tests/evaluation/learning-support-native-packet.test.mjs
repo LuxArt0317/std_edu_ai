@@ -126,3 +126,18 @@ test('independent 27-1 evidence rejects a duplicate stored operation even when t
   const {options}=mount(t,{duplicateOnReplay:true});
   await assert.rejects(verifyLearningSupportNativePacket(options),/replay-after-exact-raw-state/u);
 });
+
+test('the native packet refuses every confirmation if exact withdrawal journaling fails',async t=>{
+  const {options}=mount(t);
+  const seen=[];
+  await assert.rejects(verifyLearningSupportNativePacket({...options,
+    async markWithdrawal(command){
+      seen.push(command);
+      throw Error('synthetic journal failure');
+    },confirm(){assert.fail('Confirmation started without a durable withdrawal journal');},
+  }),/synthetic journal failure/u);
+  assert.equal(seen.length,1);
+  assert.equal(seen[0].payload.id,options.plan.target.id);
+  assert.equal(seen[0].payload.expected_version,2);
+  assert.deepEqual((await options.readRaw()).operations,[]);
+});

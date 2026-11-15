@@ -14,8 +14,32 @@ const clock=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',dateStyle:'s
 const digest=value=>createHash('sha256').update(JSON.stringify(value,(_name,item)=>
   item&&typeof item==='object'&&!Array.isArray(item)?Object.fromEntries(Object.entries(item).sort()):item)).digest('hex');
 const ordered=(rows,key)=>[...rows].sort((a,b)=>key(a).localeCompare(key(b)));
-const check=(condition,stage)=>{if(!condition)throw new Error('Learning support evaluation failed at '+stage+'.');};
+export class LearningSupportPacketError extends Error{
+  constructor(stage){super('Learning support evaluation failed at '+stage+'.');this.stage=stage;}
+}
+const check=(condition,stage)=>{if(!condition)throw new LearningSupportPacketError(stage);};
 const timestamp=value=>typeof value==='string'&&Number.isFinite(Date.parse(value));
+
+export function learningSupportWithdrawalSnapshot(plan,raw,command){
+  const target=plan.target,owner=plan.owners.A,payload=command?.payload;
+  check(command?.kind===kind&&Object.keys(command).sort().join()==='kind,payload'
+    &&payload&&Object.keys(payload).sort().join()==='expected_version,id,request_id'
+    &&payload.id===target.id&&payload.expected_version===target.version&&uuid.test(payload.request_id)
+    &&![plan.runId,plan.staleRequestId,...Object.values(plan.owners),...plan.rows.map(row=>row.id)].includes(payload.request_id),
+    'journaled-withdrawal-binding');
+  const changedRow=raw.rows.find(row=>row.id===target.id),operation=raw.operations[0];
+  check(timestamp(changedRow?.updated_at)&&Date.parse(changedRow.updated_at)>Date.parse(target.updated_at)
+    &&timestamp(operation?.occurred_at)&&Date.parse(operation.occurred_at)>Date.parse(target.updated_at)
+    &&Date.parse(operation.occurred_at)<=Date.parse(changedRow.updated_at),'confirmed-row-and-operation-time');
+  const version=target.version+1,receipt={id:target.id,requestId:payload.request_id,status:'withdrawn',version};
+  return {rows:ordered(plan.rows.map(row=>row.id===target.id?{...row,status:'withdrawn',version,updated_at:changedRow.updated_at}:row),row=>row.id),
+    operations:[{actor:owner,request_id:payload.request_id,target_id:target.id,kind:'withdraw',payload,result:receipt,occurred_at:operation.occurred_at}]};
+}
+
+export function learningSupportNativeBaseline(plan){
+  return {rows:ordered(plan.rows,row=>row.id),operations:[]};
+}
+
 
 export function buildLearningSupportNativePlan(runId,{A,B}){
   check([runId,A,B].every(value=>uuid.test(value))&&new Set([runId,A,B]).size===3,'fixture-identities');
@@ -59,10 +83,10 @@ const statusQuestion='What is the status of my learning support request?';
 const selectQuestion='Withdraw my learning support request.';
 const requestById=id=>'Withdraw my learning support request with ID '+id+'.';
 
-export async function verifyLearningSupportNativePacket({plan,readRaw,readNative,ask,confirm}){
+export async function verifyLearningSupportNativePacket({plan,readRaw,readNative,ask,confirm,markWithdrawal,onResult}){
   const owner=plan.owners.A,other=plan.owners.B,target=plan.target;
   const baseline=await readRaw();
-  check(isDeepStrictEqual(baseline,{rows:ordered(plan.rows,row=>row.id),operations:[]}),'independent-owner-fixture-baseline');
+  check(isDeepStrictEqual(baseline,learningSupportNativeBaseline(plan)),'independent-owner-fixture-baseline');
   let expected=baseline,command;
   const results=[],correlations=new Set();
   const privateValues=[owner,other,plan.runId,plan.staleRequestId,...plan.rows.flatMap(row=>[row.id,row.topic,row.details,row.review_note])].filter(Boolean);
@@ -90,22 +114,12 @@ export async function verifyLearningSupportNativePacket({plan,readRaw,readNative
     if(action&&status===200&&masked.body?.id===target.id)masked.body.id='[validated receipt]';
     check(privateValues.every(value=>!JSON.stringify(masked).includes(value)),stage+'-privacy');
     check(verify(body,activity??[],before),stage+'-answer-or-receipt');
-    if(changes){
-      const raw=await readRaw();
-      const changedRow=raw.rows.find(row=>row.id===target.id);
-      const operation=raw.operations[0];
-      const receipt={id:target.id,requestId:command.payload.request_id,status:'withdrawn',version:3};
-      check(timestamp(changedRow?.updated_at)&&Date.parse(changedRow.updated_at)>Date.parse(target.updated_at)
-        &&timestamp(operation?.occurred_at),'confirmed-row-and-operation-time');
-      expected={rows:ordered(plan.rows.map(row=>row.id===target.id?{...row,status:'withdrawn',version:3,updated_at:changedRow.updated_at}:row),row=>row.id),
-        operations:[{actor:owner,request_id:command.payload.request_id,target_id:target.id,kind:'withdraw',payload:command.payload,
-          result:receipt,occurred_at:operation.occurred_at}]};
-    }
+    if(changes)expected=learningSupportWithdrawalSnapshot(plan,await readRaw(),command);
     const after=await observe(stage+'-after');
     const row={caseId,passed:true,before:digest(before),after:digest(after),request:digest(action??{query,page}),
       ...(action&&status===200?{receipt:digest(body)}:{})};
     check((row.before!==row.after)===changes,stage+'-change-cardinality');
-    results.push(row);return body;
+    results.push(row);await onResult?.(row);return body;
   }
 
   const checkedRows=activity=>activity.some(step=>step.kind==='account-read:learningSupport:1'&&step.status==='complete');
@@ -144,6 +158,7 @@ export async function verifyLearningSupportNativePacket({plan,readRaw,readNative
       })&&checkedRows(activity);
   });
   command={kind,payload:{id:target.id,expected_version:2,request_id:proposed.proposedAction.requestId}};
+  await markWithdrawal?.(structuredClone(command));
   const stale={kind,payload:{...command.payload,expected_version:1,request_id:plan.staleRequestId}};
   const receipt={id:target.id,requestId:command.payload.request_id,status:'withdrawn',version:3};
   const exactReceipt=body=>isDeepStrictEqual(body,receipt);
