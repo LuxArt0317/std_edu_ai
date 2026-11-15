@@ -87,7 +87,7 @@ import { createAssistantStream } from "./assistantStream.js";
 import { normalizeMissingDetails, runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
-import { createPublicSchoolSourceLeads } from "./publicSchoolSourceLeads.js";
+import { createPublicSchoolSourceLeads, officialSchoolLeadUrl } from "./publicSchoolSourceLeads.js";
 import {findOfficialLibraryServiceLeads, libraryAnswerLanguage, libraryAnswerMatchesLanguage} from './publicLibrarySources.js';
 import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
@@ -1170,7 +1170,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const retainedIds = new Set(retainedSources.map(source => source.id));
             const checkedSources = new Map((capture ? candidate.citations : retainedCitations).map(citation => [citation.chunkId, citation]));
             const canonicalUrl = url => safeWebSource(url)?.replace(/\/(?=\?|$)/u, '');
-            const seenUrls = new Set([...(capture ? [canonicalUrl(capture.originalUrl)] : []), ...retainedSources.map(source => canonicalUrl(source.url))]);
+            // A reviewed excerpt is not a read of the original page. A safe,
+            // tool-discovered school URL can still provide missing details.
+            const seenUrls = new Set([
+                ...(capture ? [canonicalUrl(capture.originalUrl)] : []),
+                ...retainedSources.filter(source => !officialSchoolLeadUrl(source.url)).map(source => canonicalUrl(source.url)),
+            ]);
             const readAttempts = new Map();
             const pendingLeads = new Map([...leads, ...candidate.citations].map(lead => [canonicalUrl(lead.url), lead]));
             const canRead = url => Boolean(url) && !seenUrls.has(url) && !sourceLeads?.isBlocked(url) && (readAttempts.get(url) || 0) < 2;
@@ -1181,13 +1186,21 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 managedPartial?.progress.set(step.kind, step);
                 verificationProgress(step);
             };
-            const normalizeText = content => content.normalize('NFKC').replace(/\s+/gu, ' ').trim();
-            const retainedText = retainedSources.map(source => normalizeText(JSON.parse(source.content).content));
+            function normalizedEvidenceText(source) {
+                let content = source.content;
+                if (managedPartial && (retainedIds.has(source.id) || source.capturedOn)) {
+                    // Compare the page body, without counting capture or
+                    // managed-source metadata as new factual information.
+                    try { content = JSON.parse(content)?.content; } catch { return ''; }
+                }
+                return typeof content === 'string' ? content.normalize('NFKC').replace(/\s+/gu, ' ').trim() : '';
+            }
+            const retainedText = retainedSources.map(normalizedEvidenceText);
             function newEvidence(sources) {
-                const existing = new Set([...retainedText, ...evidence.map(source => normalizeText(source.content))]);
+                const existing = new Set([...retainedText, ...evidence.map(normalizedEvidenceText)]);
                 return sources.filter(source => {
-                    const content = normalizeText(source.content);
-                    if (existing.has(content)) return false;
+                    const content = normalizedEvidenceText(source);
+                    if (!content || existing.has(content)) return false;
                     existing.add(content);
                     return true;
                 });
