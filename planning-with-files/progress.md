@@ -32,3 +32,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Exact `3a27235` passed international services 10/10 and Attendance 9/10, with 20 matching pins, Quality and both cleanup proofs. The claimed term absence hours for the named course now use direct scoped records in controlled tests. The original compact monthly payment phrase and all 12 frozen Course Selection prompts pass locally. Stage a separate cumulative protected revision.
 
 - 2026-11-16 [#100] Exact `5e6af59` passed Attendance 10/10, Course Selection 12/12, six paired monthly answers and five access checks. All 33 release pins, three disposals, and Quality 43757754637 passed. Local payment history browser checks and the eight opt-in suites passed with isolated database setup. Production still serves `076c79a`.
+
+- 2026-11-16 [#100] Bound the two frozen 52-1 browser questions to the independent aggregate response oracle. Pinned a 36-asset preflight to `5e6af59`; controlled Chromium and migrated PostgreSQL passed. Mounted the one-case-per-lease browser replay and durable save proof for the next protected revision.

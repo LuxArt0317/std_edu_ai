@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {isAbsolute} from 'node:path';
+import {mkdtemp,readFile} from 'node:fs/promises';
+import {isAbsolute,join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {test} from 'node:test';
 import {pathToFileURL} from 'node:url';
 import dataHandler from '../../api/affairs-data.ts';
@@ -10,6 +11,9 @@ import {bindCertificateAwardBrowserCase,bindCertificateAwardPreviewCases,buildCe
   requestCertificateAwardPreviewCase,seedCertificateAwardPreview,verifyCertificateAwardPreviewAbsent} from './certificate-award-preview.mjs';
 import {prepare,runCertificateAwardPreview} from './live-fixtures.mjs';
 import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
+import {createCertificateBrowserSaveJournal} from './certificate-browser-preview.mjs';
+import {verifyProtectedCertificateBrowserSave} from './certificate-browser-turn.mjs';
+import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 
 const runtime=process.env.STU_CERTIFICATE_TEST_PGLITE_ENTRY;
 const runId='4ce10000-0000-4000-8000-000000000001';
@@ -47,6 +51,8 @@ test('the packet freezes caller, route, language and positive and denied status 
 test('the shared lifecycle and operator refuse alternate targets or case payloads before fixture setup',async()=>{
   await assert.rejects(runCertificateAwardPreview({origin:'https://stu.best',sourceRevision:revision}),{code:'fixture-config'});
   await assert.rejects(runCertificateAwardPreview({origin,sourceRevision:'partial'}),{code:'fixture-config'});
+  await assert.rejects(runCertificateAwardPreview({origin,sourceRevision:revision,browserCase:'client:certificate-awards:foreign',artifactDirectory:'/tmp'}),{code:'fixture-config'});
+  await assert.rejects(runCertificateAwardPreview({origin,sourceRevision:revision,browserCase:certificateBrowserCaseIds[0]}),{code:'fixture-config'});
   const prepareArgs={runId,cases:[],now:'2026-11-16T00:00:00Z',origin,approvedPreviewOrigin:origin,
     expectedReleaseRevision:revision,fixtureMode:certificateAwardPreviewMode};
   await assert.rejects(prepare(prepareArgs),{code:'fixture-config'});
@@ -156,6 +162,30 @@ test('migrated PostgreSQL verifies the eight native cases and two original brows
     assert.deepEqual(await observe(),initial);
     assert.doesNotMatch(JSON.stringify(result),/PRIVATE NOTE|example\.invalid|synthetic-certificate-caller/u);
   }
+  const multipart=browserBindings[1],question=multipart.testCase.question;
+  const requestPath='/api/affairs-data?scope=certificate-awards&view=mine&answer=en&bank_receipt=requested';
+  const wire=await appFetch(new URL(requestPath,origin),{headers:{Authorization:'Bearer '+users[0].token},method:'GET'});
+  const raw=await wire.json(),bytes=Buffer.from(JSON.stringify(raw));
+  const id='4ce10000-0000-7000-8000-000000000004',messageId='4ce10000-0000-4000-8000-000000000005';
+  const payload={id,title:question.slice(0,80),version:0,messages:sanitizeStoredConversation([
+    {id:'u-'+messageId,role:'user',content:question,images:[]},
+    {id:'a-'+messageId,role:'assistant',phase:'complete',content:raw.answer,result:raw,activity:raw.activity},
+  ])};
+  const requestSequence=39;
+  const expected=verifyProtectedCertificateBrowserSave({payload,question,assistantResponse:bytes,requestSequence,bankReceipt:true});
+  const {journal,reserveSave,receiveSave,expected:committed}=await createCertificateBrowserSaveJournal({
+    directory:await mkdtemp(join(tmpdir(),'stu-certificate-save-test-')),runId,ownerId:owners.A.id,conversationId:id,sourceRevision:revision,bound:multipart,
+  });
+  t.after(()=>journal.close());
+  await assert.rejects(reserveSave({payload,expected,assistantResponse:bytes,requestSequence,requestPath:requestPath+'&id='+plan.targets.newer}));
+  await reserveSave({payload,expected,assistantResponse:bytes,requestSequence,requestPath});
+  assert.equal((await journal.read()).entries[0].received,null);
+  const updatedAt='2026-11-16T00:00:00Z';
+  await receiveSave({status:200,certificateReceipt:{id,version:1,updatedAt},
+    body:Buffer.from(JSON.stringify({...payload,version:1}))});
+  assert.ok((await journal.read()).entries[0].received);
+  assert.equal(committed().updatedAt,updatedAt);
+
   await db.query('update public.affairs_certificate_applications set review_note = $1 where id = $2',['UNEXPECTED',plan.targets.selected]);
   await assert.rejects(deleteCertificateAwardPreview(sql,plan),/does not match/u);
   await db.query('update public.affairs_certificate_applications set review_note = $1 where id = $2',[plan.rows[0].review_note,plan.targets.selected]);

@@ -55,7 +55,7 @@ import {dtmStudyPreviewMode,dtmStudyPreviewCases,buildDtmStudyPreviewPlan,assert
 import {buildVenueProtectedPlan,deleteVenueProtectedFixture,observeVenueProtectedFixture,seedVenueProtectedFixture,
   venueProtectedCases,venueProtectedFixtureMode,venueProtectedGaps,verifyVenueProtectedFixtureAbsent} from './venue-protected-fixture.mjs';
 import {hasVenueProtectedProof,observeVenueProtectedCallers,requestVenueProtectedCase} from './venue-protected-preview.mjs';
-import {bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewHash,certificateAwardPreviewManifest,
+import {bindCertificateAwardBrowserCase,bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewHash,certificateAwardPreviewManifest,certificateBrowserCaseIds,
   certificateAwardPreviewMode,deleteCertificateAwardPreview,observeCertificateAwardPreview,observeCertificateAwardPreviewCallers,
   readCertificateAwardPreviewCatalog,requestCertificateAwardPreviewCase,seedCertificateAwardPreview,verifyCertificateAwardPreviewAbsent} from './certificate-award-preview.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
@@ -2189,23 +2189,39 @@ export async function runVenueProtectedPreview({origin,sourceRevision,previewTok
   return report(true);
 }
 
-export async function runCertificateAwardPreview({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
-  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
+export async function runCertificateAwardPreview({origin,sourceRevision,previewToken,signal,onCheckpoint,browserCase,artifactDirectory}={}){
+  const browserMode=browserCase!==undefined;
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function'
+    ||browserMode&&(!certificateBrowserCaseIds.includes(browserCase)||typeof artifactDirectory!=='string'||!artifactDirectory.startsWith('/')))
     fail('fixture-config','Certificate status requires an exact protected Preview and source revision.');
-  const runId=randomUUID(),manifest=certificateAwardPreviewManifest(),results=[];
+  const runId=randomUUID(),results=[];
+  let manifest=browserMode?[{id:browserCase}]:certificateAwardPreviewManifest(),conversationJournal;
+  const browserDiagnostics=[];
   let previewGate,prepared=false,finished=false,failure,phase='preflight',boundSuiteDigest;
   let cleanupProof={verified:false,status:'not-started'};
-  const report=terminal=>structuredClone({version:1,runId,sourceRevision,origin,terminal,execution:'live-native',
+  const report=terminal=>structuredClone({version:1,runId,sourceRevision,origin,terminal,execution:browserMode?'live-browser':'live-native',
     caseIds:manifest.map(row=>row.id),suiteDigest:certificateAwardPreviewHash(manifest),boundSuiteDigest,
-    results,deployment:previewGate?.status()??null,cleanup:cleanupProof,...(failure?{failure}:{}),
-    modelAcceptance:false,browserDispatchAcceptance:false,
+    results,...(browserMode?{browserDiagnostics}:{}),deployment:previewGate?.status()??null,cleanup:cleanupProof,...(failure?{failure}:{}),
+    modelAcceptance:false,browserDispatchAcceptance:browserMode&&terminal&&finished&&!failure&&results.length===1&&results[0].passed
+      &&cleanupProof.verified&&cleanupProof.conversationCleanup?.verified===true,
     liveAcceptance:terminal&&finished&&!failure&&results.length===manifest.length&&results.every(row=>row.passed)
-      &&cleanupProof.verified&&cleanupProof.protectedOwnerUnchanged&&cleanupProof.certificateAwardPreviewCleanup&&cleanupProof.certificateAwardCatalogUnchanged});
+      &&cleanupProof.verified&&cleanupProof.protectedOwnerUnchanged&&cleanupProof.certificateAwardPreviewCleanup&&cleanupProof.certificateAwardCatalogUnchanged
+      &&(!browserMode||cleanupProof.conversationCleanup?.verified===true)});
   try{
     const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
     const initial=await sourceIdentity();
     if(initial.dirty||initial.sourceRevision!==sourceRevision)fail('fixture-target','Certificate status requires the exact clean deployed source.');
     const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
+    let browser,assets;
+    if(browserMode){
+      const {discoverClientDispatchSurfaces}=await import('./client-dispatch-inventory.mjs');
+      const {questions}=await discoverClientDispatchSurfaces();
+      manifest=questions.filter(question=>question.id===browserCase);
+      if(manifest.length!==1)fail('fixture-config','The original certificate browser case was not found.');
+      phase='browser-assets';
+      browser=await import('./certificate-browser-preview.mjs');
+      ({assets}=await browser.deriveCertificateBrowserAssets({origin,revision:sourceRevision,token:previewToken,signal}));
+    }
     phase='prepare';
     await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
       signal,fixtureMode:certificateAwardPreviewMode,previewReadbackFetch:readback});
@@ -2225,7 +2241,8 @@ export async function runCertificateAwardPreview({origin,sourceRevision,previewT
       if(matches.length!==1||id===s.protectedOwnerBefore.id)fail('fixture-isolation','Certificate caller is outside the reserved lease.');
       return [index===0?'A':'B',{id,email:matches[0].email,runMarker:runId}];
     }));
-    const plan=buildCertificateAwardPreviewPlan(runId,owners,s.certificateAwardCatalogDigest),cases=bindCertificateAwardPreviewCases(plan);
+    const plan=buildCertificateAwardPreviewPlan(runId,owners,s.certificateAwardCatalogDigest);
+    const cases=browserMode?[bindCertificateAwardBrowserCase(plan,manifest[0])]:bindCertificateAwardPreviewCases(plan);
     boundSuiteDigest=certificateAwardPreviewHash(cases);
     s.certificateAwardPreviewPlan=plan;
     await saveLedger();
@@ -2242,17 +2259,68 @@ export async function runCertificateAwardPreview({origin,sourceRevision,previewT
       phase=bound.testCase.id;
       const before=await observe(),caller=s.users.find(user=>user.id===owners[bound.role].id);
       let ticket,result;
-      try{
-        result=await pace(async()=>{
-          await assertRecordedFixtureLease(s,'Certificate status request');
-          await caller.renewSession({signal});
-          return requestCertificateAwardPreviewCase({bound,token:caller.token,origin,fetchImpl:readback,
-            readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
-        },signal,async()=>{ticket=await previewGate.beforeRequest();});
-      }finally{if(ticket)await previewGate.afterRequest(ticket);}
+      if(browserMode){
+        let conversation;
+        const assertLease=()=>assertRecordedFixtureLease(s,'Certificate browser turn');
+        result=await browser.runCertificateBrowserTurn({origin,sourceRevision,token:previewToken,assets,bound,
+          directory:artifactDirectory,runId,signal,assertLease,verifyPin:()=>previewGate.assertCurrent(),
+          onDiagnostic:record=>browserDiagnostics.push(record),
+          async getSession(){
+            await caller.renewSession({signal});
+            const auth=new URL('/auth/v1/user',s.url),access_token=caller.token;
+            const reply=await s.boundedFetch(auth,{headers:{apikey:s.publishable,Authorization:'Bearer '+access_token},signal:signals(signal)});
+            const user=await readBoundedFixtureResponse(reply,auth,32768,200);
+            if(user.id!==caller.id||!user.identities?.some(identity=>identity.provider==='google'))
+              fail('fixture-session','The disposable browser session could not be verified.');
+            const {exp:expires_at}=JSON.parse(Buffer.from(access_token.split('.')[1],'base64url').toString('utf8'));
+            // Node keeps sole ownership of the real refresh token. Browser
+            // routing rejects attempts to renew or contact another service.
+            return {access_token,refresh_token:'node-owned-qa-session',expires_at,token_type:'bearer',user};
+          },
+          async reserveConversation(id,journal){
+            conversationJournal=journal;
+            conversation=await reserveScopedFixtureConversation(s,caller.id,{conversationId:id,journal});
+          },
+          async pinReadback(read){
+            await previewGate.assertCurrent();
+            const result=await read();
+            await previewGate.assertCurrent();
+            return result;
+          },
+          async readConversation({id,expected}){
+            const independent=await conversation.readback();
+            const scopedFetch=createTrustedPreviewFetch({origin,token:previewToken,conversationId:id});
+            const url=new URL('/api/affairs-conversations?id='+id,origin);
+            const read=async(user,status)=>{
+              await user.renewSession({signal});
+              const pin=await previewGate.beforeRequest();
+              try{
+                const reply=await scopedFetch(url,{headers:{Authorization:'Bearer '+user.token},signal:signals(signal)});
+                return await readBoundedFixtureResponse(reply,url,32768,status);
+              }finally{await previewGate.afterRequest(pin);}
+            };
+            const saved=await read(caller,200),denial=await read(s.users[1],404);
+            if(saved.id!==id||saved.version!==1||saved.title!==expected.title||saved.updated_at!==expected.updatedAt
+              ||!isDeepStrictEqual(saved.messages,expected.messages)||!isDeepStrictEqual(denial,{error:'Conversation not found.'})
+              ||independent.version!==1||independent.messageDigest!==certificateAwardPreviewHash(expected.messages))
+              fail('fixture-state','Saved browser answer did not match the independently read conversation.');
+            return {own:true,crossed:true,version:independent.version,messageDigest:independent.messageDigest};
+          },
+        });
+      }else{
+        try{
+          result=await pace(async()=>{
+            await assertRecordedFixtureLease(s,'Certificate status request');
+            await caller.renewSession({signal});
+            return requestCertificateAwardPreviewCase({bound,token:caller.token,origin,fetchImpl:readback,
+              readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
+          },signal,async()=>{ticket=await previewGate.beforeRequest();});
+        }finally{if(ticket)await previewGate.afterRequest(ticket);}
+      }
       const after=await observe(),unchanged=isDeepStrictEqual(before,after);
-      results.push({...result,requestIndex:ticket.requestIndex,before,after,passed:result.passed&&unchanged,
-        checks:[...result.checks,{id:'certificate.unchanged',passed:unchanged,detail:'Independent SQL and paired caller observations match before and after.'}]});
+      results.push({...result,...(ticket?{requestIndex:ticket.requestIndex}:{}),before,after,passed:result.passed&&unchanged,
+        checks:[...(browserMode?result.native.checks:result.checks),{id:'certificate.unchanged',passed:unchanged,
+          detail:'Independent SQL and paired caller observations match before and after.'}]});
       await onCheckpoint?.(report(false));
     }
     phase='release-verification';
@@ -2263,9 +2331,11 @@ export async function runCertificateAwardPreview({origin,sourceRevision,previewT
     finished=true;
   }catch(error){
     if(error instanceof LiveFixtureError&&error.certificateAwardCleanupProof)cleanupProof=error.certificateAwardCleanupProof;
-    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected',
+      ...(browserMode&&typeof error?.code==='string'&&/^[a-z-]{3,80}$/u.test(error.code)?{browserDiagnostic:error.code}:{})};
   }finally{
     if(prepared)cleanupProof=await captureFixtureCleanup();
+    conversationJournal?.close();
     await onCheckpoint?.(report(true));
   }
   return report(true);
@@ -4460,7 +4530,12 @@ export function transcriptFixtureIdentity(){
 
 export async function reserveTranscriptConversation({conversationId,journal}={}){
   const s=ready(),{ownerId}=transcriptFixtureIdentity();
-  if(s.transcriptConversation)fail('fixture-state','This fixture already reserved a transcript conversation.');
+  return reserveScopedFixtureConversation(s,ownerId,{conversationId,journal});
+}
+
+async function reserveScopedFixtureConversation(s,ownerId,{conversationId,journal}){
+  if(s.transcriptConversation||s.users[0]?.id!==ownerId)
+    fail('fixture-state','This fixture cannot reserve another exact conversation.');
   const owners=s.users.map(user=>{
     const matches=s.identityRequests.filter(request=>request.id===user.id&&request.runId===s.runId&&request.state==='created');
     if(matches.length!==1)fail('fixture-state','The transcript owner is not an exact disposable identity.');
