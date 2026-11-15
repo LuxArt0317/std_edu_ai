@@ -630,3 +630,15 @@ Protected base `e0f0f4b` passed GitHub Quality and the hosted sign-in return che
 ### Scoped confirmed tasks and account verification [Issue #100]
 
 Protected `0f3ac28` passed the complete task creation and completion packet for two disposable callers. It verified zero writes during proposals, exact audited mutations, idempotent and changed-body replays, crossed-owner denials and task/receipt/identity cleanup. The public release still serves `076c79a`. Continue the remaining protected read packets and the combined Quality gate before promotion. The new service routing repairs distinguish Student Health equipment from club equipment and preserve the exact service pages in guest and signed-in requests. Monthly tuition history needs the separate ledger migration and integration. Existing cumulative paid amounts have no transaction date.
+
+### Public assistant follow-up and verification [Issue #100]
+
+The [protected assistant Preview](https://stdedu-oq0kxivfi-v1-d286.vercel.app/campus-assistant)
+serves `57540ae0c2b6c29394e315467e6c92413a4f8807` on deployment
+`dpl_69HbzkmkxGM4AhAWDuqm752bMiVE`. Four pinned streamed requests passed independent
+checks. The storage request rejected two drafts, read an additional school source,
+and verified the limits of the available information on check three. Controlled
+endpoint tests exercise a verified fourth check, duplicate evidence, time limits
+and recovery after a missed source. The hosted fourth-check path has controlled
+coverage only. The protected browser link requires Vercel project access.
+Public production currently serves `076c79a`.

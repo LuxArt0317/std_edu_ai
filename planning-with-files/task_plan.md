@@ -862,4 +862,4 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Match the reported two-check activity to the exact public deployment.
 - [x] Follow a new source after evidence gaps and allow an additional review only after an independent read.
 - [x] Cover incomplete pages, repeated content, transient read failures, expired time and stored activity with endpoint and evaluator tests.
-- [ ] Verify the protected build against the real public assistant and record the exact revision.
+- [x] Verify protected Preview `57540ae` with four live streamed answers, including successful recovery on the third check.
