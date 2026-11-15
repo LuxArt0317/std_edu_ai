@@ -1,3 +1,5 @@
+import {graduationReviewNamedCourseTitles} from './graduationReview.js';
+
 const basePath='/school-affairs/services/13-1';
 export const academicGradesPaths={index:basePath,transcript:basePath+'/transcript',warning:basePath+'/warning',ranking:basePath+'/ranking',
   current:basePath+'/current',transfer:basePath+'/transfer',cycle:basePath+'/cycle'};
@@ -43,19 +45,26 @@ function explicitView(question) {
   return undefined;
 }
 function filters(question) {
+  // School Affairs users often omit spaces in semester references, including
+  // after "in" or "for". Do not mistake digits inside a course code for a term.
+  const compact=[...question.matchAll(/(?:^|[^\p{L}\p{N}]|\b(?:in|for)(?=\d+semester))(\d+)\s*semester\s*[:：]?\s*(\d+|one\b|two\b|summer\b)/giu)];
   const rawYear=question.match(/(?:academic\s+year|學年)\s*[:：]?\s*(\d+)/i)?.[1]
     ?? question.match(/(?:^|[^\d])(\d+)\s*(?:學年|academic\s+year\b)/i)?.[1];
   const rawSemester=question.match(/(?:semester|學期)\s*[:：]?\s*(\d+|one\b|two\b|summer\b|[一二暑])/i)?.[1]
     ?? question.match(/(?:^|[^\d])第?\s*(\d+|[一二暑])\s*學期/)?.[1]
     ?? (/暑期/.test(question)?'暑':undefined);
-  const semester=rawSemester?({one:1,two:2,summer:3,'一':1,'二':2,'暑':3}[rawSemester.toLowerCase()] ?? Number(rawSemester)):undefined;
-  return {academicYear:rawYear?Number(rawYear):undefined,semester,
-    invalid:Boolean(rawYear && !/^[1-9]\d{0,3}$/.test(rawYear) || rawSemester && ![1,2,3].includes(semester))};
+  const years=[rawYear,...compact.map(match=>match[1])].filter(Boolean);
+  const semesters=[rawSemester,...compact.map(match=>match[2])].filter(Boolean)
+    .map(value=>({one:1,two:2,summer:3,'一':1,'二':2,'暑':3}[value.toLowerCase()]??Number(value)));
+  return {academicYear:years.length?Number(years[0]):undefined,semester:semesters[0],
+    invalid:years.some(year=>!(/^[1-9]\d{0,3}$/u.test(year)))||semesters.some(semester=>![1,2,3].includes(semester)),
+    conflicting:new Set(years.map(Number)).size>1||new Set(semesters).size>1};
 }
 function contextQuestion(question) {
   const selected=filters(question);
   return /\b(?:my|mine|records?|results?|summary|average|credits?|which|year|semester|term|rank|status|show|details)\b|我的|紀錄|記錄|結果|平均|學分|學年|學期|排名|查詢|顯示/i.test(question) || Boolean(explicitView(question) || selected.academicYear || selected.semester || selected.invalid);
 }
+const academicClauses=question=>question.split(/\s+(?:and|also)\s+|[;；\n]|以及|還有/i).filter(part=>!otherTopic.test(part));
 export function isAcademicGradesQuestion(question,route='',history=[]) {
   if(otherTopic.test(question))return false;
   if(/^(?:please\s+)?(?:remind me|add (?:a )?task|create (?:a )?task|complete (?:my |the )?task|finish (?:my |the )?task)|新增待辦|建立任務|完成任務/i.test(question))return false;
@@ -74,9 +83,10 @@ function termLabel(row,zh) {return zh?`${row.academicYear} 學年 · ${row.semes
   :`Academic year ${row.academicYear} · ${row.semester===3?'summer semester':`semester ${row.semester}`}`;}
 export function academicGradesQuery(question,route='',history=[]) {
   route=route.split(/[?#]/)[0].replace(/\/+$/,'');
-  const clauses=question.split(/\s+(?:and|also)\s+|[;；\n]|以及|還有/i).filter(part=>!otherTopic.test(part));
+  const clauses=academicClauses(question);
   const scopes=clauses.map(part=>({...filters(part),view:explicitView(part)}));
-  const multipleScopes=['view','academicYear','semester'].some(key=>new Set(scopes.map(scope=>scope[key]).filter(value=>value!==undefined)).size>1);
+  const multipleScopes=scopes.some(scope=>scope.conflicting)
+    ||['view','academicYear','semester'].some(key=>new Set(scopes.map(scope=>scope[key]).filter(value=>value!==undefined)).size>1);
   // Other record families may have their own term in a multipart question.
   // Preserve all clauses of this family so conflicting scopes are clarified.
   if(clauses.length)question=clauses.join(' and ');
@@ -84,8 +94,16 @@ export function academicGradesQuery(question,route='',history=[]) {
   const priorContext=!otherTopic.test(previous) && (topic.test(previous) || englishTopic.test(previous) || routeView(route));
   const view=explicitView(question) || (routeView(route)!=='index'?routeView(route):undefined) || (priorContext?explicitView(previous):undefined);
   const explicit=filters(question),prior=priorContext?filters(previous):{};
-  return {view:view??null,academicYear:explicit.academicYear ?? prior.academicYear,semester:explicit.semester ?? prior.semester,
-    invalid:explicit.invalid,multipleScopes,relativeTermUnresolved:relativeTerm.test(question)&&(explicit.academicYear===undefined||explicit.semester===undefined)};
+  const usePrior=!prior.invalid&&!prior.conflicting;
+  return {view:view??null,academicYear:explicit.academicYear??(usePrior?prior.academicYear:undefined),semester:explicit.semester??(usePrior?prior.semester:undefined),
+    invalid:explicit.invalid,multipleScopes:multipleScopes||explicit.conflicting,
+    relativeTermUnresolved:view!=='english'&&relativeTerm.test(question)&&(explicit.academicYear===undefined||explicit.semester===undefined)};
+}
+/** Select titles against all owned rows of the requested kind before applying
+ * term filters. A title saved only in a different term still narrows the query. */
+export function selectAcademicGradeCourses(question,rows){
+  const titles=graduationReviewNamedCourseTitles(academicClauses(question).join(' '),rows.map(row=>row.courseTitle));
+  return titles.size?rows.filter(row=>titles.has(row.courseTitle)):rows;
 }
 export function answerAcademicGrades(question,snapshot,route='',history=[]) {
   if(!isAcademicGradesQuestion(question,route,history))return null;
@@ -140,7 +158,8 @@ export function answerAcademicGrades(question,snapshot,route='',history=[]) {
       :`; department ranking: ${row.departmentRankingText ?? missing}; class ranking: ${row.classRankingText ?? missing}.`),
     count=>zh?`排名列：顯示 ${count} / ${rows.length} 筆符合條件的紀錄。`:`Ranking rows shown: ${count} of ${rows.length} matching rows.`);
   }
-  const rows=own(data.records).filter(row=>row.recordKind===view && matches(row)).sort((a,b)=>a.academicYear-b.academicYear || a.semester-b.semester || a.rowOrder-b.rowOrder || a.id.localeCompare(b.id));
+  const rows=selectAcademicGradeCourses(question,own(data.records).filter(row=>row.recordKind===view))
+    .filter(matches).sort((a,b)=>a.academicYear-b.academicYear || a.semester-b.semester || a.rowOrder-b.rowOrder || a.id.localeCompare(b.id));
   const summaries=own(data.termSummaries).filter(row=>row.summaryKind===view && matches(row));
   const terms=[...new Map([...rows,...summaries].map(row=>[termKey(row),row])).values()]
     .sort((a,b)=>a.academicYear-b.academicYear || a.semester-b.semester);
