@@ -27,6 +27,9 @@ import {normalizeCourseSyllabus} from '../../src/features/public/affairs/courseS
 import {bindPublishedSampleEnrollments,sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
+import {assertDtmMaterialPreviewRows,buildDtmMaterialPreviewPlan,dtmMaterialCaseScope,
+  dtmMaterialPreviewCases,dtmMaterialPreviewGaps,dtmMaterialPreviewMode,dtmMaterialPreviewRequest,dtmMaterialPreviewRows,
+  gradeDtmMaterialPreviewCase,readDtmMaterialPreviewCallers,readDtmMaterialPreviewRows} from './dtm-material-preview.mjs';
 import {assertElearningFixtureCatalog,assertElearningFixtureRows,elearningFixtureManifest,elearningFixturePlan,verifyElearningFixtureWorkspace} from './elearning-fixtures.mjs';
 import {assertOutlineFixtureRows,assertPublishedOutlineRead,isOutlineFixtureKey,planPublishedOutlineAccess} from './elearning-outline-fixtures.mjs';
 import {assertDormitoryConductFixtureIdentities,assertDormitoryConductFixtureRows,buildDormitoryConductFixturePlan,dormitoryConductFixtureReadContract,dormitoryConductLiveFixtureKey,reconcileDormitoryConductFixturePlans,verifyDormitoryConductFixtureReadback} from './dormitory-conduct-cases.mjs';
@@ -363,6 +366,8 @@ async function saveLedger(){
       }}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.healthMetadataJournal?{healthMetadataFixture:s.healthMetadataJournal}:{}),
+      ...(s.dtmMaterialPreview?{dtmMaterialPreview:{plan:s.dtmMaterialPreview.plan,
+        previous:s.dtmMaterialPreview.variant,pending:s.dtmMaterialPreview.pending}}:{}),
       ...(s.tutorEvaluationJournal?{tutorEvaluationFixture:s.tutorEvaluationJournal}:{}),
       ...(s.clubEquipmentJournal?{clubEquipmentFixture:s.clubEquipmentJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
@@ -445,6 +450,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
   const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
+  const dtmMaterialPreviewOnly=fixtureMode===dtmMaterialPreviewMode;
   const dtmGradePreviewOnly=fixtureMode===dtmGradePreviewMode;
   const internshipNativeOnly=fixtureMode===internshipFixtureMode;
   const teachingSampleOnly=fixtureMode==='teaching-sample-only';
@@ -452,7 +458,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const venueProtectedOnly=fixtureMode===venueProtectedFixtureMode;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&!venueProtectedOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&!venueProtectedOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -462,6 +468,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(dtmTimingOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Moodle timing checks require the exact protected Preview and isolated disposable owners.');
+  if(dtmMaterialPreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Moodle materials require the exact protected Preview and isolated disposable owners.');
   if(dtmGradePreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Moodle grade checks require the exact protected Preview and isolated disposable owners.');
@@ -558,7 +567,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&!venueProtectedOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&!venueProtectedOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -630,6 +639,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(dtmTimingOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmSubmissionTiming']};
+    }
+    if(dtmMaterialPreviewOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmMaterials']};
     }
     if(dtmGradePreviewOnly){
       state.prepared=true;
@@ -718,6 +731,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(dtmTimingOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle timing fixture preparation failed.');
       reason.dtmTimingCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(dtmMaterialPreviewOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle material fixture preparation failed.');
+      reason.dtmMaterialPreviewCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     if(dtmGradePreviewOnly){
@@ -1284,6 +1302,122 @@ export async function runDtmTimingPreview({origin,sourceRevision,previewToken,si
   return {runId,sourceRevision,origin,results,...(failure?{failure}:{}),deployment:previewGate?.status()??null,
     cleanup:cleanupProof,storageObjectWrites:false,liveAcceptance:!failure&&expectedCount>0&&results.length===expectedCount
       &&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.dtmTimingCleanup===true};
+}
+
+async function checkDtmMaterialPreviewLease(s){
+  await assertRecordedFixtureLease(s,'Moodle material preview');
+  assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+  await s.previewGate.assertCurrent();
+}
+
+async function setDtmMaterialPreviewVariant(s,variant){
+  await checkDtmMaterialPreviewLease(s);
+  const fixture=s.dtmMaterialPreview;
+  const {plan,variant:previous}=fixture;
+  if(previous===variant)return;
+  const next=dtmMaterialPreviewRows(plan,variant);
+  fixture.pending=variant;
+  await saveLedger();
+  await query(()=>feeTransaction(s,async()=>{
+    const persisted=await readDtmMaterialPreviewRows(s.sql,plan);
+    if(previous===null){
+      if(persisted.courses.length||persisted.materials.length)fail('fixture-state','A reserved Moodle fixture row already exists.');
+      await s.sql`insert into public.dtm_courses ${s.sql(next.courses)}`;
+    }else{
+      assertDtmMaterialPreviewRows(plan,previous,persisted);
+      const owned=plan.courseIds[0],present=persisted.materials.filter(row=>row.course_id===owned);
+      if(present.length){
+        const removed=await s.sql`delete from public.dtm_materials
+          where course_id=${owned} and id in ${s.sql(present.map(row=>row.id))}
+          and exists(select 1 from public.dtm_courses where id=${owned} and user_id=${plan.ownerIds[0]})
+          returning id`;
+        if(removed.length!==present.length)fail('fixture-state','The selected Moodle fixture material changed.');
+      }
+    }
+    const rows=previous===null?next.materials:next.materials.filter(row=>row.course_id===plan.courseIds[0]);
+    if(rows.length)await s.sql`insert into public.dtm_materials ${s.sql(rows)}`;
+    assertDtmMaterialPreviewRows(plan,variant,await readDtmMaterialPreviewRows(s.sql,plan));
+  }),'Could not safely stage the disposable Moodle materials.');
+  fixture.variant=variant;
+  fixture.pending=null;
+  await saveLedger();
+}
+
+export async function runDtmMaterialPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Moodle materials require the exact protected Preview and source revision.');
+  const runId=randomUUID(),cases=dtmMaterialPreviewCases(),results=[],seen=new Set();
+  let previewGate,prepared=false,failure,phase='preflight',cleanupProof={verified:false,status:'not-started'};
+  try{
+    const {createLiveRequestPacer,readReply,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)
+      fail('fixture-target','Moodle materials require the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken});
+    const pace=createLiveRequestPacer();
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:dtmMaterialPreviewMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    if(s.users.some(user=>user.id===s.protectedOwnerBefore.id
+      ||!s.identityRequests.some(row=>row.id===user.id&&row.runId===runId&&row.state==='created')))
+      fail('fixture-isolation','Moodle material callers are outside the disposable lease.');
+    const plan=buildDtmMaterialPreviewPlan(s.users);
+    await checkDtmMaterialPreviewLease(s);
+    const reserved=await readDtmMaterialPreviewRows(s.sql,plan);
+    if(reserved.courses.length||reserved.materials.length)fail('fixture-state','A reserved Moodle fixture row already exists.');
+    s.dtmMaterialPreview={plan,variant:null,pending:null};
+    for(const id of [...plan.courseIds,...plan.materialIds])s.recordIds.add(id);
+    await saveLedger();
+    async function observe(scope){
+      await checkDtmMaterialPreviewLease(s);
+      const sqlSha256=assertDtmMaterialPreviewRows(plan,scope.variant,await readDtmMaterialPreviewRows(s.sql,plan));
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await readDtmMaterialPreviewCallers(plan,scope,s.users,{origin,previewFetch:readback,
+        projectFetch:s.boundedFetch,projectUrl:new URL(s.url).origin,publishable:s.publishable,
+        readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
+      await previewGate.assertCurrent();
+      return {sqlSha256,callers};
+    }
+    for(const testCase of cases){
+      phase=testCase.id;
+      const scope=dtmMaterialCaseScope(testCase);
+      await setDtmMaterialPreviewVariant(s,scope.variant);
+      const before=await observe(scope);
+      const request=dtmMaterialPreviewRequest(testCase);
+      let ticket,parsed,response,correlationId,pinned;
+      await pace(async()=>{
+        response=await readback(new URL(request.path,origin),{method:'POST',body:request.body,
+          headers:{'Content-Type':'application/json',Authorization:'Bearer '+s.users[0].token},signal:signals(signal,65000)});
+        correlationId=response.headers.get('x-assistant-request-id');
+        parsed=await readReply(response);
+        pinned=await previewGate.afterRequest(ticket);
+      },signal,async()=>{ticket=await previewGate.beforeRequest();});
+      const after=await observe(scope);
+      const deniedMarkers=[...s.users.flatMap(user=>[user.id,user.studentId,user.token]),...s.identityRequests.map(row=>row.email)].filter(Boolean);
+      const graded=gradeDtmMaterialPreviewCase(testCase,{...parsed,statusCode:response.status,correlationId,
+        execution:'live-native',fixtureKey:testCase.fixtureKey,sourceRevision,
+        deploymentCheck:{verified:true,sourceRevision:pinned.sourceRevision,requestIndex:ticket.requestIndex},
+        materialDispatch:{endpoint:request.path,bodySha256:request.bodySha256}},{before,after,deniedMarkers});
+      if(seen.has(correlationId)){graded.failedChecks.push('dtm-material.duplicate-request');graded.passed=false;}
+      seen.add(correlationId);
+      results.push({...graded,requestIndex:ticket.requestIndex});
+    }
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Moodle material source changed during verification.');
+    await previewGate.finish();
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.dtmMaterialPreviewCleanupProof)cleanupProof=error.dtmMaterialPreviewCleanupProof;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{if(prepared)cleanupProof=await captureFixtureCleanup();}
+  return {runId,sourceRevision,origin,results,gaps:dtmMaterialPreviewGaps,...(failure?{failure}:{}),
+    deployment:previewGate?.status()??null,cleanup:cleanupProof,storageObjectWrites:false,
+    liveAcceptance:!failure&&results.length===cases.length&&results.every(row=>row.passed)
+      &&cleanupProof.verified&&cleanupProof.dtmMaterialPreviewCleanup===true};
 }
 
 export async function runDtmGradeReportPreview({origin,sourceRevision,previewToken,signal,suite='report'}={}){
@@ -3862,6 +3996,15 @@ export async function cleanup(){
         fail('fixture-cleanup','An exact tuition ledger row or disposable identity remains.');
       s.tuitionLedgerCleanup=true;
     }
+    if(s.dtmMaterialPreview){
+      const plan=s.dtmMaterialPreview.plan;
+      const remaining=await query(()=>readDtmMaterialPreviewRows(s.sql,plan),'Could not prove exact Moodle material cleanup.');
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(plan.ownerIds)} limit 1`,
+        'Could not verify Moodle material identity cleanup.');
+      if(remaining.courses.length||remaining.materials.length||identities.length)
+        fail('fixture-cleanup','A reserved Moodle course, material or disposable identity remains.');
+      s.dtmMaterialPreviewCleanup=true;
+    }
     if(s.dtmTimingPlan){
       const remaining=await query(()=>readDtmTimingState(s.sql,s.dtmTimingPlan),'Could not verify Moodle timing cleanup.');
       const ids=s.dtmTimingPlan.owners.map(owner=>owner.id);
@@ -3957,6 +4100,7 @@ export async function cleanup(){
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
     ...(s.tuitionLedgerCleanup?{tuitionLedgerCleanup:true}:{}),
     ...(s.dtmTimingCleanup?{dtmTimingCleanup:true}:{}),
+    ...(s.dtmMaterialPreviewCleanup?{dtmMaterialPreviewCleanup:true}:{}),
     ...(s.dtmGradePreviewCleanup?{dtmGradePreviewCleanup:true}:{}),
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
