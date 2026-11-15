@@ -96,7 +96,7 @@ export function openInternshipObservation({body,identity,correlationId},env=proc
       else modelOperations.push(operation);
     },
     nativeCheckCompleted(){
-      if(nativeChecked||scope.companion==='courses'||modelOperations.length)invalid=true;
+      if(nativeChecked||modelOperations.length)invalid=true;
       else nativeChecked=true;
     },
     finish(payload,expectsRead){
@@ -123,8 +123,7 @@ export function verifyInternshipObservation({receipt,binding,correlationId,body}
     ||observed.attempts.some(row=>!exact(row,['reads','evidenceDigest'])||!sha.test(row.evidenceDigest)
       ||!Array.isArray(row.reads)||row.reads.length>1||row.reads.some(digest=>!sha.test(digest)))
     ||!Array.isArray(observed.companionAttempts)||observed.companionAttempts.length>2
-    ||(observed.binding.companion!==null?(observed.companionAttempts.length!==observed.attempts.length||observed.verificationMethod==='none'
-      ||observed.binding.companion==='courses'&&observed.verificationMethod!=='model')
+    ||(observed.binding.companion!==null?(observed.companionAttempts.length!==observed.attempts.length||observed.verificationMethod==='none')
       :observed.companionAttempts.length!==0)
     ||observed.companionAttempts.some(row=>!exact(row,['reads','evidenceDigest'])||!sha.test(row.evidenceDigest)
       ||!Array.isArray(row.reads)||row.reads.length!==2||row.reads.some(read=>!sha.test(read)))

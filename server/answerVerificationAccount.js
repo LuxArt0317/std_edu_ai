@@ -473,6 +473,32 @@ function clearanceNextClassAnswer(evidence,question,{labelFields=false}={}){
   return t(`Your next saved stu.best class is ${name} on ${day}, ${time} (Taipei time)`,`你在 stu.best 儲存的下一堂課是 ${name}，${day} ${time}（台北時間）`)+where+t('.','。')+provenance;
 }
 
+function exactInternshipNextClass(source,snapshot,question){
+  const read=snapshot.completeness?.courses;
+  if(source?.url!==schoolSubjectRecordsPath||snapshot.timetableReadUnavailable||snapshot.studentRecordFound!==true
+    ||read?.scope!=='owned_enrolled_timetable'||read.complete!==true||!Array.isArray(snapshot.courses)
+    ||read.returned!==snapshot.courses.length)return null;
+  const payload=JSON.parse(source.content),next=payload.calendar?.records?.next;
+  const [selected]=payload.records??[];
+  if(payload.collection!=='courses'||payload.checkedAt!==snapshot.checkedAt||payload.studentRecordFound!==true
+    ||payload.unavailableReason||payload.excerpted!==false||payload.selection?.scope!=='next_scheduled_class'
+    ||payload.selection.availableRows!==read.returned||payload.selection.matchingRows!==1||payload.includedRows!==1
+    ||!selected?.enrollmentId||!next?.day||!next.course?.room?.trim())return null;
+  const {course,day}=next;
+  const meetingFields=['enrollmentId','code','title','term','weekday','startsAt','endsAt','room','sourceMode'];
+  const owned=snapshot.courses.find(row=>row.enrollmentId===selected.enrollmentId);
+  if(!owned||owned.status!=='enrolled'||day<owned.termStartsOn||day>owned.termEndsOn
+    ||!isDeepStrictEqual(pick(owned,meetingFields),course)||!isDeepStrictEqual(pick(selected,meetingFields),course))return null;
+  // The next instant can have more than one scheduled class. A single selected
+  // row in the calendar excerpt alone does not resolve that overlap.
+  if(snapshot.courses.some(row=>row.status==='enrolled'&&row.enrollmentId!==owned.enrollmentId&&row.weekday===owned.weekday
+    &&row.startsAt===owned.startsAt&&day>=row.termStartsOn&&day<=row.termEndsOn))return null;
+  const answer=clearanceNextClassAnswer([source],question);
+  if(!answer)return null;
+  const title=supplementalAnswerLanguage(question)==='zh-TW'?'開啟校務系統的上課紀錄':'Open your saved class records';
+  return {answer:answer+'\n\n['+title+']('+schoolSubjectRecordsPath+')',citations:evidenceCitations([source]),sourceIds:[source.id],views:[]};
+}
+
 function housingEvidencePath(context){
   const pages=nativePageLookupContext(context.question||'',context.route||'',context.history||[]);
   const question=pages.selected?pages.otherQuestion:context.question||'';
@@ -1004,21 +1030,21 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         checkedAt:snapshot.checkedAt,degraded:checked.verification?.status!=='verified'},activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
     }
   }
-  const internshipFees=Boolean(internshipPlan?.feeQuestion);
-  if(internshipPlan?.selection&&!internshipPlan.reason&&!internshipPlan.hasOtherQuestion
-    &&!internshipPlan.classQuestion&&!internshipPlan.gradeQuestion
-    &&activeTools.join(',')===(internshipFees?'internshipRecords,charges':'internshipRecords')){
+  const internshipCompanion=internshipPlan?.feeQuestion?'charges':internshipPlan?.classQuestion?'courses':null;
+  if(internshipPlan?.selection&&!internshipPlan.reason&&!internshipPlan.hasOtherQuestion&&!internshipPlan.gradeQuestion
+    &&activeTools.join(',')===(internshipCompanion?'internshipRecords,'+internshipCompanion:'internshipRecords')){
     let results=firstSupplemental,current=snapshot;
-    const feeSourceFor=()=>{
-      if(!internshipFees)return null;
+    const companionSourceFor=()=>{
+      if(!internshipCompanion)return null;
       try{
-        return accountEvidence(current,['charges'],{...context,question:internshipPlan.feeQuestion,history:[],scopedReadOnly:true})
-          .find(source=>source.id==='account:charges')??null;
+        const clause=internshipCompanion==='charges'?internshipPlan.feeQuestion:internshipPlan.classQuestion;
+        return accountEvidence(current,[internshipCompanion],{...context,question:clause,history:[],scopedReadOnly:true})
+          .find(source=>source.id==='account:'+internshipCompanion)??null;
       }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
     };
-    let feeSource=feeSourceFor();
-    const sources=()=>[...results.map(result=>result.evidence),...(feeSource?[feeSource]:[])];
-    const zh=supplementalAnswerLanguage(question)==='zh-TW';
+    let companionSource=companionSourceFor();
+    const sources=()=>[...results.map(result=>result.evidence),...(companionSource?[companionSource]:[])];
+    const zh=supplementalAnswerLanguage(question)==='zh-TW',t=(en,tw)=>zh?tw:en;
     const render=()=>{
       if(results.length!==1)return null;
       const [result]=results,payload=parseInternshipEvidence(result);
@@ -1026,43 +1052,52 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       try{
         const answer=formatSupplementalAccountAnswers(results,{question});
         if(answer.status!=='answered'||!answer.complete)return null;
-        if(!internshipFees)return answerLinksSupported(answer.answer,sources())?answer:null;
-        const fees=boundedFeeAnswer(sources());
-        // An incomplete read, absent row or truncated display cannot attest to
-        // both parts. Leave those cases with the ordinary evidence flow.
-        if(!fees?.complete||!fees.views.length)return null;
-        const combined={...answer,answer:(internshipPlan.feeFirst?[fees.answer,answer.answer]:[answer.answer,fees.answer]).join('\n\n'),
-          citations:[...answer.citations,...fees.citations],sourceIds:[...answer.sourceIds,...fees.sourceIds],views:[...answer.views,...fees.views]};
-        return combined.answer.length<=selectedChargeAnswerLimits.answerCharacters
-          &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=selectedChargeAnswerLimits.resultBytes
+        if(!internshipCompanion)return answerLinksSupported(answer.answer,sources())?answer:null;
+        const companion=internshipCompanion==='charges'?boundedFeeAnswer(sources()):exactInternshipNextClass(companionSource,current,question);
+        // Incomplete, unavailable or ambiguous companion reads retain their
+        // existing scoped recovery and limitation behavior.
+        if(!companion||internshipCompanion==='charges'&&(!companion.complete||!companion.views.length))return null;
+        const combined={...answer,answer:(internshipPlan.companionFirst?[companion.answer,answer.answer]:[answer.answer,companion.answer]).join('\n\n'),
+          citations:[...answer.citations,...companion.citations],sourceIds:[...answer.sourceIds,...companion.sourceIds],views:[...answer.views,...companion.views]};
+        return combined.answer.length<=supplementalAnswerLimits.answerCharacters
+          &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=supplementalAnswerLimits.resultBytes
           &&answerLinksSupported(combined.answer,sources())?combined:null;
       }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
     };
     const initial=render();
     if(initial){
+      const companionRead=internshipCompanion==='charges'
+        ?{label:t('Checked your saved fee records','查閱已儲存的費用紀錄'),
+          detail:t('Read the fee records for this signed-in account.','僅讀取目前登入帳戶的費用。')}
+        :{label:t('Checked your next class','查閱下一堂課'),
+          detail:t('Calculated the next meeting from your saved enrollments.','依您已儲存的選課紀錄計算下一堂課。')};
+      const verificationLabels={
+        charges:[t('Verified your saved internship records and fees','核對已儲存的實習紀錄與費用'),
+          t('Matched each internship row and recalculated the balance from the selected fee rows.','逐筆核對實習紀錄及費用餘額。')],
+        courses:[t('Verified your saved internship records and next class','核對已儲存的實習紀錄與下一堂課'),
+          t('Matched each internship row and the next dated meeting to your saved records.','逐筆核對實習紀錄及下一堂課的日期與時間。')],
+      };
+      const [label,detail]=verificationLabels[internshipCompanion]??[t('Verified your saved internship records','核對已儲存的實習紀錄'),
+        t('Matched each displayed field and the page link to the selected records.','逐筆核對欄位及其紀錄頁面。')];
       const checked=await runAnswerVerification({question,deadline,initialAnswer:initial,onProgress:emit,
         async loadEvidence({attempt}){
           if(attempt>1){
-            if(internshipFees){
+            if(internshipCompanion){
               const refreshed=await loadSnapshot();
               if(refreshed.profile?.userId!==snapshot.profile?.userId)throw new Error('Account scope changed during evidence refresh.');
               current=refreshed;
-              feeSource=feeSourceFor();
+              companionSource=companionSourceFor();
             }
             results=await readSupplemental(current,attempt);
           }
-          if(internshipFees)emit({kind:'account-read:charges:'+attempt,label:zh?'查閱已儲存的費用紀錄':'Checked your saved fee records',
-            detail:zh?'僅讀取目前登入帳戶的費用。':'Read the fee records for this signed-in account.',status:feeSource?'complete':'unavailable'});
+          if(internshipCompanion)emit({kind:'account-read:'+internshipCompanion+':'+attempt,
+            ...companionRead,status:companionSource?'complete':'unavailable'});
           return sources();
         },
         verify({candidate,evidence}){
           const expected=isDeepStrictEqual(evidence,sources())?render():null;
           if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
-          emit({kind:'internship-evidence-check',
-            label:internshipFees?(zh?'核對已儲存的實習紀錄與費用':'Verified your saved internship records and fees')
-              :zh?'核對已儲存的實習紀錄':'Verified your saved internship records',
-            detail:internshipFees?(zh?'逐筆核對實習紀錄及費用餘額。':'Matched each internship row and recalculated the balance from the selected fee rows.')
-              :zh?'逐筆核對欄位及其紀錄頁面。':'Matched each displayed field and the page link to the selected records.',status:'complete'});
+          emit({kind:'internship-evidence-check',label,detail,status:'complete'});
           return {ok:true};
         },
         repair:async()=>render()??{status:'abstained',answer:'',citations:[],views:[]},

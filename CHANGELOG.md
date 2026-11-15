@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify combined Internship and next-class answers directly when the complete timetable has a unique upcoming meeting with a saved room. [#100]
+
 - Add protected evaluation for owned venue requests, pending counts, and cross-account boundaries using disposable records that do not reserve public rooms. [#100]
 
 - Add an isolated teaching-feedback Preview evaluation using existing sample sections, paired owner reads, signed evidence observations and exact cleanup. [#100]

@@ -5,6 +5,7 @@ import {
   createInternshipProbe,internshipObservationDigest,internshipObservationHeader,verifyInternshipObservation,
 } from '../../server/internshipObservation.js';
 import researchHandler from '../../api/research-assistant.ts';
+import {schoolSubjectRecordsPath} from '../../src/features/public/affairs/studentServices.js';
 import {buildInternshipNativeCases,internshipNativeFixtureForCase,internshipNativeManifest} from '../evaluation/internship-native-cases.mjs';
 
 // @ts-expect-error The independent test runner is a standalone JavaScript module.
@@ -57,7 +58,9 @@ async function invoke(handler:any,body:Body,host?:string){
   return captured;
 }
 
-async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false,published=false,chargeUnavailable=false}={}){
+type TimetableIssue='unavailable'|'empty'|'tie'|'missing-room'|'truncated';
+async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false,published=false,chargeUnavailable=false,
+  timetableIssue=undefined as TimetableIssue|undefined}={}){
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
@@ -124,11 +127,19 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         }
         assert.equal(url.pathname,'/rest/v1/affairs_enrollments');
         const id=(n:number)=>'53010000-0000-4000-8000-'+String(n).padStart(12,'0');
-        return Response.json([{id:id(621),student_id:student,section_id:id(622),status:'enrolled',source_mode:'sample',
+        if(timetableIssue==='unavailable')return Response.json({}, {status:503});
+        if(timetableIssue==='empty')return Response.json([], {headers:{'content-range':'*/0'}});
+        const first={id:id(621),student_id:student,section_id:id(622),status:'enrolled',source_mode:'sample',
           student:{id:student,user_id:owner},section:{id:id(622),course_id:id(623),term_id:id(624),weekday:2,
-            starts_at:'10:10:00',ends_at:'11:00:00',room:'QA-R201',
+            starts_at:'10:10:00',ends_at:'11:00:00',room:timetableIssue==='missing-room'?'':'QA-R201',
             course:{id:id(623),code:'QAP201',title:'QA Research Practice'},
-            term:{id:id(624),label:'Fixture term',starts_on:'2021-01-01',ends_on:'2098-12-31'}}}],{headers:{'content-range':'0-0/1'}});
+            term:{id:id(624),label:'Fixture term',starts_on:'2021-01-01',ends_on:'2098-12-31'}}};
+        if(timetableIssue==='tie'){
+          const overlap={...first,id:id(625),section_id:id(626),section:{...first.section,id:id(626),course_id:id(627),
+            room:'QA-R202',course:{id:id(627),code:'QAO202',title:'QA Overlapping Seminar'}}};
+          return Response.json([first,overlap], {headers:{'content-range':'0-1/2'}});
+        }
+        return Response.json([first],{headers:{'content-range':timetableIssue==='truncated'?'0-0/2':'0-0/1'}});
       }
       assert.ok(sourceRead);
       assert.equal(url.origin,'https://api.openai.com');
@@ -155,9 +166,11 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         const claims=[{claim:'Saved internship facts',supported,evidenceId:'account:internshipRecords',jsonPaths:paths,quotes:[]}];
         if(companion==='charges')claims.push({claim:'Independent saved balance',supported,evidenceId:'account:charges',
           jsonPaths:chargeUnavailable?['/unavailableReason']:['/records/0/amountDue','/records/0/amountPaid'],quotes:[]});
-        if(companion==='courses')claims.push({claim:'Independent scheduled meeting',supported,evidenceId:'account:courses',
-          jsonPaths:published?['/calendar/records/next/day','/calendar/records/next/course/code','/calendar/records/next/course/title',
-            '/calendar/records/next/course/startsAt','/calendar/records/next/course/room']:['/calendar/records/next/course/title'],quotes:[]});
+        if(companion==='courses'){
+          const path=timetableIssue==='unavailable'||timetableIssue==='truncated'?'/unavailableReason'
+            :timetableIssue==='empty'?'/calendar/records/next':'/calendar/records/next/course/title';
+          claims.push({claim:'Independent timetable result',supported,evidenceId:'account:courses',jsonPaths:[path],quotes:[]});
+        }
         return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported,answersQuestion:supported,claims})}]}]});
       }
       assert.equal(stage,'correct_grounded_answer');
@@ -193,13 +206,10 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
       if(chargePlan||timetable){
         assert.equal(graded.companionReadDigests.length,2*graded.readCount);
         assert.equal(graded.companionProjectionDigests.length,graded.readCount);
-        assert.equal(graded.verificationMethod,timetable?'model':'native-exact');
-        if(timetable)assert.equal(graded.completedEvidenceReviews,1);
-        else{
-          assert.equal(graded.completedNativeCheck,true);
-          assert.equal(graded.completedEvidenceReviews,0);
-          assert.equal(graded.completedModelCalls,0);
-        }
+        assert.equal(graded.verificationMethod,'native-exact');
+        assert.equal(graded.completedNativeCheck,true);
+        assert.equal(graded.completedEvidenceReviews,0);
+        assert.equal(graded.completedModelCalls,0);
       }
       assert.equal(graded.completedModelCalls,row.auth==='anonymous'?null:model.length);
       assert.deepEqual(errors,[]);
@@ -403,10 +413,22 @@ test('all 26 mounted independent hosted rubrics grade the real handlers and expe
 });
 
 
-test('the independent protected published timetable packet binds both orders and a single verified model review',async t=>{
+test('the independent protected published timetable packet verifies both orders without a model',async t=>{
   t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-15T00:00:00.000Z')});
-  await exercise('next-class',{hosted:true,published:true});
-  await exercise('next-class-reversed',{hosted:true,published:true});
+  for(const suffix of ['next-class','next-class-reversed']){
+    await exercise(suffix,{hosted:true,published:true,providerAbsent:true});
+    const {result,model}=await exercise(suffix,{published:true,providerAbsent:true});
+    assert.deepEqual(model,[],suffix);
+    assert.deepEqual(result.body.verification,{status:'verified',attempts:1},suffix);
+    assert.deepEqual(result.body.citations.map(({chunkId,url}:{chunkId:string;url:string})=>[chunkId,url]),[
+      ['account:internshipRecords',rowFor(suffix).route],['account:courses',schoolSubjectRecordsPath],
+    ]);
+    const firstCompany=result.body.answer.indexOf(internshipNativeFixtureForCase(rowFor(suffix)).sourceRead!.records[0].title);
+    const classTitle=result.body.answer.indexOf('SAMP103 Student Services Practice');
+    assert.ok(firstCompany>=0&&classTitle>=0,suffix);
+    assert.equal(classTitle<firstCompany,suffix==='next-class-reversed',suffix);
+    assert.match(result.body.answer,/2026-11-20, 10:00–11:30 \(Taipei time\) in Sample Room 305/u,suffix);
+  }
 });
 
 test('complete Internship and fee blocks preserve their exact facts and question order without a model',async()=>{
@@ -428,4 +450,16 @@ test('an unavailable fee reader stays outside the exact paired rendering',async(
   assert.ok(model.includes('answer_evidence_review'));
   assert.equal(result.body.activity.some((step:{kind:string})=>step.kind==='internship-evidence-check'),false);
   assert.doesNotMatch(result.body.answer,/23,?000/u);
+});
+
+test('unavailable, incomplete or unresolved timetable results stay outside the exact paired rendering',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-15T00:00:00.000Z')});
+  for(const timetableIssue of ['unavailable','truncated','empty','tie','missing-room'] as const){
+    const {result,model}=await exercise('next-class',{timetableIssue});
+    assert.ok(model.includes('answer_evidence_review'),timetableIssue);
+    assert.equal(result.body.activity.some((step:{kind:string})=>step.kind==='internship-evidence-check'),false,timetableIssue);
+    if(timetableIssue==='unavailable'||timetableIssue==='truncated')assert.match(result.body.answer,/saved timetable could not be read/u);
+    if(timetableIssue==='empty')assert.match(result.body.answer,/no upcoming meeting/u);
+    if(timetableIssue==='missing-room')assert.match(result.body.answer,/No room is saved/u);
+  }
 });
