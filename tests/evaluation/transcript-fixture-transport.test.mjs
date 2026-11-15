@@ -6,6 +6,7 @@ import {tuitionLedgerFixtureMode} from './tuition-ledger-preview.mjs';
 import {dtmGradePreviewMode} from './dtm-grade-report-preview.mjs';
 import {venueProtectedFixtureMode} from './venue-protected-fixture.mjs';
 import {certificateAwardPreviewMode} from './certificate-award-preview.mjs';
+import {confirmedAssignmentTrackerMode} from './confirmed-assignment-tracker-preview.mjs';
 import {facilityRepairCancellationMode} from './facility-repair-cancellation-preview.mjs';
 import {learningSupportPreviewMode} from './learning-support-preview.mjs';
 import {internshipFixtureMode} from './internship-native-fixture.mjs';
@@ -72,7 +73,7 @@ test('actual prepare rejects altered, partial, reordered or unrelated packet sco
 
 function isolatedPreparation({applicationFetch,invalidEnvironment=false}={}){
   let credentials=0,authOptions,dbCalls=0;const seen=[],root='/synthetic';
-  const context={venueProtectedFixtureMode,certificateAwardPreviewMode,facilityRepairCancellationMode,learningSupportPreviewMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,clearanceStatusPreviewMode,academicGradesPreviewMode,dtmStudyPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,URL,Headers,Response,AbortSignal,Buffer,TextDecoder,TextEncoder,setTimeout,clearTimeout,structuredClone,resolve,process:{cwd:()=>root},
+  const context={venueProtectedFixtureMode,certificateAwardPreviewMode,confirmedAssignmentTrackerMode,facilityRepairCancellationMode,learningSupportPreviewMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,clearanceStatusPreviewMode,academicGradesPreviewMode,dtmStudyPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,URL,Headers,Response,AbortSignal,Buffer,TextDecoder,TextEncoder,setTimeout,clearTimeout,structuredClone,resolve,process:{cwd:()=>root},
     state:undefined,ROOT:root,PROJECT:project,PRIVATE_DIR:'/synthetic/artifacts',UUID:/^[a-f0-9-]{36}$/iu,LiveFixtureError,
     fail:(code,message)=>{throw new LiveFixtureError(code,message);},createTranscriptFixtureApplicationFetch,createPinnedDeploymentVerifier,
     fetch:async(url)=>{seen.push(String(url));return Response.json({});},signals:signal=>signal,

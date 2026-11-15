@@ -83,6 +83,34 @@ test('confirmed task transport grants one exact POST to its bound caller and rej
   assert.equal(sent[0].init.headers.get('authorization'),caller);
 });
 
+test('confirmed tracker relay permits one exact reserved assignment and caller, even after a transport failure',async()=>{
+  const assignmentId='10000000-0000-4000-8000-000000000016',requestId='10000000-0000-4000-8000-000000000017';
+  const body={kind:'set_assignment_status',requestId,payload:{id:assignmentId,status:'submitted',expected_status:'open'}};
+  const bound={callerToken:caller.slice(7),assignmentId,body},sent=[];
+  const token=tokenAt(time);
+  const options={origin,token,now:()=>time*1000,fetchImpl:async(url,init)=>{
+    sent.push({url,init});
+    throw new Error('uncertain upstream completion');
+  }};
+  const endpoint=origin+'/api/affairs-action',init={...post,body:JSON.stringify(body)};
+  await assert.rejects(createTrustedPreviewFetch(options)(endpoint,init),/unapproved request operation/u);
+  for(const command of [
+    {...bound,assignmentId:requestId},
+    {...bound,body:{...body,payload:{...body.payload,status:'graded'}}},
+    {...bound,body:{...body,payload:{...body.payload,expected_status:'archived'}}},
+    {...bound,body:{...body,payload:{...body.payload,owner_id:'caller'}}},
+  ])assert.throws(()=>createTrustedPreviewFetch({...options,confirmedAssignmentTrackerCommand:command}),/invalid confirmed assignment tracker fixture/u);
+  const relay=createTrustedPreviewFetch({...options,confirmedAssignmentTrackerCommand:bound});
+  await assert.rejects(relay(endpoint,{...init,headers:{...init.headers,Authorization:'Bearer another.caller.signature'}}),/unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,body:JSON.stringify({...body,payload:{...body.payload,expected_status:'graded'}})}),/unapproved request operation/u);
+  await assert.rejects(relay(origin+'/api/affairs-assistant',init),/unapproved request operation/u);
+  await assert.rejects(relay(endpoint,init),{message:'Protected Preview transport: request could not reach the pinned Preview.'});
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent.length,1);
+  assert.equal(sent[0].init.headers.get(trusted),token);
+  assert.equal(sent[0].init.headers.get('authorization'),caller);
+});
+
 test('confirmed club cancellation relays one exact pending command to its bound caller',async()=>{
   const target='10000000-0000-4000-8000-000000000012',requestId='10000000-0000-4000-8000-000000000013';
   const body={kind:'cancel_club_equipment',payload:{request_id:requestId,id:target,expected_version:2}};

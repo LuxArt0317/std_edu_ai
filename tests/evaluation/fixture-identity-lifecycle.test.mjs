@@ -6,6 +6,7 @@ import {tuitionLedgerFixtureMode} from './tuition-ledger-preview.mjs';
 import {dtmGradePreviewMode} from './dtm-grade-report-preview.mjs';
 import {venueProtectedFixtureMode} from './venue-protected-fixture.mjs';
 import {certificateAwardPreviewMode} from './certificate-award-preview.mjs';
+import {confirmedAssignmentTrackerMode} from './confirmed-assignment-tracker-preview.mjs';
 import {facilityRepairCancellationMode} from './facility-repair-cancellation-preview.mjs';
 import {learningSupportPreviewMode} from './learning-support-preview.mjs';
 import {internshipFixtureMode} from './internship-native-fixture.mjs';
@@ -76,7 +77,7 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
       if(deleteAttempt)return deleteAttempt({id,attempt:deleted.length,records});
       records.delete(id);return {error:null};
     }}}}};
-  const context={venueProtectedFixtureMode,certificateAwardPreviewMode,facilityRepairCancellationMode,learningSupportPreviewMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,clearanceStatusPreviewMode,academicGradesPreviewMode,dtmStudyPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
+  const context={venueProtectedFixtureMode,certificateAwardPreviewMode,confirmedAssignmentTrackerMode,facilityRepairCancellationMode,learningSupportPreviewMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,clearanceStatusPreviewMode,academicGradesPreviewMode,dtmStudyPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
     PRIVATE_DIR:'/synthetic',readdir:async directory=>{assert.equal(directory,'/synthetic');events.push({kind:'scan'});return [...files.keys()].filter(path=>path.startsWith(directory+'/')).map(path=>path.slice(directory.length+1));},
     LiveFixtureError,readProtectedOwnerFingerprint,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest,ownTables:[],fail:(code,message)=>{throw new LiveFixtureError(code,message);},query:async work=>work(),
     randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),pause:async duration=>{events.push({kind:'pause',duration});},

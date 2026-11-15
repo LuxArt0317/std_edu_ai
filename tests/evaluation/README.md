@@ -237,6 +237,23 @@ node tests/evaluation/run-confirmed-task-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_
 
 Run from the clean deployed client revision with the authorized exact-client environment and Vercel Development identity. The owner-only report lists the completed operations and readback digests. This packet covers local task actions; service requests, profile changes, assignment tracking and administrative publishing have separate acceptance requirements.
 
+### Confirmed personal Moodle assignment tracker
+
+```sh
+node tests/evaluation/run-confirmed-assignment-tracker-preview.mjs --preflight
+node tests/evaluation/run-confirmed-assignment-tracker-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Run the protected packet from the clean deployed client revision using the existing exact-client fixture environment and authorized Development `VERCEL_OIDC_TOKEN`. It uses the existing reviewed-action, Moodle submission and grade schema. The shared lease binds two fresh Google-qualified student callers. The operator stages one editable personal assignment, one sample assignment, one synthetic graded tracker row, and a submitted assignment owned by the second student. The ordinary School Affairs initializer supplies each student's own sample account rows, separate from the isolated Moodle fixture.
+
+Five assistant requests verify the existing `account:action-tracker` proposal and the crossed, sample, graded, and already-submitted clarifications. Before any confirmation, paired caller reads and SQL must show the original state. Eight action requests verify one change to the personal tracker, exact same-body receipt replay, and crossed, sample, graded, changed-payload, or stale denials. Independent reads check only one tracker status and timestamp change, one audit, and one durable receipt. The run checks separately for changes in Moodle file submissions, Storage, and grades. Cleanup uses the exact journaled command and verifies the fixture's rows, audit, receipt, and Auth identities are gone.
+
+The private report records observation digests and bounded failure codes. This operator tests direct protected HTTP with disposable data. Local verification runs the actual assistant and action handlers against the real migrations with a controlled Auth transport.
+
+```sh
+STU_TRACKER_TEST_PGLITE_ENTRY="$PGLITE_ENTRY" node --experimental-strip-types --test tests/evaluation/confirmed-assignment-tracker-preview.test.mjs
+```
+
 ### Private tuition ledger Preview
 
 ```sh

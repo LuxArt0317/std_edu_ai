@@ -64,6 +64,17 @@ function boundTaskCommand(command){
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
+function boundAssignmentTrackerCommand(command){
+  const {callerToken,body,assignmentId}=command??{},payload=body?.payload;
+  if(typeof callerToken!=='string'||callerToken.length>16000||!jwt.test(callerToken)||!body
+    ||Object.keys(body).sort().join(',')!=='kind,payload,requestId'||body.kind!=='set_assignment_status'
+    ||!isConversationId(body.requestId)||body.requestId[14]!=='4'||!isConversationId(assignmentId)||assignmentId[14]!=='4'
+    ||assignmentId===body.requestId||!payload||Object.keys(payload).sort().join(',')!=='expected_status,id,status'
+    ||payload.id!==assignmentId||!['open','submitted'].includes(payload.status)||!['open','submitted','graded'].includes(payload.expected_status))
+    fail('invalid confirmed assignment tracker fixture');
+  return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
+}
+
 function boundCancellation(command,kind,label,versionKey='expected_version',maximumVersion=999999){
   const {callerToken,body}=command??{};
   if(typeof callerToken!=='string'||callerToken.length>16000||!jwt.test(callerToken)||!body
@@ -89,11 +100,12 @@ function boundLearningSupportSubmission(command){
 
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,confirmedLearningSupportCommand,confirmedLearningSupportSubmissionCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedAssignmentTrackerCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,confirmedLearningSupportCommand,confirmedLearningSupportSubmissionCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
   const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
   const taskCommand=confirmedTaskCommand===undefined?null:boundTaskCommand(confirmedTaskCommand);
+  const trackerCommand=confirmedAssignmentTrackerCommand===undefined?null:boundAssignmentTrackerCommand(confirmedAssignmentTrackerCommand);
   const clubCommand=confirmedClubCommand===undefined?null:boundCancellation(confirmedClubCommand,'cancel_club_equipment','club');
   const counselingCommand=confirmedCounselingCommand===undefined?null:boundCancellation(confirmedCounselingCommand,'counseling_cancel','counseling');
   const repairCommand=confirmedRepairCommand===undefined?null:boundCancellation(confirmedRepairCommand,'cancel_facility_repair','repair','version',10000);
@@ -101,7 +113,7 @@ export function createTrustedPreviewFetch({origin,token,conversationId,conversat
     boundCancellation(confirmedLearningSupportCommand,'withdraw_learning_support','learning support','expected_version',2);
   const learningSupportSubmission=confirmedLearningSupportSubmissionCommand===undefined?null:
     boundLearningSupportSubmission(confirmedLearningSupportSubmissionCommand);
-  const commands=[taskCommand,clubCommand,counselingCommand,repairCommand,learningSupportCommand,learningSupportSubmission].filter(Boolean);
+  const commands=[taskCommand,trackerCommand,clubCommand,counselingCommand,repairCommand,learningSupportCommand,learningSupportSubmission].filter(Boolean);
   const [actionCommand]=commands;
   if(actionCommand&&(commands.length!==1||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
   let actionCommandUsed=false;
