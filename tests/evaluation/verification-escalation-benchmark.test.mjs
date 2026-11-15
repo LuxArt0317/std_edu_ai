@@ -109,3 +109,58 @@ test('factual and missing-data scoring stays independent of the verification ver
     assert.equal(gradeVerificationEscalationCase(missing, checked(missing, limitation + ' ' + unsupported), 100).passed, false);
   }
 });
+
+
+test('the missing quota rubric accepts only the isolated capture date of the cited pinned sitemap', async () => {
+  const [, , missing] = await loadVerificationEscalationCases();
+  const limitation = 'The student quota and announcement date cannot be determined from this snapshot.';
+  const answerFor = (testCase, answer, citations = [{ chunkId: testCase.evidence[0].id, url: testCase.evidence[0].url }]) => ({
+    answer, status: 'answered', citations, activity: verifiedActivity, verification: { status: 'verified', attempts: 3 },
+  });
+  for (const provenance of [
+    'The campus sitemap snapshot was captured on 2026-11-03.',
+    'The snapshot was captured on November 3, 2026.',
+    'The source snapshot was taken on 3 Nov. 2026.',
+    'The campus sitemap was last captured on 2026/11/03.',
+    '- **Source snapshot:** `2026-11-03`',
+    '(sitemap snapshot dated November 3, 2026)',
+  ]) {
+    assert.equal(gradeVerificationEscalationCase(missing, answerFor(missing, limitation + '\n' + provenance), 100).passed, true, provenance);
+  }
+
+  const changedCapture = { ...missing, evidence: [{ ...missing.evidence[0], capturedOn: '2026-11-04' }] };
+  assert.equal(gradeVerificationEscalationCase(changedCapture, answerFor(changedCapture, limitation + ' Snapshot dated 4 November 2026.'), 100).passed, true);
+  const falseCitation = [{ chunkId: 'other-snapshot', url: missing.evidence[0].url }];
+  assert.ok(gradeVerificationEscalationCase(missing, answerFor(missing, limitation + ' Source snapshot: 2026-11-03.', falseCitation), 100)
+    .failures.includes('unsupportedStorageDetail'));
+});
+
+test('the capture-date allowance preserves mixed, status and glued unsupported claims', async () => {
+  const [, , missing] = await loadVerificationEscalationCases();
+  const limitation = 'The student quota and announcement date cannot be determined from this snapshot.';
+  const date = '2026-11-03';
+  for (const claim of [
+    'The snapshot was captured on November 4, 2026.',
+    `The announcement was posted on ${date}.`,
+    'The announcement was posted on 3 November 2026.',
+    `Source snapshot: ${date}. The announcement was posted on ${date}.`,
+    `Source snapshot: ${date}. The quota is 128 GB.`,
+    `Announcement status: Published (snapshot captured on ${date}).`,
+    `Source snapshot: ${date}. The announcement was officially published.`,
+    `Announcement date:\nSnapshot: ${date}.`,
+    `The announcement date is (snapshot captured on ${date}).`,
+    `Publication date: (source snapshot: ${date}).`,
+    `The announcement and source snapshot: ${date}.`,
+    `The campus sitemap snapshot was captured on ${date} and is the announcement date.`,
+    `Source snapshot: ${date}and the quota announcement appeared.`,
+    `Source snapshot: ${date}.The announcement was published.`,
+  ]) {
+    const grade = gradeVerificationEscalationCase(missing, {
+      answer: limitation + '\n\n' + claim, status: 'answered',
+      citations: [{ chunkId: missing.evidence[0].id, url: missing.evidence[0].url }],
+      activity: verifiedActivity, verification: { status: 'verified', attempts: 3 },
+    }, 100);
+    assert.equal(grade.passed, false, claim);
+    assert.ok(grade.failures.includes('unsupportedStorageDetail'), claim);
+  }
+});

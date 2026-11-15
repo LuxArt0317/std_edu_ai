@@ -86,6 +86,49 @@ export async function loadVerificationEscalationCases() {
   ];
 }
 
+const months = [
+  'jan(?:uary)?', 'feb(?:ruary)?', 'mar(?:ch)?', 'apr(?:il)?', 'may', 'jun(?:e)?',
+  'jul(?:y)?', 'aug(?:ust)?', 'sep(?:t(?:ember)?)?', 'oct(?:ober)?', 'nov(?:ember)?', 'dec(?:ember)?',
+];
+const monthName = '(?:' + months.join('|') + ')\\.?';
+const fullDate = `(?:\\d{4}[-/]\\d{1,2}[-/]\\d{1,2}|${monthName}[ \\t]+\\d{1,2},?[ \\t]+\\d{4}|\\d{1,2}[ \\t]+${monthName},?[ \\t]+\\d{4})`;
+const captureSubject = '(?:the[ \\t]+)?(?:source snapshot|campus sitemap(?: snapshot)?|sitemap(?: snapshot)?|snapshot|source capture)';
+const captureVerb = '(?:(?:was |is )?(?:(?:last )?captured|taken)(?: on)?|(?:was |is )?dated)';
+const captureClause = new RegExp(`\\b${captureSubject}(?:[ \\t]*:[ \\t]*|[ \\t]+${captureVerb}[ \\t]+)(${fullDate})`, 'giu');
+const anyFullDate = new RegExp(`(?<!\\d)(?:${fullDate})(?!\\d)`, 'iu');
+const affirmativeAnnouncementStatus = /(?:^|[.!?;。！？；\n]\s*)(?:the\s+)?(?:(?:official|onedrive|storage|quota)\s+)*(?:(?:announcement|publication)\s+status\s*:\s*(?:published|posted|issued|released|active|effective)|announcement\s+(?:is|was|has been)\s+(?:officially\s+)?(?:published|posted|issued|released))\b/iu;
+const attachedAnnouncementField = /\b(?:(?:announcement|publication)\s+(?:date|status)(?:\s+(?:is|was))?|(?:announced|published|posted|issued|released)\s+on|(?:date|quota)\s+(?:is|was))\s*[:=]?\s*$/iu;
+
+function captureDateIso(value) {
+  const numeric = /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/u.exec(value);
+  if (numeric) {
+    const [, year, month, day] = numeric;
+    return year + '-' + month.padStart(2, '0') + '-' + day.padStart(2, '0');
+  }
+  const [first, second, year] = value.toLowerCase().replace(/[.,]/gu, '').split(/[ \t]+/u);
+  const monthFirst = /^[a-z]/u.test(first);
+  const month = months.findIndex(pattern => new RegExp('^' + pattern + '$', 'u').test(monthFirst ? first : second)) + 1;
+  return year + '-' + String(month).padStart(2, '0') + '-' + (monthFirst ? second : first).padStart(2, '0');
+}
+
+function removeCitedCaptureDate(content, evidence, citations) {
+  const captures = evidence.filter(source => /^\d{4}-\d{2}-\d{2}$/u.test(source.capturedOn ?? '')
+    && Array.isArray(citations) && citations.some(citation => citation?.chunkId === source.id && citation.url === source.url));
+  if (captures.length !== 1) return content;
+  const visible = content.replace(/(\*\*|__|`)([^\r\n]+?)\1/gu, '$2');
+  return visible.replace(captureClause, (span, date, start, input) => {
+    if (captureDateIso(date) !== captures[0].capturedOn) return span;
+    const left = input.slice(0, start), right = input.slice(start + span.length);
+    const lineStart = /(?:^|\r?\n)[ \t]*(?:[-*][ \t]+)?$/u.test(left);
+    const statementStart = lineStart || /[.!?。！？]\s+$/u.test(left);
+    const standalone = statementStart && !/[:=]$/u.test(left.trimEnd())
+      && /^[ \t]*(?:$|\r?\n|[.!?。！？](?=\s|$))/u.test(right);
+    const parenthetical = /\([ \t]*$/u.test(left) && /^[ \t]*\)/u.test(right)
+      && !attachedAnnouncementField.test(left.slice(0, left.lastIndexOf('(')));
+    return standalone || parenthetical ? span.slice(0, -date.length) + ' ' : span;
+  });
+}
+
 export function gradeVerificationEscalationCase(testCase, answer, elapsedMs) {
   const grade = gradeCase({
     id: testCase.id,
@@ -95,12 +138,17 @@ export function gradeVerificationEscalationCase(testCase, answer, elapsedMs) {
   });
   // The captured date can be stated as provenance. A newly asserted date or
   // numeric storage quantity cannot be inferred from a list of campus links.
-  const content = answer.answer.normalize('NFKC').replace(/Source snapshot: 2026-11-03\.?/gi, '');
+  const content = answer.answer.normalize('NFKC');
+  const contentWithClaims = testCase.missingStorage
+    ? removeCitedCaptureDate(content, testCase.evidence, answer.citations)
+    : content;
   const missingStorageStatement = !testCase.missingStorage
     || /\b(?:unavailable|unknown|no (?:storage|quota|announcement)|not (?:stated|shown|listed|given|specified|available|included|established|provided|recorded|mentioned)|(?:cannot|can.?t|could not|unable to) (?:be )?(?:determine|verify|confirm|establish)\w*|(?:does not|doesn.?t) (?:list|give|say|mention|contain|specify|include|establish|provide))\b/iu.test(content);
   const unexpectedStorageDetail = testCase.missingStorage && (
-    /\b\d+(?:[.,]\d+)?\s*(?:(?:k|m|g|t|p)i?b|(?:kilo|mega|giga|tera|peta)bytes?)\b|\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/iu.test(content)
-    || /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}\b/iu.test(content)
+    /\b\d+(?:[.,]\d+)?\s*(?:(?:k|m|g|t|p)i?b|(?:kilo|mega|giga|tera|peta)bytes?)\b|\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/iu.test(contentWithClaims)
+    || /\b(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+\d{1,2}\b/iu.test(contentWithClaims)
+    || anyFullDate.test(contentWithClaims)
+    || affirmativeAnnouncementStatus.test(contentWithClaims)
   );
   return {
     passed: grade.passed && missingStorageStatement && !unexpectedStorageDetail,
