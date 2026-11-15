@@ -7,11 +7,12 @@ export const dtmAssignmentListFamily='dtm-assignment-list';
 export const dtmAssignmentListFixtureMode='dtm-assignment-list-only';
 export const dtmAssignmentListRequirement='dtm_assignment_list_disposable';
 const project='xiftudmvxphxcjtmfmib';
-const endpoint='/api/affairs-assistant';
 const uuid=/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/iu;
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const prefix='account:dtm-assignment-list-';
-const mounted=new Set(['course-all','account-all','exact-day','open-zh','done','graded','submitted','title-only','count']);
+const mounted=new Set(['course-all','account-all','exact-day','open-zh','done','graded','submitted','title-only','count',
+  'exact-sample','foreign-question','uploads','grades','bulk-change','anonymous']);
+const readEvents=[['account-read:dtmAssignmentList:1','complete'],['verification-1','running'],['verification-1','complete']];
 const courseFields=['id','user_id','code','source_mode'];
 const assignmentFields=['id','student_id','enrollment_id','dtm_course_id','source_mode','title','status','due_at','submitted_at','details'];
 const submittedAt='2026-11-15T00:00:00.000Z';
@@ -20,7 +21,7 @@ const details='SENSITIVE FULL INSTRUCTIONS';
 export function dtmAssignmentListLiveCases(){
   return dtmAssignmentListCases().filter(row=>mounted.has(row.id.slice(prefix.length))).map(row=>({
     ...row,
-    fixtureKey:'live:'+dtmAssignmentListFamily,
+    fixtureKey:row.auth==='anonymous'?'anonymous':'live:'+dtmAssignmentListFamily,
     fixtureRequirement:dtmAssignmentListRequirement,
     executionContract:'live-native',
     capability:{level:'native',gap:false},
@@ -88,14 +89,21 @@ export async function readDtmAssignmentListFixture(plan,users,{publishable,fetch
   }));
 }
 
-export function dtmAssignmentListDispatch(endpoint,body){return {endpoint,bodySha256:digest(body)};}
+export function dtmAssignmentListDispatch(endpoint,body,authenticated){return {endpoint,bodySha256:digest(body),authenticated};}
 
 export function bindDtmAssignmentListReadback(testCase,envelope,{before,after}){
   const ticket=envelope.deploymentCheck;
-  const request=dtmAssignmentListDispatch(endpoint,JSON.stringify({
+  const authenticated=testCase.auth==='signed-in';
+  const request=dtmAssignmentListDispatch(authenticated?'/api/affairs-assistant':'/api/research-assistant',JSON.stringify({
     question:testCase.question,history:[],route:testCase.route,stream:true,consentedResearchUse:false,
-  }));
+  }),authenticated);
   const events=envelope.events?.map(({kind,status})=>[kind,status]);
+  const {body}=envelope;
+  const observedBehavior=testCase.observation.read
+    ?body?.verification?.status==='verified'&&body.verification.attempts===1&&isDeepStrictEqual(events,readEvents)
+    :body?.status==='handoff'&&body.verification===undefined&&body.grounding?.webSearched===false
+      &&!body.proposedAction&&!body.views?.length&&isDeepStrictEqual(events,[])&&Array.isArray(body.citations)
+      &&isDeepStrictEqual(body.citations.map(row=>row.url),testCase.expected.requiredLinks);
   const observedReadbacks=Array.isArray(before)&&before.length===2&&before.every(({count,sha256},index)=>
     count===[8,2][index]&&/^[a-f0-9]{64}$/u.test(sha256));
   if(!observedReadbacks||!isDeepStrictEqual(before,after)
@@ -104,8 +112,7 @@ export function bindDtmAssignmentListReadback(testCase,envelope,{before,after}){
     ||ticket?.verified!==true||ticket.sourceRevision!==envelope.sourceRevision
     ||!Number.isSafeInteger(ticket.requestIndex)||ticket.requestIndex<1
     ||!isDeepStrictEqual(request,envelope.assignmentListDispatch)
-    ||envelope.body?.verification?.status!=='verified'||envelope.body.verification.attempts!==1
-    ||!isDeepStrictEqual(events,[['account-read:dtmAssignmentList:1','complete'],['verification-1','running'],['verification-1','complete']]))
+    ||!observedBehavior)
     throw new Error('Moodle assignment-list evidence did not match the pinned request and two caller readbacks.');
   return {caseId:testCase.id,correlationId:envelope.correlationId,sourceRevision:envelope.sourceRevision,
     requestIndex:ticket.requestIndex,request,before,after};
@@ -129,7 +136,8 @@ export function gradeDtmAssignmentListLiveCase(testCase,envelope){
   const checks=[...overall.checks,
     {id:'dtm-assignment-list.exact-links',passed:isDeepStrictEqual(links,expectedLinks),
       detail:'The reply exposes exactly the selected assignment links.'},
-    {id:'dtm-assignment-list.exact-count',passed:reportedCount.length===1&&Number(reportedCount[0].match(/\d+/u)[0])===testCase.observation.amount,
+    {id:'dtm-assignment-list.exact-count',passed:testCase.observation.read
+      ?reportedCount.length===1&&Number(reportedCount[0].match(/\d+/u)[0])===testCase.observation.amount:reportedCount.length===0,
       detail:'The listed count matches the independent saved-record expectation.'},
   ];
   const failures=checks.filter(check=>!check.passed);

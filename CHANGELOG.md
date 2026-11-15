@@ -1,6 +1,12 @@
 # Changelog
 ## Unreleased
 
+- Continue a public answer check with a distinct school source when an earlier reviewer reaches its response limit. [#100]
+
+- Evaluate Moodle assignment sample records and sign-in, ownership, file, grade, and bulk-submission boundaries with paired account readbacks. Include a request ID on accepted public assistant requests. [#100]
+
+- Answer teaching survey status, dates, course completion, and phase comparisons from saved survey records. Verify the same course and section before comparing its completion across phases. [#100]
+
 - Verify standalone Moodle questions about the student's saved courses, course role, meeting notes, next meeting, and attendance directly against their owned records. Add a protected evaluation of the five original questions with two callers. [#100]
 
 - Keep graduation-clearance window and submission-inference questions in their native scope. Add isolated PostgreSQL replay for the three positive window questions. [#100]

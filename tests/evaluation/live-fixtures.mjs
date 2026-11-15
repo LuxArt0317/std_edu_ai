@@ -3695,7 +3695,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
       fail('fixture-case','The Moodle assignment-list case is outside its isolated fixture.');
     const before=await dtmAssignmentListObservation(s,signal);
     s.current={caseId:testCase.id,dtmAssignmentList:before};
-    return {token:s.users[0].token};
+    return testCase.fixtureKey==='anonymous'?{}:{token:s.users[0].token};
   }
   if(fixtureMode!==undefined||fixtureFamily!==undefined)fail('fixture-case','Fixture mode changed after preparation.');
   if(isElearningPublishedReadbackCase(testCase)){

@@ -619,11 +619,12 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           }
           const fixtureContext={signal:controller.signal,...(fixtureMode?{fixtureMode,
             fixtureFamily:feeOnly?feeRemissionLiveFamilyForCase(testCase):opt.caseFamily}:{})};
-          const context=!feeOnly&&!healthMetadataOnly&&testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(feeOnly?structuredClone(testCase):testCase,fixtureContext);
-          fixtureReady=feeOnly||healthMetadataOnly||testCase.fixtureKey!=='anonymous';
+          const pairedFixture=feeOnly||healthMetadataOnly||assignmentListOnly;
+          const context=!pairedFixture&&testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(feeOnly?structuredClone(testCase):testCase,fixtureContext);
+          fixtureReady=pairedFixture||testCase.fixtureKey!=='anonymous';
           if(!context||typeof context!=='object')throw new Error('Live fixture did not supply a valid request context.');
           if(testCase.fixtureKey!=='anonymous'&&(typeof context.token!=='string'||!context.token.trim()))throw new Error('Private live fixture did not supply its own session.');
-          if((feeOnly||healthMetadataOnly)&&testCase.fixtureKey==='anonymous'&&context.token!==undefined)throw new Error('Anonymous private-account cases must not receive a session token.');
+          if(pairedFixture&&testCase.fixtureKey==='anonymous'&&context.token!==undefined)throw new Error('Anonymous private-account cases must not receive a session token.');
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
           const requestBody=JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,
@@ -636,7 +637,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
             }
             pacingWaitMs=waited;executed=true;
             if(publishedAcademyReadback)academyDispatch=assistantDispatchObservation(endpoint,requestBody);
-            if(assignmentListOnly)assignmentListDispatch=dtmAssignmentListDispatch(endpoint,requestBody);
+            if(assignmentListOnly)assignmentListDispatch=dtmAssignmentListDispatch(endpoint,requestBody,Boolean(context.token));
             if(healthMetadataOnly)healthDispatch=healthMetadataDispatch(endpoint,requestBody);
             return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
               body:requestBody,signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});

@@ -73,7 +73,7 @@ import { withdrawalPath,withdrawalQuestion } from './courseWithdrawalContract.js
 import { creditTransferPath,creditTransferQuestion } from './creditTransferContract.js';
 import { firstSelectionQuestion } from '../src/features/public/affairs/firstSelection.js';
 import { courseSubstitutionQuestion } from '../src/features/public/affairs/courseSubstitution.js';
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { answerInterdisciplinaryPrograms } from "./interdisciplinaryPrograms.js";
 import { isProgramRegistrationQuestion, programRegistrationPath } from "./programRegistrationContract.js";
 import { questionKind, publicSchoolQuestion, safeWebSource, searchSchoolWeb } from "./schoolWebSearch.js";
@@ -378,6 +378,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             });
             return;
         }
+        response.setHeader('X-Assistant-Request-Id', randomUUID());
         const stream = createAssistantStream(input.stream, response);
         const campusEntry=campusEntryIntent(input.question,input.route);
         if(campusEntry){stream.send(200,answerCampusEntry(input.question,campusEntry,false));return;}

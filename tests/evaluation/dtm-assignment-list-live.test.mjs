@@ -35,7 +35,9 @@ const readOptions={publishable:'test-publishable',readResponse};
 
 test('only the exact fixed-clock Moodle packet can request protected Preview fixtures',()=>{
   const cases=dtmAssignmentListLiveCases();
-  assert.equal(cases.length,9);
+  assert.equal(cases.length,15);
+  assert.equal(cases.filter(row=>row.auth==='anonymous').length,1);
+  assert.equal(cases.find(row=>row.auth==='anonymous').fixtureKey,'anonymous');
   assert.doesNotThrow(()=>assertDtmAssignmentListLiveCases(cases));
   const edited=structuredClone(cases);
   edited[0].route='/dtm';
@@ -73,7 +75,7 @@ test('pinned response needs exact request fingerprint, first-pass read and uncha
     body:{verification:{status:'verified',attempts:1}},
     assignmentListDispatch:dtmAssignmentListDispatch('/api/affairs-assistant',JSON.stringify({
       question:item.question,history:[],route:item.route,stream:true,consentedResearchUse:false,
-    })),
+    }),true),
     events:[{kind:'account-read:dtmAssignmentList:1',status:'complete'},{kind:'verification-1',status:'running'},{kind:'verification-1',status:'complete'}],
   };
   assert.equal(verifiedDtmAssignmentListReadback(item,envelope),false);
@@ -83,6 +85,8 @@ test('pinned response needs exact request fingerprint, first-pass read and uncha
   assert.equal(verifiedDtmAssignmentListReadback(dtmAssignmentListLiveCases()[1],envelope),false);
   assert.equal(verifiedDtmAssignmentListReadback(item,{...envelope,events:[]}),false);
   assert.equal(verifiedDtmAssignmentListReadback(item,{...envelope,correlationId:randomUUID()}),false);
+  assert.equal(verifiedDtmAssignmentListReadback(item,{...envelope,
+    assignmentListDispatch:{...envelope.assignmentListDispatch,authenticated:false}}),false);
   observations.after[1].sha256='b'.repeat(64);
   assert.throws(()=>bindDtmAssignmentListReadback(item,envelope,observations),/two caller readbacks/);
 });
