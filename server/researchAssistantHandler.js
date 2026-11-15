@@ -1027,7 +1027,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             stream.send(200, reply);
         }
-        let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, bootstrapRead;
+        let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, noticeAlternateStep, bootstrapRead;
         async function tryWebAnswer(earlierReview) {
             const recoveringEmptySearch = Boolean(earlierReview && firstWebMiss && !targetedWebStep);
             if (!publicQuestion || personalQuestion || (webAttempted && !recoveringEmptySearch))
@@ -1046,17 +1046,18 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     detail: 'The managed excerpts did not verify the requested detail.', status: 'complete' };
                 verificationProgress(knowledgeWebSwitch);
             }
-            const searchStep = recoveringEmptySearch ? 'web-after-empty' : 'web';
+            let searchStep = recoveringEmptySearch ? 'web-after-empty' : 'web';
             function reportSearch(label, detail, status) {
                 const step = { kind: searchStep, label, detail, status };
-                if (recoveringEmptySearch) targetedWebStep = step;
+                if (searchStep === 'web-after-empty') targetedWebStep = step;
+                if (searchStep === 'web-notice-alternate') noticeAlternateStep = step;
                 verificationProgress(step);
                 return step;
             }
             if (recoveringEmptySearch) reportSearch('Looking for the original school publication',
                 'The first search found no lead. Looking for a specific open notice or policy.', 'running');
             else reportSearch('Searching school sources', 'Checking official school pages and related public sources.', 'running');
-            const web = await searchSchoolWeb(publicQuestion, recoveringEmptySearch
+            let web = await searchSchoolWeb(publicQuestion, recoveringEmptySearch
                 ? { deadline: Math.min(deadline - 12_500, Date.now() + 6_000), followUp: true, deeperDiscovery: true }
                 : { deadline: Math.min(deadline - 19_000, Date.now() + 22_000) }).catch(() => null);
             if (!web) {
@@ -1068,7 +1069,21 @@ export function createResearchAssistantHandler(dependencies = {}) {
             webAttempted ||= web.attempted;
             const indexedEvidence = indexedSources.length ? await indexedRead : [];
             const availableIndexed = indexedSources.filter(citation => indexedEvidence.some(source => source.id === citation.chunkId && source.url === citation.url && validEvidence([source])));
-            const sourceLinks = web.result?.citations || [...(web.discoveredSources || []), ...availableIndexed];
+            let sourceLinks = web.result?.citations || [...(web.discoveredSources || []), ...availableIndexed];
+            const hasGatedNotice = indexedSources.some(source => source.chunkId.startsWith('notice:') && sourceLeads?.isBlocked(source.url));
+            const alternateUntil = Math.min(deadline - 12_500, Date.now() + 5_500);
+            if (recoveringEmptySearch && !sourceLinks.length && web.attempted && hasGatedNotice
+                && alternateUntil - Date.now() >= 2_500) {
+                reportSearch('Search found no usable lead', 'The specific lookup found no open page to check.', 'unavailable');
+                searchStep = 'web-notice-alternate';
+                reportSearch('Looking for another school publication',
+                    'The indexed notice requires sign-in. Checking whether the responsible office published the same detail publicly.', 'running');
+                const alternate = await searchSchoolWeb(publicQuestion, {
+                    deadline: alternateUntil, followUp: true, alternateDiscovery: true,
+                }).catch(() => null);
+                if (alternate) web = alternate;
+                sourceLinks = alternate?.discoveredSources || [];
+            }
             if (!sourceLinks.length) {
                 publicStop = verificationStopActivity(verificationQuestion, 'no_usable_evidence');
                 const miss = reportSearch('Search found no usable lead', 'This lookup found no source page to check.', 'unavailable');
@@ -1092,6 +1107,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     ...(recoveringEmptySearch ? [firstWebMiss] : []),
                     ...priorActivity,
                     ...(earlierReview ? [knowledgeWebSwitch] : []),
+                    ...(noticeAlternateStep ? [targetedWebStep] : []),
                     foundStep,
                 ],
             };
@@ -1555,7 +1571,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 },
                 activity: [...captureActivity,
                     { kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' },
-                    ...(targetedWebStep ? [firstWebMiss, ...checkedActivity, knowledgeWebSwitch, targetedWebStep]
+                    ...(targetedWebStep ? [firstWebMiss, ...checkedActivity, knowledgeWebSwitch, targetedWebStep, ...(noticeAlternateStep ? [noticeAlternateStep] : [])]
                         : knowledgeWebSwitch ? [...checkedActivity, knowledgeWebSwitch, ...failedWebActivity] : [...failedWebActivity, ...checkedActivity]),
                     ...(bootstrapRead ? [bootstrapRead] : []),
                     ...(stop ? [stop] : [])],

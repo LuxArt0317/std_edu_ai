@@ -705,6 +705,90 @@ test('an empty follow-up, expired reserve or verifier outage stops without repea
   }
 });
 
+test('a gated original notice can still lead to a separate public publication after two empty searches',async()=>{
+  const question='Find the latest STU announcement about OneDrive storage quotas for students. What quota and publication date does it give?';
+  const originalNotice='https://dtm.stu.edu.tw/mod/page/view.php?id=625803';
+  const secondPublication='https://www.cc.stu.edu.tw/notice/onedrive-public-test/';
+  const contents='The student OneDrive allocation is 25 GB. This computing center notice was published on May 12, 2026.';
+  for(const scenario of ['new-publication','empty','no-time','not-gated'] as const){
+    configured();
+    const started=originalNow();
+    let elapsed=0,searches=0,managedReviews=0;
+    Date.now=()=>started+elapsed;
+    const readUrls:string[]=[];
+    const run=createResearchAssistantHandler({readSources:async(citations,_deadline,options)=>citations.flatMap(citation=>{
+      readUrls.push(citation.url);
+      if(citation.url===originalNotice){
+        if(scenario!=='not-gated')options?.onAccessRequired?.({url:originalNotice,title:'Microsoft 365 and OneDrive storage quotas'});
+        return [];
+      }
+      assert.equal(citation.url,secondPublication);
+      return [{id:citation.chunkId,url:citation.url,content:contents}];
+    })});
+    globalThis.fetch=async(input,init)=>{
+      const url=String(input);
+      if(url.endsWith('/v1/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+      if(url.includes('/rpc/search_public_knowledge'))return Response.json([managedExcerpt]);
+      if(url.includes('/knowledge_documents?'))return Response.json([{
+        id:managedExcerpt.document_id,logical_key:'unrelated-archive',content_checksum:managedExcerpt.content_checksum,
+      }]);
+      if(url.includes('/rpc/record_public_ai_exchange'))return Response.json([{
+        feedback_token:'a'.repeat(64),feedback_expires_at:'2026-12-01T00:00:00Z',
+      }]);
+      if(!url.endsWith('/v1/responses'))return Response.json(null);
+      const request=JSON.parse(String(init?.body));
+      const name=request.text.format.name;
+      if(name==='stu_web_answer'){
+        searches++;
+        assert.doesNotMatch(request.input,/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT|625803/u);
+        if(searches===3)elapsed=scenario==='no-time'?43_000:36_000;
+        if(searches!==4)return Response.json({output:[]});
+        assert.match(request.instructions,/independent official publication/u);
+        return Response.json(scenario==='new-publication'?searchPayload([secondPublication],unsafeDraft):{output:[]});
+      }
+      if(name==='public_grounded_answer')return provider({status:'answered',answer:unsafeDraft,
+        citations:[{chunkId:managedExcerpt.chunk_id,claim:'Storage claim'}],suggestedQuestions:[]});
+      if(name==='correct_grounded_answer')return provider({status:'answered',answer:unsafeDraft,sourceIds:[managedExcerpt.chunk_id]});
+      const payload=JSON.parse(request.input[0].content[0].text);
+      if(name==='compose_grounded_answer'){
+        assert.equal(payload.evidence[0].url,secondPublication);
+        assert.equal(payload.evidence[0].content,contents);
+        return provider({status:'answered',answer:contents,sourceIds:[payload.evidence[0].id]});
+      }
+      assert.equal(name,'answer_evidence_review');
+      const evidence=payload.evidence[0];
+      if(evidence.id===managedExcerpt.chunk_id){
+        if(++managedReviews===2)elapsed=32_000;
+        return provider({supported:false,answersQuestion:false,claims:[{claim:rejectedClaim,supported:false,
+          evidenceId:evidence.id,quotes:[],jsonPaths:[]}]});
+      }
+      assert.equal(evidence.url,secondPublication);
+      return provider({supported:true,answersQuestion:true,missingRequestedDetails:[],claims:[{
+        claim:'Allocation and publication date',supported:true,evidenceId:evidence.id,quotes:[contents],jsonPaths:[],
+      }]});
+    };
+    const progress:Progress[]=[];
+    const reply=await invoke({question},run,'known-notice-alternate-'+scenario,progress);
+    const alternate=['new-publication','empty'].includes(scenario);
+    assert.equal(searches,alternate?4:3,scenario);
+    assert.equal(progress.some(step=>step.kind==='web-notice-alternate'),alternate,scenario);
+    assert.equal(reply.activity.some((step:Progress)=>step.kind==='web-notice-alternate'),alternate,scenario);
+    const saved=sanitizeStoredConversation([{id:'notice-'+scenario,role:'assistant',content:reply.answer,activity:reply.activity,result:reply}]);
+    assert.equal(saved[0].activity.some((step:Progress)=>step.kind==='web-notice-alternate'),alternate,scenario);
+    assert.equal(readUrls.includes(secondPublication),scenario==='new-publication',scenario);
+    assert.match(reply.answer,/625803/u,scenario);
+    assert.doesNotMatch(reply.answer,/NOT_PUBLIC_SEARCH_INPUT|PRIVATE_REVIEW_FEEDBACK/u,scenario);
+    if(scenario==='new-publication'){
+      assert.deepEqual(reply.verification,{status:'verified',attempts:3});
+      assert.match(reply.answer,/25 GB/u);
+      assert.deepEqual(reply.citations.map((citation:{url:string})=>citation.url),[secondPublication]);
+    }else{
+      assert.equal(reply.verification.attempts,2);
+      assert.match(reply.answer,/could not verify the notice contents/iu);
+    }
+  }
+});
+
 test('a verified public limitation can advance with a fresh school source and keep its supported answer if no source helps',async()=>{
   for(const scenario of ['new-fact','unreadable','same-coverage','no-time','already-complete'] as const){
     configured();
