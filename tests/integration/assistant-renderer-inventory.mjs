@@ -30,16 +30,40 @@ const fileId=randomUUID(),cache=await mkdtemp(join(tmpdir(),'stu100-renderer-'))
 const artifact=join(root,'artifacts/assistant-renderer',fileId+'.json');
 const viewports={desktop:{width:1280,height:800},phone:{width:390,height:740}};
 const contextualPhoneRoutes=new Set(['/school-affairs','/school-affairs/services/leave','/school-affairs/services/40-1/my-attendance?page=2',
-  '/school-affairs/services/36-1','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395']);
+  '/school-affairs/services/36-1','/school-affairs/services/27-1','/school-affairs/services/39-1/payment-history',
+  '/school-affairs/services/40-1/officer/applications','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395']);
 const fakeCourse={id:ids.course,code:'QA-DTM',title:'Renderer fixture DTM course',term:'115學年度第1學期',role:'student',sourceMode:'personal',
   materials:[{id:ids.material,title:'Renderer fixture DTM material',kind:'url',summary:'Synthetic material',position:1,sourceMode:'personal'}],meetings:[],grades:[]};
 const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elearningCategory),title:'Renderer safety course',self_enroll:false,position:1};
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
-const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice','course-substitution','curriculum-maps','curriculum-plans']);
+const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
+  'course-substitution','curriculum-maps','curriculum-plans','summer-selection-notice','curriculum-plan']);
+const publicPlanQuery='?scope=curriculum-plan&code=115101';
 const fixture=(url,parent)=>{
   const scope=url.searchParams.get('scope');
   if(url.pathname!=='/api/affairs-data')return schoolServiceReadFixture(url.href,'GET',user,parent);
+  for(const key of new Set(url.searchParams.keys()))assert.equal(url.searchParams.getAll(key).length,1);
   if(!url.search){const data=schoolServiceSnapshot(user);data.dtm.courses.push(fakeCourse);return data;}
+  if(scope==='summer-selection-notice'){
+    const year=url.searchParams.get('year');
+    assert.match(year??'',/^[1-9][0-9]{2}$/u);
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,year});
+    return {academicYear:Number(year),notice:null};
+  }
+  if(scope==='course-adjustment'&&url.searchParams.get('phase')==='late_add'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,phase:'late_add'});
+    return {userId:user.id,term:{academicYear:115,semester:1},record:null};
+  }
+  if(scope==='learning-support'){
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,page:'1'});
+    return {userId:user.id,view:'mine',page:1,total:0,rows:[],canReview:false};
+  }
+  if(scope==='fee-payment-history'){
+    const page=url.searchParams.get('page');
+    assert.ok(page===null||page==='2');
+    assert.deepEqual(Object.fromEntries(url.searchParams),{scope,...(page?{page}:{})});
+    return {userId:user.id,studentRecordFound:false,rows:[],total:0,hasUndatedPaidAmount:false};
+  }
   if(scope==='elearning-workspace')return {userId:user.id,courses:[academyCourse],categories:[academyCategory],
     notices:[{id:Number(ids.elearningNotice),kind:'page',title:'Renderer fixture notice',local_body:'Synthetic notice.',position:1}],
     enrollments:[{courseId:academyCourse.id,joinedAt:'2026-11-15T02:00:00Z'}]};
@@ -74,6 +98,10 @@ async function wire(context,mode,origin){
       observed.security.push('unexpected-api-or-caller');return route.fulfill({status:403,json:{error:'Synthetic renderer read denied.'}});
     }
     try{
+      if(scope==='curriculum-plan'&&url.pathname==='/api/affairs-data'&&url.search===publicPlanQuery){
+        observed.api.push({path:url.pathname,scope,status:204});
+        return route.fulfill({status:204});
+      }
       const json=fixture(url,origin);
       observed.api.push({path:url.pathname,scope,status:200});return route.fulfill({json});
     }catch{
@@ -117,6 +145,14 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     await page.waitForURL(origin+(mode.state?row.final:row.guest));
     finalPath=new URL(page.url()).pathname+new URL(page.url()).search;
     checks.navigationSucceeded=true;
+    if(mode.state&&row.notice){
+      stage='workspace-notice';
+      const notice=page.getByRole('alertdialog',{name:row.notice.title,exact:true});
+      await notice.getByText('確定',{exact:true}).press('Enter');
+      await page.waitForURL(origin+row.notice.resultingRoute);
+      await notice.waitFor({state:'hidden'});
+      finalPath=new URL(page.url()).pathname+new URL(page.url()).search;
+    }
     stage='workspace-marker';
     if(mode.state)await waitMounted(page,row.selector);
     else await page.getByRole('button',{name:'Continue with Google',exact:true}).waitFor();
@@ -159,7 +195,7 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   const workspaceReads=reads.filter(read=>read.path==='/api/affairs-data');
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
     auth:mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
-    nativeData:workspaceReads.some(read=>read.status===503)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
+    nativeData:workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
 }
 async function checkAccountMenu(page,origin,route,device){

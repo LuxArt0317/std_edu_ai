@@ -31,3 +31,24 @@ test('route oracles keep exact private return selectors and aliases without expe
   const attendance='/school-affairs/services/40-1/my-attendance?page=2';
   assert.equal(new URL(route(attendance).guest,'https://renderer.invalid').searchParams.get('next'),attendance);
 });
+
+test('school service views and notice transitions keep distinct signed-in rendering and exact login destinations',async()=>{
+  const inventory=await discoverSurfaces(),{cases}=await rendererInventory();
+  const regular=inventory.routeFamilies.find(row=>row.id==='school-service-views');
+  assert.equal(regular.auth,'signed-in');
+  for(const path of ['/school-affairs/services/27-1/review','/school-affairs/services/27-1/notes',
+    '/school-affairs/services/39-1/payment-history','/school-affairs/services/40-1/officer/new',
+    '/school-affairs/services/45-1/history/:id','/school-affairs/admin/venues'])assert.ok(regular.routes.includes(path),path);
+  const base=cases.find(row=>row.route==='/school-affairs/services/27-1');
+  assert.match(base.selector,/Learning support/u);
+  const history=cases.find(row=>row.route==='/school-affairs/services/39-1/payment-history?page=2');
+  assert.equal(new URL(history.guest,'https://renderer.invalid').searchParams.get('next'),history.route);
+  const transitions=inventory.routeFamilies.find(row=>row.id==='school-service-acknowledgements');
+  assert.equal(transitions.auth,'transition');
+  for(const scenario of transitions.browserScenarios){
+    const row=cases.find(candidate=>candidate.route===scenario.route);
+    assert.equal(row.final,scenario.route);
+    assert.equal(row.notice.resultingRoute,scenario.resultingRoute);
+    assert.equal(new URL(row.guest,'https://renderer.invalid').searchParams.get('next'),row.route);
+  }
+});

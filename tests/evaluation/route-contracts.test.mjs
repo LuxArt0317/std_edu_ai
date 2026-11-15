@@ -15,6 +15,7 @@ import {dtmAssignmentListCases} from './dtm-assignment-list-cases.mjs';
 import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import {elearningCatalogRunnerCases} from './elearning-catalog-runner.mjs';
 import {accountStatusCases} from './account-status-cases.mjs';
+import {schoolServiceNotices,schoolServiceViews} from './school-service-views.mjs';
 
 const revision='offline-route-contract';
 const observe=(route,extra={})=>({route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true,...extra});
@@ -220,6 +221,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
     '/dtm/dashboard','/dtm/my',
     '/dtm/course/:courseId/assignment/:assignmentId/edit',
     '/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw',
+    '/school-sites/dtm.stu.edu.tw/course/:id/assignment/:assignmentId/edit','/school-sites/dtm.stu.edu.tw/course/:id/grades/overview',
     '/dtm/login','/dtm/login/index.php','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml',
     '/school-affairs/auth/callback','/school-affairs/signed-out','/school-affairs/privacy',
     '/campus-directory','/local-pages',
@@ -255,14 +257,20 @@ test('route coverage retains only unresolved semantic cases after adding public 
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
-  assert.equal(report.coverage.routes.total,582);
-  assert.equal(expected.length,18);assert.equal(added.length,5);
-  assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
-  assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,23);
-  assert.equal(report.browserAcceptance.total,582);assert.equal(report.browserAcceptance.requiredScenarios,592);
-  assert.equal(report.coverage.routeFamilies.total,55);
-  assert.deepEqual(report.coverage.routeFamilies.missing,['student-club-equipment','dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);
+  const alreadyCoveredServiceViews=new Set(['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id',
+    '/school-affairs/services/29-1/appointments','/school-affairs/services/37-1/salary']);
+  const missingServiceViews=schoolServiceViews.filter(route=>!alreadyCoveredServiceViews.has(route)).map(route=>
+    route.replace('?page=:page','?page=%3Apage'));
+  const unresolved=[...expected,...added,...missingServiceViews,...schoolServiceNotices.map(row=>row.route),
+    '/school-affairs/course-selection','/school-affairs/course-selection/review/tutor','/school-affairs/course-selection/review/dean',
+    '/school-affairs/course-selection/review/academic','/dtm/course/:id/grades/overview'];
+  assert.equal(report.coverage.routes.total,674);
+  assert.equal(expected.length,20);assert.equal(added.length,5);
+  assert.deepEqual([...report.coverage.routes.missing].sort(),unresolved.sort());
+  assert.equal(report.browserAcceptance.total,674);assert.equal(report.browserAcceptance.requiredScenarios,684);
+  assert.equal(report.coverage.routeFamilies.total,57);
+  assert.deepEqual(report.coverage.routeFamilies.missing,['school-service-acknowledgements','student-club-equipment','dtm-submissions',
+    'elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,23);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,unresolved.length);
 });

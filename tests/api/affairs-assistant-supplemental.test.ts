@@ -29,6 +29,11 @@ test('full validated local routes retain encoded selectors past250 characters an
   assert.equal(validateAffairsAssistantRoute(endpoint+'/?keyword=A%20B&term=1151'),endpoint+'?keyword=A%20B&term=1151');
   const longest=endpoint+'?keyword='+'x'.repeat(3100-(endpoint+'?keyword=').length);
   assert.equal(longest.length,3100);assert.equal(validateAffairsAssistantRoute(longest),longest);
+  const legacy='/school-sites/dtm.stu.edu.tw';
+  const course='/course/45000000-0000-4000-8000-000000000003/grades/overview';
+  assert.equal(validateAffairsAssistantRoute('https://stu.best'+legacy+course+'?mode=review'),'/dtm'+course+'?mode=review');
+  assert.equal(validateAffairsAssistantRoute(legacy+'/login/index.php'),legacy+'/login/index.php');
+  assert.equal(validateAffairsAssistantRoute(legacy+'.invalid'+course),legacy+'.invalid'+course);
   assert.equal(validateAffairsAssistantRoute(undefined),'');assert.equal(validateAffairsAssistantRoute('/'),'/');assert.equal(validateAffairsAssistantRoute('/?query=school'),'/?query=school');
 });
 

@@ -14,7 +14,7 @@ import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsActi
 import type {VerificationProgress} from '../server/answerVerification.js';
 import {accountStatusIntent} from '../server/accountStatusIntent.js';
 import {answerCampusEntry,campusEntryIntent} from '../server/campusEntryContract.js';
-import {answerLearningEntry,learningEntryIntent} from '../server/learningEntryContract.js';
+import {answerLearningEntry,learningEntryIntent,legacyDtmWorkspacePath} from '../server/learningEntryContract.js';
 import {answerAccountStatus} from '../server/accountStatusAnswer.js';
 import {answerElearningCatalog,answerElearningMetadata,elearningCatalogBoundary,elearningMetadataBoundary} from '../server/accountElearningCatalogAnswer.js';
 import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../server/elearningCatalogPageIntent.js';
@@ -135,7 +135,8 @@ export function validateAffairsAssistantRoute(input:unknown):string {
     if(hasRouteControls(path)||path.includes('\\')||/%(?:2f|5c)/i.test(url.pathname)||path.split('/').some(part=>part==='.'||part==='..'))throw new TypeError('Invalid local page route.');
     if(hasRouteControls(decodeURIComponent(url.search)))throw new TypeError('Invalid local page route.');
   }catch{throw new TypeError('Invalid local page route.');}
-  return (url.pathname.replace(/\/+$/u,'')||'/')+url.search;
+  const pathname=url.pathname.replace(/\/+$/u,'')||'/';
+  return (legacyDtmWorkspacePath(pathname)??pathname)+url.search;
 }
 function personal(question:string,history:Array<{role:string;content:string}>=[]):boolean {
   // A signed-in question mentioning the caller or this assistant's account tools

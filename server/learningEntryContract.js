@@ -36,6 +36,14 @@ export function learningLoginReturn(platform,value){
     ?value:home;
 }
 
+/** Map the copied DTM workspace to the same local record route used by DTM's
+ * readers. Legacy entry pages keep their separate sign-in guidance. */
+export function legacyDtmWorkspacePath(pathname){
+  if(typeof pathname!=='string'||!pathname.startsWith(legacyDtm+'/'))return null;
+  const path=dtm+pathname.slice(legacyDtm.length).replace(/\/$/u,'');
+  return path!==dtm&&learningLoginReturn('dtm',path)===path?path:null;
+}
+
 /** Mirrors the existing router. The exact assistant entry map below is
  * deliberately limited to the mounted, meaningful legacy entry pages. */
 export function legacyElearningDestination(pathname,search){

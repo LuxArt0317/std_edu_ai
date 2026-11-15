@@ -3,6 +3,8 @@
 
 - Verify a selected health-record page and a separately named tuition charge against their own saved records. Respect explicit requests to leave health records unread. [#100]
 
+- Preserve the assignment or grade-report destination when a copied DTM link leads to sign-in. Connect the assistant there to the matching local records. Expand signed-in launcher checks to service subviews. [#100]
+
 - Route exact unpaid-tuition questions to the caller’s fee records. Verify an unlinked account directly and report that a balance is unknown. [#100]
 
 - Check an explicit account display-name question against the signed-in caller’s saved profile. Distinguish a missing name from a read failure. [#100]

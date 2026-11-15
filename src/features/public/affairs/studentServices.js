@@ -8,6 +8,9 @@ export const learningSupportPath = '/school-affairs/services/27-1';
 export const tutorEvaluationPath = '/school-affairs/services/28-1';
 export const schoolSubjectRecordsPath = '/school-affairs/records/subjects';
 export const interdisciplinaryProgramsPath = '/school-affairs/services/12-6';
+export const schoolServiceNoteIds = Object.freeze([
+  '4-2','6-1','6-2','6-3','6-4','7-2','7-3','7-4','7-5','7-6','10-1','16-1','12-5','12-6','12-7','12-8','25-1','25-2','27-1','28-1','29-1','42-1','46-1',
+]);
 export const officialLeaveUrl = 'https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu';
 export const officialInternshipUrl = 'https://infosys.stu.edu.tw/StuPractice/Login/Signin';
 export const officialWifiUrl = 'https://help.ecc.stu.edu.tw/wireless-setting/';

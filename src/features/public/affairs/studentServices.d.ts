@@ -6,6 +6,7 @@ export const learningSupportPath: '/school-affairs/services/27-1';
 export const tutorEvaluationPath: '/school-affairs/services/28-1';
 export const schoolSubjectRecordsPath: '/school-affairs/records/subjects';
 export const interdisciplinaryProgramsPath: '/school-affairs/services/12-6';
+export const schoolServiceNoteIds: readonly string[];
 export const internshipPath: string;
 export const officialLeaveUrl: string;
 export const officialInternshipUrl: string;

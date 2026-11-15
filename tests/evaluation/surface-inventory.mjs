@@ -9,6 +9,7 @@ import {academicAttendancePaths} from '../../server/academicAttendance.js';
 import {elearningPath,elearningServicePath,elearningCoursePath,elearningActivityPath} from '../../server/elearningContract.js';
 import {clubAttendanceEvaluationPath} from './club-attendance-cases.mjs';
 import {clubEquipmentPath} from '../../server/clubEquipmentIntent.js';
+import {schoolServiceNotices,schoolServiceViews} from './school-service-views.mjs';
 
 // Read literal route descriptors without importing React, executing product
 // source or copying a second menu list that silently drifts from the UI.
@@ -49,9 +50,16 @@ export async function discoverSurfaces() {
   if(!Array.isArray(menus)||!menus.length||menus.some(group=>typeof group.id!=='string'||!Array.isArray(group.views)||!group.views.length))throw new Error('Invalid current portal menu inventory.');
   if(!Array.isArray(dtmViews)||!dtmViews.every(view=>typeof view==='string'))throw new Error('Invalid current DTM view inventory.');
   const routeFamilies=[
-    signedIn('school-affairs',['/school-affairs','/school-affairs/records','/school-affairs/notifications','/school-affairs/bookmarks','/school-affairs/search']),
+    signedIn('school-affairs',['/school-affairs','/school-affairs/records','/school-affairs/notifications','/school-affairs/bookmarks','/school-affairs/search',
+      '/school-affairs/records/subjects','/school-affairs/course-selection',
+      ...['tutor','dean','academic'].map(role=>'/school-affairs/course-selection/review/'+role)]),
     signedIn('school-menus',menus.flatMap(group=>group.views.map(([view])=>`/school-affairs/menu/${group.id}/${view}`))),
     signedIn('school-services',[...new Set(schoolServiceEntries.map(row=>row.localUrl).filter(route=>route.startsWith('/school-affairs/services/')))]),
+    signedIn('school-service-views',schoolServiceViews),
+    {id:'school-service-acknowledgements',routes:schoolServiceNotices.map(row=>row.route),auth:'transition',
+      browserChecks:['assistantPresent','keyboardUsable','sessionVerified','navigationSucceeded'],
+      browserScenarios:schoolServiceNotices.map(({route,resultingRoute})=>({route,resultingRoute,
+        id:'notice-acknowledged',frame:'top-level',initialAuthenticated:true,resultingAuthenticated:true}))},
     signedIn('student-leave',['/school-affairs/services/leave','/school-affairs/services/leave/index','/school-affairs/services/leave/history','/school-affairs/services/leave/archive','/school-affairs/services/leave/periods','/school-affairs/services/leave/edit/:id']),
     signedIn('student-club-attendance',[clubAttendanceEvaluationPath,clubAttendanceEvaluationPath+'?page=:page']),
     signedIn('student-club-equipment',[clubEquipmentPath,clubEquipmentPath+'/new',clubEquipmentPath+'/new?edit=:id']),
@@ -60,7 +68,7 @@ export async function discoverSurfaces() {
     signedIn('academic-grades',Object.values(academicGradesPaths)),
     signedIn('academic-graduation',[...Object.values(graduationReviewPaths),'/school-affairs/services/15-1']),
     signedIn('academic-attendance',Object.values(academicAttendancePaths)),
-    signedIn('dtm',['/dtm','/dtm/dashboard','/dtm/my','/dtm/assignments','/dtm/grades','/dtm/course/:id',...dtmViews.map(view=>'/dtm/course/:id/'+view),'/dtm/course/:id/material/:materialId']),
+    signedIn('dtm',['/dtm','/dtm/dashboard','/dtm/my','/dtm/assignments','/dtm/grades','/dtm/course/:id',...dtmViews.map(view=>'/dtm/course/:id/'+view),'/dtm/course/:id/material/:materialId','/dtm/course/:id/grades/overview']),
     signedIn('dtm-submissions',['/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit']),
     // Content in ElearningWorkspace is authenticated, including its catalog and
     // notices. A copied public catalog does not make this workspace anonymous.
@@ -89,7 +97,8 @@ export async function discoverSurfaces() {
         {route:'/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',id:'signed-out-category',frame:'top-level',
           initialAuthenticated:false,resultingAuthenticated:false,resultingRoute:elearningPath+'/login?next='+encodeURIComponent(elearningPath+'/category/48')},
       ]},
-    signedIn('legacy-route-aliases',['/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw/']),
+    signedIn('legacy-route-aliases',['/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw/',
+      '/school-sites/dtm.stu.edu.tw/course/:id/assignment/:assignmentId/edit','/school-sites/dtm.stu.edu.tw/course/:id/grades/overview']),
     publicFamily('authentication',['/school-affairs/login','/dtm/login','/dtm/login/index.php','/student-sso','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml']),
     {id:'authentication-transitions',routes:[callbackPath,'/school-affairs/signed-out'],auth:'transition',browserChecks:['sessionVerified'],
       browserScenario:'Complete callback or sign-out, then verify the resulting account state; these routes are transitions, not persistent pages.',

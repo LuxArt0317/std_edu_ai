@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import type { DtmAssignment, DtmCourse, DtmMaterial } from '@/services/schoolAffairsWorkspace';
 import { useAffairsAuth } from '../affairs/authContext';
 import { safeSchoolReturnPath, signOutAffairs, startGoogleSignIn } from '../affairs/authClient';
-import {learningLoginReturnFromQuery} from '../../../../server/learningEntryContract.js';
+import {learningLoginReturnFromQuery,legacyDtmWorkspacePath} from '../../../../server/learningEntryContract.js';
 import { useAffairsRecords } from '../affairs/useAffairsRecords';
 import { campusAssistantOpenEvent } from '../PublicAssistant';
 import { announcements, categories, coursesByTerm, dtmViews, observedAt, otherCategories, quickLinks, type DtmView } from './catalog';
@@ -321,7 +321,7 @@ export default function DigitalMaterials() {
   if (loading) return <main className="dtm-loading" role="status">{t('正在確認 Google 登入…','Checking your Google session…')}</main>;
   if (user&&route.mode==='login') return <Navigate to={returnTo} replace/>;
   if (!user&&route.mode!=='login') {
-    const target=safeSchoolReturnPath(pathname+hash,'/dtm');
+    const target=safeSchoolReturnPath((legacyDtmWorkspacePath(pathname)??pathname)+hash,'/dtm');
     return <Navigate to={target==='/dtm'?'/dtm/login':'/dtm/login?next='+encodeURIComponent(target)} replace/>;
   }
   async function signIn() {

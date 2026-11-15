@@ -1,8 +1,9 @@
 import {privateCampusTransitionPath} from '../../server/campusEntryContract.js';
+import {legacyDtmWorkspacePath} from '../../server/learningEntryContract.js';
 
 const assistantRoute=location=>{
   const path=location.pathname;
-  return privateCampusTransitionPath(path)??path+location.search;
+  return privateCampusTransitionPath(path)??(legacyDtmWorkspacePath(path)??path)+location.search;
 };
 
 /** An embedded assistant belongs to its immediate same-origin host page.

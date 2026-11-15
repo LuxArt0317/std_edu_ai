@@ -101,7 +101,7 @@ import {
 import type { PortalProgram } from "./model";
 import { loadPreferences, savePreferences } from "./preferences";
 import type { PortalPreferences } from "./preferences";
-import { calendarPath, interdisciplinaryProgramsPath, learningSupportPath, nativeServiceAlias, schoolSubjectRecordsPath, serviceDestination, teachingAssistantPath, tutorEvaluationPath } from "./studentServices.js";
+import { calendarPath, interdisciplinaryProgramsPath, learningSupportPath, nativeServiceAlias, schoolServiceNoteIds, schoolSubjectRecordsPath, serviceDestination, teachingAssistantPath, tutorEvaluationPath } from "./studentServices.js";
 import { StudentServiceWorkspace } from "./StudentServiceWorkspace";
 import { LearningSupportWorkspace } from "./LearningSupportWorkspace";
 import StudentLeaveWorkspace from "./StudentLeaveWorkspace";
@@ -596,7 +596,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (normalizedPath === serviceLeadershipPath) return <ServiceLeadershipWorkspace />;
   const leadershipView = serviceLeadershipViews.find(item => normalizedPath === serviceLeadershipPath + "/" + item.key);
   if (leadershipView) return <ServiceLeadershipWorkspace key={leadershipView.key} view={leadershipView} />;
-  if (servicePage && route.length === 3 && route[2] === "notes" && ["4-2", "6-1", "6-2", "6-3", "6-4", "7-2", "7-3", "7-4", "7-5", "7-6", "10-1", "16-1", "12-5", "12-6", "12-7", "12-8", "25-1", "25-2", "27-1", "28-1", "29-1", "42-1", "46-1"].includes(route[1])) {
+  if (servicePage && route.length === 3 && route[2] === "notes" && schoolServiceNoteIds.includes(route[1])) {
     return <StudentServiceWorkspace key={pathname} userId={user.id} serviceKey={route[1]} view="" />;
   }
   if (normalizedPath === learningSupportPath || normalizedPath === learningSupportPath + "/review") {
