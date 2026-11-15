@@ -58,6 +58,8 @@ At `/school-affairs/services/40-1/my-attendance`, ask “Show my saved club acti
 
 `node --experimental-strip-types --test tests/api/club-attendance-assistant.test.ts` runs all five original attendance prompts through the compiled client dispatcher and actual handler with controlled transport. The checks distinguish an empty page from a failed read and cover the separate tuition amount and foreign-owner boundary. This replay does not count toward protected-browser acceptance.
 
+With the local Vite app running on port `5299` and its browser Supabase variables set to synthetic fixtures, run `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5299 node --experimental-strip-types tests/integration/club-attendance-assistant-dispatch-ui.mjs`. The test opens the signed-in attendance page in Chromium, submits the five questions through the real assistant, and forwards the requests to the actual LangGraph handler with controlled records. It observes account autosave and reopens the saved multipart reply and its Activity after clearing the tab cache.
+
 - `node tests/integration/club-student-db.mjs --deployed` verifies literal filtering, paging, publication, caller isolation and the approval/withdrawal workflow in a rolled-back transaction.
 - `node --import tsx tests/integration/club-student-http.mjs` checks authentication, private reads, durable retries and withdrawal against the API with disposable accounts. Set `EXPECTED_RELEASE_REVISION` to use production.
 - `node tests/integration/club-student-ui.mjs` verifies all six menu links, form retries, review, mobile width and the assistant response using synthetic browser fixtures. Pin production with `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION`.
