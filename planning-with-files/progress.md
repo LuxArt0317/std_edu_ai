@@ -60,3 +60,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Protected `0c8815c` passed three public checks and the first original Club Attendance browser turn with verified save, fresh restore and exact disposal. Continued the remaining cases on the same operator.
 
 - 2026-11-16 [#100] Closed the exact `0c8815c` Club browser test run with four verified passes and zero fixture residue. The outage case remains unverified without transport failure evidence. Added the owned membership and current-subject path, ran the controlled browser and complete local suites, and staged Preview `2616472` for the public boundary and Student Profile replay. [Issue checkpoint](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6903099471)
+
+- 2026-11-16 [#100] Verified exact `2616472` reached Ready and passed all four pinned public probes. The combined focused verification and membership run passed 58/58. The scoped Student Profile replay has an active fixture and needs terminal cleanup before any additional hosted run.
