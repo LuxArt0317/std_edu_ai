@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify Student Leave dates and Moodle grades as separate records within one answer. Preserve the verified portion when one source is incomplete. [#100]
+
 - Verify saved facility repair answers directly from the selected records and distinguish an unavailable timetable from a verified repair answer. [#100]
 
 - Check Certificate Awards status against the selected application. Evaluate the selected, aggregate and crossed-account responses on protected Preview. [#100]
