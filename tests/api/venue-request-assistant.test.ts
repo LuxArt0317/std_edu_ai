@@ -21,6 +21,7 @@ const forbidden=/FOREIGN PRIVATE VENUE|OWNER PRIVATE PURPOSE|OWNER PRIVATE REVIE
 const allowedHeaders=(rows:number,total:number)=>({'content-range':rows?'0-'+(rows-1)+'/'+total:'*/0'});
 type Delivery=(url:URL,attempt:number,owner:string)=>Response|Promise<Response>;
 type ResponseCapture={statusCode:number;body:any};
+type ActivityStep={kind:string;status:string};
 async function dispatch(handler:any,body:object,headers:Record<string,string>={Authorization:'Bearer '+token}):Promise<ResponseCapture>{
   const sink={statusCode:0,body:null,setHeader(){},status(code:number){this.statusCode=code;return this;},json(value:any){this.body=value;}};
   await handler({method:'POST',body,headers:Object.fromEntries(Object.entries(headers).map(([name,value])=>[name.toLowerCase(),value]))},sink);
@@ -46,7 +47,7 @@ function transport(t:TestContext,delivery:Delivery){
     requests.push(value);
     return delivery(value,requests.length,owner);
   });
-  const reject=scope=>async()=>{scopes.push(scope);throw Error('Unexpected '+scope);};
+  const reject=(scope:string)=>async()=>{scopes.push(scope);throw Error('Unexpected '+scope);};
   const handler=createAffairsAssistantHandler({
     verifyToken:async received=>{assert.equal(received,token);return {user:{id:owner},url:accepted,token,key};},
     loadSnapshot:reject('generic account snapshot'),
@@ -70,7 +71,7 @@ test('existing venue metadata is verified without public availability, broad rea
   assert.deepEqual(h.requests.map(item=>item.searchParams.get('limit')),['12']);
   assert.deepEqual(h.scopes,[]);
   assert.doesNotMatch(JSON.stringify(body),forbidden);
-  assert.ok(body.activity.some(x=>x.kind==='account-read:venueRequests:1'&&x.status==='complete'));
+  assert.ok(body.activity.some((step:ActivityStep)=>step.kind==='account-read:venueRequests:1'&&step.status==='complete'));
 });
 
 test('room, date, status and period filter exact saved records and count-only yields no rows',async t=>{
@@ -165,8 +166,9 @@ test('one retry discards an unscoped reply and publishes only the independently 
   assert.doesNotMatch(JSON.stringify(reply.body),forbidden);
   assert.doesNotMatch(reply.body.answer,/P9999/u);
   assert.equal(h.requests[0].href,h.requests[1].href);
-  assert.deepEqual(reply.body.activity.filter(item=>item.kind.startsWith('account-read:')).map(item=>item.status),['unavailable','complete']);
-  assert.ok(reply.body.activity.some(item=>item.kind==='verification-retry'));
+  const activity:ActivityStep[]=reply.body.activity;
+  assert.deepEqual(activity.filter(item=>item.kind.startsWith('account-read:')).map(item=>item.status),['unavailable','complete']);
+  assert.ok(activity.some(item=>item.kind==='verification-retry'));
 });
 
 test('an inconsistent exact count fails rather than treating an omitted list as empty',async t=>{
