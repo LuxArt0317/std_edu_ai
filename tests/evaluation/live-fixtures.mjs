@@ -805,6 +805,7 @@ export function runStudentLeaveHostedEvaluation({caseIds,...options}={}){
     }
     return {results,requestObservationsMounted:true,hostedCases:selection.length,
       completedNativeChecks:results.filter(row=>row.completedNativeCheck).length,
+      completedBoundaryChecks:results.filter(row=>row.completedBoundaryCheck).length,
       completedModelCalls:results.reduce((count,row)=>count+row.completedModelCalls,0),
       liveAcceptance:results.every(result=>result.passed)};
   });

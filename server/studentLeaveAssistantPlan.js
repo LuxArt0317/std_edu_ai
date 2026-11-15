@@ -47,6 +47,14 @@ export function studentLeaveSelectedTools(plan) {
   ];
 }
 
+/** Classify only the branch that terminates before any protected reader. */
+export function studentLeaveZeroReadDisposition(plan) {
+  if (plan.hasOtherQuestion || studentLeaveSelectedTools(plan).length) return null;
+  if (plan.navigation) return 'navigation';
+  if (plan.excluded) return 'excluded';
+  return plan.selection?.reason ?? null;
+}
+
 export function studentLeaveBoundary(plan, question) {
   const zh = /\p{Script=Han}/u.test(question);
   const say = (en, cn) => zh ? cn : en;
