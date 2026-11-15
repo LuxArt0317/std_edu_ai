@@ -34,3 +34,5 @@ Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migr
 ## Protected status replay
 
 `639f81b` first rejected a future start date before fixture setup. The same revision then dispatched all 16 questions using two pre-existing terms that had started. Four answers passed. Nine status, notes and empty-state outcomes and three denied-operation replies did not meet the grader. The app's logs reported exhausted reviewer quota. All 80 application requests were pinned and both callers' native records, the protected owner and the original shared term and period rows matched their independent checks. All disposable fixtures were removed. Three positive window cases still require a suitable fixture because the existing terms have no configured periods.
+
+Exact protected `b9aa9b3` passed all 16 mounted questions after adding direct verification of complete saved statuses and notes, checked empty results, and exact refusals. All 80 app requests and 164 release checks finished. Paired native caller evidence, pre-existing terms and periods, protected owner and exact cleanup passed. Positive window fixtures remain deferred.

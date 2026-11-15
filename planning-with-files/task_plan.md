@@ -995,5 +995,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Bind a 16-case clearance status packet without creating shared terms or periods. Verify isolated PostgreSQL and an unmodified pre-existing term state.
 - [x] Execute the status and notes packet on exact protected `639f81b`. Preserve the answer failures, matched data and cleanup proof.
 - [x] Verify the narrowed exact clearance recovery against the unchanged 16-case grader and actual isolated PostgreSQL without provider calls.
-- [ ] Replay the typed clearance recovery on the exact protected app. Run positive window cases after a suitable isolated fixture is available.
+- [x] Replay the typed clearance recovery on exact protected `b9aa9b3`. Pass the unchanged 16 mounted cases and paired cleanup.
+- [ ] Run the positive window cases after a suitable isolated fixture is available.
 - [ ] Mount and replay outstanding Academic Services 13-1 cases on the exact protected app.
