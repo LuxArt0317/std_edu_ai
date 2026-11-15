@@ -35,13 +35,13 @@ function environment(t:TestContext){
 type Handler=ReturnType<typeof createResearchAssistantHandler>;
 type Activity={kind:string;status:string};
 let counter=0;
-async function request(handler:Handler,visibleQuestion:string,history:unknown[]=[],authorization?:string){
+async function request(handler:Handler,visibleQuestion:string,history:unknown[]=[],authorization?:string,route?:string){
   let result:any;
   const events:Activity[]=[];
   const sink={status(status:number){assert.equal(status,200);return this;},setHeader(){},json(value:unknown){result=value;},
     write(raw:string){const [,name,value]=/^event: (\w+)\ndata: (.+)\n\n$/u.exec(raw)??[];
       if(name==='progress')events.push(JSON.parse(value));if(name==='result')result=JSON.parse(value);},end(){}};
-  await handler({method:'POST',headers:{'x-forwarded-for':'192.0.2.'+(201+counter++),authorization},body:{question:visibleQuestion,history,stream:true}},sink);
+  await handler({method:'POST',headers:{'x-forwarded-for':'192.0.2.'+(201+counter++),authorization},body:{question:visibleQuestion,history,route,stream:true}},sink);
   assert.ok(result);
   return {result,events};
 }
@@ -197,7 +197,8 @@ for (const signedIn of [false,true]) test(`a registrar phone question does not h
   },loadSnapshot:async()=>assert.fail('Public questions must not read account records')}):research;
   const authorization=signedIn?'Bearer '+auth:undefined;
   const history=[{role:'assistant',content:'PRIVATE_ANSWER'}];
-  const {result,events}=await request(handler,"What is the STU registrar's phone number, and what are the library opening hours?",history,authorization);
+  const {result,events}=await request(handler,"What is the STU registrar's contact number, and what are the library opening hours?",
+    history,authorization,signedIn?'/school-affairs/services/39-1':undefined);
   assert.match(result.answer,/615 8000[\s\S]+08:30–19:00/u);
   assert.equal(result.verification?.status,'verified');
   assert.equal(result.citations[0].chunkId,'campus-navigation:registrar');

@@ -785,8 +785,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const publicFollowup=textOnly&&question===requestedQuestion
     ?publicServiceFollowup(question,input?.history):null;
   const publicDirectory=textOnly&&question===requestedQuestion&&campusDirectoryResearch(question);
-  const personalQuestion=!publicFollowup&&!publicDirectory&&personal(question,history);
-  const needsRecords=Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personalQuestion || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const needsRecords=!publicFollowup&&!publicDirectory&&(
+    Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected
+    || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history)
+    || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history)
+    || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history)
+    || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history)
+    || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0
+    || requiredSupplementalTools(question,route,history).length>0);
   const navigation=!needsRecords && !publicDirectory && !hasImages && !questionKind(question).irrelevant
     ? answerCampusNavigation(publicFollowup??question) : null;
   if(navigation) {
