@@ -1,20 +1,23 @@
 # Assistant evidence verification — Issue #99
 
 The campus assistant uses a request-local LangGraph workflow in
-`server/answerVerification.js`: retrieve → draft → verify → finish, with one
-failed-verification edge back through fresh retrieval and correction. Two
-failed checks, unavailable evidence/provider, malformed output, or the time
-limit return an explicit inability to verify. Unsupported drafts, their
-citations and proposed actions are withheld.
+`server/answerVerification.js`. It retrieves evidence, drafts a reply and
+checks the draft. A failed review can refresh the relevant evidence and revise
+the draft. It can run a third check when actionable feedback or independently
+read new evidence gives it a way to resolve the gap. Unsupported drafts and
+actions stay withheld when the available evidence or time runs out.
 
 ## Acceptance criteria
 
 1. An incorrect amount, date, enrollment claim or unsupported source claim must
    not pass merely because its citation ID exists.
-2. A rejected answer reloads permitted evidence and receives at most one
-   correction. The correction must pass the same independent review.
-3. A second failure returns no guessed answer or action proposal. A timeout or
-   provider outage has the same fail-closed behavior.
+2. A rejected draft can refresh relevant, permitted evidence. When the remaining
+   gap is resolvable within the deadline, the graph can deepen the review or
+   independently retrieve a more relevant school source. The full request
+   allows at most three checks, including source changes.
+3. A supported partial answer identifies its missing fields without repeating
+   unsupported values. An exhausted or unavailable verification path releases
+   no unsupported draft or action proposal.
 4. Account reads use the verified caller token and existing RLS. Retries skip
    account-initialization RPCs. No write executes during answer verification.
 5. A planner selects only named account collections and fixed public research
@@ -81,7 +84,7 @@ npm run verify:client
 ```
 
 The first command uses provider fixtures and checks real graph transitions,
-source references, fresh reads, correction limits and evidence/provider failures.
+source references, fresh reads, conditional third checks and evidence/provider failures.
 The UI command requires the local app and uses explicit fixture replies.
 Production commands use actual providers and the exact configured client project;
 run database checks serially. Live private QA creates disposable identities,

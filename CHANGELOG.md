@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Ask drafts to identify the missing field and omit unsupported quantities and dates. Verify the same boundary independently. [#100]
 - Route private tracking note links to their local service pages and give an explicit handoff when a chat request combines editing a note with submitting it. [#100]
 - Route direct tuition payment requests to the pending-fees page with a clear capability limit and no account record lookup. [#100]
 

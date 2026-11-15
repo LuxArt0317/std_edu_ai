@@ -818,15 +818,17 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Independently grade all four reported replies on the protected source recovery Preview.
 - [ ] Observe the managed-knowledge-to-web switch with real providers on the exact protected Preview.
 - [x] Observe a deeper third review with a real provider before comparing review model settings.
-- [ ] Compare the existing verification model with a stronger available model on difficult cases. Record factual quality, observed tools, latency and remaining budget before changing the deployed default.
+- [x] Compare the existing verification model with a stronger available model on three frozen evidence pairs. Record factual quality, observed calls, latency and remaining budget. Keep the current default.
+- [ ] Recheck whether requiring precise missing details without echoing unsupported values improves the paired result.
 - [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
-- [x] Exercise all 61 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
-- [ ] Re-run the 61 mounted note questions on the protected combined Preview after removing model rewrites of exact saved note fields.
+- [x] Exercise all 75 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
+- [ ] Re-run the 75 mounted note questions on the protected combined Preview after removing model rewrites of exact saved note fields and binding exact portal links.
 - [ ] Run the 18 Student Leave cases on the protected combined Preview with signed actual reader and provider completion receipts.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
 - [x] Verify generated protected chat IDs from transcript preparation to stored readback and cleanup.
+- [x] Verify protected UUIDv7 deletion, cross-account isolation, late saves and idempotent replays in 13 pinned HTTP operations.
 - [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
 - [x] Stage the compatible conversation schema on the exact client and verify legacy coexistence and the new save/read protocol.
 - [x] Verify and apply the Digital Academy metadata migration on the exact client.
