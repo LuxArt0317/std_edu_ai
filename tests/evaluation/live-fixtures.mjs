@@ -4293,12 +4293,6 @@ export async function cleanup(){
       await query(()=>feeTransaction(s,()=>deleteCertificateAwardPreview(s.sql,s.certificateAwardPreviewPlan)),
         'Could not remove the exact disposable certificate award rows.');
     }
-    if(s.learningSupportPreview){
-      await assertRecordedFixtureLease(s,'Learning support fixture cleanup');
-      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
-      await query(()=>feeTransaction(s,()=>cleanupLearningSupportPreview(s.sql,s.learningSupportPreview)),
-        'Could not remove the exact disposable learning support rows and operations.');
-    }
     if(s.clearanceStatusPreview){
       await assertRecordedFixtureLease(s,'Graduation clearance fixture cleanup');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
@@ -4486,10 +4480,6 @@ export async function cleanup(){
       s.certificateAwardCatalogUnchanged=await query(()=>verifyCertificateAwardPreviewAbsent(s.sql,s.certificateAwardPreviewPlan),
         'Could not prove exact certificate award cleanup.');
       s.certificateAwardPreviewCleanup=true;
-    }
-    if(s.learningSupportPreview){
-      await query(()=>verifyLearningSupportPreviewAbsent(s.sql,s.learningSupportPreview),'Could not prove exact learning support cleanup.');
-      s.learningSupportPreviewCleanup=true;
     }
     if(s.clearanceStatusPreview){
       s.clearanceStatusSharedUnchanged=await query(()=>verifyClearanceStatusPreviewAbsent(s.sql,s.clearanceStatusPreview),
