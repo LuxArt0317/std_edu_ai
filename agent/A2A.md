@@ -808,3 +808,7 @@ The isolated branch `codex/issue100-native-internship` builds on `93b579e745a0ed
 ### Combined candidate handoff [Issue #100]
 
 The isolated candidate merges the Moodle material, internship and menu lanes on protected Student Leave base `06e6a54`. The landed fixture lifecycle includes no hosted fixture runner access. Release coordination owns the exact new Preview and any external acceptance. Record the hosted revision and Quality run separately from local verification.
+
+### Moodle assignment lists [Issue #100]
+
+Branch codex/issue100-dtm-list in the isolated checkout starts at d83c25b7aff4358d8fae4375c224b22f5875ba01. The reader reuses the bounded native course transport and restricts returned assignment rows by caller-owned student and course. The selected exact course can show its sample rows. My assignments hides samples when a personal course exists. The new deterministic LangGraph path never opens submission files or grade reports. Test cases and original legacy oracles remain pending hosted fixture binding.

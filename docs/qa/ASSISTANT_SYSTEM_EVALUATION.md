@@ -247,3 +247,7 @@ registered route still needs its live browser and answer observations. The
 four reported prompts require authorized protected Preview access, a bound
 disposable account, conversation readback, independent review and verified
 cleanup.
+
+### Native Moodle assignment lists
+
+The default evaluator includes 25 questions about the course assignment list and My assignments. The independent observations use only the two owner-qualified tracker relations. The tests cover open, submitted, graded and completed tracker states, exact Taipei day boundaries, count-only output, pagination limits and data failures. The main runner records the native fixtures and four legacy rebindings as unexecuted until trusted live request observations are available.

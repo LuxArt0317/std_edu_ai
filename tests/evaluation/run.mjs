@@ -16,6 +16,7 @@ import {feeRemissionLivePlanManifest,feeRemissionLiveFamilyForCase} from './fee-
 import {fixtureForCase} from './fixtures.mjs';
 import {teachingFeedbackRunnerCases,teachingFeedbackCaseAdmission,assertTeachingFeedbackCaseReady,gradeEvaluationCase,teachingFeedbackSetupSummary} from './teaching-feedback-runner.mjs';
 import {assessCoverage} from './coverage.mjs';
+import {markLegacyDtmAssignmentListFixture} from './dtm-assignment-list-cases.mjs';
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
@@ -106,7 +107,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
-    :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture),
+    :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
@@ -277,9 +278,10 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     assessment.teachingFeedbackSetup=teachingSetup;
     integrity.push({id:'run.teachingFixtureUnbound',detail:'Registered teaching cases still require isolated fixtures and independent request-bound read observations; offline declarations cannot establish live acceptance.'});
   }
-  const nativeDtmSetup=cases.filter(nativeDtmSetupRequired).map(row=>row.id);
+  const nativeDtmPending=cases.filter(nativeDtmSetupRequired),nativeDtmSetup=nativeDtmPending.map(row=>row.id);
   if(nativeDtmSetup.length){
-    assessment.nativeDtmSetup={registered:nativeDtmSetup.length,liveEligible:0,caseIds:nativeDtmSetup};
+    assessment.nativeDtmSetup={registered:nativeDtmSetup.length,liveEligible:0,caseIds:nativeDtmSetup,
+      legacyAssignmentListCaseIds:nativeDtmPending.filter(row=>row.fixtureRequirement==='legacy_dtm_assignment_list_rebind').map(row=>row.id)};
     integrity.push({id:'run.nativeDtmFixtureUnbound',detail:'Native DTM record cases require caller-bound fixture and request observations before live execution.'});
   }
   const leaveSetup=studentLeaveSetupSummary(cases);
@@ -525,7 +527,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase))?'not-run':opt.mode==='live'?'live-model':'deterministic';
+        const execution=phase==='setup'&&(nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase))?'not-run':opt.mode==='live'?'live-model':'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }

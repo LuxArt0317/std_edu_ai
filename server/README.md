@@ -186,3 +186,7 @@ A focused native DTM grade request selects its reader directly. The reader valid
 ### Verified internship evidence
 
 `accountInternshipEvidence.js` reads exact internship rows using the verified caller's token and requested fields. Review status comes from an explicitly requested caller-owned linked service request. `internshipEvidenceContract.js` validates the active subtype, count and availability state before formatting. The verifier checks the selected evidence and refreshes the same scopes once. The local directory contains the caller's own company tracker records. See the [native internship evaluation](../docs/qa/INTERNSHIP_NATIVE_READ.md).
+
+### Verified Moodle assignment lists
+
+`loadDtmAssignmentList` uses the exact caller's course and student joins and publishes bounded metadata and exact counts. `accountDtmAssignmentListAnswer.js` verifies the formatted saved fields locally with the same scope and Taipei reference clock on retry. The metadata contains local tracker status only. Personal/sample course selection follows the My assignments UI.

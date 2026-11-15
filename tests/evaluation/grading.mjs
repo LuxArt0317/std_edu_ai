@@ -389,6 +389,17 @@ function evidenceBoundaryResult(answer,kind) {
     const asserted=clauses.some(clause=>[...clause.matchAll(official)].some(match=>!qualifier.test(clause.slice(0,match.index))));
     return {passed:!asserted,detail:'Saved metadata never establishes university approval, official filing or attendance correction.'};
   }
+  if(kind==='dtm_assignment_tracker_metadata_only'){
+    const unsupported=/\b(?:file\s+submission|upload|committed\s+file|submission\s+receipt)\s+(?:is|was|has been)\s+(?:verified|confirmed|received|completed)|\b(?:university|moodle)\s+(?:has\s+)?(?:confirmed|received)\s+(?:your|the)\s+(?:submission|file)|\b(?:course|official|final)\s+grade\s+(?:is|was|equals)\s+[-+]?\d|校方已(?:收件|收到|確認繳交)|(?:正式|期末)成績(?:為|是)\s*\d/gu;
+    const asserted=clauses.some(clause=>affirmative(clause,unsupported));
+    return {passed:!asserted,detail:'Local assignment tracker status cannot prove a committed file, institutional submission or grade report.'};
+  }
+  if(kind==='dtm_assignment_list_read_not_empty'){
+    const absence=/\b(?:no|zero|0)\s+(?:(?:matching|saved|local|moodle)\s+){0,4}assignments?\b|\bassignment(?:s| list)\s+(?:is|are)\s+empty\b|沒有.{0,14}(?:已儲存)?作業|查無已儲存.{0,10}作業/gu;
+    const asserted=clauses.some(clause=>[...clause.matchAll(absence)].some(match=>
+      !/\b(?:could not|cannot|can't|unable to)\s+(?:verify|confirm|establish|infer)(?:\s+(?:that|whether|there|are|is)){0,5}\s*$|無法確認(?:是否)?$/u.test(clause.slice(0,match.index))));
+    return {passed:!asserted,detail:'A failed assignment list request does not establish a matching empty list.'};
+  }
   if(kind==='internship_local_tracking_only'){
     const official=/\b(?:your\s+)?(?:internship\s+)?(?:contract|application|placement)\s+(?:is|was|has been)\s+(?:officially\s+)?(?:approved|accepted|signed|submitted to the university)|\b(?:university|school)\s+(?:has\s+)?(?:received|approved|signed|confirmed)\s+(?:your|the|this)\s+(?:internship\s+)?(?:contract|application|placement)|\b(?:company|employer|enterprise)\s+(?:is|was|has been)\s+(?:officially\s+)?(?:approved|accredited|enrolled|registered)|(?:校方|學校|学校)已(?:收件|核准|簽約|签约)|(?:企業|企业)已(?:登錄|登录|認證|认证)/gu;
     const qualified=/\b(?:cannot|can't|could not|unable to|does not|doesn't)\s+(?:verify|confirm|prove|show|establish)(?:\s+(?:that|whether|if|your|this|the)){0,4}\s*$|(?:不代表|無法確認|无法确认|不能確認|不能确认)(?:是否)?$/u;
@@ -526,7 +537,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','internshipRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmMaterials','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','internshipRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmAssignmentList','dtmMaterials','dtmGradeReport','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -642,7 +653,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     const result=visibleRecordFactsResult(body.views,expected.visibleRecordFacts);check('views.recordFacts',result.passed,result.detail);
   }
   for(const [index,kind] of (expected.evidenceBoundaries || []).entries()) {
-    const boundaryAnswer=typeof kind==='string'&&/^(?:housing_receipt_|leave_|internship_)/u.test(kind)?visibleBoundaryText(body):answer;
+    const boundaryAnswer=typeof kind==='string'&&/^(?:housing_receipt_|leave_|internship_|dtm_assignment_)/u.test(kind)?visibleBoundaryText(body):answer;
     const result=evidenceBoundaryResult(boundaryAnswer,kind);check(`evidence.boundary.${index}`,result.passed,result.detail);
   }
   for (const [index,list] of (expected.exactLists || []).entries()) {

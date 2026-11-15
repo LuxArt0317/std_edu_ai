@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer Moodle assignment-list questions from the signed-in course or My assignments view. Verify saved deadlines and tracker status without reading submitted files or grade reports. [#100]
+
 - Answer route-specific School Affairs menu questions from local directory entries. Direct students to their own browser for Custom menu links. [#100]
 - Add a two-account Student Leave fixture with transaction recovery and verified cleanup. Keep live fixture admission explicit. [#100]
 

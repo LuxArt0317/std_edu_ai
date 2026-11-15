@@ -5,6 +5,7 @@ import {boundedAssistantText} from '../src/services/assistantActivityBudget.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion} from './affairsAnswer.js';
 import {studentConductGuide} from './studentConductGuide.js';
+import {dtmAssignmentListBoundary,dtmAssignmentListRoute,dtmAssignmentListSelection} from './dtmAssignmentListIntent.js';
 import {dtmMaterialBoundary,dtmMaterialIntent,dtmMaterialRoute} from './dtmMaterialIntent.js';
 import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveAssistantPlan.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
@@ -143,7 +144,7 @@ function parse(body) {
           /^\/school-affairs\/services\/36-1\/?(?:\?page=[1-9]\d{0,2})?$/.test(source.route))||
         (source.route.startsWith('/school-affairs/services/34-2')&&selectDormitoryConductEvidence('Show my records.',source.route)?.reason===null)||
         (source.route.startsWith('/school-affairs/services/45-1/history')&&isFacilityRepairEvidenceQuestion('What is its status?',source.route))||
-        (source.route.startsWith('/dtm/course/')&&dtmMaterialRoute(source.route))||
+        (source.route.startsWith('/dtm/course/')&&dtmMaterialRoute(source.route))||dtmAssignmentListRoute.test(source.route)||
         /^\/elearning(?:\/(?:category|notice)\/[1-9]\d{0,9}|\/(?:categories|my-courses|login|search))?\/?$/.test(source.route)||
         (source.route.startsWith('/elearning/course/')&&!/[?#]/.test(source.route)&&elearningCourseLocation(source.route))) ? source.route : normalizePublicPageRoute(source.route);
     const rawImages = source.images;
@@ -433,6 +434,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 citations:[...citations,...(teachingGuide?.citations??[])],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
         }
+        const assignmentList=!input.images.length&&dtmAssignmentListSelection(input.question,input.route);
+        if(assignmentList){stream.send(200,dtmAssignmentListBoundary(assignmentList,input.question,false));return;}
         const material=!input.images.length&&dtmMaterialIntent(input.question,input.route);
         if(material){stream.send(200,dtmMaterialBoundary(material,input.question,false));return;}
         const leave=!input.images.length&&studentLeaveAssistantPlan(input.question,input.route,input.history);

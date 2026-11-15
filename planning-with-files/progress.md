@@ -72,3 +72,5 @@
 - 2026-11-15 Issue #100. Integrated the four scoped internship views on Student Leave candidate `93b579e`. Compared all frozen input fingerprints before copying. Controlled endpoint tests exercised the actual verification graph, exact PostgREST filters, two-source questions, retry, abstention and denial. The controlled endpoint passes all 30 native cases through the independent grader. The evaluator retains those cases and four prior internship cases and classifies their live fixture setup as pending.
 
 - 2026-11-15 [#100] Integrated the reviewed native internship and menu lanes together with the two-owner leave fixture. Added the browser-local Custom menu case to the full denominator, corrected cross-suite registry expectations, and moved detailed internship evidence under the QA documentation tree.
+
+- 2026-11-15 [#100] Traced both Moodle assignment lists to their real tracker tables and visibility rules. Verified 25 native answers through the actual endpoint with synthetic authentication and controlled read observations. Retained the four prior cases as setup-blocked for fixture rebinding.

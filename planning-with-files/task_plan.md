@@ -243,6 +243,8 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Add scoped Moodle assignment details, preserve independent native grade clauses, and register their 32 acceptance cases.
 - [x] Connect student leave reads and independent tuition, next-class and Moodle grade companions to the verified account endpoint.
 - [x] Verify saved Moodle materials and exact resource metadata, including independent fee answers and signed-in browser dispatch.
+- [x] Connect both Moodle assignment lists to caller-scoped saved deadlines and tracker metadata. Independently grade all 25 native cases.
+- [ ] Bind the live Moodle assignment-list fixtures and rebind the four legacy tracker cases with hosted request observations.
 - [ ] Bind the native Moodle material cases to disposable caller-owned data and run them against the pinned protected release.
 - [x] Integrate four native internship views, all remaining School Affairs menu routes, and the controlled two-owner leave fixture lifecycle.
 - [ ] Run the native internship and leave lifecycle against hosted disposable accounts with independent request observations.
