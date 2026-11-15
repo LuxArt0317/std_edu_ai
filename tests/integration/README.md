@@ -59,6 +59,19 @@ The School Affairs entry check also verifies the local campus carousel at four v
 
 `charge-payment-history-ui.mjs` uses synthetic sign-in and API responses on a loopback Vite server. It checks both pending fee navigation links, inclusive date filters, pagination, reversals, distinct empty and error states, account isolation, signed-out continuation, and responsive tables.
 
+`charge-payment-ledger-concurrency.test.mjs` applies the repository migrations to a generated database on an owner-only scratch PostgreSQL Unix socket. It observes blocking between independent backend PIDs and checks replay, over-cap rejection, and exact in-cap totals. Set `POSTGRES_BIN` to the directory containing `initdb` and `pg_ctl` before running this macOS scratch check.
+
+```sh
+umask 077
+payment_pg=$(mktemp -d /private/var/tmp/stu100-payment-pg.XXXXXX)
+mkdir -m 700 "$payment_pg/socket"
+"$POSTGRES_BIN/initdb" -D "$payment_pg/data" --no-locale -U postgres --auth-local=trust --auth-host=reject
+"$POSTGRES_BIN/pg_ctl" -D "$payment_pg/data" -l "$payment_pg/server.log" \
+  -o "-h '' -k $payment_pg/socket -p 5432 -c unix_socket_permissions=0700" -w start
+STU_PAYMENT_TEST_PG_SOCKET="$payment_pg/socket" node --test tests/integration/charge-payment-ledger-concurrency.test.mjs
+"$POSTGRES_BIN/pg_ctl" -D "$payment_pg/data" -m fast -w stop
+```
+
 `course-selection-ui.mjs` verifies the observed 11-1/11-2 geometry, phase filters, seven-column history, fourteen-period timetable, exclusions, unscheduled records, loading/retry, keyboard scrolling and narrow layouts using synthetic responses. `course-selection-manager-ui.mjs` checks create/edit/clear, stable retry IDs, stale-version recovery and admin accessibility. Both use `PUBLIC_SITE_ORIGIN` (default localhost5184).
 
 `course-selection-rls-live.mjs --preflight` validates migration1000 in a rolled-back client transaction. `NATIVE_ORIGIN=http://127.0.0.1:5184 node tests/integration/course-selection-live.mjs` exercises actual handlers, database writes, two-account isolation, assistant answers and browser views. Omit `NATIVE_ORIGIN` only after deployment to check production. It requires the existing verified owner identity and removes exact fixture records, accounts, audits and receipts; private evidence stays under ignored `artifacts/course-selection/`. Source-inherited contrast exceptions are scoped to measured source colors; they are not a full WCAG pass.
