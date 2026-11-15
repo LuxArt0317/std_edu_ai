@@ -52,27 +52,29 @@ function boundTaskCommand(command){
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
-function boundClubCancellation(command){
+function boundCancellation(command,kind,label){
   const {callerToken,body}=command??{};
   if(typeof callerToken!=='string'||callerToken.length>16000||!jwt.test(callerToken)||!body
-    ||Object.keys(body).sort().join(',')!=='kind,payload'||body.kind!=='cancel_club_equipment'
-    ||!body.payload||Object.keys(body.payload).sort().join(',')!=='expected_version,id,request_id')fail('invalid club cancellation fixture');
+    ||Object.keys(body).sort().join(',')!=='kind,payload'||body.kind!==kind
+    ||!body.payload||Object.keys(body.payload).sort().join(',')!=='expected_version,id,request_id')fail('invalid '+label+' cancellation fixture');
   const {request_id,id,expected_version}=body.payload;
   if(!isConversationId(request_id)||request_id[14]!=='4'||!isConversationId(id)||id[14]!=='4'||id===request_id
-    ||!Number.isInteger(expected_version)||expected_version<1||expected_version>=1000000)fail('invalid club cancellation fixture');
+    ||!Number.isInteger(expected_version)||expected_version<1||expected_version>=1000000)fail('invalid '+label+' cancellation fixture');
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
   const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
   const taskCommand=confirmedTaskCommand===undefined?null:boundTaskCommand(confirmedTaskCommand);
-  const clubCommand=confirmedClubCommand===undefined?null:boundClubCancellation(confirmedClubCommand);
-  const actionCommand=taskCommand??clubCommand;
-  if(actionCommand&&(taskCommand&&clubCommand||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
+  const clubCommand=confirmedClubCommand===undefined?null:boundCancellation(confirmedClubCommand,'cancel_club_equipment','club');
+  const counselingCommand=confirmedCounselingCommand===undefined?null:boundCancellation(confirmedCounselingCommand,'counseling_cancel','counseling');
+  const commands=[taskCommand,clubCommand,counselingCommand].filter(Boolean);
+  const [actionCommand]=commands;
+  if(actionCommand&&(commands.length!==1||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
   let actionCommandUsed=false;
   if(deleteProbe){
     if(conversationId!==undefined||!Array.isArray(conversationDeleteFixtures)||conversationDeleteFixtures.length!==2)

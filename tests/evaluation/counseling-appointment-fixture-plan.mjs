@@ -22,7 +22,7 @@ const exact=(value,keys)=>object(value)&&Reflect.ownKeys(value).length===keys.le
 const fail=code=>{throw Object.assign(new Error('Counseling metadata fixture '+code+'.'),{name:'CounselingAppointmentFixturePlanError',code});};
 const requireValue=(value,code)=>{if(!value)fail(code);};
 const byId=rows=>[...rows].sort((a,b)=>a.id.localeCompare(b.id));
-const dateOrder=(a,b)=>Date.parse(b.updated_at)-Date.parse(a.updated_at)||a.id.localeCompare(b.id);
+const dateOrder=(a,b)=>instant(b.updated_at).localeCompare(instant(a.updated_at))||a.id.localeCompare(b.id);
 const open=row=>['requested','scheduled'].includes(row.status);
 const nativeRows=rows=>[...rows].sort((a,b)=>Number(open(b))-Number(open(a))||dateOrder(a,b)).slice(0,limit).sort(dateOrder)
   .map(row=>Object.fromEntries(nativeColumns.map(key=>[key,row[key]])));
@@ -31,8 +31,8 @@ const instant=value=>{
   const match=/^(\d{4})-(\d{2})-(\d{2})T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.(\d{1,6}))?(?:Z|[+-](?:0\d|1[0-5]):[0-5]\d)$/u.exec(value);
   if(!match)return null;
   const year=Number(match[1]),month=Number(match[2]),day=Number(match[3]),days=[31,year%4===0&&(year%100!==0||year%400===0)?29:28,31,30,31,30,31,31,30,31,30,31];
-  if(year<1||month<1||month>12||day<1||day>days[month-1]||/[1-9]/u.test((match[4]??'').slice(3))||!Number.isFinite(Date.parse(value)))return null;
-  return new Date(value).toISOString();
+  if(year<1||month<1||month>12||day<1||day>days[month-1]||!Number.isFinite(Date.parse(value)))return null;
+  return new Date(value).toISOString().slice(0,-1)+(match[4]??'').padEnd(6,'0').slice(3)+'Z';
 };
 
 export const counselingAppointmentFixtureManifest=freeze({version:1,kind:'offline-plan',mounted:false,liveAcceptance:false,
@@ -123,14 +123,30 @@ function canonicalRows(rows,keys,code){
   });
 }
 function canonical(value){requireValue(exact(value,[table]),'rows_mismatch');return {[table]:byId(canonicalRows(value[table],columns,'rows_mismatch'))};}
-export function assertCounselingAppointmentFixtureRows(plan,value){
-  plan=checked(plan);requireValue(isDeepStrictEqual(canonical(value),canonical(plan.rows)),'rows_mismatch');return true;
+export function counselingAppointmentCancellationTarget(plan){
+  plan=checked(plan);
+  const eligible=plan.rows[table].filter(row=>row.user_id===plan.owners.A.id&&open(row));
+  requireValue(plan.fixtureKey==='scheduled:counselingAppointments'&&eligible.length===1
+    &&eligible[0].status==='scheduled'&&eligible[0].version>1,'invalid_cancellation_target');
+  return eligible[0];
+}
+function expectedRows(plan,cancellation){
+  if(cancellation===undefined)return plan.rows;
+  const target=counselingAppointmentCancellationTarget(plan);
+  requireValue(exact(cancellation,['id','updatedAt'])&&cancellation.id===target.id&&instant(cancellation.updatedAt)!==null,'invalid_cancellation_result');
+  return {[table]:plan.rows[table].map(row=>row.id===target.id?
+    {...row,status:'cancelled',updated_at:cancellation.updatedAt,version:target.version+1}:row)};
+}
+export function assertCounselingAppointmentFixtureRows(plan,value,{cancellation}={}){
+  plan=checked(plan);requireValue(isDeepStrictEqual(canonical(value),canonical(expectedRows(plan,cancellation))),'rows_mismatch');return true;
 }
 export function verifyCounselingAppointmentFixtureReadback(plan,options,actual){
-  const expected=counselingAppointmentFixtureReadContract(plan,options).expected;
+  const {cancellation,...readOptions}=options;
+  const expected=counselingAppointmentFixtureReadContract(plan,readOptions).expected;
+  const rows=cancellation===undefined?expected.rows:nativeRows(expectedRows(plan,cancellation)[table].filter(row=>row.user_id===expected.userId));
   requireValue(exact(actual,['userId','available','canCoordinate','rows'])&&typeof actual.available==='boolean'&&typeof actual.canCoordinate==='boolean','readback_mismatch');
   requireValue(isDeepStrictEqual({userId:actual.userId,rows:canonicalRows(actual.rows,nativeColumns,'readback_mismatch')},
-    {userId:expected.userId,rows:canonicalRows(expected.rows,nativeColumns,'readback_mismatch')}),'readback_mismatch');return true;
+    {userId:expected.userId,rows:canonicalRows(rows,nativeColumns,'readback_mismatch')}),'readback_mismatch');return true;
 }
 /** Only complete exact previous/new states or total absence grant deletion targets. */
 export function reconcileCounselingAppointmentFixturePlans({previous=null,next=null,actual}={}){

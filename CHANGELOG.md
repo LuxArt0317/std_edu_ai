@@ -7,6 +7,8 @@
 
 - Recognize Traditional Chinese requests for a student’s own saved tracking notes. Add signed-in evaluation for injury reporting, Student Health equipment, rental registration and insurance. [#100]
 
+- Add a protected Preview evaluator for counseling cancellation with paired student readbacks, confirmation and replay checks, and exact synthetic cleanup. [#100]
+
 - Let signed-in students confirm cancellation of one saved counseling or psychological assessment appointment from the campus assistant. Verify the native cancellation receipt before displaying the result. [#100]
 
 - Follow another public school source when a verified reply still leaves part of the question unanswered, and keep the verified facts when the extra search cannot fill the gap. [#100]

@@ -100,6 +100,32 @@ test('confirmed club cancellation relays one exact pending command to its bound 
   assert.equal(sent[0].init.headers.get('authorization'),caller);
 });
 
+test('confirmed counseling cancellation grants one exact caller and appointment command',async()=>{
+  const token=tokenAt(time),requests=[];
+  const options={origin,token,now:()=>time*1000,fetchImpl:async(url,init)=>{requests.push({url,init});return Response.json({ok:true});}};
+  const payload={id:'10000000-0000-4000-8000-000000000030',request_id:'10000000-0000-4000-8000-000000000031',expected_version:3};
+  const body={kind:'counseling_cancel',payload},bound={callerToken:caller.slice(7),body};
+  const dispatch=createTrustedPreviewFetch({...options,confirmedCounselingCommand:bound});
+  const endpoint=origin+'/api/affairs-action',init={...post,body:JSON.stringify(body)};
+  for(const denied of [
+    {...init,body:JSON.stringify({...body,payload:{...payload,id:'10000000-0000-4000-8000-000000000032'}})},
+    {...init,body:JSON.stringify({...body,payload:{...payload,expected_version:2}})},
+    {...init,headers:{...init.headers,Authorization:'Bearer another.caller.signature'}},
+  ])await assert.rejects(dispatch(endpoint,denied),/unapproved request operation/u);
+  await assert.rejects(dispatch('https://stu.best/api/affairs-action',init),/outside the approved run/u);
+  await assert.rejects(dispatch(origin+'/api/affairs-assistant',init),/unapproved request operation/u);
+  await assert.rejects(createTrustedPreviewFetch(options)(endpoint,init),/unapproved request operation/u);
+  assert.throws(()=>createTrustedPreviewFetch({...options,confirmedCounselingCommand:{...bound,body:{...body,kind:'counseling_request'}}}),
+    /invalid counseling cancellation fixture/u);
+  assert.throws(()=>createTrustedPreviewFetch({...options,confirmedCounselingCommand:bound,
+    confirmedClubCommand:{...bound,body:{...body,kind:'cancel_club_equipment'}}}),/invalid confirmed action fixture/u);
+  await dispatch(endpoint,init);
+  await assert.rejects(dispatch(endpoint,init),/unapproved request operation/u);
+  assert.equal(requests.length,1);
+  assert.equal(requests[0].init.headers.get('authorization'),caller);
+  assert.equal(requests[0].init.headers.get(trusted),token);
+});
+
 test('CLI enables OIDC only on the approved exact project Preview',()=>{
   assert.equal(options(argv).previewAuth,'oidc');
   for(const rejected of [argv.map(value=>value==='live'?'inventory':value),argv.map(value=>value===origin?'https://stu.best':value),

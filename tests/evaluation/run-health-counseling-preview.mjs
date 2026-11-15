@@ -1,20 +1,23 @@
 import {lstat,mkdir,mkdtemp,readFile,rename,writeFile} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {runCounselingHostedEvaluation} from './live-fixtures.mjs';
+import {runCounselingCancellationPreview,runCounselingHostedEvaluation} from './live-fixtures.mjs';
 import {main as runEvaluation,sourceIdentity} from './run.mjs';
+import {counselingCancellationCaseIds,hasCounselingCancellationProof} from './counseling-cancellation-preview.mjs';
 import {counselingHostedCases} from './counseling-appointment-hosted.mjs';
 import {healthMetadataFamily,healthMetadataLiveCases} from './health-examination-live.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
-const packetCases={health:healthMetadataLiveCases().map(row=>row.id),counseling:counselingHostedCases().map(row=>row.id)};
-const packets=Object.keys(packetCases);
+const packetCases={health:healthMetadataLiveCases().map(row=>row.id),counseling:counselingHostedCases().map(row=>row.id),
+  'counseling-cancellation':counselingCancellationCaseIds()};
+const packets=['health','counseling'];
 
 export function packetVerdict(packet,report,origin,sourceRevision){
   const expected=packetCases[packet],health=packet==='health';
   const pin=health?report?.deploymentPin:report?.deployment;
-  const cleanup=health?report?.cleanup?.complete===true&&report?.cleanup?.proof?.verified===true:report?.cleanup?.verified===true;
+  const cleanup=health?report?.cleanup?.complete===true&&report?.cleanup?.proof?.verified===true
+    :report?.cleanup?.verified===true&&(packet!=='counseling-cancellation'||report?.cleanup?.counselingCancellationCleanup===true&&report?.cleanup?.protectedOwnerUnchanged===true);
   const terminal=health?Boolean(report?.finishedAt)&&report?.sourceUnchanged===true
     &&report.mode==='live'&&report.caseFamily===healthMetadataFamily&&report.injectedDependencies===false:report?.terminal===true;
   const results=Array.isArray(report?.results)?report.results:[];
@@ -24,7 +27,8 @@ export function packetVerdict(packet,report,origin,sourceRevision){
     &&pin.status==='finished'&&pin.issued===expected.length&&pin.completed===expected.length
     &&results.length===expected.length&&results.every((row,index)=>row?.caseId===expected[index]
       &&typeof row.passed==='boolean'&&(health?row.executed===true&&row.response?.fixtureReadback?.verified===true:row.requestIndex===index+1));
-  const accepted=complete&&passed===expected.length&&(health||report.liveAcceptance===true);
+  const accepted=complete&&passed===expected.length&&(health||report.liveAcceptance===true)
+    &&(packet!=='counseling-cancellation'||hasCounselingCancellationProof(results));
   return {status:accepted?'passed':complete&&passed<expected.length?'failed':'incomplete',
     expected:expected.length,executed:observed.size,passed,failed:observed.size-passed,cleanup:cleanup?'verified':'unproven'};
 }
@@ -61,9 +65,10 @@ async function runHealth({origin,path}){
   }finally{process.exitCode=previousExitCode;}
 }
 
-async function runCounseling({origin,sourceRevision,path,signal}){
+async function runCounseling({origin,sourceRevision,path,signal,packet}){
   await writePrivateReport(path,{sourceRevision,origin,terminal:false,results:[],cleanup:null});
-  await runCounselingHostedEvaluation({origin,sourceRevision,previewToken:process.env.VERCEL_OIDC_TOKEN,
+  const run=packet==='counseling-cancellation'?runCounselingCancellationPreview:runCounselingHostedEvaluation;
+  await run({origin,sourceRevision,previewToken:process.env.VERCEL_OIDC_TOKEN,
     signal,onCheckpoint:value=>writePrivateReport(path,value)});
 }
 
@@ -106,7 +111,7 @@ export async function runAccountPacketCli(args,{selection=packets}={}){
         await writePrivateReport(manifest,result());
         try{
           const run=packet==='health'?runHealth:runCounseling;
-          await run({origin,sourceRevision,path,signal:controller.signal});
+          await run({origin,sourceRevision,path,signal:controller.signal,packet});
         }catch{rejected=true;}
         Object.assign(row,packetVerdict(packet,await readPrivateReport(path),origin,sourceRevision));
         if(rejected)row.status='incomplete';
