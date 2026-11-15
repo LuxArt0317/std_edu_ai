@@ -40,12 +40,15 @@ import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-prev
 import {assertPublishedNextClassClock} from './published-next-class.mjs';
 import {certificateAwardPreviewHash,certificateBrowserCaseIds} from './certificate-award-preview.mjs';
 import {announcementEmailBrowserCases} from './announcement-email-browser-turn.mjs';
+import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
 
 const browserDispatchProfiles=new Map([
   ['certificate-awards',{ids:certificateBrowserCaseIds,operation:'runCertificateAwardPreview',request:'certificate-answer',pinnedReads:2,
     cleanup:proof=>proof.certificateAwardPreviewCleanup===true&&proof.certificateAwardCatalogUnchanged===true}],
   ['announcement-email',{ids:announcementEmailBrowserCases.map(row=>row.id),operation:'runAnnouncementEmailBrowserPreview',
     request:'announcement-email-answer',pinnedReads:6,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='announcement-email'}],
+  ['student-profile',{ids:studentProfileBrowserCases.map(row=>row.id),operation:'runStudentProfileBrowserPreview',
+    request:'student-profile-answer',pinnedReads:2,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='student-profile'}],
 ]);
 
 const liveClientObservations=new WeakMap();

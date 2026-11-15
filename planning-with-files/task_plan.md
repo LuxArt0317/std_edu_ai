@@ -888,6 +888,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the exact protected runtime with public factual, private-sign-in, and gated-notice checks. Keep the controlled proof of a recovered third check separate.
 - [x] Reproduce the missed standalone founding-year question and verify the repaired English and Traditional Chinese variants against the pinned About capture in protected Preview.
 - [ ] Complete the signed-in browser gate before using this protected candidate for production.
+- [x] Recheck all four original signed transcript turns on exact Preview, including both independent guidance rubrics and durable versions.
+- [x] Verify complete exact account reports on the first authorized record read. Exercise recovery and withholding for a truly unavailable read.
+- [ ] Run the eight mounted native browser cases on the integrated exact Preview. Keep the other original browser cases in the gate.
 - [x] Match the reported two-check activity to the exact public deployment.
 - [x] Follow a new source after evidence gaps and allow an additional review only after an independent read.
 - [x] Cover incomplete pages, repeated content, transient read failures, expired time and stored activity with endpoint and evaluator tests.

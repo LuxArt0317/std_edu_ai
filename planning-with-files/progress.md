@@ -2,6 +2,8 @@
 
 Earlier entries are preserved in [the November 16 archive](archive/progress_2026-11-16.md).
 
+- 2026-11-16 [#100] Exact `f5eb6cb` passed all four original signed turns after separate helpfulness review, thirteen pinned requests and exact cleanup. Provider quota recovery on its three record turns exposed an unnecessary model call. Local-first checks now avoid it while genuine read failures still retry. Integrated Announcement Email and Student Profile browser fixtures and scoped Club attendance plus tuition.
+
 - 2026-11-16 [#100] Reproduced a stalled public rewrite and a temporary second-review failure with a queued official notice. Continued to verify the notice, persisted progress, and checked quota, no-lead and mirror stops. Routed the five original native Student Profile prompts with separate confirmation and year reads.
 - 2026-11-16 [#100] Exact protected `c7476bb` passed three pinned public checks and both original November Leave counts, with one native check each and exact fixture cleanup. Integrated Announcement Email and verified the separate rental action in a controlled browser without a client migration. The standalone founding-year question exposed a separate live miss and now verifies locally from the captured About page in both languages.
 - 2026-11-16 [#100] Exact protected `f5eb6cb` passed three standalone founding-year variants and two safe fallback cases, with twelve exact pins. Chromium reloaded the saved Activity at 1440 and 390 px. The final local suites are green. The new branch Quality run superseded the prior candidate's check. Issue updated and no test fixture remains.

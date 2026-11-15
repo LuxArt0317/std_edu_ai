@@ -62,6 +62,10 @@ import {assertAnnouncementEmailBrowserSchema,bindAnnouncementEmailBrowserCase,bu
   deleteAnnouncementEmailBrowserFixture,observeAnnouncementEmailBrowserCallers,observeAnnouncementEmailBrowserFixture,
   seedAnnouncementEmailBrowserFixture,verifyAnnouncementEmailBrowserFixtureAbsent} from './announcement-email-browser-fixture.mjs';
 import {announcementEmailBrowserBootstrap,announcementEmailBrowserCases,inspectAnnouncementEmailBrowserBootstrap} from './announcement-email-browser-turn.mjs';
+import {assertStudentProfileBrowserSchema,bindStudentProfileBrowserCase,buildStudentProfileBrowserFixture,
+  deleteStudentProfileBrowserFixture,observeStudentProfileBrowserCallers,observeStudentProfileBrowserFixture,
+  seedStudentProfileBrowserFixture,verifyStudentProfileBrowserFixtureAbsent} from './student-profile-browser-fixture.mjs';
+import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
@@ -143,6 +147,8 @@ const FEE_FIXTURE_MODE='fee-remission-only';
 const nativeBrowserFixtures=new Map([
   ['announcement-email',{assertSchema:assertAnnouncementEmailBrowserSchema,
     deletePlan:deleteAnnouncementEmailBrowserFixture,verifyAbsent:verifyAnnouncementEmailBrowserFixtureAbsent}],
+  ['student-profile',{assertSchema:assertStudentProfileBrowserSchema,
+    deletePlan:deleteStudentProfileBrowserFixture,verifyAbsent:verifyStudentProfileBrowserFixtureAbsent}],
 ]);
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE,dtmAssignmentListFixtureMode,healthMetadataFixtureMode]);
 export const clubAttendanceFixtureVersion=1;
@@ -2323,6 +2329,38 @@ export function runAnnouncementEmailBrowserPreview(options){
   return runNativeBrowserPreview(options,announcementEmailNativeBrowser());
 }
 
+export function runStudentProfileBrowserPreview(options){
+  return runNativeBrowserPreview(options,{
+    profile:'student-profile',cases:studentProfileBrowserCases,build:buildStudentProfileBrowserFixture,
+    seed:seedStudentProfileBrowserFixture,bind:bindStudentProfileBrowserCase,
+    async loadBrowser(){
+      const browser=await import('./student-profile-browser-preview.mjs');
+      return {derive:browser.deriveStudentProfileBrowserAssets,runTurn:browser.runStudentProfileBrowserTurn};
+    },
+    async observe(s,plan,{signal}){
+      const stateDigest=await observeStudentProfileBrowserFixture(s.sql,plan);
+      const request=async (caller,url,payload)=>{
+        await caller.renewSession({signal});
+        const headers={apikey:s.publishable,Authorization:'Bearer '+caller.token,
+          ...(payload?{'Content-Type':'application/json'}:{Prefer:'count=exact'})};
+        const response=await s.boundedFetch(url,{method:payload?'POST':'GET',headers,
+          ...(payload?{body:JSON.stringify(payload)}:{}),redirect:'error',cache:'no-store',signal:signals(signal)});
+        return {status:response.status,contentRange:response.headers.get('content-range'),
+          body:await readBoundedFixtureResponse(response,url,32768,response.status)};
+      };
+      const callers=await observeStudentProfileBrowserCallers(plan,{users:s.users,
+        readRpc:(caller,payload)=>request(caller,new URL('/rest/v1/rpc/affairs_read_student_profile',s.url),payload),
+        readYear:(caller,targetId)=>{
+          const url=new URL('/rest/v1/affairs_students',s.url);
+          url.search=new URLSearchParams({select:'user_id,year_level,source_mode',user_id:'eq.'+targetId,limit:'1'});
+          return request(caller,url);
+        },
+      });
+      return {stateDigest,callers};
+    },
+  });
+}
+
 async function runNativeBrowserPreview({origin,sourceRevision,previewToken,browserCase,artifactDirectory,signal,onCheckpoint}={},fixture){
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')
     ||!fixture.cases.some(testCase=>testCase.id===browserCase)||typeof artifactDirectory!=='string'||!artifactDirectory.startsWith('/')
@@ -2368,6 +2406,7 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
     await assertScoped();
     const plan=fixture.build(runId,verifiedDisposableBrowserOwners(s));
     s.nativeBrowserPlan=plan;
+    if(fixture.profile==='student-profile')s.recordIds.add(plan.student.id);
     await saveLedger();
     await query(()=>feeTransaction(s,()=>fixture.seed(s.sql,plan)),'Could not stage exact native browser fixture rows.');
     phase=browserCase;
@@ -3451,7 +3490,7 @@ async function dtmAssignmentListObservation(s,signal){
 async function clubAttendanceObservation(s,oracle,signal){
   await assertRecordedFixtureLease(s);
   return query(()=>observeClubAttendanceFixture({sql:s.sql,plan:s.clubAttendancePlan,identities:s.identityRequests,
-    users:s.users,origin:s.origin,page:oracle.page,signal,read:async(url,token,active)=>{
+    users:s.users,origin:s.origin,page:oracle.page,tuitionUnlinked:oracle.tuitionUnlinked===true,signal,read:async(url,token,active)=>{
       const response=await (s.previewReadbackFetch??fetch)(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
         headers:{Authorization:'Bearer '+token},signal:signals(active,15000)});
       return readBoundedFixtureResponse(response,url,32768);
@@ -4656,7 +4695,7 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
       envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
       envelope.stateAfterProposal={ownedRecordsDigest:after};
       envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
-        clubAttendance:{page:oracle.page,role:oracle.role,twoOwnersVerified:true}};
+        clubAttendance:{page:oracle.page,role:oracle.role,twoOwnersVerified:true,...(oracle.tuitionUnlinked?{tuitionUnlinked:true}:{})}};
       return;
     }
     if(s.feeFixture){

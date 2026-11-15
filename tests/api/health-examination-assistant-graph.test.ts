@@ -132,7 +132,7 @@ async function offline(run:()=>Promise<void>,{mixed=false,retry=false,denyHealth
     assert.deepEqual(errors,[]);
     assert.equal(health,denyHealth?0:retry?2:1);
     assert.equal(charges,mixed||chargesOnly?1:0);
-    assert.deepEqual(calls,chargesOnly?[]:[...(mixed?['compose_grounded_answer']:[]),'answer_evidence_review',...(retry&&mixed?['correct_grounded_answer','answer_evidence_review']:[])]);
+    assert.deepEqual(calls,chargesOnly&&named?[]:[...(mixed?['compose_grounded_answer']:[]),'answer_evidence_review',...(retry&&mixed?['correct_grounded_answer','answer_evidence_review']:[])]);
   }catch(error){throw errors[0]??error;}
   finally{globalThis.fetch=original;if(originalKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=originalKey;}
 }

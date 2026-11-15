@@ -14,6 +14,8 @@ For controlled verification, run `node --experimental-strip-types --test tests/e
 
 ## Verification
 
+The protected runner accepts `--client-dispatch student-profile` for the three read-only browser cases. It binds both callers' confirmation and year responses to separate authenticated Supabase reads before and after the browser turn. Each case verifies one conversation save and a reload, then disposes the exact records and both fixture accounts. `--client-dispatch protected-native` also includes the mounted certificate and Announcement Email cases.
+
 ```sh
 npm run db:plan -- --only=20261114210000
 node tests/integration/student-profile-db.mjs --rollback-preflight
