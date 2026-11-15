@@ -13,3 +13,7 @@
 - 2026-11-15 [#100] Pinned the `8cfbd8d` protected Preview. Four public probes observed a real third review and a correct sign-in boundary. Four signed-in prompts verified and both synthetic users were removed. Fixed two Preview-only non-strict TypeScript diagnostics and verified both compiler modes locally.
 
 - 2026-11-15 [#100] Independent grading passed all four signed-in replies. GitHub Quality 43675881682 passed on `8cfbd8d`.
+
+- 2026-11-15 [#100] Applied checksum-matched conversation coexistence SQL after the exact 169-migration client preflight. Verified the committed catalog, old runtime with 13 HTTP and 21 browser requests, and 13 pinned saved-chat Preview requests with four independently graded replies and exact cleanup.
+
+- 2026-11-15 [#100] Reproduced the hosted Moodle timeout race under a frozen clock and fixed three related dispatch paths. Integrated checksum-verified institutional capture selection, the on-demand paired model harness and the PostgreSQL Student Leave data preflight.

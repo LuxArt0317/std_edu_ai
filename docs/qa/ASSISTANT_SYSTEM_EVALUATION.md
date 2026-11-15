@@ -349,3 +349,15 @@ Four live public requests passed deployment pinning and transport checks. The fo
 The same Preview passed independent grading on all four signed-in prompts. The balance recovered on the second check using refreshed charges, and interview coaching passed its six helpfulness criteria with zero account readers. Both disposable identities were removed and the protected owner was preserved. This run covers answering and scoped fixture readback. The conversation migration and exact durable chat replay remain pending.
 
 GitHub Quality passed on the exact protected revision. [Quality run](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43675881682)
+
+### Hosted saved conversations and deadline recovery
+
+The client preflight selected only `20261115230000` and observed zero existing UUIDv7 chat rows. The checksum-matched migration committed in a bounded transaction under the migration lock. The catalog confirmed 170 migrations, 206 public tables, two private RLS tables and three authenticated versioned RPCs. The protected owner fingerprint and the legacy save grant matched their preflight values.
+
+Production `076c79a` passed its legacy conversation HTTP and browser suite after the migration. The suite made 13 real HTTP and 21 browser requests and restored a saved chat in a fresh browser context. It verified cross-account denial, stale and duplicate saves, account-local sign-out and exact cleanup.
+
+Protected Preview `927ea4c` completed all 13 pinned transcript requests. The four live replies were saved and exactly read back, including observed activity. Independent grading passed all four turns, including four overview and six interview criteria. Cleanup verified zero fixture conversation rows. This gate covers the exact conversation and coexisting legacy runtime. Protected HTTP delete and the sitewide model gate remain open.
+
+The GitHub run on `927ea4c` found a timer race in the Moodle grade reader while Vercel built without the earlier API type diagnostics. Deterministic tests reproduced a new provider dispatch after expiry when the wall clock still appeared to be before the deadline. The local fixes latch the timeout for the Moodle grade, saved submission, and supplemental account queues.
+
+The saved About STU source now takes priority for explicit stable institutional questions. Its own dated text drives answer composition and independent review. If it fails verification, the graph can retrieve a new official source. The paired model harness holds the public evidence, prompt, draft, feedback, effort and deadline constant. Its controlled harness tests pass. The live comparison requires an authorized OpenAI runtime.

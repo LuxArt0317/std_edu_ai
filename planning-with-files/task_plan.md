@@ -257,14 +257,16 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Compare the saved chat and activity to the submitted transcript. Send an account-scoped delete for an already committed but unacknowledged save.
 - [x] Prevent an in-flight first save from recreating a deleted conversation and verify both transaction orderings in scratch PostgreSQL.
 - [x] Verify an already open legacy browser tab through the upgraded API and a simulated database cutover.
-- [ ] Apply the conversation migration after client preflight and verify the deployed save/delete behavior.
-- [ ] Run the UUIDv7 conversation replay on the protected compiler-corrected Preview and check the legacy conversation protocol during coexistence.
+- [x] Apply the reviewed conversation migration after exact client preflight and verify its committed SQL and permissions.
+- [x] Run the UUIDv7 conversation replay on the protected compiler-corrected Preview and check the legacy conversation protocol during coexistence.
+- [ ] Verify authenticated UUIDv7 delete and late-save denial through the protected HTTP handler.
 - [x] Replace the venue history shortcut with a caller-scoped reader and LangGraph verification.
 - [x] Check venue history and tuition independently when a question uses both sources.
 - [ ] Bind venue history live fixtures and complete remaining venue compound questions.
 - [x] Connect the four internship views and independent tuition and timetable lookup to the verified account endpoint. Register the 30-case native bank.
 - [ ] Bind the internship cases to disposable accounts and trusted request observations. Rebind four earlier internship cases against their original requirements.
-- [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures on the protected Preview. Verify the live four-turn conversation and signed-in browser paths.
+- [x] Connect the eight Student Leave fixture families to a real PostgreSQL data preflight and verify crossed-caller isolation.
+- [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures and trusted request observations on the protected Preview.
 - [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
 - [x] Verify the current caller's Google sign-in with seven separately graded account-status cases.
 - [x] Bind club attendance to independently checked disposable accounts in the main suite and verify the immutable Preview transport with controlled requests.
@@ -822,7 +824,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
 - [x] Verify generated protected chat IDs from transcript preparation to stored readback and cleanup.
 - [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
-- [ ] Verify and stage the two additive migrations on the exact client project, then validate legacy coexistence and the new RPCs against the protected candidate.
+- [x] Stage the compatible conversation schema on the exact client and verify legacy coexistence and the new save/read protocol.
+- [ ] Verify the Digital Academy metadata migration and its signed-in category and notice cases.
 - [x] Execute the four exact prompts on the previous protected baseline, read back every saved reply and verify the scoped fixture cleanup.
 - [x] Repair the current-course and year response, preserve fee source labels, and recover useful record-free interview guidance in the combined local candidate.
 - [ ] Execute the exact protected candidate with real model responses and automatic fixture cleanup.
