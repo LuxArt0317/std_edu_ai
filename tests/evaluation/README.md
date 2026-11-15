@@ -117,7 +117,7 @@ The registered action cases check exact proposed payloads, relevant named reads 
 
 Conversation cleanup binds the serialized message array as text and casts it to JSONB in PostgreSQL before the exact row comparison. The fixture retains its deletion witness when automatic cleanup fails. Record any verified manual recovery separately from the original hosted report.
 
-The six Digital Academy category and notice cases use the authenticated native assistant and its deterministic verifier on an exact protected Preview. The adapter uses two disposable callers to read the exact scoped metadata RPC before and after each assistant request. The grader compares those responses with frozen category and notice projections, and binds the observed endpoint progress to the request and deployment checks. This evidence does not include the provider or database logs. The 19 separate Digital Academy course-list and search cases still require their own live fixtures.
+The six Digital Academy category and notice cases use the authenticated native assistant and its deterministic verifier on an exact protected Preview. The adapter uses two disposable callers to read the exact scoped metadata RPC before and after each assistant request. The grader compares those responses with frozen category and notice projections, and binds the observed endpoint progress to the request and deployment checks. This proof is limited to endpoint telemetry and the independent RPC results. The 19 separate Digital Academy course-list and search cases still require their own live fixtures.
 
 ```sh
 node tests/evaluation/run.mjs --mode live --origin "$PREVIEW_ORIGIN" \

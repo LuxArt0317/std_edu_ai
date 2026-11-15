@@ -34,7 +34,7 @@ function source([view,id]){
     let selected=row;
     while(selected&&view==='category'&&selected.id!==id)selected=categoryRows.get(selected.parentId);
     return view!=='notice'&&Boolean(selected);
-  }).map(({position,...row})=>row);
+  }).map(({position:_position,...row})=>row);
   return {userId:owner,view,id,categories:scoped,
     notice:view==='notice'?structuredClone(notices.find(row=>row.id===id)??null):null};
 }

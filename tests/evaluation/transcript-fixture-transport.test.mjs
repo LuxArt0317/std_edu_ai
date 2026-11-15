@@ -1,6 +1,7 @@
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {isElearningMetadataCase} from './elearning-catalog-runner.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -55,7 +56,7 @@ test('actual prepare rejects altered, partial, reordered or unrelated packet sco
 
 function isolatedPreparation({applicationFetch,invalidEnvironment=false}={}){
   let credentials=0,authOptions,dbCalls=0;const seen=[],root='/synthetic';
-  const context={nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,URL,Headers,Response,AbortSignal,Buffer,TextDecoder,TextEncoder,setTimeout,clearTimeout,structuredClone,resolve,process:{cwd:()=>root},
+  const context={nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningMetadataCase,URL,Headers,Response,AbortSignal,Buffer,TextDecoder,TextEncoder,setTimeout,clearTimeout,structuredClone,resolve,process:{cwd:()=>root},
     state:undefined,ROOT:root,PROJECT:project,PRIVATE_DIR:'/synthetic/artifacts',UUID:/^[a-f0-9-]{36}$/iu,LiveFixtureError,
     fail:(code,message)=>{throw new LiveFixtureError(code,message);},createTranscriptFixtureApplicationFetch,createPinnedDeploymentVerifier,
     fetch:async(url)=>{seen.push(String(url));return Response.json({});},signals:signal=>signal,
@@ -113,7 +114,7 @@ test('default snapshot and preparation paths retain original raw transport behav
 });
 
 test('actual per-case entry rejects changed packet scope before any fixture read or mutation',async()=>{
-  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,LiveFixtureError,ready:()=>({applicationFetch:()=>{},current:null}),fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
+  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningMetadataCase,LiveFixtureError,ready:()=>({applicationFetch:()=>{},current:null}),fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
   vm.createContext(context);
   const forCase=vm.runInContext(section('const transcriptFixtureCases=','/** Only release metadata')
     +section('export async function forCase(','export async function afterCase(')+'\nforCase;',context);
@@ -162,7 +163,7 @@ test('exact transcript fixture is written once and reread around all four ordere
     {id:owner,token:'SYNTHETIC_OWNER'},{id:'17000000-0000-4000-8000-000000000099',token:'SYNTHETIC_OTHER'},
   ],supplementalTables:new Set(),sql:{},prepared:true,current:null});
   let state=makeState();
-  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,LiveFixtureError,state,ready:()=>state,PROJECT:project,fixtureForCase:()=>structuredClone(golden),assertSupported:()=>{},
+  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningMetadataCase,LiveFixtureError,state,ready:()=>state,PROJECT:project,fixtureForCase:()=>structuredClone(golden),assertSupported:()=>{},
     readNativeBindings:async()=>{events.push('bind');return bind;},recordsToInsert:()=>({}),planSupplementalFixture:()=>({rows:{},domains:[]}),
     persistSnapshot:async()=>{events.push('seed');},readSnapshot:async()=>{events.push('snapshot');return structuredClone(observed);},
     verifyReadback:()=>{},verifyNativeFixtureReadback:()=>{},verifyPublishedSampleFixtureBinding:async()=>{events.push('recheck');return true;},

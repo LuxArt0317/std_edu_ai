@@ -1,5 +1,6 @@
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {isElearningMetadataCase} from './elearning-catalog-runner.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
@@ -165,7 +166,7 @@ test('actual forCase/afterCase pipeline rechecks auth data and shared source, re
   const caseRecord={id:'account:published-sample-current',fixtureKey:'published-sample:records',expected:{requiredTools:['courses']}};
   const state={now,users:[{id:EVAL_USER_ID,studentId,token:'SYNTHETIC'},{id:EVAL_OTHER_USER_ID,token:'SYNTHETIC'}],supplementalTables:new Set(),sql:async()=>rawRows()};
   let sourceReads=0,privateReads=0,ledger=0;
-  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,state,ready:()=>state,fixtureForCase:()=>structuredClone(golden),assertSupported:()=>{},readNativeBindings:async()=>plan,
+  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningMetadataCase,state,ready:()=>state,fixtureForCase:()=>structuredClone(golden),assertSupported:()=>{},readNativeBindings:async()=>plan,
     recordsToInsert:()=>({}),planSupplementalFixture:()=>({rows:{},domains:[]}),persistSnapshot:async()=>{},
     readSnapshot:async()=>{privateReads++;return structuredClone(actual);},verifyReadback:()=>{},verifyNativeFixtureReadback,
     verifyPublishedSampleFixtureBinding,readPublishedSampleInitializerRows:async(...args)=>{sourceReads++;return readPublishedSampleInitializerRows(...args);},query:task=>task(),
