@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add protected evaluation for owned venue requests, pending counts, and cross-account boundaries using disposable records that do not reserve public rooms. [#100]
+
 - Add an isolated teaching-feedback Preview evaluation using existing sample sections, paired owner reads, signed evidence observations and exact cleanup. [#100]
 
 - Verify complete Internship and tuition-balance answers directly against both saved sources so corrections retain each contract status and exact balance. [#100]

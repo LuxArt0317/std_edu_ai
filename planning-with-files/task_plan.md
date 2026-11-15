@@ -896,6 +896,14 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Observe a live verified-partial follow-up that finds a new fact. Controlled endpoint coverage passes.
 - [x] Add protected runners for equipment confirmation and exact Moodle submission timing with paired record readbacks and journaled cleanup.
 
+### Compound Internship, teaching feedback, and venue records [Issue #100]
+
+- [x] Preserve complete Internship and tuition facts in both question orders. Exercise both through the actual handler and unchanged independent grader.
+- [ ] Run both corrected Internship and tuition questions on protected Preview with signed source and owner readbacks.
+- [ ] Correct the class-first Internship and timetable answer and rerun both published timetable question orders.
+- [x] Bind separate teaching feedback and venue packets to scoped disposable records. Test the signed observations and both caller boundaries.
+- [ ] Replay the 11 teaching feedback questions and seven venue questions on protected Preview. Preserve the distinct role, workspace, and unmounted case requirements.
+
 ### Native grade and appointment actions [Issue #100]
 
 - [x] Mount ten signed-in Moodle grade-report cases with exact own/crossed readbacks, separate gradebook and tracker facts, and disposal.
