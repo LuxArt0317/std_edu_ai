@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add a protected graduation-clearance status and notes evaluation using disposable callers and two reviewed existing terms. [#100]
+
 - Keep transcript grades, warning remarks, credits and rankings in the requested academic term, including compact semester references. Check the saved English requirement display independently of semester filters. [#100]
 
 - Keep combined graduation-clearance status and window questions within the caller’s clearance records. Exercise both routes and deny chat approval and manager access in two-caller evaluation. [#100]

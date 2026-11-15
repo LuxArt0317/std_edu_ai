@@ -10,10 +10,20 @@ The university's flowchart documents an explicit decision to proceed after readi
 
 ## Verification
 
-- `node --test tests/evaluation/clearance-owned-packet.test.mjs` replays frozen questions through both School Affairs routes with two synthetic signed-in callers. It checks application-window and office-note scope, the empty account, denied assistant and native actions, and unchanged records before and after requests. The hosted question packet still requires reviewed existing term and period bindings.
+- `node --test tests/evaluation/clearance-owned-packet.test.mjs` replays frozen questions through both School Affairs routes with two synthetic signed-in callers. It checks application-window and office-note scope, the empty account, denied assistant and native actions, and unchanged records before and after requests.
 - `node tests/integration/graduation-clearance-db.mjs --rollback-preflight` exercises the migration against the exact client schema and rolls all successful writes back. Use `--deployed` to test the installed schema. It covers manager-only actions, confirmed submission, appropriate offices, retries, stale writes and isolation.
 - `node --experimental-strip-types tests/integration/graduation-clearance-http.mjs --verify-client` exercises real Supabase sessions, exact fixture cleanup, and bilingual assistant status. Set `EXPECTED_RELEASE_REVISION` for the production handlers.
 - `node tests/integration/graduation-clearance-ui.mjs` exercises compiled navigation, acknowledgement, retry, administrator edits, saved status on reload, responsive rendering and the guest return. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for the deployed bundle. The browser uses intercepted data, while the HTTP and rollback suites exercise persistence.
+
+## Protected status evaluation
+
+Run from the exact clean revision deployed to the approved protected Preview. Supply the reviewed newest and earlier existing term IDs. The runner checks their order, full shared-row fingerprint, and absence of configured periods for the selected terms before creating disposable callers.
+
+```sh
+node tests/evaluation/run-clearance-status-preview.mjs APPROVED_PREVIEW_ORIGIN FULL_SOURCE_REVISION NEWER_TERM_ID OLDER_TERM_ID
+```
+
+The 16-case status packet compares both callers' native page responses with independent SQL snapshots. It grades visible office statuses, authorized notes, empty results, navigation, and access and action denials. It pins all 80 application requests and verifies cleanup of the disposable accounts, profiles, applications and review rows. It records the three positive window questions as deferred pending approved period bindings. The redacted report records the request coverage and shared-row digest.
 
 ## Deployed evidence
 
