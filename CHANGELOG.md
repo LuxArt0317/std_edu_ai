@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Create the two reserved browser-test profiles in the same transaction as the signed-in native fixtures. [#100]
+
 - Verify the saved record overview, current subjects and year, and standalone balances directly against their selected record fields and counts. Refresh the authorized read when those fields cannot be validated. [#100]
 
 - Add protected Chromium replay for Announcement Email preferences, Gmail limits and an empty profile, with exact two-account readback and cleanup. [#100]

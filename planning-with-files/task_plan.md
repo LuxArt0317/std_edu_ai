@@ -1096,3 +1096,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify both frozen compound wording orders and explicit questionnaire exclusion through the actual graph and migrated two-account PostgreSQL.
 - [x] Bind the three frozen cases to a protected fixture with two independent unchanged scoped records and exact disposal.
 - [x] Pass all three original Tutor and named tuition questions on exact protected `41a7dbe` with three matching release pins and verified two-owner disposal.
+
+### Native browser fixture correction [Issue #100]
+
+- [x] Verify all four original signed transcript turns independently on protected `87d5847`, with one check on each of the three record answers.
+- [x] Prove exact cleanup of the Announcement Email staging failure and preserve the original failed report.
+- [ ] Exercise no-profile cleanup and common profile staging in the evaluator, then run the six Announcement Email and Student Profile browser cases on an exact protected Preview.
