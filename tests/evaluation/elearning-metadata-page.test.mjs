@@ -165,6 +165,11 @@ test('metadata admission rejects changed route, question, tool, selector and pri
     const copy=structuredClone(row);alter(copy);
     assert.throws(()=>assertElearningCatalogCaseReady(copy),/frozen request definition/u);
   }
+  const modified=elearningCatalogRunnerCases().find(candidate=>candidate.id===row.id);
+  modified.metadataOracle.rpc[0]='notice';
+  modified.expected.requiredText.length=0;
+  assert.throws(()=>assertElearningCatalogCaseReady(modified),/frozen request definition/u);
+  assert.doesNotThrow(()=>assertElearningCatalogCaseReady(row));
   const valid=source(row.metadataOracle.rpc);
   for(const mutate of [
     copy=>{copy.userId='unexpected-caller';},

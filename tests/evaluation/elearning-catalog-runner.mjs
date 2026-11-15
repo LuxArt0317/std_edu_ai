@@ -7,6 +7,7 @@ const tool='elearningCatalog';
 const prefix='account:elearning-catalog-';
 const offline='offline_elearning_catalog_page';
 const metadataTool='elearningMetadata';
+const metadataScenarios=structuredClone(catalogMetadataCases);
 
 export function elearningCatalogRunnerCases(){
   const positive=catalogCases.map(row=>{
@@ -39,8 +40,8 @@ export function elearningCatalogRunnerCases(){
     coveredTools:[],catalogOracle:{ids:[],attempts:0},expected:{behavior:'denial',requiredText:['Sign in'],
       requiredLinks:['/elearning/login?next='+encodeURIComponent(original.route)],allowedTools:[],requiredAttemptedTools:[],
       localLinksOnly:true,forbidPublicResearch:true,noAction:true}};
-  const metadataCases=catalogMetadataCases.map(row=>{
-    return {id:metadataCasePrefix+row.id,domain:metadataTool,route:row.route,question:row.question,
+  const metadataCases=metadataScenarios.map(row=>{
+    return structuredClone({id:metadataCasePrefix+row.id,domain:metadataTool,route:row.route,question:row.question,
       executionContract:'live-native',endpoint:metadataEndpoint,
       mode:row.limited?'empty':'record',language:row.language??(/\p{Script=Han}/u.test(row.question)?'zh-Hant':'en'),fixtureKey:'elearning-metadata:'+row.id,
       fixtureRequirement:metadataFixtureRequirement,
@@ -50,7 +51,7 @@ export function elearningCatalogRunnerCases(){
         requiredTools:[metadataTool],requiredAttemptedTools:[metadataTool],allowedTools:[metadataTool],
         requiredLinks:[row.route],requiredSourceBindings:[{sourceId:'account:'+metadataTool,url:row.route}],
         forbiddenText:[...forbiddenCatalogEvidence,'you enrolled','you are enrolled'],
-        noAction:true,forbidPublicResearch:true,localLinksOnly:true}};
+        noAction:true,forbidPublicResearch:true,localLinksOnly:true}});
   });
   return [...positive,retried,failed,guest,...metadataCases];
 }
