@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify Student Leave dates and Moodle grades as separate records within one answer. Preserve the verified portion when one source is incomplete. [#100]
+
 - Answer facility repair status and notes directly from saved records. Verify the next-class portion separately and keep the supported details if one read fails. [#100]
 
 - Verify the selected certificate award separately from the aggregate menu and check both owned and crossed status requests. [#100]

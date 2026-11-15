@@ -122,6 +122,15 @@ For the separate 14-case boundary packet, pass `caseIds: studentLeaveHostedBound
 
 Pass `caseIds: studentLeaveHostedGradeCompanionCaseIds()` for the two fixed Leave and Moodle grade overview questions. The signed receipt separately commits the actual Leave reads and the Moodle overview RPC and selected evidence. Both questions must pass the original rubric. A complete native pair must attest both sources with zero provider operations and a paired Activity check. The controlled model-review path still requires its completed review receipt. An unavailable or abbreviated source can produce a separately verified fragment, without a paired acceptance receipt. Two disposable callers each have a different saved grade. The operator checks both overviews and both owned and crossed report reads before and after each question, matches the exact release on every application request, and verifies cleanup for both fixture groups.
 
+For the exact Preview replay, use an authorized Development Preview token and the documented disposable fixture configuration from a clean checkout of that release:
+
+```sh
+node tests/evaluation/run-student-leave-grade-preview.mjs --preflight
+node tests/evaluation/run-student-leave-grade-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+The preflight lists the two frozen cases without contacting the app or database. The hosted command writes an owner-only report and requires both native paired checks, zero provider calls and verified cleanup. An incomplete proof returns failure and leaves any active recovery journal for reconciliation.
+
 Run `node --experimental-strip-types --test tests/evaluation/student-leave-grade-companion.test.mjs` for controlled real-handler coverage. With a disposable owner-only PostgreSQL socket, `STU_LEAVE_GRADE_TEST_PG_SOCKET` enables `student-leave-grade-companion-postgres.test.mjs` for exact SQL and RLS readback and cleanup. These tests do not record hosted acceptance.
 
 `assessTranscriptPreview(report, {reviews})` verifies request and saved-message digests and evaluates the report against the frozen cases. Supply independent review artifacts for the account overview and interview response. A completed collection can still fail evaluation. An unresolved write retains its journal for reconciliation. Never replay a pending write or use this packet alone as the production gate.
