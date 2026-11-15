@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add a separate protected Internship and published sample timetable packet, with exact owned-enrollment receipts and independently dated meeting facts. [#100]
+
 - Use the saved bed-assignment reader for short housing questions on 34-1 and directly verify complete empty results. [#100]
 
 - Add protected checks for both orders of Internship and tuition balance questions, with separately signed reads for tuition and saved Internship records. [#100]

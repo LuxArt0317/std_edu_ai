@@ -33,7 +33,7 @@ async function boundedJson(response,signal){
   }catch{void reader.cancel().catch(()=>{});fail();}finally{signal.removeEventListener('abort',abort);reader.releaseLock();}
 }
 
-async function read(account,table,query,fetchImpl){
+async function read(account,table,query,fetchImpl,observeRead){
   const remaining=account.deadline-Date.now();if(remaining<=0)fail('The saved timetable read deadline expired.');
   const target=new URL('/rest/v1/'+table,origin);
   for(const [key,value]of Object.entries(query))target.searchParams.set(key,String(value));
@@ -46,12 +46,13 @@ async function read(account,table,query,fetchImpl){
         if(controller.signal.aborted||Date.now()>=account.deadline){cancelled(response);fail();}
         if(!response.ok){cancelled(response);fail('The saved timetable read was not available.',[401,403].includes(response.status)?403:503);}
         const rows=await boundedJson(response,controller.signal);
-        if(table!=='affairs_enrollments')return rows;
+        if(table!=='affairs_enrollments'){observeRead?.({method:'GET',url:target.href,ownerId:account.userId,rows});return rows;}
         const range=/^(?:(\d+)-(\d+)|\*)\/(\d+)$/u.exec(response.headers.get('content-range')||'');
         const total=range?Number(range[3]):NaN;
         if(!range||!Number.isSafeInteger(total)||total<0||!Array.isArray(rows)||rows.length>query.limit
           ||(rows.length?(Number(range[1])!==query.offset||Number(range[2])!==query.offset+rows.length-1||total<query.offset+rows.length)
             :range[1]!==undefined||total>query.offset))fail();
+        observeRead?.({method:'GET',url:target.href,ownerId:account.userId,rows,total});
         return {rows,total};
       }),
       new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new AffairsWorkspaceError('The saved timetable read deadline expired.'));},remaining);}),
@@ -92,8 +93,9 @@ function project(row,ownerId,studentId,seen){
  * selector. Missing student is explicit. Failed, capped or inconsistent reads
  * throw instead of returning an apparently complete empty/partial timetable. */
 export async function loadOwnAffairsTimetable(account,options={},dependencies={}){
-  if(!object(options)||Object.keys(options).some(key=>!['deadline','expectedStudentId'].includes(key))||!object(dependencies)||Object.keys(dependencies).some(key=>key!=='fetchImpl')
-    ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function')fail('Invalid timetable read options.');
+  if(!object(options)||Object.keys(options).some(key=>!['deadline','expectedStudentId'].includes(key))||!object(dependencies)||Object.keys(dependencies).some(key=>!['fetchImpl','observeRead'].includes(key))
+    ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function'
+    ||dependencies.observeRead!==undefined&&typeof dependencies.observeRead!=='function')fail('Invalid timetable read options.');
   if(!object(account)||!object(account.user)||!uuid(account.user.id)||account.url!==origin
     ||typeof account.key!=='string'||!account.key.trim()||typeof account.token!=='string'||!account.token.trim())fail('Verified School Affairs access is required.',403);
   if(![options.deadline,account.requestDeadline].every(value=>value===undefined||Number.isFinite(value)))fail('Invalid timetable read deadline.');
@@ -102,7 +104,7 @@ export async function loadOwnAffairsTimetable(account,options={},dependencies={}
     expectedStudentId:options.expectedStudentId,
     deadline:Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+ownAffairsTimetableLimits.deadlineMs)});
   const fetchImpl=dependencies.fetchImpl??globalThis.fetch;
-  const students=await read(captured,'affairs_students',{select:'id,user_id',user_id:'eq.'+captured.userId,limit:2},fetchImpl);
+  const students=await read(captured,'affairs_students',{select:'id,user_id',user_id:'eq.'+captured.userId,limit:2},fetchImpl,dependencies.observeRead);
   if(!Array.isArray(students)||students.length>1||students.some(row=>!exact(row,['id','user_id'])||!uuid(row.id)||row.user_id!==captured.userId))fail();
   // This optional private assertion never selects a student. The own-user read
   // above remains authoritative; a changed link cannot be combined with another
@@ -112,7 +114,7 @@ export async function loadOwnAffairsTimetable(account,options={},dependencies={}
   const studentId=students[0].id,courses=[],seen={enrollments:new Set(),sections:new Set(),courses:new Map(),terms:new Map(),previous:null};let expectedTotal;
   for(let offset=0;offset<=ownAffairsTimetableLimits.rows;offset+=ownAffairsTimetableLimits.pageRows){
     const limit=offset===ownAffairsTimetableLimits.rows?1:ownAffairsTimetableLimits.pageRows;
-    const {rows,total}=await read(captured,'affairs_enrollments',{select:enrollmentSelect,student_id:'eq.'+studentId,status:'eq.enrolled',order:'id.asc',limit,offset},fetchImpl);
+    const {rows,total}=await read(captured,'affairs_enrollments',{select:enrollmentSelect,student_id:'eq.'+studentId,status:'eq.enrolled',order:'id.asc',limit,offset},fetchImpl,dependencies.observeRead);
     if(total>ownAffairsTimetableLimits.rows)fail('The saved timetable exceeds the bounded read limit. A complete next class cannot be determined.');
     if(expectedTotal!==undefined&&total!==expectedTotal)fail();expectedTotal=total;
     for(const row of rows)courses.push(project(row,captured.userId,studentId,seen));

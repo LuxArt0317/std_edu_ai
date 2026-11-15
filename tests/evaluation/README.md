@@ -144,6 +144,8 @@ Use the exact clean deployed revision, an authorized Development `VERCEL_OIDC_TO
 
 The operator report in `artifacts/assistant-evaluation` contains safe status, counts, request and receipt digests, and cleanup proof. The private fixture journal records the exact allowed native event before confirmation. Uncertain or unexpected writes leave the journal for recovery. Run `node --test tests/evaluation/facility-repair-cancellation-preview.test.mjs tests/evaluation/vercel-preview-transport.test.mjs` for the local acceptance and transport contracts.
 
+The separate `--published-timetable` packet checks both orders of an Internship and next-class question against the currently published sample timetable. It preserves the original 30-question denominator and independently calculates the scheduled meeting in Taipei time.
+
 ### Moodle assignment lists
 
 `dtm-assignment-list-handler.test.mjs` grades all 25 list cases through the actual endpoint using synthetic callers and controlled row requests. It checks the selected course, global personal/sample fallback, Taipei dates, exact counts, tracker states, access, retry and distinct submission and grade capabilities. Four original cases retain their earlier oracles and wait for updated fixture binding.
@@ -278,3 +280,11 @@ The test skips unless you opt in. Run the command from the repository root with 
     node --experimental-strip-types --test tests/evaluation/housing-scratch-postgres-replay.test.mjs
 )
 ```
+
+The separately named `--published-timetable` packet checks both orders of the Internship plus next-class question. It binds the existing published sample course, term and section rows without updating shared catalog data. Two disposable students receive their own enrollment IDs from the normal insert trigger. Paired readbacks establish both own and crossed access before and after each answer. An independent PostgreSQL calendar query supplies the Taipei meeting date, course, section, room and time. The run requires exact signed Internship and timetable reads, one accounting of each completed model review, and verified cleanup. A date rollover that changes the next meeting invalidates the affected run.
+
+```sh
+node tests/evaluation/run-internship-preview.mjs "$PREVIEW_ORIGIN" "$DEPLOYED_REVISION" --published-timetable
+```
+
+The separate two-case packet leaves the original count at 26 of 30. The two original QAP201 timetable cases still require their frozen shared source, and the two intentional read failures are covered by controlled tests.

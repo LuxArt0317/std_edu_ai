@@ -3,7 +3,7 @@
 The frozen reader and independent question bank were authored on
 `04e68b0c924918ae9f074447ac8a7c6554f7b70b` and integrated into the
 School Affairs assistant starting from Student Leave candidate `93b579e`.
-The main evaluator registers all 30 questions. The separate protected operator mounts 24, including 17 exact own or empty record reads and seven access or capability boundaries. A protected deployment replay is still pending.
+The main evaluator registers all 30 questions. The separate protected operator mounts 26, including 17 exact own or empty record reads, two tuition companions, and seven access or capability boundaries. The independent published timetable packet has two additional cases with distinct IDs.
 
 | Native view | Stored subtype | Eligible fields |
 | --- | --- | --- |
@@ -50,7 +50,7 @@ provisioning capability.
    allowed scopes. Withhold unverified drafts and private data cards.
    Keep independent verified companion evidence available when the
    internship read fails.
-4. Register all 30 questions in the general evaluator. The isolated protected operator is the execution path for its 24 supported questions. The general runner cannot substitute weaker fixtures or observations.
+4. Register all 30 questions in the general evaluator. The isolated protected operator is the execution path for its 26 supported questions. The general runner cannot substitute weaker fixtures or observations.
 
 ## Offline verification
 
@@ -77,11 +77,14 @@ The controlled endpoint rehearsal also runs every mounted protected case through
 ```sh
 node tests/evaluation/run-internship-preview.mjs --preflight
 node tests/evaluation/run-internship-preview.mjs "$PREVIEW_ORIGIN" "$DEPLOYED_REVISION"
+node tests/evaluation/run-internship-preview.mjs "$PREVIEW_ORIGIN" "$DEPLOYED_REVISION" --published-timetable
 ```
 
 The first command reads the frozen inventory and requires no credentials. The second requires the clean exact revision, existing project fixture credentials and an authorized Development `VERCEL_OIDC_TOKEN`. The operator pins the release, uses two disposable Google-qualified student accounts and stores state changes in the private fixture journal before starting a transaction. Routes are the contract, self-assessment, company application and directory under `/school-affairs/services/internship`.
 
-Before and after each question, independent SQL confirms the saved records and linked review rows. Each caller performs its own and the crossed read for both tables. Signed Preview receipts bind the exact request, response, direct record query, count and selected field projection. Complete exact standalone answers carry a signed native verification event. The response remains bound to the actual read and selected projection, and the receipt requires zero provider calls for that path. Bounded or partial answers continue through model evidence review. A third review may reuse the second scoped read, and the signed response must contain the actual completed review event. The guest case grades the sign-in return without a signed record observation. The two tuition companions, two timetable companions, failed reader and failed-reader tuition companion remain controlled-only. The four older general-workspace cases also require rebinding.
+Before and after each question, independent SQL confirms the saved records and linked review rows. Each caller performs its own and the crossed read for both tables. Signed Preview receipts bind the exact request, response, direct record query, count and selected field projection. Complete exact standalone answers carry a signed native verification event. The response remains bound to the actual read and selected projection, and the receipt requires zero provider calls for that path. Bounded or partial answers continue through model evidence review. A third review may reuse the second scoped read, and the signed response must contain the actual completed review event. The guest case grades the sign-in return without a signed record observation. The main packet includes both tuition companion orders. The two original QAP201 timetable cases, failed reader and failed-reader tuition companion remain controlled-only. The four older general-workspace cases also require rebinding.
+
+The third command runs only the separate published timetable pair. It checks the complete shared sample binding and uses existing section IDs. The normal student insert creates three scoped sample enrollments for each disposable owner. The paired native read includes two currently enrolled rows and excludes the completed row. The date comes from a separate PostgreSQL calendar query in Taipei time. Both own and crossed reads, the shared sample digest, the selected date and exact row identities are checked before and after each answer. The operator cleans up only disposable records and profiles. This separate result leaves the original packet denominator intact.
 
 The operator writes an owner-only report. It records checked case IDs, exactly observed read and review counts, hashes, and cleanup status. Provide `--cases` followed by comma-separated registered case IDs to replay a subset. A successful subset establishes only those selected verdicts. A failed or interrupted restore retains the exact private journal for reconciliation.
 

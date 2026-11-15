@@ -60,7 +60,10 @@ import {buildCounselingAppointmentFixturePlan,counselingAppointmentFixtureCaseBi
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {buildInternshipFixturePlan,createInternshipFixture,internshipFixtureMode,observeInternshipCallerRows} from './internship-native-fixture.mjs';
-import {internshipFixtureKindForCase,internshipHostedCases,requestInternshipHostedCase} from './internship-native-hosted.mjs';
+import {internshipObservationDigest} from '../../server/internshipObservation.js';
+import {internshipFixtureKindForCase,internshipHostedCases,internshipPublishedTimetableCase,internshipPublishedTimetableCaseIds,requestInternshipHostedCase} from './internship-native-hosted.mjs';
+import {buildInternshipTimetableFixture,cleanupInternshipTimetable,observeInternshipTimetableCallers,observeInternshipTimetableRows,
+  readInternshipNextMeeting,stageInternshipTimetable,verifyInternshipTimetableAbsent} from './internship-timetable-fixture.mjs';
 import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
   stageInternshipCharges,verifyInternshipChargesAbsent} from './internship-charge-fixture.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -346,6 +349,7 @@ async function saveLedger(){
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.internshipJournal?{internshipFixture:s.internshipJournal}:{}),
       ...(s.internshipChargePlan?{internshipChargeFixture:s.internshipChargePlan}:{}),
+      ...(s.internshipTimetablePlan?{internshipTimetableFixture:{plan:s.internshipTimetablePlan,state:s.internshipTimetableState??null}}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
         activeFamily:s.counselingFixture?.fixtureKey??null,pendingFamily:s.pendingCounselingFixture?.fixtureKey??null,
         ...(s.counselingCancellation?{cancellation:s.counselingCancellation.command}:{}),
@@ -792,18 +796,22 @@ async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signa
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
 }
 
-export async function runInternshipPreview({origin,sourceRevision,previewToken,signal,caseIds,onCheckpoint}={}){
+export async function runInternshipPreview({origin,sourceRevision,previewToken,signal,caseIds,publishedTimetable=false,onCheckpoint}={}){
+  if(typeof publishedTimetable!=='boolean'||publishedTimetable&&caseIds!==undefined)fail('fixture-config','Select either the independent published timetable packet or the original Internship cases.');
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
     fail('fixture-config','Internship requires the exact protected Preview and source revision.');
-  const cases=internshipHostedCases(caseIds),runId=randomUUID(),results=[],correlations=new Set();
+  const cases=publishedTimetable?[]:internshipHostedCases(caseIds),runId=randomUUID(),results=[],correlations=new Set();
+  const selectedCases=publishedTimetable?internshipPublishedTimetableCaseIds:cases.map(row=>row.id);
   const requiresCharges=cases.some(row=>row.observationExpectation.companion==='charges');
   let phase='preflight',prepared=false,previewGate,failure;
   let cleanupProof={verified:false,status:'not-started'};
-  const report=()=>({runId,origin,sourceRevision,selectedCases:cases.map(row=>row.id),results,
+  const report=()=>({runId,origin,sourceRevision,selectedCases,results,
+    ...(publishedTimetable?{caseFamily:'independent-published-timetable'}:{}),
     ...(failure?{failure}:{}),deployment:previewGate?.status()??null,cleanup:cleanupProof,
-    liveAcceptance:!failure&&results.length===cases.length&&results.every(row=>row.passed)
+    liveAcceptance:!failure&&results.length===selectedCases.length&&results.every(row=>row.passed)
       &&previewGate?.status().status==='finished'&&cleanupProof.verified&&cleanupProof.internshipCleanup===true
-      &&(!requiresCharges||cleanupProof.internshipChargeCleanup===true)});
+      &&(!requiresCharges||cleanupProof.internshipChargeCleanup===true)
+      &&(!publishedTimetable||cleanupProof.internshipTimetableCleanup===true)});
   try{
     const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
     const identity=await sourceIdentity();
@@ -857,6 +865,24 @@ export async function runInternshipPreview({origin,sourceRevision,previewToken,s
       await saveLedger();
       await feeTransaction(s,()=>stageInternshipCharges(s.sql,s.internshipChargePlan));
     }
+    const timetablePlan=async()=>buildInternshipTimetableFixture({...binding,read:await readPublishedSampleInitializerRows(s.sql),now:new Date().toISOString()});
+    if(publishedTimetable){
+      phase='seed-published-timetable';
+      await assertRecordedFixtureLease(s,'Internship timetable');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await previewGate.assertCurrent();
+      s.internshipTimetablePlan=await timetablePlan();
+      for(const {id}of s.internshipTimetablePlan.students)s.recordIds.add(id);
+      await saveLedger();
+      await feeTransaction(s,async()=>{
+        s.internshipTimetableState=await stageInternshipTimetable(s.sql,s.internshipTimetablePlan);
+        for(const {id}of s.internshipTimetableState.enrollments)s.recordIds.add(id);
+        await saveLedger();
+      });
+      // Fixed source facts; the date is freshly bound at every case below.
+      const next=await readInternshipNextMeeting(s.sql,s.internshipTimetablePlan.students[0].id,new Date().toISOString());
+      cases.push(...selectedCases.map(id=>internshipPublishedTimetableCase(id,next)));
+    }
     const observe=async(plan,companion)=>{
       const rowsDigest=await s.internshipFixture.observe();
       const bounded=signals(signal);
@@ -868,26 +894,40 @@ export async function runInternshipPreview({origin,sourceRevision,previewToken,s
         rowsDigest:await observeInternshipChargeRows(s.sql,s.internshipChargePlan),
         ...await observeInternshipChargeCallers(s.internshipChargePlan,callerOptions),
       }:null;
-      return {rowsDigest,callerDigest:callers.digest,callerChecks:callers.checks,...(charges?{charges}:{})};
+      const proof={rowsDigest,callerDigest:callers.digest,callerChecks:callers.checks,...(charges?{charges}:{})};
+      if(companion!=='courses')return {proof};
+      const timetable=await timetablePlan();
+      if(!isDeepStrictEqual(timetable,s.internshipTimetablePlan))fail('fixture-unsupported','The shared published timetable changed.');
+      const current=await observeInternshipTimetableRows(s.sql,timetable);
+      if(!isDeepStrictEqual(current,s.internshipTimetableState))
+        fail('fixture-unapproved-write','The exact disposable enrollment IDs or fields changed.');
+      const paired=await observeInternshipTimetableCallers(timetable,current,callerOptions);
+      const next=await readInternshipNextMeeting(s.sql,timetable.students[0].id,new Date().toISOString());
+      return {proof:{...proof,timetable:{...paired,next,sharedDigest:timetable.sharedDigest,rowsDigest:internshipObservationDigest(current)}},
+        timetable:{plan:timetable,state:current,next}};
     };
     // Group equal row states while retaining exact question order within each state.
     for(const kind of new Set(cases.map(internshipFixtureKindForCase))){
       phase='seed-'+kind;
       await s.internshipFixture.transition(kind);
       const plan=s.internshipFixture.current();
-      for(const testCase of cases.filter(row=>internshipFixtureKindForCase(row)===kind)){
-        phase=testCase.id;
-        const companion=testCase.observationExpectation.companion;
-        const before=await observe(plan,companion);
+      for(const plannedCase of cases.filter(row=>internshipFixtureKindForCase(row)===kind)){
+        phase=plannedCase.id;
+        const companion=plannedCase.observationExpectation.companion;
+        const {proof:before,timetable}=await observe(plan,companion);
+        const testCase=timetable?internshipPublishedTimetableCase(plannedCase.id,timetable.next):plannedCase;
         const privateMarkers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
-          ...Object.values(plan.ids).flat(),...(s.internshipChargePlan?[...s.internshipChargePlan.recordIds,s.internshipChargePlan.charges[1].label]:[])];
+          ...Object.values(plan.ids).flat(),...(s.internshipChargePlan?[...s.internshipChargePlan.recordIds,s.internshipChargePlan.charges[1].label]:[]),
+          ...(timetable?[...timetable.state.students.map(row=>row.id),...timetable.state.enrollments.map(row=>row.id)]:[])];
         let ticket,result;
         try{
-          result=await pace(()=>requestInternshipHostedCase({testCase,plan,chargePlan:s.internshipChargePlan,origin,sourceRevision,runId,token:s.users[0].token,
+          result=await pace(()=>requestInternshipHostedCase({testCase,plan,chargePlan:s.internshipChargePlan,timetable,origin,sourceRevision,runId,token:s.users[0].token,
             key:s.internshipObservationKey,signal:signals(signal,65000),fetchImpl:readback,readResponse:readBoundedFixtureResponse,
             privateMarkers,correlations}),signal,async()=>{ticket=await previewGate.beforeRequest();});
         }finally{if(ticket)await previewGate.afterRequest(ticket);}
-        const after=await observe(plan,companion);
+        const {proof:after}=await observe(plan,companion);
+        if(companion==='courses'&&!isDeepStrictEqual(before.timetable.next,after.timetable.next))
+          fail('fixture-unsupported','The next meeting changed while the paced request was in flight.');
         if(!isDeepStrictEqual(before,after))fail('fixture-unapproved-write','Internship fixtures changed during a read-only case.');
         results.push({...result,before,after,requestIndex:ticket.requestIndex});
         await onCheckpoint?.(report());
@@ -3406,6 +3446,12 @@ export async function cleanup(){
       await query(()=>feeTransaction(s,()=>cleanupInternshipCharges(s.sql,s.internshipChargePlan)),
         'Could not reconcile the exact disposable Internship companion rows; the cleanup ledger is retained.');
     }
+    if(s.internshipTimetablePlan){
+      await assertRecordedFixtureLease(s,'Internship timetable cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>feeTransaction(s,()=>cleanupInternshipTimetable(s.sql,s.internshipTimetablePlan,s.internshipTimetableState)),
+        'Could not reconcile the exact disposable Internship timetable students; the cleanup ledger is retained.');
+    }
     if(s.internshipFixture){
       await s.internshipFixture.cleanup();
       s.internshipObservationKey=undefined;
@@ -3621,6 +3667,10 @@ export async function cleanup(){
       await verifyInternshipChargesAbsent(s.sql,s.internshipChargePlan);
       s.internshipChargeCleanup=true;
     }
+    if(s.internshipTimetablePlan){
+      await verifyInternshipTimetableAbsent(s.sql,s.internshipTimetablePlan,s.internshipTimetableState);
+      s.internshipTimetableCleanup=true;
+    }
     if(s.clubEquipmentFixture){
       await s.clubEquipmentFixture.verifyAbsent();
       const ids=s.users.map(user=>user.id);
@@ -3676,6 +3726,7 @@ export async function cleanup(){
     ...(s.facilityRepairCancellationCleanup?{facilityRepairCancellationCleanup:true}:{}),
     ...(s.internshipFixture?{internshipCleanup:true}:{}),
     ...(s.internshipChargeCleanup?{internshipChargeCleanup:true}:{}),
+    ...(s.internshipTimetableCleanup?{internshipTimetableCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }

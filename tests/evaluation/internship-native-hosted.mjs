@@ -8,8 +8,16 @@ import {maxAnswerVerificationChecks} from '../../src/services/assistantVerificat
 import {internshipCaseHasProtectedBinding,internshipRunnerCases} from './internship-native-runner.mjs';
 import {expectedInternshipChargeRead} from './internship-charge-fixture.mjs';
 import {internshipNativeFixtureForCase} from './internship-native-cases.mjs';
+import {expectedInternshipTimetableRead} from './internship-timetable-fixture.mjs';
+import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 
-const cases=internshipRunnerCases().filter(internshipCaseHasProtectedBinding);
+const originalCases=internshipRunnerCases();
+const cases=originalCases.filter(internshipCaseHasProtectedBinding);
+const timetableCaseSources=Object.freeze({
+  'account:internship-published-timetable-internship-first':'account:internship-native-next-class',
+  'account:internship-published-timetable-class-first':'account:internship-native-next-class-reversed',
+});
+export const internshipPublishedTimetableCaseIds=Object.freeze(Object.keys(timetableCaseSources));
 const caseById=new Map(cases.map(row=>[row.id,row]));
 const db='https://xiftudmvxphxcjtmfmib.supabase.co';
 const columns={title:'title',status:'status',startsOn:'starts_on',endsOn:'ends_on',notes:'notes'};
@@ -23,13 +31,35 @@ export function internshipHostedCases(caseIds=cases.map(row=>row.id)){
   return caseIds.map(id=>structuredClone(caseById.get(id)));
 }
 
+export function internshipPublishedTimetableCase(caseId,next){
+  const testCase=structuredClone(originalCases.find(row=>row.id===timetableCaseSources[caseId]));
+  const section=sampleEnrollmentManifest.courses.find(row=>row.code===next?.code&&row.status==='enrolled'
+    &&sampleEnrollmentManifest.scope.academicSeedCourseCodes.includes(row.code));
+  const term=sampleEnrollmentManifest.terms.find(row=>row.code===section?.termCode);
+  const day=typeof next?.date==='string'?new Date(next.date+'T00:00:00Z'):null;
+  if(!testCase||!section||!term||next.title!==section.title||next.sectionCode!==section.sectionCode
+    ||next.room!==section.room||next.startTime!==section.startsAt.slice(0,5)||!day||!Number.isFinite(day.getTime())
+    ||day.toISOString().slice(0,10)!==next.date||(day.getUTCDay()||7)!==section.weekday||next.date<term.startsOn||next.date>term.endsOn)
+    throw new Error('Invalid independently dated Internship published timetable case.');
+  const facts=testCase.expected.facts.slice(0,-4);
+  const title=next.title;
+  facts.push(
+    {label:'next class',labels:['next saved stu.best class','next saved class'],kind:'text',match:'literal',values:[title,next.code]},
+    {label:title,kind:'date',values:[next.date],maxWindow:180},
+    {label:title,kind:'text',match:'literal',values:[next.startTime],maxWindow:180},
+    {label:title,kind:'text',match:'literal',values:[next.room],maxWindow:180},
+  );
+  return {...testCase,id:caseId,expected:{...testCase.expected,facts}};
+}
+
 export function internshipFixtureKindForCase(testCase){
   const read=testCase.observationExpectation.read;
   return read?.state==='empty'?read.recordType:'normal';
 }
 
 export function expectedInternshipRead(plan,testCase){
-  const {sourceRead}=internshipNativeFixtureForCase(testCase);
+  const original=Object.hasOwn(timetableCaseSources,testCase.id)?originalCases.find(row=>row.id===timetableCaseSources[testCase.id]):testCase;
+  const {sourceRead}=internshipNativeFixtureForCase(original);
   if(!sourceRead)return null;
   const {fields,recordType,view,state,count,records}=sourceRead;
   const review=fields.includes('reviewStatus');
@@ -53,10 +83,13 @@ export function expectedInternshipRead(plan,testCase){
     evidenceDigest:internshipObservationDigest(projection)};
 }
 
-export async function requestInternshipHostedCase({testCase,plan,chargePlan,origin,sourceRevision,runId,token,key,signal,fetchImpl,readResponse,privateMarkers,correlations}){
+export async function requestInternshipHostedCase({testCase,plan,chargePlan,timetable,origin,sourceRevision,runId,token,key,signal,fetchImpl,readResponse,privateMarkers,correlations}){
   const source=testCase.observationExpectation.read,guest=testCase.auth==='anonymous',companion=testCase.observationExpectation.companion;
-  if(companion&&(!chargePlan||companion!=='charges'||chargePlan.runId!==runId||!isDeepStrictEqual(chargePlan.owners,plan.owners)))
-    throw new Error('The approved Internship charge fixture is missing.');
+  const companionPlan=companion==='charges'?chargePlan:companion==='courses'?timetable?.plan:null;
+  if(companion&&(!companionPlan||companionPlan.runId!==runId||!isDeepStrictEqual(companionPlan.owners,plan.owners)))
+    throw new Error('The approved Internship companion fixture is missing.');
+  if(companion==='courses'&&!isDeepStrictEqual(testCase,internshipPublishedTimetableCase(testCase.id,timetable.next)))
+    throw new Error('The original timetable cases cannot be relabelled as published sample cases.');
   const request={question:testCase.question,route:testCase.route,history:testCase.history,stream:false,consentedResearchUse:false};
   const probe=guest?null:createInternshipProbe({ownerId:plan.owners.A,runId,origin,sourceRevision,nonce:randomUUID(),companion},request,key);
   const endpoint=new URL(guest?'/api/research-assistant':'/api/affairs-assistant',origin);
@@ -82,11 +115,12 @@ export async function requestInternshipHostedCase({testCase,plan,chargePlan,orig
       operations=observation.modelOperations.length;
       if(expected){
         if(!observation.attempts.length||observation.attempts.some(attempt=>!isDeepStrictEqual(attempt,expected)))failures.push('observation.read_or_projection');
-        if(companion==='charges'){
-          const expectedCharge=expectedInternshipChargeRead(chargePlan);
-          if(observation.chargeAttempts.length!==observation.attempts.length
-            ||observation.chargeAttempts.some(attempt=>!isDeepStrictEqual(attempt,expectedCharge)))failures.push('observation.charge_read_or_projection');
-        }else if(observation.chargeAttempts.length)failures.push('observation.unexpected_companion');
+        if(companion){
+          const expectedCompanion=companion==='charges'?expectedInternshipChargeRead(chargePlan):expectedInternshipTimetableRead(timetable.plan,timetable.state);
+          if(observation.companionAttempts.length!==observation.attempts.length
+            ||observation.companionAttempts.some(attempt=>!isDeepStrictEqual(attempt,expectedCompanion)))
+            failures.push('observation.'+(companion==='charges'?'charge':'timetable')+'_read_or_projection');
+        }else if(observation.companionAttempts.length)failures.push('observation.unexpected_companion');
         const checks=body.verification?.attempts;
         // Account verification refreshes scoped rows once. Its deeper review
         // may then use that same evidence without authorizing a third read.
@@ -107,7 +141,8 @@ export async function requestInternshipHostedCase({testCase,plan,chargePlan,orig
         failures.push('observation.unexpected_lookup');
     }
   }
-  const allowedRead=companion==='charges'?/^account-read:(?:internshipRecords|charges):[12]$/u:/^account-read:internshipRecords:[12]$/u;
+  const allowedRead=companion==='charges'?/^account-read:(?:internshipRecords|charges):[12]$/u
+    :companion==='courses'?/^account-read:(?:internshipRecords|courses):[12]$/u:/^account-read:internshipRecords:[12]$/u;
   if(activity.some(step=>String(step.kind).startsWith('account-read:')&&(!source||!allowedRead.test(step.kind))))
     failures.push('observation.unrelated_activity');
   if(body.grounding?.webSearched!==false)failures.push('observation.public_research');
@@ -121,6 +156,6 @@ export async function requestInternshipHostedCase({testCase,plan,chargePlan,orig
     completedNativeCheck,verificationMethod:observation?.verificationMethod??null,observed:observation!==null,...(observation?{correlationId,responseDigest:observation.responseDigest,
       receiptDigest:internshipObservationDigest(receipt),readDigests:observation.attempts.flatMap(attempt=>attempt.reads),
       projectionDigests:observation.attempts.map(attempt=>attempt.evidenceDigest),
-      ...(companion==='charges'?{companionReadDigests:observation.chargeAttempts.flatMap(attempt=>attempt.reads),
-        companionProjectionDigests:observation.chargeAttempts.map(attempt=>attempt.evidenceDigest)}:{})}:{}),failures};
+      ...(companion?{companionReadDigests:observation.companionAttempts.flatMap(attempt=>attempt.reads),
+        companionProjectionDigests:observation.companionAttempts.map(attempt=>attempt.evidenceDigest)}:{})}:{}),failures};
 }

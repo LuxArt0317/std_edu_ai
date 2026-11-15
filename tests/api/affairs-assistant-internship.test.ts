@@ -11,11 +11,13 @@ import {buildInternshipNativeCases,internshipNativeFixtureForCase,internshipNati
 import {internshipRunnerCases} from '../evaluation/internship-native-runner.mjs';
 import {gradeCase} from '../evaluation/grading.mjs';
 // @ts-expect-error Hosted operator helpers are standalone JavaScript modules.
-import {internshipHostedCases,internshipFixtureKindForCase,requestInternshipHostedCase} from '../evaluation/internship-native-hosted.mjs';
+import {internshipHostedCases,internshipFixtureKindForCase,internshipPublishedTimetableCase,internshipPublishedTimetableCaseIds,requestInternshipHostedCase} from '../evaluation/internship-native-hosted.mjs';
 // @ts-expect-error Fixture setup is a standalone JavaScript module.
 import {buildInternshipFixturePlan} from '../evaluation/internship-native-fixture.mjs';
 // @ts-expect-error Companion fixture code is a standalone JavaScript module.
 import {buildInternshipChargeFixture} from '../evaluation/internship-charge-fixture.mjs';
+// @ts-expect-error Companion fixture code is a standalone JavaScript module.
+import {internshipTimetableSelection} from '../evaluation/internship-timetable-fixture.mjs';
 
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const owner=internshipNativeManifest.owners.A;
@@ -29,6 +31,23 @@ const previewEnv={VERCEL_ENV:'preview',VERCEL_URL:new URL(previewOrigin).host,VE
 const columns:Record<string,string>={title:'title',status:'status',startsOn:'starts_on',endsOn:'ends_on',notes:'notes'};
 const bank=buildInternshipNativeCases();
 const rowFor=(suffix:string)=>bank.find(row=>row.id==='account:internship-native-'+suffix)!;
+const timetableId=(n:number)=>'53010000-0000-4000-8000-'+String(n).padStart(12,'0');
+const timetableStudents=[{id:timetableId(631),user_id:owner},{id:timetableId(632),user_id:internshipNativeManifest.owners.B}];
+const timetableSections=[
+  {code:'SAMP103',title:'Student Services Practice',sectionId:timetableId(650),courseId:timetableId(651),termId:timetableId(652),
+    weekday:5,startsAt:'10:00:00',endsAt:'11:30:00',status:'enrolled',sourceMode:'sample',room:'Sample Room 305',
+    term:{label:'Sample Fall 2026',startsOn:'2026-09-07',endsOn:'2027-01-15'}},
+  {code:'SAMP201',title:'Applied Digital Projects',sectionId:timetableId(660),courseId:timetableId(661),termId:timetableId(662),
+    weekday:2,startsAt:'14:00:00',endsAt:'15:30:00',status:'enrolled',sourceMode:'sample',room:'Sample Lab 202',
+    term:{label:'Sample Spring 2027',startsOn:'2027-02-15',endsOn:'2027-06-25'}},
+];
+const publishedTimetable={
+  plan:{runId,owners:internshipNativeManifest.owners,students:timetableStudents,sections:timetableSections},
+  state:{students:timetableStudents,enrollments:timetableStudents.flatMap((student,i)=>timetableSections.map((s,j)=>({
+    id:timetableId(670+i*10+j),student_id:student.id,section_id:s.sectionId,status:s.status,source_mode:s.sourceMode,
+  })))},
+  next:{code:'SAMP103',title:'Student Services Practice',sectionCode:'A',room:'Sample Room 305',date:'2026-11-20',startTime:'10:00'},
+};
 type Body={question:string;route:string;evaluationLeaveProbe?:string;history?:Array<{role:string;content:string}>};
 
 async function invoke(handler:any,body:Body,host?:string){
@@ -38,13 +57,15 @@ async function invoke(handler:any,body:Body,host?:string){
   return captured;
 }
 
-async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false}={}){
+async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false,providerAbsent=false,published=false}={}){
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
   const chargePlan=hosted&&companion==='charges'?buildInternshipChargeFixture({runId,owners:internshipNativeManifest.owners,
     programId:'53010000-0000-4000-8000-000000000653'}):undefined;
-  const studentId=chargePlan?.students[0].id??student;
+  const timetable=published?publishedTimetable:undefined;
+  const timetableRequests=timetable?internshipTimetableSelection(timetable.plan,timetable.state,timetableStudents[0]):[];
+  const studentId=chargePlan?.students[0].id??timetable?.plan.students[0].id??student;
   const charge=chargePlan?.charges[0]??{id:'53010000-0000-4000-8000-000000000611',student_id:student,label:'QA Internship Tuition',
     amount_due:28000,amount_paid:5000,currency:'TWD',due_on:null,source_mode:'sample',occurrence_on:null,
     category:null,contact_unit:null,contact_extension:null,payment_unit:null};
@@ -85,6 +106,13 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
           return Response.json(projected,{headers:{'content-range':projected.length?'0-'+(projected.length-1)+'/'+available:'*/0'}});
         }
         assert.ok(companion,'Unexpected independent reader');
+        if(timetable){
+          const index=url.pathname.endsWith('/affairs_students')?0:1;
+          const [expected,rows]=timetableRequests[index];
+          assert.equal(url.href,expected.href);
+          if(index)assert.equal(headers.get('prefer'),'count=exact');
+          return Response.json(rows,index?{headers:{'content-range':'0-'+(rows.length-1)+'/'+rows.length}}:{});
+        }
         if(url.pathname==='/rest/v1/affairs_students'){
           assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
           return Response.json([{id:studentId,user_id:owner}]);
@@ -128,7 +156,8 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         if(companion==='charges')claims.push({claim:'Independent saved balance',supported,evidenceId:'account:charges',
           jsonPaths:['/records/0/amountDue','/records/0/amountPaid'],quotes:[]});
         if(companion==='courses')claims.push({claim:'Independent scheduled meeting',supported,evidenceId:'account:courses',
-          jsonPaths:['/calendar/records/next/course/title'],quotes:[]});
+          jsonPaths:published?['/calendar/records/next/day','/calendar/records/next/course/code','/calendar/records/next/course/title',
+            '/calendar/records/next/course/startsAt','/calendar/records/next/course/room']:['/calendar/records/next/course/title'],quotes:[]});
         return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported,answersQuestion:supported,claims})}]}]});
       }
       assert.equal(stage,'correct_grounded_answer');
@@ -146,9 +175,11 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
     publicResearch:async()=>{broadReads++;throw Error('Public research cannot support private records.');}});
   try{
     if(hosted){
-      const testCase=internshipHostedCases([row.id])[0],plan=buildInternshipFixturePlan({runId,owners:internshipNativeManifest.owners},
+      const testCase=timetable?internshipPublishedTimetableCase(internshipPublishedTimetableCaseIds[suffix.endsWith('reversed')?1:0],timetable.next)
+        :internshipHostedCases([row.id])[0];
+      const plan=buildInternshipFixturePlan({runId,owners:internshipNativeManifest.owners},
         internshipFixtureKindForCase(testCase));
-      const graded=await requestInternshipHostedCase({testCase,plan,chargePlan,origin:previewOrigin,sourceRevision:previewRevision,runId,
+      const graded=await requestInternshipHostedCase({testCase,plan,chargePlan,timetable,origin:previewOrigin,sourceRevision:previewRevision,runId,
         token:account.token,key:operatorKey,privateMarkers:[...Object.values(plan.ids).flat(),account.token],correlations:new Set(),
         fetchImpl:async (endpoint:URL,init:RequestInit)=>{
           const payload=JSON.parse(String(init.body));
@@ -159,10 +190,11 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         },readResponse:(response:Response)=>response.json()});
       assert.equal(graded.passed,true,row.id+' '+JSON.stringify(graded.failures));
       assert.equal(graded.readCount,row.auth==='anonymous'?null:calls.filter(path=>path.endsWith('/affairs_service_records')).length);
-      if(chargePlan){
+      if(chargePlan||timetable){
         assert.equal(graded.companionReadDigests.length,2*graded.readCount);
         assert.equal(graded.companionProjectionDigests.length,graded.readCount);
         assert.equal(graded.verificationMethod,'model');
+        if(timetable)assert.equal(graded.completedEvidenceReviews,1);
       }
       assert.equal(graded.completedModelCalls,row.auth==='anonymous'?null:model.length);
       assert.deepEqual(errors,[]);
@@ -362,4 +394,11 @@ test('all 26 mounted independent hosted rubrics grade the real handlers and expe
     t.mock.timers.setTime(Date.now()+61_000);
     await exercise(testCase.id.replace(/^account:internship-native-/u,''),{hosted:true});
   }
+});
+
+
+test('the independent protected published timetable packet binds both orders and a single verified model review',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-15T00:00:00.000Z')});
+  await exercise('next-class',{hosted:true,published:true});
+  await exercise('next-class-reversed',{hosted:true,published:true});
 });

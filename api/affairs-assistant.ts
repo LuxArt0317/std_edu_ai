@@ -278,9 +278,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const internshipObservation=hasInternshipProbe?openInternshipObservation({body,identity:probeIdentity,correlationId}):null;
   const observedInternship=internshipObservation?internshipAssistantPlan(question,route,history):null;
   if(hasInternshipProbe&&(!internshipObservation||!observedInternship||observedInternship.selection&&observedInternship.hasOtherQuestion
-    ||(internshipObservation.companion==='charges'
+    ||(internshipObservation.companion
       ? !observedInternship.selection||observedInternship.reason||observedInternship.feeLabel!==null
-        ||internshipSelectedTools(observedInternship).join()!=='internshipRecords,charges'
+        ||internshipSelectedTools(observedInternship).join()!=='internshipRecords,'+internshipObservation.companion
       : internshipSelectedTools(observedInternship).some(tool=>tool!=='internshipRecords')))){
     rejectProbe();return;
   }
@@ -506,10 +506,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return feeLabel?{...saved,chargeSelectionLabel:feeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(feeLabel))}:saved;
       };
+      const readTimetable=(observeRead?:(read:unknown)=>void)=>loadOwnAffairsTimetable(account,{deadline},{observeRead});
       const [fees,timetable]=await Promise.all([
-        feeQuestion?(internshipObservation?.companion==='charges'?internshipObservation.observeCharges(readFees):readFees())
+        feeQuestion?(internshipObservation?.companion==='charges'?internshipObservation.observeCompanion('charges',readFees):readFees())
           .catch(()=>({charges:[],chargeReadUnavailable:true})):null,
-        classQuestion?loadOwnAffairsTimetable(account,{deadline}).catch(()=>({courses:[],timetableReadUnavailable:true})):null,
+        classQuestion?(internshipObservation?.companion==='courses'?internshipObservation.observeCompanion('courses',readTimetable):readTimetable())
+          .catch(()=>({courses:[],timetableReadUnavailable:true})):null,
       ]);
       if(fees&&timetable&&'studentRecordFound' in fees&&'studentRecordFound' in timetable&&fees.studentRecordFound!==timetable.studentRecordFound)
         return {...base,charges:[],courses:[],chargeReadUnavailable:true,timetableReadUnavailable:true};

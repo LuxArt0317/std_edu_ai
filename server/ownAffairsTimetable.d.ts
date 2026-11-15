@@ -19,4 +19,4 @@ export type OwnAffairsTimetable={profile:{userId:string};checkedAt:string;source
  * captured ID is never returned to a model or rendered in the snapshot.
  */
 export function loadOwnAffairsTimetable(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number;expectedStudentId?:string|null},
-  dependencies?:{fetchImpl?:typeof fetch}):Promise<OwnAffairsTimetable>;
+  dependencies?:{fetchImpl?:typeof fetch;observeRead?:(read:unknown)=>void}):Promise<OwnAffairsTimetable>;
