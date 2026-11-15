@@ -21,6 +21,7 @@ import {dtmMaterialBoundary,dtmMaterialIntent} from '../server/dtmMaterialIntent
 import {readInternshipEvidence} from '../server/accountInternshipEvidence.js';
 import {internshipAssistantPlan,internshipBoundary,internshipSelectedTools,internshipUnavailable} from '../server/internshipAssistantPlan.js';
 import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js';
+import {leaveObservationHeader,openStudentLeaveObservation} from '../server/studentLeaveObservation.js';
 import {studentLeaveAssistantPlan,studentLeaveBoundary,studentLeaveNavigation,studentLeaveSelectedTools} from '../server/studentLeaveAssistantPlan.js';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from '../server/dtmNativeClauseScope.js';
 import {dtmAssignmentLookupContext} from '../server/dtmAssignmentEvidenceIntent.js';
@@ -227,12 +228,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(request.method!=='POST') {response.setHeader('Allow','POST');response.status(405).json({error:'Method not allowed'});return;}
   const body=typeof request.body==='string' ? (()=>{try{return JSON.parse(request.body);}catch{return null;}})() : request.body;
   const input=body && typeof body==='object' && !Array.isArray(body) ? body as Record<string,unknown> : null;
+  const hasProbe=Boolean(input&&Object.hasOwn(input,'evaluationLeaveProbe'));
+  const rejectProbe=()=>response.status(404).json({error:'Student Leave observation unavailable.'});
+  if(hasProbe&&(process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){rejectProbe();return;}
   const requestedQuestion=typeof input?.question==='string'?input.question.trim():'';
   let question=requestedQuestion;
-  if(question.length<2||question.length>2000) {response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
+  if(question.length<2||question.length>2000) {if(hasProbe)rejectProbe();else response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
   let route:string;
-  try{route=validateAffairsAssistantRoute(input?.route);}catch{response.status(400).json({error:'Provide a local page route of at most 3,100 characters, without a fragment.'});return;}
+  try{route=validateAffairsAssistantRoute(input?.route);}catch{if(hasProbe)rejectProbe();else response.status(400).json({error:'Provide a local page route of at most 3,100 characters, without a fragment.'});return;}
   let account;
+  let probeIdentity;
   try {
     const authorization=value(request.headers.authorization);
     const verified=await verifyToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
@@ -240,18 +245,26 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     // Copy before any later await; neither graph state nor planner input gets
     // credentials or a mutable reference to the verifier's account object.
     account=Object.freeze({url:verified.url,key:verified.key,token:verified.token,user:Object.freeze({id:verified.user.id,...(verified.user.email?{email:verified.user.email}:{})})});
+    if(hasProbe)probeIdentity={id:verified.user.id,email:verified.user.email,runMarker:verified.user.user_metadata?.assistant_evaluation_run};
   } catch(error) {
+    if(hasProbe){rejectProbe();return;}
     response.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'School Affairs sign-in could not be checked.'});return;
   }
-  const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
-  active.push(now);requestWindows.set(account.user.id,active);
-  if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   let history=Array.isArray(input?.history)?input.history.slice(-6).flatMap(item=>{
     if(!item||typeof item!=='object')return [];
     const entry=item as Record<string,unknown>;
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:boundedAssistantText(entry.content,1000)}]:[];
   }):[];
   const correlationId=randomUUID();
+  const observation=hasProbe?openStudentLeaveObservation({body,identity:probeIdentity,correlationId}):null;
+  const observedPlan=observation?studentLeaveAssistantPlan(question,route,history):null;
+  if(hasProbe&&(!observedPlan?.selection||observedPlan.selection.reason||observedPlan.hasOtherQuestion||
+    studentLeaveSelectedTools(observedPlan).join()!=='leaveRecords')){
+    rejectProbe();return;
+  }
+  const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
+  active.push(now);requestWindows.set(account.user.id,active);
+  if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
   const campusEntry=campusEntryIntent(question,route);
@@ -403,7 +416,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }
     return;
   }
-  const leavePlan=studentLeaveAssistantPlan(question,route,history);
+  const leavePlan=observedPlan??studentLeaveAssistantPlan(question,route,history);
   const internshipPlan=leavePlan?null:internshipAssistantPlan(question,route,history);
   const servicePlan=leavePlan??internshipPlan;
   if(servicePlan){
@@ -436,8 +449,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       return {...fees,...timetable,...base};
     };
     const supplementalReaders:SupplementalAccountReaders={};
-    if(leaveSelection&&!leaveSelection.reason)supplementalReaders.leaveRecords=context=>
-      readers.leaveRecords(account,{selection:leaveSelection,deadline:Math.min(deadline,context.deadline)});
+    if(leaveSelection&&!leaveSelection.reason)supplementalReaders.leaveRecords=context=>{
+      const options={selection:leaveSelection,deadline:Math.min(deadline,context.deadline)};
+      return observation?observation.observe(dependencies=>readers.leaveRecords(account,options,dependencies)):readers.leaveRecords(account,options);
+    };
     if(internshipPlan?.selection)supplementalReaders.internshipRecords=context=>
       readers.internshipRecords(account,{question,route,history,deadline:Math.min(deadline,context.deadline)});
     if(gradeQuestion)supplementalReaders.dtmGradeReport=context=>
@@ -447,8 +462,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     try{
       const snapshot=await loadServiceCompanions();
       const answer=await answerAccount({question:selectedQuestion,history:[],route,snapshot,loadSnapshot:loadServiceCompanions,deadline,correlationId,
-        leavePlan:leavePlan??undefined,internshipPlan:internshipPlan??undefined,supplementalReaders,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
-      stream.send(200,{...answer,answer:[answer.answer,boundary].filter(Boolean).join('\n\n'),citations:[...answer.citations,...(nav?.citations??[])]});
+        leavePlan:leavePlan??undefined,internshipPlan:internshipPlan??undefined,supplementalReaders,
+        ...(observation?{onProviderCompleted:observation.modelCompleted}:{}),onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      const payload={...answer,answer:[answer.answer,boundary].filter(Boolean).join('\n\n'),citations:[...answer.citations,...(nav?.citations??[])]};
+      const receipt=observation?.finish(payload);
+      if(receipt)response.setHeader(leaveObservationHeader,receipt);
+      stream.send(200,payload);
     }catch{
       stream.send(503,{error:'The selected School Affairs records could not be checked.'});
     }

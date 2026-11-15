@@ -6,7 +6,7 @@ import {savedRecordWriting} from './accountAnswerLanguage.js';
 const readText = payload => (payload?.output || []).flatMap(item => item.content || [])
   .filter(item => item.type === 'output_text').map(item => item.text || '').join('').trim();
 
-export async function verificationModelCall(name, schema, instructions, input, deadline, images = [], deeperReview = false) {
+export async function verificationModelCall(name, schema, instructions, input, deadline, images = [], deeperReview = false, onProviderCompleted) {
   if (!process.env.OPENAI_API_KEY || deadline - Date.now() < 750) throw new Error('Verification unavailable');
   // A review expands one answer into independently grounded claims. Its output
   // budget also includes reasoning tokens; a planner-sized cap truncates audits
@@ -46,7 +46,9 @@ export async function verificationModelCall(name, schema, instructions, input, d
     console.warn('Answer verification incomplete', {operation:name,reason:limited?'output_limit':'incomplete'});
     throw Object.assign(new Error('Incomplete verification response'), {code:limited?'VERIFICATION_OUTPUT_LIMIT':'VERIFICATION_UNAVAILABLE'});
   }
-  return JSON.parse(readText(payload));
+  const result=JSON.parse(readText(payload));
+  if(payload.status==='completed')onProviderCompleted?.(name);
+  return result;
 }
 
 const reviewSchema = {
@@ -541,7 +543,7 @@ export function snapshotProvenanceSupported(candidate, evidence, sourceIds) {
       .every(item => item.sourceName === `Public page snapshot · ${source.capturedOn}`));
 }
 
-export async function verifyEvidenceAnswer({ question, candidate, evidence, deadline, responseIntent,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext,deeperReview = false }, images = []) {
+export async function verifyEvidenceAnswer({ question, candidate, evidence, deadline, responseIntent,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext,deeperReview = false,onProviderCompleted }, images = []) {
   const rejected=(reason,feedback)=>{
     countOnlyDiagnostic(diagnosticContext,'review',reason,evidence);
     return {ok:false,reason,...(feedback?{feedback}:{})};
@@ -597,7 +599,7 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
       ]:[]),
     ].join(' '),
     { question, answer: candidate.answer, proposedAction: candidate.proposedAction || null, evidence,referenceCatalog:evidenceReferenceCatalog(evidence),
-      ...(userReferentContext(resolvedUserQuestion,question)?{untrustedUserContext:userReferentContext(resolvedUserQuestion,question)}:{}),...(guidance?{responseIntent,answerParts:parts}:{}) }, deadline, images, deeperReview);
+      ...(userReferentContext(resolvedUserQuestion,question)?{untrustedUserContext:userReferentContext(resolvedUserQuestion,question)}:{}),...(guidance?{responseIntent,answerParts:parts}:{}) }, deadline, images, deeperReview,onProviderCompleted);
   const audited=guidance?{...review,claims:Array.isArray(review.parts)?review.parts.flatMap(part=>Array.isArray(part?.claims)?part.claims:[]):[]}:review;
   if (!snapshotProvenanceSupported(candidate, evidence, audited.claims?.map(claim => claim.evidenceId)))
     return rejected('snapshot_provenance_missing',snapshotFeedback);
@@ -626,7 +628,7 @@ export function composeEvidenceAnswer(context, images = []) {
 export function repairEvidenceAnswer(context, images = []) {
   return generateEvidenceAnswer(context,images,false);
 }
-async function generateEvidenceAnswer({ question, candidate = {citations:[]}, evidence, deadline, feedback = [], responseIntent, history = [],resolvedUserQuestion,diagnosticContext,deeperReview = false }, images, initial) {
+async function generateEvidenceAnswer({ question, candidate = {citations:[]}, evidence, deadline, feedback = [], responseIntent, history = [],resolvedUserQuestion,diagnosticContext,deeperReview = false,onProviderCompleted }, images, initial) {
   const guidance=guidanceIntent(responseIntent);
   const stage=initial?'composition':'correction';
   if (!validEvidence(evidence) && !images.length && !(responseIntent==='coaching'&&Array.isArray(evidence)&&!evidence.length)){
@@ -673,7 +675,7 @@ async function generateEvidenceAnswer({ question, candidate = {citations:[]}, ev
     ].join(' '),
     { question,...(!initial?{previousAnswer:candidate?.answer,unsupportedClaims:feedback}:{}),proposedAction:candidate?.proposedAction||null,evidence,
       ...(userReferentContext(resolvedUserQuestion,question)?{untrustedUserContext:userReferentContext(resolvedUserQuestion,question)}:{}),
-      ...(guidance?{responseIntent}:{}),...(initial||guidance?{history:Array.isArray(history)?history.slice(-6).flatMap(item=>item&&['user','assistant'].includes(item.role)&&typeof item.content==='string'?[{role:item.role,content:boundedAssistantText(item.content,1000)}]:[]):[]}:{}) }, deadline, images, deeperReview);
+      ...(guidance?{responseIntent}:{}),...(initial||guidance?{history:Array.isArray(history)?history.slice(-6).flatMap(item=>item&&['user','assistant'].includes(item.role)&&typeof item.content==='string'?[{role:item.role,content:boundedAssistantText(item.content,1000)}]:[]):[]}:{}) }, deadline, images, deeperReview,onProviderCompleted);
   const ids = new Set(evidence.map(item => item.id));
   if (images.length) ids.add('attached-image');
   if (typeof result.answer !== 'string' || !result.answer.trim() || result.answer.length > 8000

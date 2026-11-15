@@ -1,6 +1,7 @@
 import {
   isStudentLeaveDate, isStudentLeaveTitle, isStudentLeaveUuid, studentLeaveArchiveCutoff, studentLeaveBasePath, studentLeaveFieldNames,
 } from './studentLeaveEvidenceIntent.js';
+import {studentLeaveObservationDigest,studentLeaveRowsDigest} from './studentLeaveObservation.js';
 
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
 export const studentLeaveEvidenceLimits=Object.freeze({rows:80,responseBytes:12000,transportBytes:65536,deadlineMs:8000});
@@ -115,6 +116,10 @@ async function readRows(account,table,query){
         if(controller.signal.aborted||Date.now()>=account.deadline)fail('deadline_exceeded');
         if(!Array.isArray(rows)||rows.length!==Math.min(total,query.limit)
           ||(rows.length?Number(range[1])!==0||Number(range[2])!==rows.length-1:range[1]!==undefined||total!==0))fail('invalid_records');
+        if(account.observeRead)account.observeRead(studentLeaveObservationDigest({
+          callerId:account.userId,method:'GET',url:url.href,prefer:'count=exact',statusCode:response.status,
+          contentRange:range[0],rowsDigest:studentLeaveRowsDigest(rows),
+        }));
         return {rows,total};
       }),
       new Promise((_,reject)=>{timer=setTimeout(()=>{
@@ -202,15 +207,16 @@ export async function readStudentLeaveEvidence(account,options={},dependencies={
   let selection;
   try{
     if(!object(options)||Object.keys(options).some(key=>!['selection','deadline'].includes(key))
-      ||!object(dependencies)||Object.keys(dependencies).some(key=>key!=='fetchImpl')
-      ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function')fail('invalid_options');
+      ||!object(dependencies)||Object.keys(dependencies).some(key=>!['fetchImpl','observeRead'].includes(key))
+      ||dependencies.fetchImpl!==undefined&&typeof dependencies.fetchImpl!=='function'
+      ||dependencies.observeRead!==undefined&&typeof dependencies.observeRead!=='function')fail('invalid_options');
     selection=checkedSelection(options.selection);
     if(!object(account)||!object(account.user)||!isStudentLeaveUuid(account.user.id)||account.url!==origin
       ||typeof account.key!=='string'||!account.key.trim()||typeof account.token!=='string'||!account.token.trim()
       ||/[\p{Cc}]/u.test(account.key+account.token))fail('invalid_account');
     if(![options.deadline,account.requestDeadline].every(value=>value===undefined||Number.isFinite(value)))fail('invalid_options');
     const captured=Object.freeze({
-      userId:account.user.id,key:account.key,token:account.token,fetchImpl:dependencies.fetchImpl??globalThis.fetch,
+      userId:account.user.id,key:account.key,token:account.token,fetchImpl:dependencies.fetchImpl??globalThis.fetch,observeRead:dependencies.observeRead,
       deadline:Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+studentLeaveEvidenceLimits.deadlineMs),
     });
     const result=await leaveRows(captured,selection);

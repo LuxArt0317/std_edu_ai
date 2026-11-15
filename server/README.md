@@ -202,3 +202,6 @@ A focused native DTM grade request selects its reader directly. The reader valid
 `loadDtmAssignmentList` uses the exact caller's course and student joins and publishes bounded metadata and exact counts. `accountDtmAssignmentListAnswer.js` verifies the formatted saved fields locally with the same scope and Taipei reference clock on retry. The metadata contains local tracker status only. Personal/sample course selection follows the My assignments UI.
 
 `accountActionIntent` reads one explicit action from the current user message. The account handler checks the minimum authorization and saved target state before asking for confirmation. The read-only graph cannot produce proposals from a model plan or a rewritten follow-up. For announcements, the database’s existing administrator check verifies the saved role with the caller session. Confirmation uses the existing reviewed action RPC and its operation ID.
+
+
+`studentLeaveObservation.js` attests protected Preview Student Leave evaluation requests at the native database reader and terminal response. The request must match the exact deployment host, deployed revision, short-lived nonce and Auth-verified disposable evaluation caller. Separate derived HMAC keys bind the request and receipt. The receipt limits its contents to caller and request binding, data digests, and completed provider operation names.

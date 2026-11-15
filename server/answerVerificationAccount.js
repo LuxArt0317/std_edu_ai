@@ -843,7 +843,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   return {...result,answer:unavailable+'\n\n['+title+']('+urls.charges+')',views:[],grounding:grounding(true),activity:[...observed.values()]};
 }
 
-export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan}) {
+export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted}) {
   if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&isOwnFeeBalanceQuestion(question)&&!leavePlan&&!internshipPlan)
     return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
@@ -1086,7 +1086,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
       initial=await composeEvidenceAnswer({question,candidate:initial,evidence,deadline:Math.min(deadline-22000,Date.now()+12000),responseIntent:intent.kind,
-        resolvedUserQuestion,history:coachingGuide||resolvedUserQuestion&&intent.kind==='records'?[]:history,diagnosticContext:diagnosticContext()});
+        resolvedUserQuestion,history:coachingGuide||resolvedUserQuestion&&intent.kind==='records'?[]:history,diagnosticContext:diagnosticContext(),onProviderCompleted});
       needsComposition=false;
       emit({kind:'account-compose',label:'Prepared your answer',detail:'The draft will now be independently checked.',status:'complete'});
     }catch{
@@ -1163,7 +1163,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           ?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question,Boolean(dtmCompound||leavePlan?.gradeQuestion))
           :activeTools.includes('dtmAssignment')?scopedReviewReferences(context.evidence,['dtmAssignment']):undefined;
       return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,
-        deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt)});
+        deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt),onProviderCompleted});
     },repair:context=>{
       if(coachingGuide&&context.evidence.length===0){
         emit({kind:'general-coaching-guide',label:'Used a general coaching guide',
@@ -1183,7 +1183,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
       }
       return repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,
-        deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt)});
+        deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt),onProviderCompleted});
     },
   });
   const verified=result.verification?.status==='verified';

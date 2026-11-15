@@ -45,19 +45,19 @@ export function captureOfflineStudentLeaveEvidence(result){
   return freezeLeaveFixture({...metadata,dtoDigest:leaveFixtureDigest(selected)});
 }
 
-function projectedFetch(projectRef,table,ownerId,query,matched,limit){
+function projectedFetch(projectRef,table,ownerId,query,matched,limit,rowsDigest){
   const url=new URL('/rest/v1/'+table,'https://'+projectRef+'.supabase.co');
   for(const [key,value] of Object.entries(query))url.searchParams.set(key,String(value));
   const selected=matched.slice(0,limit).map(row=>Object.fromEntries(query.select.split(',').map(key=>[key,row[key]])));
   return {
     callerId:ownerId,method:'GET',url:url.href,prefer:'count=exact',statusCode:selected.length<matched.length?206:200,
-    contentRange:selected.length?'0-'+(selected.length-1)+'/'+matched.length:'*/0',rowsDigest:leaveFixtureDigest(selected),
+    contentRange:selected.length?'0-'+(selected.length-1)+'/'+matched.length:'*/0',rowsDigest:rowsDigest(selected),
   };
 }
 
 // Derive the oracle from the frozen question definition and fixture rows. The
 // runtime selector, reader and answer body are not inputs to this expectation.
-function expectedAttempt(plan,bound){
+export function expectedAttempt(plan,bound,rowsDigest=leaveFixtureDigest){
   const {sourceView,recordId,selectedFields,expectedReadState}=bound.plannedRead;
   // This original empty case encodes its exact date in the frozen question,
   // without a range field. Keep that independent expectation explicit here.
@@ -81,14 +81,14 @@ function expectedAttempt(plan,bound){
     select:formColumns.join(','),user_id:'eq.'+ownerId,service_key:'eq.leave',record_type:'eq.leave',
     ...(recordId?{id:'eq.'+recordId}:{}),...(dateFilters.length?{and:'('+dateFilters.join(',')+')'}:{}),
     order:'starts_on.desc,id.asc',limit,
-  },matched,limit)];
+  },matched,limit,rowsDigest)];
   const linkedIds=selected.includes('reviewStatus')?matched.map(row=>row.review_request_id).filter(Boolean).sort():[];
   const linked=plan.rows[reviews].filter(row=>row.user_id===ownerId&&linkedIds.includes(row.id));
   requireOffline(linked.length===linkedIds.length,'unsupported_oracle');
   if(linkedIds.length)reads.push(projectedFetch(projectRef,reviews,ownerId,{
     select:'id,user_id,request_type,status',user_id:'eq.'+ownerId,request_type:'eq.general',id:'in.('+linkedIds.join(',')+')',
     order:'id.asc',limit:linkedIds.length,
-  },linked,linkedIds.length));
+  },linked,linkedIds.length,rowsDigest));
   const records=matched.map(row=>Object.fromEntries(selected.flatMap(field=>{
     if(field==='dates')return [['startsOn',row.starts_on],['endsOn',row.ends_on]];
     if(field==='category')return [['category',row.leave_category]];

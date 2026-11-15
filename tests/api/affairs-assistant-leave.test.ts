@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import researchHandler from '../../api/research-assistant.ts';
 import {studentLeaveAssistantPlan,studentLeaveSelectedTools} from '../../server/studentLeaveAssistantPlan.js';
 import {formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
 import {readStudentLeaveEvidence} from '../../server/accountStudentLeaveEvidence.js';
+import {createStudentLeaveProbe,leaveObservationHeader,verifyStudentLeaveObservation} from '../../server/studentLeaveObservation.js';
 
 const owner='11900000-0000-4000-8000-000000000001';
 const leaveId='11900000-0000-4000-8000-000000000101';
@@ -14,16 +16,17 @@ const service='/school-affairs/services/leave';
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const account={user:{id:owner},url:base,key:'OFFLINE_PUBLIC_KEY',token:'OFFLINE_CALLER_TOKEN'};
 type RequestBody={question:string;route?:string;history?:Array<{role:string;content:string}>};
-async function invoke(handler:any,body:RequestBody){
-  const result={status:200,body:null as any};
-  const response={setHeader(){},status(status:number){result.status=status;return response;},json(value:unknown){result.body=value;}};
-  await handler({method:'POST',headers:{authorization:'Bearer OFFLINE_CALLER_TOKEN'},body},response);
+async function invoke(handler:any,body:RequestBody,host=process.env.VERCEL_URL){
+  const headers=new Headers();
+  const result={status:200,body:null as any,headers};
+  const response={setHeader(name:string,value:string){headers.set(name,value);},status(status:number){result.status=status;return response;},json(value:unknown){result.body=value;}};
+  await handler({method:'POST',headers:{authorization:'Bearer OFFLINE_CALLER_TOKEN',host},body},response);
   return result;
 }
 
 async function check(
-  body:RequestBody,{fields=['startsOn','endsOn','status'],fail=false,review='normal',charges=false,timetable=false,grades=false,model=true}
-    :{fields?:string[];fail?:boolean;review?:'normal'|'retry'|'reject';charges?:boolean;timetable?:boolean;grades?:boolean;model?:boolean}={},
+  body:RequestBody,{fields=['startsOn','endsOn','status'],fail=false,review='normal',charges=false,timetable=false,grades=false,model=true,identity=account.user}
+    :{fields?:string[];fail?:boolean;review?:'normal'|'retry'|'reject';charges?:boolean;timetable?:boolean;grades?:boolean;model?:boolean;identity?:typeof account.user&{email?:string;user_metadata?:Record<string,unknown>}}={},
 ){
   const calls:URL[]=[],stages:string[]=[],errors:unknown[]=[];
   const originalFetch=globalThis.fetch,originalKey=process.env.OPENAI_API_KEY;
@@ -91,7 +94,7 @@ async function check(
       stages.push(stage);
       const tools=['leaveRecords',...(charges?['charges']:[]),...(timetable?['courses']:[]),...(grades?['dtmGradeReport']:[])];
       assert.deepEqual(packet.evidence.map((item:any)=>item.id).sort(),['account-scope',...tools.map(key=>'account:'+key)].sort());
-      assert.doesNotMatch(JSON.stringify(packet),/OFFLINE_CALLER_TOKEN|contact_phone|PRIVATE_REASON/);
+      assert.doesNotMatch(JSON.stringify(packet),/OFFLINE_CALLER_TOKEN|contact_phone|PRIVATE_REASON|evaluationLeaveProbe|assistant_evaluation_run/);
       const scope=JSON.parse(packet.evidence.find((item:any)=>item.id==='account-scope').content);
       assert.deepEqual(scope.selectedTools.sort(),tools.sort());
       assert.deepEqual(scope.actions,[]);
@@ -117,7 +120,7 @@ async function check(
     }catch(error){errors.push(error);throw error;}
   };
   try{
-    const handler=createAffairsAssistantHandler({verifyToken:async()=>account,
+    const handler=createAffairsAssistantHandler({verifyToken:async()=>({...account,user:identity}),
       loadSnapshot:async()=>assert.fail('A leave query must not load the broad snapshot'),
       publicResearch:async()=>assert.fail('Private leave must not go to public research')});
     const response=await invoke(handler,body);
@@ -242,4 +245,74 @@ test('foreign and requested leave writes stop early, and guests get exact local 
   const guest=await invoke(researchHandler,{question:'Status?',route:service+'/archive'});
   assert.equal(guest.body.status,'handoff');
   assert.ok(guest.body.citations.some((row:any)=>new URL(row.url,'https://stu.best').searchParams.get('next')===service+'/archive'));
+});
+
+test('protected Preview leave receipt attests real read and provider completion, and rejects changed or ordinary requests',async t=>{
+  const key='OFFLINE_OBSERVATION_TEST_KEY_'+randomUUID(),origin='https://stdedu-1234abcde-v1-d286.vercel.app';
+  const sourceRevision='2'.repeat(40);
+  const env={VERCEL_ENV:'preview',VERCEL_URL:new URL(origin).hostname,VERCEL_GIT_COMMIT_SHA:sourceRevision,SUPABASE_SERVICE_ROLE_KEY:key};
+  for(const [name,value] of Object.entries(env)){
+    const original=process.env[name];
+    process.env[name]=value;
+    t.after(()=>{if(original===undefined)delete process.env[name];else process.env[name]=original;});
+  }
+  const runId=randomUUID(),nonce=randomUUID();
+  const identity={id:owner,email:'evaluation.student@example.invalid',user_metadata:{assistant_evaluation_run:runId}};
+  const request={question:'Show my leave dates and status.',route:service+'/history',history:[],stream:false as const,consentedResearchUse:false as const};
+  const {binding,body}=createStudentLeaveProbe({ownerId:owner,runId,origin,sourceRevision,nonce},request,key);
+  const result=await check(body,{identity});
+  const correlationId=result.headers.get('X-Assistant-Request-Id');
+  const receipt=result.headers.get(leaveObservationHeader);
+  assert.ok(receipt);
+  const observed=verifyStudentLeaveObservation({receipt,binding,correlationId,body:result.body},key);
+  assert.ok(observed);
+  assert.equal(observed.attempts.length,1);
+  assert.equal(observed.attempts[0].reads.length,1);
+  assert.deepEqual(observed.completedModelOperations,['answer_evidence_review']);
+  const publicPayload=Buffer.from(receipt.split('.')[0],'base64url').toString('utf8');
+  assert.doesNotMatch(publicPayload,/OFFLINE|example\.invalid|2026-11-09|filed|answer"/u);
+  const reject=(options:Record<string,unknown>)=>assert.equal(verifyStudentLeaveObservation({receipt,binding,correlationId,body:result.body,...options},key),null);
+  reject({binding:{...binding,nonce:randomUUID()}});
+  reject({correlationId:randomUUID()});
+  reject({body:{...result.body,answer:'Different terminal response'}});
+  reject({receipt:body.evaluationLeaveProbe});
+  reject({receipt:receipt+'a'});
+
+  let verifiedIdentity:typeof identity|undefined=identity, entered=0;
+  const unexpected=async()=>{entered++;throw new Error('Unexpected account, reader, or provider call.');};
+  const handler=createAffairsAssistantHandler({verifyToken:async()=>({...account,user:verifiedIdentity??account.user}),
+    answerAccount:unexpected,loadSnapshot:unexpected,publicResearch:unexpected,readers:{leaveRecords:unexpected}});
+  const invalid=[
+    {...body,question:'Show my leave category.'},
+    {...body,route:service+'/periods'},
+    {...body,history:[{role:'user',content:'Different context'}]},
+    {...body,stream:true},
+    {...body,consentedResearchUse:true},
+    {...body,evaluationLeaveProbe:receipt},
+    createStudentLeaveProbe({ownerId:owner,runId,origin,sourceRevision,nonce},request,key,Date.now()-121000).body,
+    createStudentLeaveProbe({ownerId:owner,runId,origin,sourceRevision:'3'.repeat(40),nonce},request,key).body,
+    createStudentLeaveProbe({ownerId:owner,runId,origin:'https://stdedu-abc123def-v1-d286.vercel.app',sourceRevision,nonce},request,key).body,
+  ];
+  const unavailable={error:'Student Leave observation unavailable.'};
+  for(const input of invalid){
+    const response=await invoke(handler,input);
+    assert.equal(response.status,404);
+    assert.deepEqual(response.body,unavailable);
+    assert.equal(response.headers.get(leaveObservationHeader),null);
+  }
+  verifiedIdentity={...identity,user_metadata:{assistant_evaluation_run:randomUUID()}};
+  assert.deepEqual((await invoke(handler,body)).body,unavailable);
+  verifiedIdentity={...identity,id:randomUUID()};
+  assert.deepEqual((await invoke(handler,body)).body,unavailable);
+  verifiedIdentity=undefined;
+  assert.deepEqual((await invoke(handler,body)).body,unavailable);
+  assert.deepEqual((await invoke(handler,body,'stu.best')).body,unavailable);
+  process.env.VERCEL_ENV='production';
+  assert.deepEqual((await invoke(handler,body)).body,unavailable);
+  assert.equal(entered,0);
+
+  const ordinary=await check(request,{identity});
+  assert.equal(ordinary.headers.get(leaveObservationHeader),null);
+  const withoutClock=(value:unknown)=>JSON.stringify(value,(name,field)=>name==='checkedAt'?undefined:field);
+  assert.equal(withoutClock(ordinary.body),withoutClock(result.body));
 });

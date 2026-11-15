@@ -38,6 +38,7 @@ import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insert
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
+import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 import {assertElearningMetadataCase,isElearningMetadataCase} from './elearning-catalog-runner.mjs';
 import {bindMetadataObservation,readMetadataObservations} from './elearning-metadata-live.mjs';
@@ -475,7 +476,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     await saveLedger();
     await createFixtureUser(0);await createFixtureUser(1);
     if(leaveDataOnly){
-      await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate);
+      await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate,serviceKey);
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['leaveRecords']};
     }
@@ -513,7 +514,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   }
 }
 
-async function prepareStudentLeaveDataFixture(s,sourceRevision,previewGate){
+async function prepareStudentLeaveDataFixture(s,sourceRevision,previewGate,key){
   const [first,second]=s.identityRequests;
   const owner=request=>({id:request.id,email:request.email,runMarker:request.runId});
   const binding={runId:s.runId,projectRef:PROJECT,origin:s.origin,sourceRevision,owners:{A:owner(first),B:owner(second)},
@@ -528,39 +529,75 @@ async function prepareStudentLeaveDataFixture(s,sourceRevision,previewGate){
       if(!user||s.closing)fail('fixture-case','Student Leave data preflight requires its exact disposable caller.');
       await user.renewSession({signal});return {id:user.id,token:user.token};
     },fetchImpl:s.boundedFetch});
-  s.studentLeaveData={binding,lifecycle,previewGate};
+  s.studentLeaveData={binding,lifecycle,previewGate,async observe(plan,testCase,seenCorrelations){
+    await assertRecordedFixtureLease(s,'Student Leave');
+    const caller=s.users[0];
+    const signal=signals(s.signal,65000);
+    await caller.renewSession({signal});
+    return requestObservedStudentLeave({plan,testCase,key,token:caller.token,fetchImpl:s.previewReadbackFetch,signal,seenCorrelations});
+  }};
   await saveLedger();
 }
 
-/** Prepare and independently verify the disposable data for the registered
- * leave fixture families. This dispatches no assistant/model requests. */
-export async function runStudentLeaveDataPreflight({origin,sourceRevision,previewToken,signal}={}){
-  if(!isEvaluationPreviewOrigin(origin)||typeof sourceRevision!=='string'||!/^[a-f0-9]{40}$/u.test(sourceRevision))
-    fail('fixture-config','Student Leave data preflight requires an exact protected Preview and source revision.');
-  const {sourceIdentity}=await import('./run.mjs');
-  const identity=await sourceIdentity();
-  if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Student Leave data preflight requires the exact clean deployed source.');
-  const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
-  const runId=randomUUID();
-  await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
-    signal,fixtureMode:runStudentLeaveDataPreflight,previewReadbackFetch});
-  const {binding,lifecycle,previewGate}=state.studentLeaveData;
-  const families=[];
-  let cleanupProof;
-  try{
+/** Independently verify all eight disposable families without assistant/model I/O. */
+export function runStudentLeaveDataPreflight(options){
+  return runPreparedStudentLeave(options,async({binding,lifecycle})=>{
+    const families=[];
     for(const family of leaveFixtureFamilies){
       const firstProof=await lifecycle.transition(buildStudentLeaveFixturePlan({binding,family}));
       const secondProof=await lifecycle.verifyUnchanged();
       assert.deepEqual(secondProof,firstProof);
       families.push({family,rowDigest:firstProof.rowDigest,ownerAndCrossedReads:firstProof.ownerAndCrossedReads+secondProof.ownerAndCrossedReads});
     }
+    return {families,modelRequests:0,requestObservationsMounted:false,liveAcceptance:false};
+  });
+}
+
+/** Exact caller-owned native cases with hosted request, reader and model proof. */
+export function runStudentLeaveHostedEvaluation({caseIds,...options}={}){
+  const selection=studentLeaveHostedSelection(caseIds);
+  return runPreparedStudentLeave(options,async({binding,lifecycle,previewGate,observe})=>{
+    const results=[],seenCorrelations=new Set();
+    const families=new Set(selection.map(row=>row.family));
+    for(const family of families){
+      const plan=buildStudentLeaveFixturePlan({binding,family});
+      const firstProof=await lifecycle.transition(plan);
+      for(const {testCase} of selection.filter(row=>row.family===family)){
+        const ticket=await previewGate.beforeRequest();
+        let result;
+        try{result=await observe(plan,testCase,seenCorrelations);}
+        finally{await previewGate.afterRequest(ticket);}
+        const secondProof=await lifecycle.verifyUnchanged();
+        assert.deepEqual(secondProof,firstProof);
+        results.push({...result,fixtureDigest:firstProof.rowDigest});
+      }
+    }
+    return {results,requestObservationsMounted:true,hostedCases:selection.length,
+      completedModelCalls:results.reduce((count,row)=>count+row.completedModelCalls,0),
+      liveAcceptance:results.every(result=>result.passed)};
+  });
+}
+
+async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signal}={},perform){
+  if(!isEvaluationPreviewOrigin(origin)||typeof sourceRevision!=='string'||!/^[a-f0-9]{40}$/u.test(sourceRevision))
+    fail('fixture-config','Student Leave data preflight requires an exact protected Preview and source revision.');
+  const {sourceIdentity}=await import('./run.mjs');
+  const identity=await sourceIdentity();
+  if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Student Leave requires the exact clean deployed source.');
+  const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
+  const runId=randomUUID();
+  await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+    signal,fixtureMode:runStudentLeaveDataPreflight,previewReadbackFetch});
+  const prepared=state.studentLeaveData,{previewGate}=prepared;
+  let result,cleanupProof;
+  try{
+    result=await perform(prepared);
     const final=await sourceIdentity();
     if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
-      fail('fixture-target','The Student Leave data preflight source changed during verification.');
+      fail('fixture-target','The Student Leave source changed during verification.');
     await previewGate.finish();
   }finally{cleanupProof=await cleanup();}
-  return {runId,sourceRevision,origin,families,deployment:previewGate.status(),cleanup:cleanupProof,
-    modelRequests:0,requestObservationsMounted:false,liveAcceptance:false};
+  return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
 }
 
 async function feeTransaction(s,work){

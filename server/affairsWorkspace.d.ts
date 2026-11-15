@@ -2,7 +2,7 @@ import type {ExplicitAccountAction} from './accountActionIntent.js';
 export class AffairsWorkspaceError extends Error { status:number; constructor(message:string,status?:number); }
 export type AffairsAccount = {user:{id:string;email?:string};token:string;url:string;key:string};
 export function schoolAffairsDatabaseConfiguration(): {url:string;key:string};
-export function verifyAffairsToken(token:string):Promise<AffairsAccount>;
+export function verifyAffairsToken(token:string):Promise<AffairsAccount&{user:{user_metadata?:Record<string,unknown>}}>;
 export function loadAffairsSnapshot(account:AffairsAccount,includeAdmin?:boolean,options?:{initialize?:boolean;deadline?:number;includeServiceRecords?:boolean}):Promise<Record<string,unknown>>;
 export type AffairsCharge={id:string;label:string;amountDue:number;amountPaid:number;currency:string;dueOn:string|null;sourceMode:string;
   occurrenceOn:string|null;category:string|null;contactUnit:string|null;contactExtension:string|null;paymentUnit:string|null};

@@ -9,5 +9,5 @@ export function unavailableStudentLeaveEvidence(reason:unknown): StudentLeaveEvi
 export function readStudentLeaveEvidence(
   account:{user:{id:string};url:string;key:string;token:string;requestDeadline?:number},
   options:{selection:StudentLeaveSelection;deadline?:number},
-  dependencies?:{fetchImpl?:typeof fetch},
+  dependencies?:{fetchImpl?:typeof fetch;observeRead?:(digest:string)=>void},
 ): Promise<StudentLeaveEvidenceResult>;
