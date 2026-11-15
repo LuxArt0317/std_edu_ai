@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep public search leads beyond the initial draft's citations. After stalled verification the assistant can find and read a more specific source, then verify the revised answer and save the observed steps in chat. [#100]
+
 - Let model-reviewed signed-in answers take a third verification pass using the same refreshed records, including single-source and fixed-scope questions. [#100]
 
 - Ask drafts to identify the missing field and omit unsupported quantities and dates. Verify the same boundary independently. [#100]

@@ -63,7 +63,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -88,10 +88,14 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
           ? searchPayload([officialNotice,'https://outside.example.org/campus/'],unsafeDraft,['https://invented.example.org/'])
           : {output:[]});
       }
-      if (searchCalls === 1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
-      assert.equal(searchCalls,2);
-      if (outcome === 'same-source')
+      if (searchCalls === 1) return Response.json(outcome === 'unused-tool-lead'
+        ? searchPayload([officialDirectory,officialNotice,'https://outside.example.org/campus/'],unsafeDraft,[officialDirectory])
+        : searchPayload([officialDirectory],unsafeDraft));
+      if (outcome === 'same-source' || (outcome === 'third-pass-discovery' && searchCalls === 2))
         return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],noticeContent));
+      if (outcome === 'third-pass-discovery' && searchCalls === 3)
+        return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft,[officialDirectory]));
+      assert.equal(searchCalls,2);
       // The only exact notice URL appears in actual tool metadata. The follow-up
       // answer itself is invented and must never become an answer or evidence.
       return Response.json(searchPayload(
@@ -120,6 +124,8 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     assert.equal(name,'answer_evidence_review');
     reviewCalls++;
     if (outcome === 'budget' && reviewCalls === 1) elapsed = 40_000;
+    if (outcome === 'third-pass-discovery' && reviewCalls === 2)
+      return provider({supported:false,answersQuestion:false,claims:[]});
     if (!source || outcome === 'deeper-review' && reviewCalls === 2) {
       return provider({supported:false,answersQuestion:false,claims:[{
         claim:rejectedClaim,supported:false,evidenceId:context.evidence[0].id,quotes:[],jsonPaths:[],
@@ -185,6 +191,40 @@ test('a deeper third review reuses collected sources with no additional public s
   assert.deepEqual(attempt.scopes.at(-1)?.urls,[officialNotice,officialDirectory]);
 });
 
+test('an uncited official tool lead is independently read before repeating search', async () => {
+  const attempt = harness('unused-tool-lead');
+  const answer = await invoke({question:testQuestion},attempt.run,'web-unused-tool-lead');
+  assert.equal(attempt.searchRequests.length,1);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialNotice]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:2});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.equal(answer.activity.find(({kind}: Progress)=>kind==='web-alternate-source').status,'complete');
+  assert.doesNotMatch(JSON.stringify(answer),/outside\.example|NOT_PUBLIC_SEARCH_INPUT/);
+});
+
+test('two rejected drafts can discover and check a primary source even without new reviewer feedback', async () => {
+  const attempt = harness('third-pass-discovery');
+  const progress:Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-third-pass-discovery',progress);
+  assert.equal(attempt.searchRequests.length,3);
+  assert.match(String(attempt.searchRequests[2].instructions),/Change the search approach/);
+  assert.deepEqual(attempt.searchRequests[2].reasoning,{effort:'medium'});
+  for (const request of attempt.searchRequests) {
+    assert.equal(JSON.parse(String(request.input)).question,testQuestion);
+    assert.doesNotMatch(String(request.input),/PRIVATE_REVIEW_FEEDBACK|NOT_PUBLIC_SEARCH_INPUT/);
+  }
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialNotice]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.deepEqual(progress.filter(({kind,status})=>/^verification-\d+$/u.test(kind)&&status!=='running').map(({kind,status})=>[kind,status]),
+    [['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','complete']]);
+  const restored=sanitizeStoredConversation([{id:'recovered',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.equal(restored[0].activity.find(({kind}: Progress)=>kind==='web-deeper-discovery').status,'complete');
+  assert.equal(restored[0].result.verification.attempts,3);
+});
+
 test('a duplicate result or exhausted follow-up budget cannot turn missing evidence into an answer',async()=>{
   for (const outcome of ['same-source','budget'] as const) {
     const attempt = harness(outcome);
@@ -196,8 +236,9 @@ test('a duplicate result or exhausted follow-up budget cannot turn missing evide
     assert.doesNotMatch(answer.answer,/supposedly|FORGED|10:30/);
     assert.deepEqual(attempt.acquiredUrls,[officialDirectory]);
     if (outcome === 'same-source') {
-      assert.equal(attempt.searchRequests.length,2);
+      assert.equal(attempt.searchRequests.length,3);
       assert.equal(answer.activity.find((step:{kind:string})=>step.kind==='web-follow-up').status,'unavailable');
+      assert.equal(answer.activity.find((step:{kind:string})=>step.kind==='web-deeper-discovery').status,'unavailable');
     } else {
       assert.equal(attempt.searchRequests.length,1);
       assert.equal(answer.activity.some((step:{kind:string})=>step.kind==='web-follow-up'),false);
@@ -260,7 +301,7 @@ const managedExcerpt = {
   exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
   document_version:1,content_checksum:'a'.repeat(64),
 };
-function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall') {
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall'|'final-check-lead') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -273,7 +314,8 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
   const run = createResearchAssistantHandler({
     readSources: async citations => {
       calls.push('read-public-page');
-      assert.deepEqual(citations.map(citation=>citation.url),[failedRefresh && searches.length === 1 ? officialDirectory : officialNotice]);
+      assert.deepEqual(citations.map(citation=>citation.url),outcome==='final-check-lead'?[officialNotice,officialDirectory]:
+        [failedRefresh && searches.length === 1 ? officialDirectory : officialNotice]);
       return citations.map(citation=>({id:citation.chunkId,url:citation.url,content:citation.url===officialDirectory?directoryContent:noticeContent}));
     },
   });
@@ -313,9 +355,17 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
       case 'stu_web_answer':
         searches.push(JSON.parse(request.input));
         if (outcome==='no-web-result'||outcome==='early-web') return Response.json({output:[]});
+        if (outcome==='final-check-lead') return Response.json(searchPayload([officialDirectory,officialNotice],unsafeDraft,[officialDirectory]));
         if (failedRefresh && searches.length===1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
         if (outcome==='source-switch-stall') return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],unsafeDraft));
         return Response.json(searchPayload([officialNotice],noticeContent));
+      case 'compose_grounded_answer': {
+        assert.equal(outcome,'final-check-lead');
+        const local=JSON.parse(request.input[0].content[0].text);
+        assert.equal(local.evidence[0].content,noticeContent);
+        assert.doesNotMatch(JSON.stringify(local),/NOT_PUBLIC_SEARCH_INPUT/);
+        return provider({status:'answered',answer:noticeContent,sourceIds:[local.evidence[0].id]});
+      }
       case 'answer_evidence_review': {
         const review=JSON.parse(request.input[0].content[0].text);
         if (review.evidence[0].id!==managedExcerpt.chunk_id) {
@@ -331,7 +381,7 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
               claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
             }]});
           }
-          assert.equal(review.evidence.length,1);
+          assert.equal(review.evidence.length,outcome==='final-check-lead'?2:1);
           assert.equal(review.evidence[0].content,noticeContent);
           return provider({supported:true,answersQuestion:true,claims:[{
             claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
@@ -383,6 +433,19 @@ test('two failed managed checks can switch to separately read public evidence wi
     .map(({kind,status})=>[kind,status]);
   assert.deepEqual(finalSteps(answer.activity),checks);
   assert.deepEqual(finalSteps(progress),checks);
+});
+
+test('the last remaining check uses an uncited lead instead of repeating the search provider draft',async()=>{
+  const attempt=managedHarness('final-check-lead');
+  const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-final-check-lead');
+  assert.deepEqual(attempt.calls,[
+    'public_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review',
+    'stu_web_answer','read-public-page','compose_grounded_answer','answer_evidence_review',
+  ]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.equal(answer.activity.find(({kind}: Progress)=>kind==='web-alternate-source').status,'complete');
 });
 
 test('an attempted evidence switch preserves both managed checks when the web search finds no candidate',async()=>{

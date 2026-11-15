@@ -94,6 +94,7 @@ export async function searchSchoolWeb(question, options = {}) {
   const chineseQuestion = /[\u3400-\u9fff]/.test(question);
   const deadline = options.deadline || Date.now()+35000;
   const followUp = options.followUp === true;
+  const deeperDiscovery = followUp && options.deeperDiscovery === true;
   let attempted = false;
   const discoveredLinks = new Map();
   for (const officialOnly of followUp ? [true] : [true,false]) {
@@ -107,12 +108,14 @@ export async function searchSchoolWeb(question, options = {}) {
         body:JSON.stringify({
           model:process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
           tools:[{type:'web_search',search_context_size:'medium',...(officialOnly?{filters:{allowed_domains:['stu.edu.tw']}}:{})}],
-          tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:'low'},store:false,max_output_tokens:1600,
+          tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:deeperDiscovery?'medium':'low'},store:false,max_output_tokens:deeperDiscovery?2400:1600,
           instructions:[
             'You help visitors and students of Shu-Te University (樹德科技大學), Kaohsiung, Taiwan. STU here means Shu-Te, not another university.',
             'School Affairs is independent of the STU Nexus app. Never use the Nexus demo catalog, classes, terms, account context or stu.best pages as evidence for university facts.',
             'Be proactive and helpful for all school information, campus life, offices, contacts, admissions, services, courses, announcements, transport and practical website help. A vague school question defaults to Shu-Te. Use the public question to search before giving up; try Chinese/English school and office names. Answer the parts supported by evidence even if another detail cannot be verified. Do not refuse just because the answer is absent from a managed knowledge base.',
-            followUp
+            deeperDiscovery
+              ? 'Change the search approach: translate the specific requested term, and look for the dated notice, regulation, PDF, calendar or office publication where that detail would be recorded. Try the responsible office name or its site rather than repeating a general directory search. Provide source URLs as leads for a separate content check.'
+              : followUp
               ? 'This is a focused evidence check. Search for the exact requested detail in an official STU department or service page, dated announcement, published calendar or primary document. Use the public question and its named service, period or office as search terms. Prefer a different specific page or document containing the answer over a general directory, landing page or adjacent topic. Keep the search limited to the same request; do not guess missing details.'
               : officialOnly?'Search the official STU website and its subdomains first.':'Official search was insufficient. Search reliable sources about Shu-Te more broadly; prefer official university and government sources. Clearly identify third-party information and dates; never present a third-party account as official policy.',
             'Use the web_search tool for factual school answers. If the task is completely unrelated (such as writing/debugging arbitrary software), return out_of_scope. Simple website/login/course-code navigation questions are in scope, not programming requests.',
@@ -143,7 +146,14 @@ export async function searchSchoolWeb(question, options = {}) {
         const discovered = [...(result?.citations || []), ...[...toolSources(payload,true).values()].map(webCitation)];
         return {result:null,attempted,discoveredSources:[...new Map(discovered.map(item=>[item.chunkId,item])).values()].slice(0,8)};
       }
-      if (result) return {result,attempted};
+      if (result) {
+        for (const [url, source] of toolSources(payload,true)) {
+          if (discoveredLinks.size >= 8) break;
+          if (!result.citations.some(citation => citation.url === url)) discoveredLinks.set(url,webCitation(source));
+        }
+        const discoveredSources = [...discoveredLinks.values()].filter(lead => !result.citations.some(citation => citation.url === lead.url));
+        return {result,attempted,...(discoveredSources.length ? {discoveredSources} : {})};
+      }
       const outputText = textOf(payload);
       let parsed = null;
       try { parsed = JSON.parse(outputText); } catch { /* Only report structure, never model text. */ }

@@ -51,7 +51,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
-  question, initialAnswer, loadEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
+  question, initialAnswer, loadEvidence, loadDeeperEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
   previousChecks = 0, deadline = Date.now() + 50_000,
 }) {
   if (!Number.isInteger(previousChecks) || previousChecks < 0 || previousChecks >= maxAnswerVerificationChecks)
@@ -69,9 +69,11 @@ export async function runAnswerVerification({
   const withinBudget = () => Date.now() < deadline - 500;
   const safeToContinue = () => allowDeeperReview && !initialAnswer?.proposedAction && !candidate?.proposedAction;
   const enoughTimeToContinue = () => deadline - Date.now() >= deeperReviewBudgetMs;
-  const shouldDeepen = verdict => safeToContinue()
-    && evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
-    && (feedback.length > 0 || verdict.reason === 'verification_output_limit');
+  const shouldDeepen = verdict => safeToContinue() && (
+    (evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
+      && (feedback.length > 0 || verdict.reason === 'verification_output_limit'))
+    || (loadDeeperEvidence && ['unsupported_claims', 'no_supported_answer', 'evidence_unavailable'].includes(verdict.reason))
+  );
   const canRetryAfterSourceSwitch = verdict => safeToContinue()
     && (deeperReviewReasons.has(verdict.reason) || verdict.reason === 'evidence_unavailable');
   const stop = (attempts, reason, attempt) => {
@@ -99,11 +101,12 @@ export async function runAnswerVerification({
   const graph = new StateGraph(VerificationState)
     .addNode('retrieve', async state => {
       if (!withinBudget()) return { verdict: { ok: false, reason: 'timeout' } };
-      // A deeper review changes how the draft is reasoned through. It has no
-      // authority to search again, widen the account scope or execute a write.
-      if (state.attempt > standardChecks) return { verdict: null };
+      // Only an explicitly supplied public loader can acquire additional evidence
+      // in a deeper pass. Account answers retain the earlier scoped evidence.
+      const load = state.attempt > standardChecks ? loadDeeperEvidence : loadEvidence;
+      if (!load) return { verdict: null };
       try {
-        evidence = await bounded(()=>loadEvidence({ attempt: state.attempt, deadline, feedback, previousFailure:state.previousFailure }));
+        evidence = await bounded(()=>load({ attempt: state.attempt, deadline, feedback, previousFailure:state.previousFailure }));
         return { verdict: null };
       } catch (error) {
         evidence = [];
@@ -156,7 +159,7 @@ export async function runAnswerVerification({
       if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
         'Looking for the missing detail and revising the answer if the evidence supports it.');
       else if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
-        'Reconsidering the unresolved claims using the same authorized evidence.');
+        loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
       else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
       return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.reason };
     })
