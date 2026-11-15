@@ -71,8 +71,8 @@ export function answerPendingFees(question,snapshot,route='',history=[]) {
   const lines=selected.slice(0,20).map(row=>{
     const amount=money(balance(row),row.currency);
     const sample=['sample','local_demo'].includes(row.sourceMode)?(chinese?'（範例）':' (sample)'):'';
-    const parts=[chinese?`${row.label}${sample}：待繳 ${amount}（應繳 ${money(cents(row.amountDue),row.currency)}；已繳 ${money(cents(row.amountPaid),row.currency)}）`:
-      `${row.label}${sample}\n  Remaining balance ${amount}\n  Saved amount due ${money(cents(row.amountDue),row.currency)}\n  Saved amount paid ${money(cents(row.amountPaid),row.currency)}`];
+    const parts=[chinese?`${row.label}：待繳 ${amount}${sample}（應繳 ${money(cents(row.amountDue),row.currency)}；已繳 ${money(cents(row.amountPaid),row.currency)}）`:
+      `${row.label}\n  Remaining balance ${amount}${sample}\n  Saved amount due ${money(cents(row.amountDue),row.currency)}\n  Saved amount paid ${money(cents(row.amountPaid),row.currency)}`];
     if(contact)parts.push(chinese?`連絡單位 ${row.contactUnit||missing}；分機 ${row.contactExtension||missing}；繳費單位 ${row.paymentUnit||missing}`:
       `contact unit ${row.contactUnit||missing}; extension ${row.contactExtension||missing}; payment unit ${row.paymentUnit||missing}`);
     if(date)parts.push(chinese?`發生日期 ${row.occurrenceOn||missing}；繳費期限 ${row.dueOn||missing}`:

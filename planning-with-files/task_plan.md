@@ -807,7 +807,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Run an answer-only diagnostic against the exact protected combined candidate and grade all four real authenticated replies independently.
 - [x] Verify the embedded assistant's host context and guest/authenticated behavior in a controlled browser.
-- [ ] Reproduce the public lookup that found only a near-match, then verify targeted retrieval and the next grounded check.
+- [x] Reproduce the public near-match in the actual handler with controlled provider and page inputs. Verify novel official-page retrieval, a deeper check, privacy, and budget exhaustion.
+- [ ] Exercise public retrieval and deeper verification with real providers on the exact protected candidate.
 - [ ] Compare the existing verification model with a stronger available model on difficult cases. Record factual quality, observed tools, latency and remaining budget before changing the deployed default.
 - [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
 

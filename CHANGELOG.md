@@ -1,6 +1,11 @@
 # Changelog
 ## Unreleased
 
+- Let rejected public web answers search for a more specific official source and verify the resulting page content independently. [#100]
+- Give eligible account and public answers a deeper verification check when the previous review identifies a resolvable gap and time remains. Preserve the observed check in chat history. [#100]
+- Lead routine personal answers with saved records, label sample entries where they appear, and retain precise limitations for explicit official-record requests. [#100]
+- Send Student Leave navigation questions to the application form and verify the embedded assistant's guest and signed-in behavior. [#100]
+
 - Recover the verified course list and year level from refreshed School Affairs fields when the answer reviewer rejects a draft. Label saved fee amounts and sample charges in revised answers. [#100]
 - Keep interview practice useful without reading student records unless the request calls for them. [#100]
 - Preserve the selected club attendance page at Google sign-in and explain where campus entry links lead. Verify assistant access across protected routes in Chromium. [#100]

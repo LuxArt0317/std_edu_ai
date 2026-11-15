@@ -19,7 +19,8 @@ function assertFacts(row,answer){
   if(row.fields.includes('dueAt'))assert.ok(answer.includes(row.mode==='null-deadline'?'No deadline is recorded':f.dueAt));
   if(!row.fields.includes('trackerSubmittedAt'))assert.ok(!answer.includes(f.trackerSubmittedAt));
   else assert.ok(answer.includes(f.trackerSubmittedAt));
-  assert.match(answer,/not.*official|not an official/iu);assert.doesNotMatch(answer,/you are late|successfully uploaded|file was submitted|official deadline/iu);
+  assert.match(answer,/Saved DTM assignment detail|Record source:\s*\x60\s*personal/iu);
+  assert.doesNotMatch(answer,/you are late|successfully uploaded|file was submitted|official deadline/iu);
 }
 test('independent bank matches strict native projection and literal/null/blank boundaries without model credit',async()=>{
   assert.equal(bank.length,18);assert.ok(bank.every(row=>!row.mounted&&!row.setupEligible));

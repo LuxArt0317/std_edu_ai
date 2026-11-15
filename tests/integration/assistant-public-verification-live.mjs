@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { chromium } from 'playwright-core';
+import { maxAnswerVerificationChecks } from '../../src/services/assistantVerificationLimits.js';
 
 process.umask(0o077);
 const origin=process.env.ASSISTANT_ORIGIN||'https://stu.best';
@@ -31,7 +32,7 @@ function publicSourceOutcome(answer) {
   // never counted as a verified answer. Known FAQ/image cases remain strict.
   assert.equal(answer.status,'abstained');assert.equal(answer.verification?.status,'unverified');
   assert.ok(['evidence_unavailable','unsupported_claims','no_supported_answer'].includes(answer.verification.reason));
-  assert.ok(answer.verification.attempts>=1&&answer.verification.attempts<=2);
+  assert.ok(answer.verification.attempts>=1&&answer.verification.attempts<=maxAnswerVerificationChecks);
   assert.match(answer.answer,/could not verify/i);assert.deepEqual(answer.citations,[]);assert.ok(!answer.proposedAction);
 }
 try {
