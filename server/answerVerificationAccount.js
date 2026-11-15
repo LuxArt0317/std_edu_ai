@@ -975,8 +975,14 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   ]);
   const exactTutorRecord=Boolean(tutorSelection&&!tutorSelection.reason&&!tutorSelection.unavailableDetails
     &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState));
-  const exactFeeRemission=Boolean(remissionSelection&&!remissionSelection.reason&&!remissionSelection.currentTerm&&!remissionSelection.operation
-    &&firstSupplemental.length===1&&['ok','empty','partial'].includes(firstSupplemental[0].readState));
+  const remissionDisposition=remissionSelection?.reason
+    ?(['invalid_period','ambiguous_period'].includes(remissionSelection.reason)?remissionSelection.reason:null)
+    :remissionSelection?.operation?'unsupported_operation'
+      :remissionSelection?.currentTerm?'current_term_not_designated':null;
+  const supportedRemissionRead=result=>Boolean(remissionSelection&&result
+    &&(remissionDisposition?result.readState==='unavailable'&&result.reason===remissionDisposition
+      :!remissionSelection.reason&&['ok','empty','partial'].includes(result.readState)));
+  const exactFeeRemission=firstSupplemental.length===1&&supportedRemissionRead(firstSupplemental[0]);
   const exactSupplemental=(conductCount||exactTutorRecord||exactFeeRemission||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
@@ -1317,7 +1323,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ||JSON.parse(supplemental[0].evidence.content).selection?.projection!=='count'))return null;
     if(exactTutorRecord&&(!['ok','empty'].includes(supplemental[0].readState)
       ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,tutorSelection)))return null;
-    if(exactFeeRemission&&(!['ok','empty','partial'].includes(supplemental[0].readState)
+    if(exactFeeRemission&&(!supportedRemissionRead(supplemental[0])
       ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,remissionSelection)))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
     if(exactFeeRemission&&rendered.status!=='answered')return null;
@@ -1479,8 +1485,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         }
         if(exactFeeRemission){
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
-          emit({kind:'fee-remission-evidence-check',label:zh?'已核對學雜費減免紀錄':'Verified your saved fee-remission records',
-            detail:zh?'已比對所選期間、紀錄筆數和原文欄位。':'Matched the selected period, record counts and literal fields to your saved history.',status:'complete'});
+          emit({kind:'fee-remission-evidence-check',
+            label:remissionDisposition?(zh?'已核對學雜費減免查詢限制':'Checked the fee-remission lookup limit')
+              :(zh?'已核對學雜費減免紀錄':'Verified your saved fee-remission records'),
+            detail:remissionDisposition?(zh?'已核對查詢限制；未確認任何金額或狀態。':'Verified the lookup limitation without establishing an amount or status.')
+              :(zh?'已比對所選期間、紀錄筆數和原文欄位。':'Matched the selected period, record counts and literal fields to your saved history.'),
+            status:'complete'});
           return {ok:true};
         }
         if(context.attempt>1){

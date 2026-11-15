@@ -161,7 +161,8 @@ test('the mixed signed-in graph rereads only the same two authorized sources aft
 });
 
 const directCases=['all-history','historical-period','zero-amount','null-not-zero','blank-not-null','leading-zero-period','exact-period-absent',
-  'student-number-explicit','student-number-not-requested','payout-not-proved','eligibility-not-proved','document-not-created','empty','bounded-omission'];
+  'student-number-explicit','student-number-not-requested','payout-not-proved','eligibility-not-proved','document-not-created','empty','bounded-omission',
+  'current-term-not-designated','write-boundary'];
 test('the actual handler verifies standalone literal history against the independent fee-remission case bank without a provider',async()=>{
   const selected=buildFeeRemissionCases().filter((item:{id:string})=>directCases.includes(item.id.slice('account:fee-remission-'.length)));
   assert.equal(selected.length,directCases.length);
@@ -182,12 +183,32 @@ test('the actual handler verifies standalone literal history against the indepen
       };
       const result=await call(handler(),item.question);
       assert.deepEqual(transportErrors,[],item.id);
-      assert.equal(reads,1,item.id);assert.equal(result.status,200,item.id);
+      assert.equal(reads,item.id.endsWith('write-boundary')?0:1,item.id);assert.equal(result.status,200,item.id);
       assert.deepEqual(result.body.verification,{status:'verified',attempts:1},item.id);
       assert.equal(result.events.filter(event=>event.kind==='fee-remission-evidence-check'&&event.status==='complete').length,1,item.id);
       const grade=gradeFeeRemissionCase(item,{statusCode:result.status,body:result.body,events:result.events,fixtureKey:item.fixtureKey,execution:'deterministic'});
       assert.deepEqual(grade.failures,[],item.id);
     }
+  }finally{globalThis.fetch=original;}
+});
+
+test('ambiguous and invalid fee-remission periods ask for one literal selector without reading personal rows',async()=>{
+  const original=globalThis.fetch,calls:string[]=[];
+  globalThis.fetch=async(input)=>{calls.push(String(input));throw new Error('unexpected network call');};
+  try{
+    const boundaryHandler=createAffairsAssistantHandler({verifyToken:async()=>({...account,user:{id:student}}),
+      loadSnapshot:async()=>assert.fail('No workspace read for an invalid selector')});
+    for(const question of ['Show my fee remission for academic year 114 and academic year 115.',
+      'Show my fee remission for academic year ABC.']){
+      const result=await call(boundaryHandler,question);
+      assert.equal(result.status,200,question);
+      assert.equal(result.body.status,'clarification',question);
+      assert.match(result.body.answer,/specify one exact academic-year and semester label/i,question);
+      assert.doesNotMatch(result.body.answer,/Remission record count|Amount:|Check status:/u,question);
+      assert.deepEqual(result.body.views,[],question);
+      assert.ok(result.events.some(event=>event.kind==='account-read:feeRemission:1'&&event.status==='unavailable'),question);
+    }
+    assert.deepEqual(calls,[]);
   }finally{globalThis.fetch=original;}
 });
 
