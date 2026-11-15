@@ -23,8 +23,8 @@ type ViewResult={key:string;view?:LearningSupportView;error?:string};
 export function LearningSupportWorkspace({userId,review}:{userId:string;review:boolean}){
   const [page,setPage]=useState(1),[revision,setRevision]=useState(0);
   const [result,setResult]=useState<ViewResult|null>(null);
-  const [draft,setDraft]=useState<Draft|null>(null);
-  const [sent,setSent]=useState(false),[busy,setBusy]=useState(false),[conflict,setConflict]=useState(false);
+  const [draft,setDraft]=useState<Draft|null>(null),[dialogOpen,setDialogOpen]=useState(false);
+  const [sent,setSent]=useState(false),[busy,setBusy]=useState(false),[rejected,setRejected]=useState(false);
   const [failure,setFailure]=useState(''),[notice,setNotice]=useState('');
   const form=useRef<HTMLFormElement|null>(null),pending=useRef<AbortController|null>(null);
   const key=review+':'+page+':'+revision;
@@ -40,7 +40,8 @@ export function LearningSupportWorkspace({userId,review}:{userId:string;review:b
   useEffect(()=>()=>pending.current?.abort(),[]);
 
   function open(next:Draft){
-    setSent(false);setConflict(false);setFailure('');setNotice('');setDraft(next);
+    if(draft)return;
+    setSent(false);setRejected(false);setFailure('');setNotice('');setDraft(next);setDialogOpen(true);
   }
   function submit(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
@@ -56,21 +57,29 @@ export function LearningSupportWorkspace({userId,review}:{userId:string;review:b
       {kind:'withdraw_learning_support',payload}});
   }
   function refresh(){
-    setDraft(null);setRevision(value=>value+1);
+    setRevision(value=>value+1);
+  }
+  function closeDialog(){
+    if(busy)return;
+    if(!sent||rejected)setDraft(null);
+    setDialogOpen(false);
   }
   async function confirm(){
-    if(!draft||pending.current||conflict)return;
+    if(!draft||pending.current||rejected)return;
     const controller=new AbortController(),action=draft.action;
     pending.current=controller;setSent(true);setBusy(true);setFailure('');
     try{
       const receipt=await changeLearningSupport(userId,action,controller.signal);
       if(!controller.signal.aborted){
         if(action.kind==='submit_learning_support'){form.current?.reset();setPage(1);}
-        setNotice(learningSupportLabels[receipt.status]);refresh();
+        setDraft(null);setDialogOpen(false);setNotice(learningSupportLabels[receipt.status]);refresh();
         window.dispatchEvent(new Event('school-affairs:updated'));
       }
     }catch(error){
-      if(!controller.signal.aborted){setFailure(errorMessage(error));setConflict(error instanceof LearningSupportError&&error.status===409);}
+      if(!controller.signal.aborted){
+        setFailure(errorMessage(error));
+        setRejected(error instanceof LearningSupportError&&[400,403,404,409].includes(error.status));
+      }
     }finally{
       pending.current=null;
       if(!controller.signal.aborted)setBusy(false);
@@ -90,10 +99,14 @@ export function LearningSupportWorkspace({userId,review}:{userId:string;review:b
       {!current&&<p role="status">載入申請紀錄… · Loading requests…</p>}
       {current?.error&&<p role="alert" className="student-service-error">{current.error} <Button type="button" variant="outline" onClick={refresh}>重試 · Retry</Button></p>}
       {notice&&<p role="status" className="student-service-status">{notice}</p>}
+      {draft&&!dialogOpen&&<p className="student-service-status">
+        先前的操作等待確認回條。 · An earlier change is awaiting a receipt.{' '}
+        <Button type="button" variant="outline" onClick={()=>setDialogOpen(true)}>繼續確認 · Resume confirmation</Button>
+      </p>}
       {view&&!review&&<form ref={form} className="student-service-form" onSubmit={submit}>
-        <label>學習主題 · Topic<Input name="topic" minLength={3} maxLength={160} required /></label>
-        <label>需要的輔導 · Support needed<Textarea name="details" rows={4} minLength={5} maxLength={1200} required /></label>
-        <div><Button type="submit">準備送出 · Review submission</Button></div>
+        <label>學習主題 · Topic<Input name="topic" minLength={3} maxLength={160} disabled={Boolean(draft)} required /></label>
+        <label>需要的輔導 · Support needed<Textarea name="details" rows={4} minLength={5} maxLength={1200} disabled={Boolean(draft)} required /></label>
+        <div><Button type="submit" disabled={Boolean(draft)}>準備送出 · Review submission</Button></div>
       </form>}
       {view&&<>
         <h2>{review?'申請紀錄 · Requests for review':'申請紀錄 · Saved requests'}</h2>
@@ -104,7 +117,7 @@ export function LearningSupportWorkspace({userId,review}:{userId:string;review:b
               <tbody>{view.rows.map(row=><tr key={row.id}>
                 <td><strong>{row.topic}</strong><small>{row.details}</small>{row.reviewNote&&<small>審查備註 · Review note: {row.reviewNote}</small>}</td>
                 <td>{learningSupportLabels[row.status]}</td><td>{date.format(new Date(row.updatedAt))}</td>
-                <td>{['submitted','in_review'].includes(row.status)&&<Button variant="outline" type="button" onClick={()=>change(row)}>
+                <td>{['submitted','in_review'].includes(row.status)&&<Button variant="outline" type="button" disabled={Boolean(draft)} onClick={()=>change(row)}>
                   {review?row.status==='submitted'?'開始審查 · Start review':'完成審查 · Complete review':'撤回 · Withdraw'}
                 </Button>}</td>
               </tr>)}</tbody>
@@ -117,8 +130,8 @@ export function LearningSupportWorkspace({userId,review}:{userId:string;review:b
         </nav>
       </>}
     </div>
-    <Dialog open={Boolean(draft)} onOpenChange={open=>{if(!open&&!busy&&!sent)setDraft(null);}}>
-      <DialogContent>
+    <Dialog open={dialogOpen} onOpenChange={open=>{if(!open)closeDialog();}}>
+      <DialogContent showCloseButton={!busy}>
         <DialogHeader><DialogTitle>{draft?titles[draft.action.kind]:''}</DialogTitle><DialogDescription>{draft?.topic}</DialogDescription></DialogHeader>
         {draft?.action.kind==='submit_learning_support'&&<p>{draft.action.payload.details}</p>}
         {draft?.action.kind==='review_learning_support'&&<label>審查備註 · Review note
@@ -128,10 +141,10 @@ export function LearningSupportWorkspace({userId,review}:{userId:string;review:b
         </label>}
         {failure&&<p role="alert" className="student-service-error">{failure}</p>}
         <DialogFooter>
-          <Button variant="outline" type="button" disabled={busy} onClick={()=>sent?refresh():setDraft(null)}>
+          <Button variant="outline" type="button" disabled={busy} onClick={()=>{if(sent)refresh();closeDialog();}}>
             {sent?'重新載入 · Refresh requests':'返回 · Back'}
           </Button>
-          {!conflict&&<Button type="button" disabled={busy} onClick={()=>void confirm()}>
+          {!rejected&&<Button type="button" disabled={busy} onClick={()=>void confirm()}>
             {busy?'處理中…':sent?'重試 · Retry':'確認 · Confirm'}
           </Button>}
         </DialogFooter>

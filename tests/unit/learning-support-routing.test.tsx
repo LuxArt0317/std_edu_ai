@@ -35,10 +35,10 @@ const saved=(userId:string,rows:LearningSupportRow[],canReview=false,view='mine'
 test('27-1 displays the real local intake, keeps the notes link, and uses the exact same command after a lost submit response',async()=>{
   session(a);
   const writes:Array<{kind:string;payload:{request_id:string;topic?:string;details?:string;id?:string;expected_version?:number}}>=[];
-  let rows:LearningSupportRow[]=[];
+  let rows:LearningSupportRow[]=[],reads=0;
   routedFetch=async(target,init)=>{
     assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer synthetic-'+a);
-    if(String(target)==='/api/affairs-data?scope=learning-support&page=1')return saved(a,rows);
+    if(String(target)==='/api/affairs-data?scope=learning-support&page=1'){reads++;return saved(a,rows);}
     assert.equal(String(target),'/api/affairs-action');
     const action=JSON.parse(String(init?.body));writes.push(action);
     if(action.kind==='submit_learning_support'){
@@ -60,8 +60,17 @@ test('27-1 displays the real local intake, keeps the notes link, and uses the ex
   assert.ok(view.getByRole('dialog'));assert.equal(writes.length,0);
   fireEvent.click(view.getByRole('button',{name:/Confirm$/}));
   await waitFor(()=>assert.match(view.getByRole('alert').textContent??'',/Synthetic lost response/u));
-  fireEvent.click(view.getByRole('button',{name:/Retry$/}));
+  fireEvent.click(view.getByRole('button',{name:/Refresh requests/}));
   await waitFor(()=>assert.ok(view.getByRole('cell',{name:/Submitted/})));
+  assert.equal(view.queryByRole('dialog'),null);
+  assert.equal(reads,2);
+  assert.equal(writes.length,1);
+  assert.equal((view.getByRole('button',{name:/Review submission/}) as HTMLButtonElement).disabled,true);
+  assert.equal((view.getByRole('button',{name:/Withdraw/}) as HTMLButtonElement).disabled,true);
+  fireEvent.click(view.getByRole('button',{name:/Resume confirmation/}));
+  fireEvent.click(view.getByRole('button',{name:/Retry$/}));
+  await waitFor(()=>assert.equal(view.queryByRole('button',{name:/Resume confirmation/}),null));
+  await waitFor(()=>assert.equal((view.getByRole('button',{name:/Withdraw/}) as HTMLButtonElement).disabled,false));
   assert.deepEqual(writes[0],writes[1]);
   assert.equal(writes[0].payload.topic,row.topic);
   assert.equal(writes[0].payload.details,row.details);
