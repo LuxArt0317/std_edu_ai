@@ -4,6 +4,9 @@ const ordinary=[...anchors,'dormitory','bunk'];
 const allFields=[...ordinary,'accommodationFee','deposit','subsidyAmount'];
 const text=value=>typeof value==='string'&&value.length<=12000&&!/[\p{Cc}\p{Cs}]/u.test(value.replace(/[\r\n\t]/gu,''))?value.normalize('NFKC').trim():'';
 const bedTopic=/\b(?:(?:dormitory|dorm|housing|residence hall)[ -]+(?:beds?|assignments?|bed assignments?|fees?|deposits?|subsidies|history)|(?:saved|assigned|my|your)\s+(?:(?:dormitory|dorm|housing)\s+)?beds?|bed\s+(?:assignments?|records?|history|numbers?)|accommodation\s+(?:fees?|deposits?)|(?:move|assign)\s+me\s+to\s+(?:a\s+)?bed)\b|(?:住宿|宿舍)(?:床位|床號|床号)|床位(?:編號|编号|紀錄|记录|分配)|(?:我的|已分配的|儲存的|保存的)(?:床位|床號|床号)|住宿費|住宿费/iu;
+const englishPageRecords=/^(?:please\s+)?(?:(?:what|which)\s+|(?:show|list|check)(?: me)?\s+)?(?:my\s+)?(?:(?:saved|recorded)\s+)?(?:housing|dormitory|accommodation)\s+(?:records?|history)(?:\s+(?:are|is)\s+(?:saved|recorded))?(?:\s+for\s+[\p{L}\p{N}][\p{L}\p{N} .'’_-]{0,60})?[?!]*$/iu;
+const chinesePageRecords=/^(?:請問|請|顯示|查詢|查看|列出|有哪些|什麼|我的|已儲存的|保存的)*(?:住宿|宿舍)(?:紀錄|记录)(?:有哪些|是什麼|有哪些已儲存的資料)?[？。！]*$/u;
+const noInferredAbsence=/^(?:please\s+)?(?:do not|don['’]t|never)\s+(?:infer|assume|guess|invent)\s+(?:any(?:\s+(?:records?|assignments?))?|anything)(?:\s+if none\s+(?:(?:are|were)\s+)?(?:stored|saved|recorded))?$/iu;
 const application=/\b(?:housing|dormitory|dorm|accommodation)\s+(?:application|receipt|application window|application period)s?\b|住宿申請|住宿申请|住宿收據|住宿收据|申請期間|申请期间/iu;
 const conduct=/\b(?:dormitory|dorm|housing)\s+(?:conduct|discipline|rewards?|penalties)\b|宿舍獎懲|宿舍奖惩|宿舍紀律|宿舍纪律/iu;
 const independent=/\b(?:tuition|(?:school\s+)?fee\s+(?:balance|amount due)|remaining balance in school|next\s+(?:(?:school affairs|scheduled)\s+)?class|courses?|classes|grades?|assignments?|homework|salary|aid claims?|counseling|health|student conduct|scholarship|clearance|leave|profile|student (?:number|name)|year level)\b|學費|学费|下一堂課|下一堂课|課程|课程|成績|成绩|作業|作业|薪資|薪资|諮商|咨询|健檢|健检|學生獎懲|学生奖惩|請假|请假|年級|年级/iu;
@@ -147,12 +150,15 @@ export function housingBedLookupContext(question,route='',history=[]){
   const empty={selection:null,question:'',otherQuestion:value,companion:null,companions:[],excludedCompanions:[],foreignCompanions:[],companionOnly:false,navigation:false,foreign:false,excluded:false};
   if(!value)return empty;
   const parts=clauses(value),explicit=parts.some(part=>bedTopic.test(part)&&!application.test(part)&&!conduct.test(part));
-  const implicit=!explicit&&follow.test(value)&&!independent.test(value)&&!application.test(value)&&!conduct.test(value)
+  const fromPage=part=>context.bed&&(englishPageRecords.test(part)||chinesePageRecords.test(part));
+  const pageScoped=parts.some(fromPage);
+  const implicit=!explicit&&!pageScoped&&follow.test(value)&&!independent.test(value)&&!application.test(value)&&!conduct.test(value)
     &&(previous?Boolean(prior):context.bed);
   const scoped=[],other=[];let selected=false,excluded=false,navigation=false,foreign=false,fieldNegation=false;
   for(const part of parts){
     const isOther=(independent.test(part)||application.test(part)||conduct.test(part))&&!bedTopic.test(part);
-    const named=bedTopic.test(part)&&!application.test(part)&&!conduct.test(part);
+    const named=(bedTopic.test(part)||fromPage(part))&&!application.test(part)&&!conduct.test(part);
+    if((explicit||pageScoped||implicit)&&noInferredAbsence.test(part))continue;
     const termOnly=/^(?:for\s+)?(?:(?:academic|school)\s+year\b|semester\b|term\s+\d|\d+\s*(?:學年|学年))/iu.test(part);
     const fieldPart=part.replace(/^(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:read|show|include|list|check)\s+|(?:without|excluding|except|skip|not)\s+)/iu,'');
     const field=(fieldOnly.test(fieldPart)||termOnly)&&!isOther;
@@ -166,7 +172,7 @@ export function housingBedLookupContext(question,route='',history=[]){
     scoped.push(part);foreign ||= foreignOwner(part);
     navigation ||= named&&isNav(part);
   }
-  const scopedQuestion=scoped.join('. '),otherQuestion=other.join('. '),from=explicit?'question':prior?'history':'route';
+  const scopedQuestion=scoped.join('. '),otherQuestion=other.join('. '),from=explicit?'question':pageScoped?'route':prior?'history':'route';
   const companions=companionScope(other);
   if(!selected)return {...empty,otherQuestion,...companions,excluded};
   if(implicit&&prior?.foreign)foreign=true;

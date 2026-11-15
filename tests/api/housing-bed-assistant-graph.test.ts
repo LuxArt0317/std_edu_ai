@@ -254,6 +254,27 @@ test('an empty lookup, a failed lookup and an unlinked academic period each have
   }
 });
 
+test('short housing questions on the assignment page verify an exact empty read without the model',async()=>{
+  for(const [question,answer] of [
+    ['What housing records are saved?',/found no saved records for accommodation beds in the stu\.best sample data/u],
+    ['What assigned dormitory bed records are saved for me? Do not infer any if none are stored.',/found no saved records for accommodation beds/u],
+    ['我的住宿紀錄有哪些？',/沒有找到你在 stu\.best 儲存的住宿床位紀錄/u],
+  ] as const){
+    const displayed=await offline({tools:['housing'],empty:true},async()=>{
+      delete process.env.OPENAI_API_KEY;
+      const body=await ask(question);
+      assert.deepEqual(body.verification,{status:'verified',attempts:1});
+      assert.equal(body.grounding.webSearched,false);
+      assert.match(body.answer,answer);
+      assert.equal(body.citations.find((citation:{chunkId:string})=>citation.chunkId==='account:housing')?.url,housingPath);
+      assert.ok(body.activity.some((step:{kind:string;status:string})=>step.kind==='housing-bed-evidence-check'&&step.status==='complete'));
+      assert.equal(body.views.length,0);
+    });
+    assert.deepEqual(displayed.calls,['affairs_housing_assignments']);
+    assert.equal(displayed.reviews,0);
+  }
+});
+
 test('a failed independent fee read preserves the verified saved accommodation answer',async()=>{
   await offline({tools:['housing','charges'],feeFailed:true},async()=>{
     const body=await ask(bedQuestion+' '+feeQuestion);

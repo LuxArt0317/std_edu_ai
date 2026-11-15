@@ -1173,11 +1173,29 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const source=housingSelected&&sources.find(item=>item.id==='account:housing');
     return source?formatHousingBedAnswer(source,question,housing.selection.unsupported):null;
   };
+  const renderEmptyHousing=sources=>{
+    const [scope,source]=sources;
+    if(sources.length!==2||scope.id!=='account-scope'||source.id!=='account:housing')return null;
+    const data=JSON.parse(source.content);
+    const expectedTerm=housing.selection.term;
+    const term=expectedTerm.academicYear===null&&expectedTerm.semester===null?null:expectedTerm;
+    if(data.collection!=='housingBed'||data.readState!=='empty'||data.complete!==true||data.excerpted!==false
+      ||!isDeepStrictEqual(data.selection,{fields:housing.selection.fields,term})
+      ||!Array.isArray(data.records)||data.records.length||!data.counts||!Number.isSafeInteger(data.counts.available)
+      ||data.counts.available<0||data.counts.returned!==data.counts.available||data.counts.matching!==0||data.counts.included!==0
+      ||data.counts.unread!==0||data.counts.omitted!==0||data.counts.unresolvedPeriods!==0)return null;
+    const rendered=housingAnswer(sources);
+    return rendered&&answerLinksSupported(rendered.answer,sources)
+      ?{status:'answered',...rendered,citations:evidenceCitations(sources)}:null;
+  };
+  const emptyHousing=housingSelected&&!applicationSelected&&!housing.otherQuestion&&!plan.publicTopics.length
+    &&activeTools.length===1&&activeTools[0]==='housing' ? renderEmptyHousing(evidence) : null;
   const applicationAnswer=sources=>{const source=applicationSelected&&sources.find(item=>item.id==='account:housingApplications');return source?formatHousingApplicationAnswer(source,question):null;};
   const appAnswer=applicationAnswer(evidence);
   if(appAnswer)initial.answer=[initial.answer,appAnswer.answer].filter(Boolean).join('\n\n');
   const bedAnswer=housingAnswer(evidence);
   if(bedAnswer)initial.answer=[initial.answer,bedAnswer.answer].filter(Boolean).join('\n\n');
+  if(emptyHousing)initial={...initial,...emptyHousing};
   const renderExactSupplemental=sources=>{
     const sourceId='account:'+scopedSupplementalTool;
     const wanted=['account-scope',sourceId,...(withScopedBed?['account:housing']:[])];
@@ -1263,7 +1281,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // The deeper review, when useful, works from the same verified read scope.
   const recordFreeCoaching=intent.recognized&&intent.kind==='coaching'&&!activeTools.length&&!evidence.length;
   const coachingGuide=recordFreeCoaching?generalCoachingGuide(question):null;
-  const composeInitially=directNoteCompanion||exactSupplemental?false:servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
+  const composeInitially=emptyHousing||directNoteCompanion||exactSupplemental?false:servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
   if(composeInitially){
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
@@ -1281,7 +1299,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected;
   // Fixed scope limits refresh and replanning. A deeper model review reuses
   // the refreshed evidence even when it comes from one scoped reader.
-  const modelRepairs=activeTools.length>0&&!directServiceNotes&&!directNoteCompanion&&!exactSupplemental&&!scopedOverview&&!directStudy;
+  const modelRepairs=activeTools.length>0&&!emptyHousing&&!directServiceNotes&&!directNoteCompanion&&!exactSupplemental&&!scopedOverview&&!directStudy;
   const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,
     allowDeeperReview:modelRepairs,
     loadEvidence:async({attempt,feedback=[]})=>{
@@ -1313,6 +1331,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     verify:async context=>{
       // The fixed coaching guide contains no sourced facts or user-supplied text.
       if(coachingGuide&&context.candidate===coachingGuide&&context.evidence.length===0)return {ok:true};
+      if(emptyHousing){
+        const expected=renderEmptyHousing(context.evidence);
+        if(!expected||context.candidate.proposedAction||!Object.keys(expected).every(key=>isDeepStrictEqual(context.candidate[key],expected[key])))
+          return {ok:false,reason:'evidence_unavailable'};
+        const zh=supplementalAnswerLanguage(question)==='zh-TW';
+        emit({kind:'housing-bed-evidence-check',label:zh?'核對住宿床位紀錄':'Checked your saved dormitory bed records',
+          detail:zh?'已核對所選範圍內沒有床位紀錄。':'Verified that the selected records contain no matching bed assignments.',status:'complete'});
+        return {ok:true};
+      }
       if(exactSupplemental){
         const supported=renderExactSupplemental(context.evidence);
         if(!supported||context.candidate.proposedAction||!Object.keys(supported).every(key=>isDeepStrictEqual(context.candidate[key],supported[key])))
@@ -1381,6 +1408,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           detail:'The answer uses fixed practice guidance without personal records or external sources.',status:'complete'});
         return coachingGuide;
       }
+      if(emptyHousing)return {...context.candidate,...(renderEmptyHousing(context.evidence)??{status:'abstained',answer:'',citations:[],views:[]})};
       if(directNoteCompanion){
         return {...context.candidate,...(renderNoteCompanion(context.evidence)??{status:'abstained',answer:'',citations:[]})};
       }

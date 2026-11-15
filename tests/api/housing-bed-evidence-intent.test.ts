@@ -86,6 +86,19 @@ test('34-1 does not substitute application receipts, windows or dormitory conduc
     const result=context('Show my dormitory bed and '+other+'.',path);assert.equal(result.selection?.reason,null);assert.equal(result.otherQuestion,other);
   }
 });
+test('generic housing records use exact 34-1 context and enforce the owner boundary',()=>{
+  for(const question of ['What housing records are saved?','My saved accommodation history.','我的住宿紀錄有哪些？']){
+    assert.equal(select(question,path)?.from,'route');
+    assert.deepEqual(select(question,path)?.fields,defaults);
+    assert.equal(select(question,'/school-affairs/services/34-2'),null);
+  }
+  assert.equal(select('What housing records are saved for Alice?',path)?.reason,'foreign_request');
+  assert.equal(select('What housing records are saved?',path+'?owner_id=Alice')?.reason,'invalid_route');
+  assert.equal(context('What housing records are saved? Do not infer any if none are stored.',path).otherQuestion,'');
+  const compound=context('What housing records are saved? When is my next class?',path);
+  assert.equal(compound.selection?.from,'route');
+  assert.equal(compound.companion,'next_class');
+});
 test('term selectors stay literal, validate conflicts and never invent current residency',()=>{
   for(const [question,term] of [
     ['Show my dormitory bed for academic year 115 semester 1.',{academicYear:115,semester:1}],

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Use the saved bed-assignment reader for short housing questions on 34-1 and directly verify complete empty results. [#100]
+
 - Add protected checks for both orders of Internship and tuition balance questions, with separately signed reads for tuition and saved Internship records. [#100]
 
 - Verify complete standalone internship answers directly against the selected saved records. Keep each tracking or review status with its own record in English and Traditional Chinese. [#100]

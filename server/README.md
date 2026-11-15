@@ -203,6 +203,8 @@ The 34-1 reader projects caller-owned bed assignments and their referenced perio
 
 Housing companion intent keeps positive, excluded and foreign requests separate. Each selected caller-owned lookup retains its own availability and evidence.
 
+A short question about saved housing records selects the bed lookup on the 34-1 page. A complete empty lookup verifies the literal absence and destination directly in the graph. Failed or partial lookups retain their own limitations.
+
 School Affairs search and menu context use the captured service catalog. Public menu answers can be returned before opening the model or research corpus.
 
 ### Housing receipts and native Moodle grades
