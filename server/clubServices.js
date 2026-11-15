@@ -2,26 +2,28 @@ import { clubOfficerActions,clubOfficerScope,clubOfficerViews,validClubApplicati
 import { AffairsWorkspaceError } from './affairsWorkspace.js';
 import { clubActions,clubMonth,clubScope,clubUuid,validClubReceipt,validClubWorkspace } from './clubServicesContract.js';
 
-export async function clubRpc(account, name, body, messages) {
+export async function clubRpc(account, name, body, messages, observeRequest) {
   const unavailable = () => new AffairsWorkspaceError('無法連線至社團活動系統，請重試。',503);
   const timeout = Math.min(9000, (account.requestDeadline ?? Date.now()+9000)-Date.now());
   if (timeout<=0) throw unavailable();
+  let result;
   try {
-    const result = await fetch(account.url+'/rest/v1/rpc/'+name,{
+    result = await fetch(account.url+'/rest/v1/rpc/'+name,{
       method:'POST',redirect:'error',signal:AbortSignal.timeout(timeout),
       headers:{apikey:account.key,Authorization:'Bearer '+account.token,'Content-Type':'application/json'},
       body:JSON.stringify(body),
     });
-    if (!result.ok) {
-      void result.body?.cancel().catch(()=>{});
-      if (messages[result.status]) throw new AffairsWorkspaceError(messages[result.status],result.status);
-      throw unavailable();
-    }
-    return await result.json();
-  } catch (error) {
-    if (error instanceof AffairsWorkspaceError) throw error;
+  } catch {
+    observeRequest?.('network-error');
     throw unavailable();
   }
+  observeRequest?.(result.status);
+  if (!result.ok) {
+    void result.body?.cancel().catch(()=>{});
+    if (messages[result.status]) throw new AffairsWorkspaceError(messages[result.status],result.status);
+    throw unavailable();
+  }
+  return await result.json().catch(()=>{throw unavailable();});
 }
 
 export async function readClubServices(account,query) {

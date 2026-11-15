@@ -15,6 +15,7 @@ const categories=new Set([
   'egress observation limit','invalid certificate response',
   'save certificate binding','save certificate transcript mismatch','save certificate receipt mismatch',
   'rendered certificate transcript mismatch','rendered certificate activity mismatch',
+  'rendered attendance transcript mismatch','rendered attendance activity mismatch',
   'certificate egress mismatch',
   'invalid announcement email response','announcement fixture mismatch',
   'invalid student profile response','student profile fixture mismatch',

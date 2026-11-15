@@ -12,6 +12,7 @@
 - Add protected Chromium replay for Announcement Email preferences, Gmail limits and an empty profile, with exact two-account readback and cleanup. [#100]
 
 - Add protected Student Profile browser acceptance for confirmation status, the requested recorded year, and a verified empty account. Verify distinct sources, safe conversation restoration, crossed-account denial, and fixture cleanup. [#100]
+- Verify five Club Attendance browser answers against a signed read receipt, the saved private transcript and both account owners’ before-and-after records. [#100]
 
 - Answer saved club attendance and tuition balance together from their separate signed-in records. Retry only a source that failed and keep the verified section if the other remains unavailable. [#100]
 

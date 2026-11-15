@@ -18,6 +18,10 @@ export function createAssistantStream(requested, response) {
     progress(kind, label, detail, status = 'running') {
       event('progress', {kind, label, detail, status});
     },
+    observation(kind, receipt) {
+      if(typeof kind==='string'&&/^evaluation-[a-z-]{1,48}$/u.test(kind)&&typeof receipt==='string'&&receipt.length<=8192)
+        event(kind,{receipt});
+    },
     send(status, payload) {
       if (finished) return;
       if (!enabled) { response.status(status).json(payload); finished = true; return; }

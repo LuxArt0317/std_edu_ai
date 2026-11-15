@@ -7,4 +7,4 @@ export function changeClubEquipment(account:Account,kind:string,payload:unknown,
 export function readClubOfficer(account:Account,query:Record<string,string|string[]|undefined>):Promise<import('./clubOfficerContract.js').OfficerWorkspace>;
 export function changeClubOfficer(account:Account,kind:string,payload:unknown,manager?:boolean):Promise<import('./clubOfficerContract.js').OfficerReceipt>;
 
-export function clubRpc(account:Account,name:string,body:unknown,messages:Record<number,string>):Promise<unknown>;
+export function clubRpc(account:Account,name:string,body:unknown,messages:Record<number,string>,observeRequest?:(status:number|'network-error')=>void):Promise<unknown>;

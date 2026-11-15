@@ -24,9 +24,12 @@ function instant(value){
   return BigInt(parsed)*1000n+BigInt((stamp[2]??'').padEnd(6,'0').slice(3));
 }
 
-async function readAttendance(account,selection,deadline){
+async function readAttendance(account,selection,deadline,observeRead){
   const workspace=await readClubStudent({...account,requestDeadline:Math.min(deadline,Date.now()+6500)},
-    {scope:clubStudentScope,view,page:String(selection.page)});
+    {scope:clubStudentScope,view,page:String(selection.page)},observeRead?(status=>{
+      if(status==='network-error'||status===408||status===429||status>=500)
+        observeRead({ownerId:account.user.id,transportUnavailable:status});
+    }):undefined);
   if(Date.now()>=deadline||!exact(workspace,workspaceKeys)||workspace.eligible||selection.page===1000&&workspace.hasMore)throw unavailable();
   const seen=new Set();
   let previous;
@@ -39,6 +42,7 @@ async function readAttendance(account,selection,deadline){
     previous={starts,id:row.id};
     seen.add(row.id);
   }
+  observeRead?.({ownerId:account.user.id,workspace});
   const rows=selection.countOnly?[]:workspace.rows.slice(0,selection.latest?1:visibleLimit).map(({title,club_name,starts_at,location,academic_year,term,recorded_at})=>({
     title:label(title),club:label(club_name),startsAt:starts_at,location:label(location),year:academic_year,term,recordedAt:recorded_at,
   }));
@@ -94,7 +98,7 @@ function formatAnswer(question,selection,evidence){
       ...(!club||!fees?{degraded:true}:{})}};
 }
 
-export async function answerClubActivityAttendance({account,question,route,selection,deadline,onProgress}){
+export async function answerClubActivityAttendance({account,question,route,selection,deadline,onProgress,observation}){
   const expected=clubAttendanceSelection(question,route);
   if(!expected||expected.reason||!isDeepStrictEqual(expected,selection))throw unavailable();
   const activity=[];
@@ -106,14 +110,16 @@ export async function answerClubActivityAttendance({account,question,route,selec
   const caller={...account,user:{id:account.user.id}};
   const retained=new Map();
   const reads=[{id:sourceId,tool:'clubAttendance',label:'Checked club activity attendance',
-    missing:'The selected attendance page could not be read.',reader:()=>readAttendance(caller,expected,deadline)}];
+    missing:'The selected attendance page could not be read.',reader:observe=>readAttendance(caller,expected,deadline,observe)}];
   if(expected.tuitionBalance)reads.push({id:'account:charges',tool:'charges',label:'Checked saved tuition balance',
-    missing:'The selected tuition records could not be read.',reader:()=>readOwnTuitionBalance(caller,deadline)});
+    missing:'The selected tuition records could not be read.',reader:observe=>readOwnTuitionBalance(caller,deadline,observe)});
   const read=async attempt=>{
     await Promise.all(reads.map(async ({id,tool,label,missing,reader})=>{
       if(retained.has(id))return;
-      const result=await reader().catch(()=>null);
+      const raw=[];
+      const result=await reader(observation?(value=>raw.push(value)):undefined).catch(()=>null);
       if(result?.id===id)retained.set(id,result);
+      observation?.record(tool,attempt,raw,retained.has(id));
       progress({kind:'account-read:'+tool+':'+attempt,label,status:retained.has(id)?'complete':'unavailable',
         detail:retained.has(id)?'Checked the selected records for this signed-in account.':missing});
     }));
@@ -124,8 +130,12 @@ export async function answerClubActivityAttendance({account,question,route,selec
   const format=evidence=>formatAnswer(question,expected,evidence);
   const result=await runAnswerVerification({question,initialAnswer:format(first)??missing,deadline,onProgress:progress,
     loadEvidence:async({attempt})=>attempt===1?first:read(attempt),
-    verify:async({candidate,evidence,attempt})=>!evidence.length||attempt===1&&evidence.length<reads.length
-      ?{ok:false,reason:'evidence_unavailable'}:{ok:isDeepStrictEqual(candidate,format(evidence))},
+    verify:async({candidate,evidence,attempt})=>{
+      if(!evidence.length||attempt===1&&evidence.length<reads.length)return {ok:false,reason:'evidence_unavailable'};
+      const matches=isDeepStrictEqual(candidate,format(evidence));
+      if(matches)observation?.verified(attempt);
+      return {ok:matches};
+    },
     repair:async({evidence})=>format(evidence)??missing,
   });
   if(expected.tuitionBalance&&result.verification?.status==='verified'&&retained.size<reads.length){

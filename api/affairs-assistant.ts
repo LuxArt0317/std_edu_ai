@@ -2,6 +2,7 @@ import {answerLearningSupport} from '../server/learningSupportAssistant.js';
 import {learningSupportQuestion} from '../server/learningSupportAssistantIntent.js';
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
 import {openVenueObservation,venueObservationHeader} from '../server/venueObservation.js';
+import {clubAttendanceBrowserObservationEvent,openClubAttendanceBrowserObservation} from '../server/clubAttendanceObservation.js';
 import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
 import {clubAttendanceBoundary,clubAttendanceSelection} from '../server/clubAttendanceIntent.js';
 import {answerClubEquipment} from '../server/accountClubEquipmentAnswer.js';
@@ -255,9 +256,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const hasInternshipProbe=Boolean(input&&Object.hasOwn(input,'evaluationInternshipProbe'));
   const hasTeachingProbe=Boolean(input&&Object.hasOwn(input,'evaluationTeachingProbe'));
   const hasVenueProbe=Boolean(input&&Object.hasOwn(input,'evaluationVenueProbe'));
-  const probeCount=[hasLeaveProbe,hasInternshipProbe,hasTeachingProbe,hasVenueProbe].filter(Boolean).length;
+  const hasClubProbe=Boolean(input&&Object.hasOwn(input,'evaluationClubAttendanceProbe'));
+  const probeCount=[hasLeaveProbe,hasInternshipProbe,hasTeachingProbe,hasVenueProbe,hasClubProbe].filter(Boolean).length;
   const hasProbe=probeCount>0;
-  const rejectProbe=()=>response.status(404).json({error:hasVenueProbe?'Venue observation unavailable.'
+  const rejectProbe=()=>response.status(404).json({error:hasClubProbe?'Club attendance observation unavailable.':hasVenueProbe?'Venue observation unavailable.'
     :hasTeachingProbe?'Teaching feedback observation unavailable.':hasInternshipProbe?'Internship observation unavailable.':'Student Leave observation unavailable.'});
   if(hasProbe&&(probeCount!==1||process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){
     rejectProbe();return;
@@ -315,6 +317,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const observedVenue=venueObservation?venueRequestPlan(question,route,history,now):null;
   if(hasVenueProbe&&(!observedVenue||observedVenue.feeQuestion!==null
     ||observedVenue.selection.reason!==null&&!['foreign','mixed'].includes(observedVenue.selection.reason))){
+    rejectProbe();return;
+  }
+  const clubObservation=hasClubProbe?openClubAttendanceBrowserObservation({body,identity:probeIdentity,correlationId}):null;
+  if(hasClubProbe&&(!clubObservation||!clubAttendanceSelection(question,route)||typeof response.write!=='function'||typeof response.end!=='function')){
     rejectProbe();return;
   }
   const active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
@@ -398,13 +404,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(learningEntry){stream.send(200,answerLearningEntry(question,learningEntry,true));return;}
   const clubAttendance=clubAttendanceSelection(question,route);
   if(clubAttendance){
-    if(clubAttendance.reason){stream.send(200,clubAttendanceBoundary(clubAttendance,question,true));return;}
-    if(Array.isArray(input?.images)&&input.images.length){
+    if(!clubAttendance.reason&&Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Ask about your attendance using text, without an image.'});return;
     }
     try{
-      stream.send(200,await answerClubActivityAttendance({account,question,route,selection:clubAttendance,deadline,
-        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+      const result=clubAttendance.reason?clubAttendanceBoundary(clubAttendance,question,true)
+        :await answerClubActivityAttendance({account,question,route,selection:clubAttendance,deadline,
+          observation:clubObservation??undefined,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      const receipt=clubObservation?.finish(result);
+      if(receipt)stream.observation(clubAttendanceBrowserObservationEvent,receipt);
+      stream.send(200,result);
     }catch{stream.send(503,{error:'The selected club attendance page could not be checked.'});}
     return;
   }

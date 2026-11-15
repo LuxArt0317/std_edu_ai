@@ -13,8 +13,8 @@ function isTuitionCharge(row){
   return row.sourceMode==='sample'&&/^Sample (?:Fall|Spring) \d{4} tuition$/iu.test(row.label);
 }
 
-export async function readOwnTuitionBalance(account,deadline){
-  const saved=await loadOwnAffairsCharges(account,{deadline,requireExactProjection:true});
+export async function readOwnTuitionBalance(account,deadline,observeRead){
+  const saved=await loadOwnAffairsCharges(account,{deadline,requireExactProjection:true,observeRead});
   const charges=saved.charges.filter(isTuitionCharge);
   const source=accountEvidence({...saved,charges},['charges'],{
     route:'/school-affairs/services/39-1',scopedReadOnly:true,
