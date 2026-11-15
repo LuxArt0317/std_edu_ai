@@ -8,6 +8,7 @@ import ts from 'typescript';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
 import * as materialIntent from '../../server/dtmMaterialIntent.js';
 import * as catalogIntent from '../../server/elearningCatalogPageIntent.js';
+import * as metadataIntent from '../../server/elearningMetadataIntent.js';
 import * as internshipIntent from '../../server/internshipEvidenceIntent.js';
 import * as leaveIntent from '../../server/studentLeaveEvidenceIntent.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
@@ -64,6 +65,7 @@ test('compiled client selects account verification before older direct readers a
     if(specifier.endsWith('elearningCatalogPageIntent.js'))return catalogIntent;
     if(specifier.endsWith('accountActionIntent.js'))return actions;
     if(specifier.endsWith('dtmAssignmentListIntent.js'))return {dtmAssignmentListSelection};
+    if(specifier.endsWith('elearningMetadataIntent.js'))return metadataIntent;
     if(specifier.endsWith('dtmMaterialIntent.js'))return materialIntent;
     if(specifier.endsWith('internshipEvidenceIntent.js'))return internshipIntent;
     if(specifier.endsWith('studentLeaveEvidenceIntent.js'))return leaveIntent;

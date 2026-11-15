@@ -105,7 +105,7 @@ export function inspectClientDispatchSource(source){
   const first=graphCalls[0];
   const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
     &&node.thenStatement.expression?.getStart(file)===first.at);
-  const graphPredicates={catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
+  const graphPredicates={isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
     isStudentLeaveEvidenceQuestion:['studentLeaveEvidenceIntent','question,route,history'],
     isVenueRequestQuestion:['venueRequestIntent','question,route,history'],
     isDtmAssignmentEvidenceQuestion:['dtmAssignmentEvidenceIntent','question,route,history'],
@@ -144,6 +144,7 @@ export function inspectClientDispatchSource(source){
   return {contracts,verifiedDispatch:[
     {id:'published-course-detail',graphTool:'courseCatalog',source:dispatchPath,line:first.line},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog',source:dispatchPath,line:first.line},
+    {id:'elearning-page-metadata',graphTool:'elearningMetadata',source:dispatchPath,line:first.line},
     {id:'dtm-assignment-list',graphTool:'dtmAssignmentList',source:dispatchPath,line:first.line},
     {id:'dtm-materials',graphTool:'dtmMaterials',source:dispatchPath,line:first.line},
     {id:'student-leave',graphTool:'leaveRecords',serviceKeys:['20-1','33-1'],source:dispatchPath,line:first.line},
@@ -199,7 +200,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/elearningMetadataIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',

@@ -11,7 +11,7 @@ import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {readElearningCatalogPage,selectElearningCatalogPage} from '../../server/elearningCatalogPageEvidence.js';
 import {elearningCatalogPageRoute,elearningCatalogGuestRoute,isElearningCatalogPageQuestion} from '../../server/elearningCatalogPageIntent.js';
 import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
-import {catalogCases,catalogNegativeQuestions,forbiddenCatalogEvidence,pendingCatalogMetadataCases} from './elearning-catalog-native-cases.mjs';
+import {catalogCases,catalogNegativeQuestions,forbiddenCatalogEvidence,catalogMetadataCases} from './elearning-catalog-native-cases.mjs';
 
 const account={
   user:{id:'78000000-0000-4000-8000-000000000001'},
@@ -141,8 +141,8 @@ test('unsigned accounts, invalid owner data and expired deadlines return bounded
   assert.equal(fetchStub.mock.callCount(),0);
 });
 
-test('metadata expectations stay separately tracked until a scoped category and notice authority exists',()=>{
-  assert.equal(pendingCatalogMetadataCases.length,6);
+test('metadata expectations remain independent of the catalog workspace reader',()=>{
+  assert.equal(catalogMetadataCases.length,6);
   assert.match(baseMigration,/revoke all on public\.elearning_categories,public\.elearning_courses,public\.elearning_notices,public\.elearning_enrollments\s+from public,anon,authenticated/u);
   assert.match(baseMigration,/\(305241,'page','[^']+',null,5\)/u);
   assert.match(baseMigration,/\(325504,'page','[^']+','自112學年度第2學期起，遠距教學轉入 TronClass 創課平台。',4\)/u);
@@ -284,7 +284,7 @@ test('captured course titles and encoded query remain inert in the answer and hi
   assert.deepEqual(result.body.citations.map(item=>item.url),[route]);
   assert.match(result.body.answer,/\]\(\/elearning\/course\/93\)/u);
   assert.doesNotMatch(result.body.answer,/<img|\]\(https:|\x60x\x60|\*\*literal\*\*/u);
-  assert.match(result.body.answer,/https&#58;\/\/hostile\.invalid/u);
+  assert.match(result.body.answer,/https&#58;\/\/hostile&#46;invalid/u);
   assert.equal(fetchStub.mock.callCount(),1);
   const query='/elearning/search?q=one(two*)';
   assert.equal(elearningCatalogPageRoute(query).path,'/elearning/search?q=one%28two*%29');

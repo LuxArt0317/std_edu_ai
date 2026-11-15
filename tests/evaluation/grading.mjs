@@ -537,7 +537,7 @@ function recordLinkMatches(answer, binding, allBindings) {
 }
 
 // This test-side allowlist is deliberately independent of the runtime planner.
-const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','internshipRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmAssignmentList','dtmMaterials','dtmGradeReport','elearningCatalog','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
+const accountReadNames=new Set(['profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','leaveRecords','internshipRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','courseCatalog','enrollmentCertificate','dtmSubmissions','tuition','studentConduct','studentLoan','aidPayments','dtmAssignment','dtmAssignmentList','dtmMaterials','dtmGradeReport','elearningCatalog','elearningMetadata','elearningEnrollments','facilityRepairs','elearningOutline','dormitoryConduct','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation']);
 const toolStatusAliases={success:'complete',succeeded:'complete',failed:'error',started:'running',start:'running'};
 const toolStatuses=new Set(['running','complete','unavailable','error','cancelled','skipped']);
 const terminalStatuses=new Set(['complete','unavailable','error','cancelled','skipped']);
@@ -628,6 +628,7 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
     check('answer.limitation',limitationText.test(answer.replace(/’/g,"'"))||otherAccountDenial.test(answer)||ownAccountOnlyDenial(answer)||unavailableFileCapability.test(answer)
       ||testCase.domain==='dtmGradeReport'&&missingDtmReportField.test(answer)
       ||testCase.domain==='elearningEnrollments'&&missingElearningEnrollments.test(visibleMarkdown(answer))
+      ||testCase.domain==='elearningMetadata'&&/no saved notice matched|does not specify a deadline|沒有相符的已儲存公告|未提供截止日期/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='healthExaminations'&&/\b(?:no (?:saved health (?:examination )?)?records (?:were returned|on (?:this |the |selected )?page)|(?:selected |this )?page.{0,30}empty|no saved health (?:examination )?records)\b/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='counselingAppointments'&&/\bno saved (?:counseling )?appointments\b|沒有已儲存預約/iu.test(visibleMarkdown(answer))
       ||testCase.domain==='tutorEvaluation'&&/\b(?:no saved submission|submission status is unknown|form has no downloadable receipt|approval is not recorded|history is unavailable)\b|沒有這份導師問卷的送出紀錄/iu.test(visibleMarkdown(answer))

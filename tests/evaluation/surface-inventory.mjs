@@ -107,7 +107,8 @@ export async function discoverSurfaces() {
   ];
   const value={version:3,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
     tools:Object.entries({...accountTools,...supplementalAccountTools,dtmAssignmentList:'Owned Moodle assignment list metadata and local tracker status for the selected view.',dtmMaterials:'Saved Moodle material lists and exact resource metadata for the caller’s course.',
-      elearningCatalog:'The verified Digital Academy catalog search or category result page, with local course links.'}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
+      elearningCatalog:'The verified Digital Academy catalog search or category result page, with local course links.',
+      elearningMetadata:'The saved Digital Academy category hierarchy or exact notice title and body.'}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
     coverageLimits:[
       'A route appearing in an API question or link is semantic/navigation coverage, not browser acceptance.',
       'Public capture title/date questions test page context only; source-content question coverage is separate.',

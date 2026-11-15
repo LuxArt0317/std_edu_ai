@@ -5,8 +5,9 @@ import {venueRequestBoundary,venueRequestSelection} from '../server/venueRequest
 import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
-import {answerElearningCatalog,elearningCatalogBoundary} from '../server/accountElearningCatalogAnswer.js';
+import {answerElearningCatalog,answerElearningMetadata,elearningCatalogBoundary,elearningMetadataBoundary} from '../server/accountElearningCatalogAnswer.js';
 import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../server/elearningCatalogPageIntent.js';
+import {isElearningMetadataQuestion,selectElearningMetadata} from '../server/elearningMetadataIntent.js';
 import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
 import {answerDtmAssignmentList} from '../server/accountDtmAssignmentListAnswer.js';
 import {dtmAssignmentListBoundary,dtmAssignmentListSelection} from '../server/dtmAssignmentListIntent.js';
@@ -258,17 +259,23 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The selected offering could not be checked.'});}
     return;
   }
-  if(isElearningCatalogPageQuestion(question,route)){
+  const metadataQuestion=isElearningMetadataQuestion(question,route);
+  if(metadataQuestion||isElearningCatalogPageQuestion(question,route)){
     if(Array.isArray(input?.images)&&input.images.length){
-      stream.send(400,{error:'For exact catalog questions, remove the image and ask using text.'});
+      stream.send(400,{error:'For exact Digital Academy page questions, remove the image and ask using text.'});
       return;
     }
-    const selection=selectElearningCatalogPage(question,route);
-    if(!selection){stream.send(200,elearningCatalogBoundary(question,null,true));return;}
+    const selection=metadataQuestion?selectElearningMetadata(question,route):selectElearningCatalogPage(question,route);
+    if(!selection){
+      const boundary=metadataQuestion?elearningMetadataBoundary:elearningCatalogBoundary;
+      stream.send(200,boundary(question,null,true));
+      return;
+    }
     const onProgress=(step:VerificationProgress)=>stream.progress(step.kind,step.label,step.detail,step.status);
     try{
-      stream.send(200,await answerElearningCatalog({account,question,route:selection.path,deadline,onProgress}));
-    }catch{stream.send(503,{error:'The selected Digital Academy catalog page could not be checked.'});}
+      const answer=metadataQuestion?answerElearningMetadata:answerElearningCatalog;
+      stream.send(200,await answer({account,question,route:selection.path,deadline,onProgress}));
+    }catch{stream.send(503,{error:'The selected Digital Academy page could not be checked.'});}
     return;
   }
   const searchGuide=(!input?.images||Array.isArray(input.images)&&input.images.length===0)&&!questionKind(question).irrelevant

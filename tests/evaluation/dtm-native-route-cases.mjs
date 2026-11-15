@@ -31,8 +31,8 @@ export const dtmNativeRouteManifest=freeze({version:1,baseRevision:'dfbeacfe6f1b
     {routes:['/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit'],source:'Exact native assignment + dtm-submission metadata/current revision/review',fixture:'reviewed file fixture lifecycle and Storage lease required for real files',coverage:'deferred; tracker submitted status is insufficient'},
     {routes:['/elearning/categories'],source:'elearning_workspace categories plus published catalog',fixture:'read-only full category hierarchy binding needed',coverage:'deferred'},
     {routes:['/elearning/search','/elearning/search?q=:query','/elearning/search?q=:query&page=:page'],source:'elearning_catalog exact term/page, 20 rows per page',fixture:'Digital Academy catalog runner records the offline handler cases and pending live binding',coverage:'offline exact search results and counts'},
-    {routes:['/elearning/category/:id','/elearning/category/:id?page=:page'],source:'elearning_catalog exact category/page',fixture:'Digital Academy catalog runner records the offline handler cases, pending live binding and pending category metadata authority',coverage:'offline category course results and counts'},
-    {routes:['/elearning/notice/:id'],source:'elearning_workspace saved notice title/body/links',fixture:'exact notice body/source provenance binding needed',coverage:'deferred; navigation cannot stand in for notice content'},
+    {routes:['/elearning/category/:id','/elearning/category/:id?page=:page'],source:'elearning_catalog exact category/page and elearning_page_metadata exact hierarchical branch',fixture:'Digital Academy catalog runner records the offline handler cases and pending hosted bindings',coverage:'offline category course results, counts and subtree metadata'},
+    {routes:['/elearning/notice/:id'],source:'elearning_page_metadata exact saved notice title and body',fixture:'offline exact notice cases with hosted migration and request-bound fixture verification pending',coverage:'offline saved notice text, title-only and absent rows'},
   ],
 });
 export function dtmNativeRouteFixture(mode='normal'){

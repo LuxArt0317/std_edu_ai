@@ -1,10 +1,11 @@
-import {catalogCases,pendingCatalogMetadataCases,forbiddenCatalogEvidence} from './elearning-catalog-native-cases.mjs';
+import {catalogCases,catalogMetadataCases,forbiddenCatalogEvidence} from './elearning-catalog-native-cases.mjs';
 import {gradeCase,extractAnswerLinks} from './grading.mjs';
 
 const tool='elearningCatalog';
 const prefix='account:elearning-catalog-';
 const offline='offline_elearning_catalog_page';
-const metadata='elearning_catalog_metadata_authority_pending';
+const metadata='offline_elearning_page_metadata';
+const metadataTool='elearningMetadata';
 
 export function elearningCatalogRunnerCases(){
   const positive=catalogCases.map(row=>{
@@ -37,15 +38,19 @@ export function elearningCatalogRunnerCases(){
     coveredTools:[],catalogOracle:{ids:[],attempts:0},expected:{behavior:'denial',requiredText:['Sign in'],
       requiredLinks:['/elearning/login?next='+encodeURIComponent(original.route)],allowedTools:[],requiredAttemptedTools:[],
       localLinksOnly:true,forbidPublicResearch:true,noAction:true}};
-  const gaps=pendingCatalogMetadataCases.map(row=>{
-    const unavailable=['notice-title-only','notice-unknown'].includes(row.id);
-    return {id:prefix+'pending-'+row.id,domain:'elearningCatalogMetadata',route:row.route,question:row.question,
-      mode:'pending-authority',language:/\p{Script=Han}/u.test(row.question)?'zh-Hant':'en',fixtureKey:'offline:elearning-catalog:pending-'+row.id,
-      fixtureRequirement:metadata,fixtureSetupDetail:row.reason,coveredTools:[],
-      expected:{behavior:unavailable?'unavailable':'answer',...(unavailable?{limitation:true}:{}),
-        requiredText:row.required,noAction:true,forbidPublicResearch:true,localLinksOnly:true}};
+  const metadataCases=catalogMetadataCases.map(row=>{
+    return {id:prefix+'pending-'+row.id,domain:metadataTool,route:row.route,question:row.question,
+      mode:row.limited?'empty':'record',language:row.language??(/\p{Script=Han}/u.test(row.question)?'zh-Hant':'en'),fixtureKey:'offline:elearning-catalog:pending-'+row.id,
+      fixtureRequirement:metadata,fixtureSetupDetail:'The scoped metadata migration and independent request-bound fixtures await hosted verification.',
+      coveredTools:[metadataTool],metadataOracle:{links:row.links,rpc:row.rpc,displayedCount:row.displayedCount},
+      expected:{behavior:row.limited?'unavailable':'answer',...(row.limited?{limitation:true}:{}),
+        requiredText:row.required,facts:row.facts,verification:'verified',requireToolExecution:true,
+        requiredTools:[metadataTool],requiredAttemptedTools:[metadataTool],allowedTools:[metadataTool],
+        requiredLinks:[row.route],requiredSourceBindings:[{sourceId:'account:'+metadataTool,url:row.route}],
+        forbiddenText:[...forbiddenCatalogEvidence,'you enrolled','you are enrolled'],
+        noAction:true,forbidPublicResearch:true,localLinksOnly:true}};
   });
-  return [...positive,retried,failed,guest,...gaps];
+  return [...positive,retried,failed,guest,...metadataCases];
 }
 
 export const elearningCatalogSetupRequired=row=>[offline,metadata].includes(row?.fixtureRequirement)
@@ -63,10 +68,26 @@ export function elearningCatalogSetupSummary(cases){
 
 export function gradeElearningCatalogCase(testCase,envelope,options){
   const result=gradeCase(testCase,envelope,options);
+  const body=envelope.body??{};
+  const answer=String(body.answer??'');
+  const authority=testCase.metadataOracle;
+  if(authority){
+    const ids=[...answer.matchAll(/\]\(\/elearning\/category\/(\d+)\)/gu)].map(match=>Number(match[1]));
+    const [literalId,literalCount]=authority.displayedCount??[];
+    const checks=[
+      {id:'metadata.ordered-hierarchy',passed:JSON.stringify(ids)===JSON.stringify(authority.links),
+        detail:'The answer names and links the exact requested directory hierarchy.'},
+      {id:'metadata.literal-count',passed:literalId===undefined||answer.includes(`/elearning/category/${literalId}) (${literalCount})`),
+        detail:'The displayed count remains the literal saved count for that category.'},
+    ];
+    result.checks.push(...checks);
+    result.failures.push(...checks.filter(check=>!check.passed));
+    result.passed=result.failures.length===0;
+    return result;
+  }
   const oracle=testCase.catalogOracle;
   if(!oracle)return result;
-  const body=envelope.body??{};
-  const ids=[...String(body.answer??'').matchAll(/\]\(\/elearning\/course\/(\d+)\)/gu)].map(match=>Number(match[1]));
+  const ids=[...answer.matchAll(/\]\(\/elearning\/course\/(\d+)\)/gu)].map(match=>Number(match[1]));
   const actualCourseLinks=extractAnswerLinks(body).filter(url=>/\/elearning\/course\//u.test(url));
   const checks=[
     {id:'catalog.ids',passed:JSON.stringify(ids)===JSON.stringify(oracle.ids)&&actualCourseLinks.length===ids.length,

@@ -377,7 +377,7 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.equal(suite.cases.filter(nativeInternshipSetupRequired).length,34);
   assert.deepEqual(suite.cases.filter(elearningCatalogSetupRequired),elearningCatalogRunnerCases());
 
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['courseCatalog','elearningCatalog','dtmAssignmentList','dtmMaterials','leaveRecords','venueRequests','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['courseCatalog','elearningCatalog','elearningMetadata','dtmAssignmentList','dtmMaterials','leaveRecords','venueRequests','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});

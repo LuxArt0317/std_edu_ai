@@ -289,7 +289,7 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
   const catalogSetup=elearningCatalogSetupSummary(cases);
   if(catalogSetup.registered){
     assessment.elearningCatalogSetup=catalogSetup;
-    integrity.push({id:'run.elearningCatalogFixtureUnbound',detail:'Digital Academy catalog cases require request-bound fixture observations, and some metadata routes still require a scoped authority.'});
+    integrity.push({id:'run.elearningCatalogFixtureUnbound',detail:'Digital Academy catalog and metadata cases require deployed scoped sources and request-bound fixture observations.'});
   }
   const leaveSetup=studentLeaveSetupSummary(cases);
   if(leaveSetup.registered){
@@ -565,7 +565,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=testCase.catalogOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
+      const result=testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);

@@ -44,25 +44,27 @@ export const catalogCases=[
     mode:'list',rpc:[19,'',6],total:85,pageCount:5,ids:[],emptyReason:'past_last_page'},
 ];
 
-export const pendingCatalogMetadataCases=[
+export const catalogMetadataCases=[
   {id:'tree-exact-hierarchy',route:'/elearning/categories',question:'What are the main categories, and where is 資訊安全?',
-    required:['校內教育訓練/演講','電算中心','資訊安全','/elearning/category/43'],
-    reason:'A category-only authority must prove complete ordered names, parent links, and source_count literals.'},
+    language:'en',
+    rpc:['categories',null],links:[17,4,56,55,54,52,50,47,49,45,40,44,12,39,38,37,36,33,30,27,26,22,24,21,16,14,34,1,46,17,19,43],
+    required:['校內教育訓練/演講','電算中心','資訊安全'],
+    facts:[{kind:'text',label:'Category location',values:['校內教育訓練/演講','電算中心','資訊安全']}],
+    displayedCount:[17,0]},
   {id:'category-identity-not-search-count',route:'/elearning/category/49',question:'請問這個課程類別的名稱是什麼？',
-    required:['109學年度第3學期'],
-    reason:'An empty catalog result cannot distinguish an existing category with zero courses from an unknown category ID.'},
+    rpc:['category_title',49],links:[49],required:['109學年度第3學期'],
+    facts:[{kind:'text',label:'課程類別的名稱',values:['109學年度第3學期']}]},
   {id:'category-distinct-counts',route:'/elearning/category/17',question:'Which subcategories are below this category?',
-    required:['電算中心','教務處','/elearning/category/19','/elearning/category/41'],
-    reason:'Exact category results do not include tree metadata or aggregated descendant courses.'},
+    rpc:['category',17],links:[17,18,19,43,53,20,23,25,35,41,42,48,51,17],
+    required:['電算中心','教務處'],facts:[{kind:'text',label:'Subcategories below',values:['校內教育訓練/演講']}],
+    displayedCount:[19,85]},
   {id:'notice-saved-local-body',route:'/elearning/notice/325504',question:'這個公告說遠距教學從哪個學期轉入創課？',
-    required:['112學年度第2學期','TronClass'],
-    reason:'Only the scoped saved body can verify the semester. Do not retrieve institution-wide notices or fetch externally.'},
+    rpc:['notice',325504],links:[],required:['自112學年度第2學期起','遠距教學轉入 TronClass'],
+    facts:[{kind:'text',label:'遠距教學轉入',values:['自112學年度第2學期起','TronClass 創課平台']}]},
   {id:'notice-title-only',route:'/elearning/notice/305241',question:'What deadline does this two-step verification notice give?',
-    required:['The saved local notice does not specify a deadline.'],
-    reason:'Title is available in the capture, but local_body is null and the exact date is unverified.'},
+    rpc:['notice',305241],links:[],limited:true,required:['請同學務必進行二步驗證註冊','The saved local notice does not specify a deadline.']},
   {id:'notice-unknown',route:'/elearning/notice/2147483647',question:'Summarize this notice.',
-    required:['This notice could not be verified.'],
-    reason:'A dedicated exact notice reader must distinguish not found from inaccessible or failed reads.'},
+    rpc:['notice',2147483647],links:[],limited:true,required:['This notice could not be verified.','No saved notice matched this page.']},
 ];
 
 export const catalogNegativeQuestions=[
