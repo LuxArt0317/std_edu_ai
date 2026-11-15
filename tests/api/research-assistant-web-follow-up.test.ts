@@ -1044,21 +1044,23 @@ test('an empty follow-up, expired reserve or verifier outage stops without repea
   }
 });
 
-test('a gated original notice can still lead to a separate public publication after two empty searches',async()=>{
+test('an unread original notice can still lead to a separate public publication after two empty searches',async()=>{
   const question='Find the latest STU announcement about OneDrive storage quotas for students. What quota and publication date does it give?';
   const originalNotice='https://dtm.stu.edu.tw/mod/page/view.php?id=625803';
   const secondPublication='https://www.cc.stu.edu.tw/notice/onedrive-public-test/';
   const contents='The student OneDrive allocation is 25 GB. This computing center notice was published on May 12, 2026.';
-  for(const scenario of ['new-publication','empty','no-time','not-gated'] as const){
+  for(const scenario of ['new-publication','empty','no-time','not-gated','not-gated-new-publication'] as const){
     configured();
     const started=originalNow();
     let elapsed=0,searches=0,managedReviews=0;
     Date.now=()=>started+elapsed;
     const readUrls:string[]=[];
+    const gated=!scenario.startsWith('not-gated');
+    const hasAlternatePublication=scenario.endsWith('new-publication');
     const run=createResearchAssistantHandler({readSources:async(citations,_deadline,options)=>citations.flatMap(citation=>{
       readUrls.push(citation.url);
       if(citation.url===originalNotice){
-        if(scenario!=='not-gated')options?.onAccessRequired?.({url:originalNotice,title:'Microsoft 365 and OneDrive storage quotas'});
+        if(gated)options?.onAccessRequired?.({url:originalNotice,title:'Microsoft 365 and OneDrive storage quotas'});
         return [];
       }
       assert.equal(citation.url,secondPublication);
@@ -1083,7 +1085,7 @@ test('a gated original notice can still lead to a separate public publication af
         if(searches===3)elapsed=scenario==='no-time'?43_000:36_000;
         if(searches!==4)return Response.json({output:[]});
         assert.match(request.instructions,/independent official publication/u);
-        return Response.json(scenario==='new-publication'?searchPayload([secondPublication],unsafeDraft):{output:[]});
+        return Response.json(hasAlternatePublication?searchPayload([secondPublication],unsafeDraft):{output:[]});
       }
       if(name==='public_grounded_answer')return provider({status:'answered',answer:unsafeDraft,
         citations:[{chunkId:managedExcerpt.chunk_id,claim:'Storage claim'}],suggestedQuestions:[]});
@@ -1108,16 +1110,17 @@ test('a gated original notice can still lead to a separate public publication af
     };
     const progress:Progress[]=[];
     const reply=await invoke({question},run,'known-notice-alternate-'+scenario,progress);
-    const alternate=['new-publication','empty'].includes(scenario);
+    const alternate=scenario!=='no-time';
     assert.equal(searches,alternate?4:3,scenario);
     assert.equal(progress.some(step=>step.kind==='web-notice-alternate'),alternate,scenario);
     assert.equal(reply.activity.some((step:Progress)=>step.kind==='web-notice-alternate'),alternate,scenario);
     const saved=sanitizeStoredConversation([{id:'notice-'+scenario,role:'assistant',content:reply.answer,activity:reply.activity,result:reply}]);
     assert.equal(saved[0].activity.some((step:Progress)=>step.kind==='web-notice-alternate'),alternate,scenario);
-    assert.equal(readUrls.includes(secondPublication),scenario==='new-publication',scenario);
+    assert.equal(readUrls.includes(secondPublication),hasAlternatePublication,scenario);
+    if(!gated)assert.doesNotMatch(JSON.stringify(reply.activity),/requires sign-in/u,scenario);
     assert.match(reply.answer,/625803/u,scenario);
     assert.doesNotMatch(reply.answer,/NOT_PUBLIC_SEARCH_INPUT|PRIVATE_REVIEW_FEEDBACK/u,scenario);
-    if(scenario==='new-publication'){
+    if(hasAlternatePublication){
       assert.deepEqual(reply.verification,{status:'verified',attempts:3});
       assert.match(reply.answer,/25 GB/u);
       assert.deepEqual(reply.citations.map((citation:{url:string})=>citation.url),[secondPublication]);

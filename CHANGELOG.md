@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- When the indexed notice remains unreadable, try a different school publication if the targeted lookup came back empty and time remains. [#100]
+
 - Name the missing details and keep the indexed school notice link when its public read fails. Require an observed sign-in redirect before reporting a sign-in requirement. [#100]
 
 - Create the two reserved browser-test profiles in the same transaction as the signed-in native fixtures. [#100]

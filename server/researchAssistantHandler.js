@@ -1199,14 +1199,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
             webAttempted ||= web.attempted;
             const availableIndexed = indexedSources.length ? await readableIndexedCitations(indexedSources) : [];
             let sourceLinks = web.result?.citations || [...(web.discoveredSources || []), ...availableIndexed];
-            const hasGatedNotice = indexedSources.some(source => source.chunkId.startsWith('notice:') && sourceLeads?.isBlocked(source.url));
+            const notices = indexedSources.filter(source => source.chunkId.startsWith('notice:'));
+            const hasUnreadNotice = notices.some(source => !availableIndexed.some(read => read.url === source.url));
             const alternateUntil = Math.min(deadline - 12_500, Date.now() + 5_500);
-            if (recoveringEmptySearch && !sourceLinks.length && web.attempted && hasGatedNotice
+            if (recoveringEmptySearch && !sourceLinks.length && web.attempted && hasUnreadNotice
                 && alternateUntil - Date.now() >= 2_500) {
                 reportSearch('Search found no usable lead', 'The specific lookup found no open page to check.', 'unavailable');
                 searchStep = 'web-notice-alternate';
                 reportSearch('Looking for another school publication',
-                    'The indexed notice requires sign-in. Checking whether the responsible office published the same detail publicly.', 'running');
+                    notices.every(source => sourceLeads?.isBlocked(source.url))
+                        ? 'The indexed notice requires sign-in. Checking whether the responsible office published the same detail publicly.'
+                        : 'The indexed notice could not be read. Checking whether the responsible office published the same detail publicly.', 'running');
                 const alternate = await searchSchoolWeb(publicQuestion, {
                     deadline: alternateUntil, followUp: true, alternateDiscovery: true,
                 }).catch(() => null);
