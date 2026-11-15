@@ -8,6 +8,8 @@ At [stu.best service 52-1](https://stu.best/school-affairs/services/52-1), selec
 
 Uploading creates a versioned draft with a unique proof reservation. The private Supabase bucket limits each file to 5 MiB. The student can remove a proof before submitting or while supplying requested documents. The submission waits for an attached proof and, for an award, verified payout details. Managers can request documents, approve, or record the review amount. The account details and proof files are accessible only to the record owner and authorized reviewer as appropriate. The assistant reads a narrow status response and links to the application. It receives no contact phone, bank details, proof path or attachment.
 
+Asking for certificate award status from a saved record page checks that exact application and links back to it. The main certificate menu keeps the recent-application summary. A missing or inaccessible selection leaves the status unavailable.
+
 The school-facing manager stores only the last four account digits and administrative reference. No payment transfer or university-side application takes place from the stu.best form. The 30 captured catalog records are the initial source view, and protected results beyond the initial view and official handling remain open.
 
 ## Verification

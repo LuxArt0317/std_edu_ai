@@ -30,22 +30,30 @@ export async function readCertificateAward(account,query){
   }
   if([code,name,level,issuer,page].some(value=>value!==undefined)||!['mine','manage'].includes(view)||
     id!==undefined&&!uuid(id)||(view==='manage'?(!uuid(user_id)||answer!==undefined):user_id!==undefined)||
-    answer!==undefined&&(!['zh','en'].includes(answer)||id!==undefined))throw invalid();
-  const result=await rpc(account,'affairs_read_certificate_awards',{p_target:user_id??null,p_id:id??null,p_status_only:answer!==undefined});
-  if(result?.userId!==(user_id??account.user.id)||!Array.isArray(result.rows))
+    answer!==undefined&&!['zh','en'].includes(answer))throw invalid();
+  const selectedAnswer=answer!==undefined&&id!==undefined;
+  // The existing status-only RPC projection is for the account-wide list.
+  // A selected answer uses the private record read and projects only status here.
+  const result=await rpc(account,'affairs_read_certificate_awards',{p_target:user_id??null,p_id:id??null,
+    p_status_only:answer!==undefined&&!selectedAnswer});
+  if(result?.userId!==(user_id??account.user.id)||!Array.isArray(result.rows)||
+    selectedAnswer&&(result.rows.length!==1||result.rows[0]?.id!==id))
     throw new AffairsWorkspaceError('證照資料格式錯誤。');
   if(answer===undefined)return result;
   const zh=answer==='zh',lang=zh?0:1;
-  const title=zh?'證照獎補助金申請':'Certificate award applications';
-  const summary=result.rows.length?(zh?'最近的證照申請紀錄：':'Your recent certificate applications:'):
+  const url=selectedAnswer?`${certificateAwardPath}/record/${id}`:certificateAwardPath;
+  const title=selectedAnswer?(zh?'這筆證照獎補助金申請':'Certificate award application'):
+    (zh?'證照獎補助金申請':'Certificate award applications');
+  const summary=selectedAnswer?(zh?'這筆已儲存的證照申請：':'Your selected saved certificate application:'):
+    result.rows.length?(zh?'最近的證照申請紀錄：':'Your recent certificate applications:'):
     (zh?'此帳戶目前沒有證照申請紀錄。':'This account has no saved certificate applications.');
   const items=result.rows.map(row=>{
     if(!uuid(row.id)||typeof row.name!=='string'||!Object.hasOwn(certificateAwardLabels,row.status))throw new AffairsWorkspaceError('證照狀態格式錯誤。');
     return '- '+row.name.replace(/[\r\n[\]<>]/gu,' ')+' · '+certificateAwardLabels[row.status][lang]+
       (row.wants_award&&row.award_amount!==null?' · NT$'+Number(row.award_amount).toLocaleString('en-US'):'');
   });
-  return {status:'answered',answer:[summary,items.join('\n'),`[${title}](${certificateAwardPath})`].filter(Boolean).join('\n\n'),
-    citations:[{chunkId:'account:certificate-awards',claim:summary,title,url:certificateAwardPath,sourceName:'My stu.best records'}],
+  return {status:'answered',answer:[summary,items.join('\n'),`[${title}](${url})`].filter(Boolean).join('\n\n'),
+    citations:[{chunkId:'account:certificate-awards',claim:summary,title,url,sourceName:'My stu.best records'}],
     suggestedQuestions:[],grounding:{source:'account',webSearched:false},
     activity:[{kind:'certificate-awards',label:title,detail:summary,status:'complete'}]};
 }
