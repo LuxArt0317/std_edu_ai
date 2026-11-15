@@ -68,6 +68,7 @@ import {facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativ
 import {selectDormitoryConductEvidence} from '../server/dormitoryConductEvidenceIntent.js';
 import {randomUUID} from 'node:crypto';
 import { questionKind } from '../server/schoolWebSearch.js';
+import {publicServiceFollowup} from '../server/publicServiceFollowup.js';
 import { accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from '../server/affairsAnswer.js';
 import { loadOwnAffairsStudyYear } from '../server/ownAffairsStudyYear.js';
 import { loadAccountOverviewSnapshot } from '../server/accountOverviewEvidence.js';
@@ -771,9 +772,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     &&!chargeLabel&&!pageContext.selected&&!notes.keys.length
     &&!dtmCompound&&!assignment.selection&&!aid.selection&&!teachingSelection&&!housingSelection&&!applicationSelection;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;
-  const needsRecords=Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
-  const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
-    ? answerCampusNavigation(question) : null;
+  const hasImages=Array.isArray(input?.images)&&input.images.length>0;
+  const textOnly=input?.images===undefined||(Array.isArray(input.images)&&!hasImages);
+  const publicFollowup=textOnly&&question===requestedQuestion
+    ?publicServiceFollowup(question,input?.history):null;
+  const personalQuestion=!publicFollowup&&personal(question,history);
+  const needsRecords=Boolean(dtmCompound||housingSelection||applicationSelection||teachingSelection||aid.selection) || conduct.selected || notes.keys.length>0 || chargesOnly || timetableOnly || intent.baseTools.length>0 || personalQuestion || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
+  const navigation=!needsRecords && !hasImages && !questionKind(question).irrelevant
+    ? answerCampusNavigation(publicFollowup??question) : null;
   if(navigation) {
     stream.progress('directory','Checked campus services','Found a verified service link.','complete');
     stream.send(200,withLocalGuidance(navigation));
@@ -786,11 +792,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const research=await dispatchPublicResearch(publicResearch,{
         method:'POST',
         headers:{'content-type':'application/json',...(value(request.headers['x-forwarded-for'])?{'x-forwarded-for':value(request.headers['x-forwarded-for'])!}:{})},
-        body:{question,history:[],images:Array.isArray(input?.images)?input.images.map(image=>{
+        body:{question:publicFollowup??question,history:[],images:Array.isArray(input?.images)?input.images.map(image=>{
           if(!image||typeof image!=='object'||Array.isArray(image))return image;
           const attachment=image as Record<string,unknown>;
           return {name:attachment.name,dataUrl:attachment.dataUrl};
-        }):input?.images,route,consentedResearchUse:false,stream:stream.enabled},
+        }):input?.images,route:publicFollowup?'/':route,consentedResearchUse:false,stream:stream.enabled},
       },deadline,step=>stream.progress(step.kind,step.label,step.detail,step.status));
       const result=research.result as Record<string,unknown>|null;
       if(!result || typeof result!=='object' || Array.isArray(result) || (!research.ok && typeof result.error!=='string')) {stream.send(502,{error:'School research returned an invalid response.'});return;}

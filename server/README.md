@@ -42,6 +42,8 @@ Public school research can follow eligible leads up to four checks across a requ
 
 Shared server-only retrieval, authorization and validation helpers for `api/`. `schoolAffairsDirectory.js` reads the captured School Affairs catalog; `schoolWebSearch.js` verifies public STU web sources. These modules do not grant access to official school systems.
 
+`publicServiceFollowup.js` resolves text-only contact follow-ups about named campus offices. It recognizes the latest user question against a fixed bilingual service list and constructs a new question from the selected service and contact field. The signed-in handler forwards the constructed question with an empty history and root route.
+
 `schoolWebSearch.js` classifies both singular and plural personal class questions before public search. Nexus answers those questions from the caller's verified account context; anonymous research hands them to School Affairs sign-in.
 
 `affairsWorkspace.js` reads DTM and service records through the verified caller's token and RLS. `dtmAnswer.js` produces account-specific links, filters unfinished work and uses the meeting foreign key to find assignments for a missed class. `schoolAffairsDirectory.js` gives public navigation links with verified campus sources.

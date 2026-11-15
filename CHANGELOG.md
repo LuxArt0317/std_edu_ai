@@ -3,6 +3,8 @@
 
 - Verify saved aid-claim fields directly against the selected claim page, preserve conduct field questions that follow the report name, and return the dormitory notice link without reading records for a delete or change request. Catalog acceptance now checks the native sources for 34-2, 37-1 and 38-1. [#100]
 
+- Keep the subject of signed-in public campus contact follow-ups across turns, including English and Traditional Chinese. Account history and page selectors stay out of public research. [#100]
+
 - Use already-read school pages when time is too short for a new search, and try a different publication when a newly found page repeats existing evidence. Carry only checked school domains and page types into deeper public searches, and save the actual checks and outcomes in chat. [#100]
 
 - Read the school page behind a verified knowledge excerpt when discovery finds it again and the answer still has gaps. Repeated page contents leave the original answer in place. [#100]
