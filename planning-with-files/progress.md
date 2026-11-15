@@ -68,3 +68,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Paused the new paired Membership fixture implementation when the user supplied three acute Preview misses and preserved the draft outside the worktree. Reproduced all three misses on the protected Preview, checked the school sources, and corrected both handler paths. Passed the exact prompts after a prior private history, bilingual variants, both TypeScript checks, 1,994 API tests and 1,658 evaluator checks with 21 opt-in skips.
 
 - 2026-11-16 [#100] Verified all three reported prompts on protected `473f17a` in the streaming API and Chromium, including the restored Activity. The earlier Playwright attempt used a relative locator scoped to the full answer; the corrected locator verifies the actual Activity in each answer. No signed fixture was opened in this run.
+
+- 2026-11-16 [#100] Completed the previously staged Club Membership fixture and mounted the original three-browser-case profile. The independent answer oracle rejects peer records, future term facts and extra account-read activity. Focused evaluator passed 49/49. Exact hosted replay pending.

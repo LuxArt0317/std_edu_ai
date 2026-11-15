@@ -46,7 +46,7 @@ test('CLI rejects unknown modes, malformed limits, missing values and invalid da
 test('signed browser profiles require the protected non-injected live runner',async()=>{
   const origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
   const args=['--mode','live','--origin',origin,'--approved-preview-origin',origin,'--preview-auth','oidc'];
-  for(const profile of ['certificate-awards','announcement-email','student-profile','club-attendance','protected-native']){
+  for(const profile of ['certificate-awards','announcement-email','student-profile','club-attendance','club-membership','protected-native']){
     const flag=['--client-dispatch',profile];
     assert.equal(options([...args,...flag]).clientDispatch,profile);
     for(const invalid of [['--mode','inventory'],['--mode','live'],args.slice(0,-2)])assert.throws(()=>options([...invalid,...flag]));

@@ -6,7 +6,7 @@ import {certificateAwardPreviewHash} from './certificate-award-preview.mjs';
 import {verifyProtectedNativeBrowserEgress} from './certificate-browser-turn.mjs';
 import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 import {clubAttendanceBrowserBootstrap,clubAttendanceBrowserProfile,createProtectedClubAttendanceBrowserTurn,
-  verifyRenderedClubAttendanceBrowserTurn} from './club-attendance-browser-turn.mjs';
+  verifyRenderedClubRecordBrowserTurn} from './club-attendance-browser-turn.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
 
 export const clubAttendanceBrowserCaseIds=Object.freeze(['record','multipart','empty','foreign','unavailable']
@@ -23,7 +23,7 @@ const roleFor=mode=>mode==='empty'?'B':'A';
 const native={
   profile:clubAttendanceBrowserProfile,route:clubAttendancePath,heading:'活動參與紀錄',
   bootstrap:clubAttendanceBrowserBootstrap,receiptKey:'clubAttendanceReceipt',
-  verifyRendered:verifyRenderedClubAttendanceBrowserTurn,
+  verifyRendered:verifyRenderedClubRecordBrowserTurn,
   verifyEgress:options=>verifyProtectedNativeBrowserEgress({...options,scope:clubAttendanceBrowserProfile,answerMethod:'POST'}),
   verifyBootstrap({testCase,readbacks},workspace){
     check(isDeepStrictEqual(workspace,readbacks[roleFor(testCase.mode)].attendance),'wrong fixture caller');

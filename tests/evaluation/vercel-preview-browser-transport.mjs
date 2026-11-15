@@ -1,3 +1,5 @@
+import {clubMembershipPath} from '../../server/clubMembershipIntent.js';
+import {clubMembershipBrowserBootstrap,clubMembershipBrowserCases,clubMembershipBrowserProfile} from './club-membership-browser-turn.mjs';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {isConversationId} from '../../src/services/assistantConversationId.js';
 import {createPreviewDevelopmentTokenGuard,isEvaluationPreviewOrigin,previewTrustedHeader} from './vercel-preview-transport.mjs';
@@ -43,6 +45,11 @@ const nativeProfiles=new Map([
     answers:profileAnswers,requiredMedia:[studentProfileBrowserHeading],receiptKey:'studentProfileReceipt',
     inspectReply:inspectStudentProfileBrowserReply,verifySave:verifyProtectedStudentProfileBrowserSave,
     inspectBootstrap:inspectStudentProfileBrowserBootstrap}],
+  [clubMembershipBrowserProfile,{label:clubMembershipBrowserProfile,route:clubMembershipPath,bootstrap:clubMembershipBrowserBootstrap,
+    answers:new Map(clubMembershipBrowserCases.map(({question})=>[question,{answerPath:assistantPath,selection:{}}])),
+    requiredMedia:[clubAttendanceBrowserMark],receiptKey:'clubMembershipReceipt',stream:true,
+    inspectBootstrap(value,ownerId){check(value?.userId===ownerId&&value.page===1&&value.view==='my-memberships'
+      &&Array.isArray(value.rows),'wrong fixture caller');}}],
   [clubAttendanceBrowserProfile,{label:clubAttendanceBrowserProfile,route:clubAttendancePath,bootstrap:clubAttendanceBrowserBootstrap,
     answers:new Map(clubAttendanceBrowserQuestions.map(question=>[question,{answerPath:assistantPath,selection:{}}])),
     requiredMedia:[clubAttendanceBrowserMark],receiptKey:'clubAttendanceReceipt',stream:true,

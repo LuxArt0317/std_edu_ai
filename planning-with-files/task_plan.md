@@ -1125,3 +1125,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Route all three to evidence-backed public guidance in guest and signed endpoints, including signed-in Moodle and an existing private transcript. Confirm that these turns read no records or provider.
 - [x] Replay the exact sequence on protected `473f17a` through streaming and Chromium, including saved Activity after reload.
 - [ ] Continue hosted signed-in service checks, including Club Membership, and the broader release evaluation independently.
+
+### Protected Club Membership [Issue #100]
+
+- [x] Mount the original record, multipart, and empty Club Student cases. Cross-check owner-scoped membership and enrolled terms with independent SQL, grade the graph response before committing a browser save, and verify fresh restore and cleanup.
+- [ ] Verify all three cases against an exact protected Preview. Keep the foreign and unavailable scenarios distinct and account for them in the wider release evaluation.

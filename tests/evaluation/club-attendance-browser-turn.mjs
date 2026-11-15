@@ -114,7 +114,7 @@ function verifyReplyFacts(body,mode,current,other){
   }
 }
 
-function parsePackets(bytes){
+export function parseProtectedGraphBrowserPackets(bytes){
   check(Buffer.isBuffer(bytes)&&bytes.byteLength<=300000,'invalid assistant stream result');
   let source;
   try{source=new TextDecoder('utf-8',{fatal:true}).decode(bytes);}catch{check(false,'invalid assistant stream result');}
@@ -145,7 +145,7 @@ export function createProtectedClubAttendanceBrowserTurn({testCase,scope,key,rea
     },
     receive({bytes,correlationId}){
       check(binding&&!accepted,'unexpected application response');
-      const packets=parsePackets(bytes),terminal=packets.at(-1),receipt=packets.at(-2);
+      const packets=parseProtectedGraphBrowserPackets(bytes),terminal=packets.at(-1),receipt=packets.at(-2);
       check(terminal?.type==='result'&&receipt?.type===clubAttendanceBrowserObservationEvent&&exact(receipt.data,'receipt')
         &&packets.slice(0,-2).every(packet=>packet.type==='progress'),'invalid assistant stream result');
       const proof=verifyClubAttendanceBrowserObservation({receipt:receipt.data.receipt,binding,correlationId,body:terminal.data},key);
@@ -189,44 +189,44 @@ export function createProtectedClubAttendanceBrowserTurn({testCase,scope,key,rea
 }
 
 /** Use on both the saved turn and its reopened conversation in a fresh context. */
-export async function verifyRenderedClubAttendanceBrowserTurn({dialog,expected}){
+export async function verifyRenderedClubRecordBrowserTurn({dialog,expected}){
   const articles=dialog.getByRole('log',{name:'Assistant conversation'}).getByRole('article'),reply=articles.nth(1);
   const markdown=reply.locator('.nexus-message-markdown');
   await markdown.waitFor({state:'visible'});
   check(await articles.count()===2&&await articles.nth(0).getByText(expected.question,{exact:true}).isVisible(),
-    'rendered attendance transcript mismatch');
+    'rendered club transcript mismatch');
   const normalize=value=>value.replace(/\s+/gu,' ').trim();
   const markdownLink=/\[([^\]]+)\]\(([^)]+)\)/gu;
   const answerLinks=Array.from(expected.answer.matchAll(markdownLink),match=>[match[1],match[2]]);
-  const displayText=expected.answer.replace(markdownLink,'$1').replace(/[`*]/gu,'');
-  check(normalize(await markdown.innerText())===normalize(displayText),'rendered attendance transcript mismatch');
+  const displayText=expected.answer.replace(markdownLink,'$1').replace(/^[-*] /gmu,'').replace(/[`*]/gu,'');
+  check(normalize(await markdown.innerText())===normalize(displayText),'rendered club transcript mismatch');
   const sources=reply.getByRole('list',{name:'Sources'});
   const readLinks=element=>[...element.querySelectorAll('a')].map(link=>[link.textContent,link.getAttribute('href')]);
   check(isDeepStrictEqual(await markdown.evaluate(readLinks),answerLinks)
     &&(expected.display.citations.length?isDeepStrictEqual(await sources.evaluate(readLinks),expected.display.citations):!await sources.count()),
-  'rendered attendance transcript mismatch');
+  'rendered club transcript mismatch');
   const activity=reply.locator('details:has(> summary span:text-is("Activity"))');
   check(await reply.locator('details').count()===1+expected.display.views.length&&await activity.count()===1,
-    'rendered attendance activity mismatch');
+    'rendered club activity mismatch');
   if(await activity.getAttribute('open')===null)await activity.locator('summary').click();
   const timeline=assistantActivityTimeline(expected.activity);
   if(timeline.length){
     const steps=await activity.getByRole('list',{name:'Observed assistant steps'}).evaluate(element=>
       [...element.querySelectorAll(':scope > li > span:not([aria-hidden])')].map(row=>[...row.children].map(node=>node.textContent)));
     check(isDeepStrictEqual(steps,timeline.map(step=>[assistantActivityStatus(step)+': ',step.label,step.detail])),
-      'rendered attendance activity mismatch');
+      'rendered club activity mismatch');
   }else{
     check(!await activity.getByRole('list',{name:'Observed assistant steps'}).count()
       &&await activity.getByText('No checks or tools were reported for this answer.',{exact:true}).isVisible(),
-    'rendered attendance activity mismatch');
+    'rendered club activity mismatch');
   }
   for(const view of expected.display.views){
     const summary=reply.getByText(view.title+' · '+view.total+' retrieved',{exact:true}),card=summary.locator('..');
-    check(await summary.isVisible(),'rendered attendance transcript mismatch');
+    check(await summary.isVisible(),'rendered club transcript mismatch');
     if(await card.getAttribute('open')===null)await summary.click();
     const cells=await card.getByRole('table').evaluate(table=>[...table.rows].map(row=>[...row.cells].map(cell=>cell.textContent)));
     check(isDeepStrictEqual(cells,[view.columns,...view.rows])
-      &&await card.getByRole('link',{name:'Open records',exact:true}).getAttribute('href')===view.url,'rendered attendance transcript mismatch');
+      &&await card.getByRole('link',{name:'Open records',exact:true}).getAttribute('href')===view.url,'rendered club transcript mismatch');
   }
   return {requestSequence:expected.requestSequence,observedSteps:timeline.length,cards:expected.display.views.length};
 }

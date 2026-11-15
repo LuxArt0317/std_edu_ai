@@ -42,6 +42,7 @@ import {certificateAwardPreviewHash,certificateBrowserCaseIds} from './certifica
 import {announcementEmailBrowserCases} from './announcement-email-browser-turn.mjs';
 import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
 import {clubAttendanceBrowserCaseIds,verifiedClubAttendanceBrowserObservation} from './club-attendance-browser-preview.mjs';
+import {clubMembershipBrowserCases} from './club-membership-browser-turn.mjs';
 
 const browserDispatchProfiles=new Map([
   ['certificate-awards',{ids:certificateBrowserCaseIds,operation:'runCertificateAwardPreview',request:'certificate-answer',pinnedReads:2,
@@ -50,6 +51,9 @@ const browserDispatchProfiles=new Map([
     request:'announcement-email-answer',pinnedReads:6,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='announcement-email'}],
   ['student-profile',{ids:studentProfileBrowserCases.map(row=>row.id),operation:'runStudentProfileBrowserPreview',
     request:'student-profile-answer',pinnedReads:2,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='student-profile'}],
+  ['club-membership',{ids:clubMembershipBrowserCases.map(row=>row.id),operation:'runClubMembershipBrowserPreview',
+    request:'club-membership-answer',answerMethod:'POST',pinnedReads:2,
+    cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='club-membership'}],
   ['club-attendance',{ids:clubAttendanceBrowserCaseIds,operation:'runClubAttendancePreview',verify:verifiedClubAttendanceBrowserObservation}],
 ]);
 
@@ -323,7 +327,7 @@ export function verifiedNativeBrowserObservation({result,question,sourceRevision
   const [row]=result.results;
   const {cleanup,deployment}=result;
   const answerRequests=result.browserDiagnostics?.flatMap(context=>context.observations).filter(event=>
-    event.request===scope.request&&event.method==='GET'&&event.forwarded===true)??[];
+    event.request===scope.request&&event.method===(scope.answerMethod??'GET')&&event.forwarded===true)??[];
   const dispatched=answerRequests.length>0;
   const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
   const passed=answerRequests.length===1&&result.origin===origin&&result.sourceRevision===sourceRevision&&result.execution==='live-browser'

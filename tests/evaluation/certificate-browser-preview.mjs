@@ -60,7 +60,7 @@ export async function createProtectedNativeBrowserSaveJournal({directory,runId,o
       const assessment=browserProfile.grade(bound,{statusCode:200,body,requestPath});
       check(assessment.passed,'save answer mismatch');
       const grade={...assessment,
-        requestDigest:digest({method:'GET',path:requestPath,role:bound.role,question:bound.testCase.question}),
+        requestDigest:digest({method:browserProfile.answerMethod??'GET',path:requestPath,role:bound.role,question:bound.testCase.question}),
         responseDigest:digest(body),
       };
       const messages=JSON.parse(JSON.stringify(sanitizeStoredConversation(payload.messages)));

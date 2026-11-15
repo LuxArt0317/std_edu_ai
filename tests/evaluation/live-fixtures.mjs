@@ -66,6 +66,10 @@ import {assertStudentProfileBrowserSchema,bindStudentProfileBrowserCase,buildStu
   deleteStudentProfileBrowserFixture,observeStudentProfileBrowserCallers,observeStudentProfileBrowserFixture,
   seedStudentProfileBrowserFixture,verifyStudentProfileBrowserFixtureAbsent} from './student-profile-browser-fixture.mjs';
 import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
+import {clubMembershipBrowserCases} from './club-membership-browser-turn.mjs';
+import {assertClubMembershipFixtureSchema,buildClubMembershipFixture,deleteClubMembershipFixture,expectedClubMembershipWorkspace,
+  observeClubMembershipFixture,observeClubMembershipTimetable,seedClubMembershipFixture,verifyClubMembershipFixtureAbsent} from './club-membership-browser-fixture.mjs';
+import {loadOwnAffairsTimetable} from '../../server/ownAffairsTimetable.js';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,validateAidPaymentFixtureOwners,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
@@ -145,6 +149,8 @@ const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRe
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
 const nativeBrowserFixtures=new Map([
+  ['club-membership',{assertSchema:assertClubMembershipFixtureSchema,
+    deletePlan:deleteClubMembershipFixture,verifyAbsent:verifyClubMembershipFixtureAbsent}],
   ['announcement-email',{assertSchema:assertAnnouncementEmailBrowserSchema,
     deletePlan:deleteAnnouncementEmailBrowserFixture,verifyAbsent:verifyAnnouncementEmailBrowserFixtureAbsent}],
   ['student-profile',{assertSchema:assertStudentProfileBrowserSchema,
@@ -2379,6 +2385,52 @@ export function runStudentProfileBrowserPreview(options){
   });
 }
 
+export function runClubMembershipBrowserPreview(options){
+  return runNativeBrowserPreview(options,{
+    profile:'club-membership',cases:clubMembershipBrowserCases,build:buildClubMembershipFixture,seed:seedClubMembershipFixture,
+    async loadBrowser(){
+      const browser=await import('./club-membership-browser-preview.mjs');
+      return {derive:browser.deriveClubMembershipBrowserAssets,runTurn:browser.runClubMembershipBrowserTurn};
+    },
+    bind(plan,callers,caseId){
+      const testCase=clubMembershipBrowserCases.find(item=>item.id===caseId);
+      const {role}=testCase,peer=role==='A'?'B':'A';
+      if(plan.mode!==testCase.mode||callers[role].ownerId!==plan.owners[role].id||callers[peer].ownerId!==plan.owners[peer].id)
+        fail('fixture-state','The club membership case does not match its disposable callers.');
+      return {role,testCase,observation:callers[role],peer:callers[peer]};
+    },
+    async observe(s,plan,{signal}){
+      const stateDigest=await observeClubMembershipFixture(s.sql,plan);
+      const rows=plan.courseFixture?await observeClubMembershipTimetable(s.sql,plan):[];
+      const callers={};
+      for(const [index,role] of ['A','B'].entries()){
+        const caller=s.users[index];
+        await caller.renewSession({signal});
+        if(caller.id!==plan.owners[role].id)fail('fixture-isolation','Unexpected club membership caller.');
+        const rpc=new URL('/rest/v1/rpc/affairs_read_club_student',s.url);
+        const response=await s.boundedFetch(rpc,{method:'POST',redirect:'error',cache:'no-store',
+          headers:{apikey:s.publishable,Authorization:'Bearer '+caller.token,'Content-Type':'application/json'},
+          body:JSON.stringify({p_view:'my-memberships',p_search:'',p_page:1}),signal:signals(signal)});
+        const workspace=await readBoundedFixtureResponse(response,rpc,32768);
+        if(!isDeepStrictEqual(workspace,expectedClubMembershipWorkspace(plan,caller.id)))
+          fail('fixture-state','The signed club membership response disagrees with independent rows.');
+        const terms=role==='A'?rows:[];
+        if(plan.courseFixture){
+          const timetable=await loadOwnAffairsTimetable({user:{id:caller.id},url:s.url,key:s.publishable,token:caller.token},
+            {expectedStudentId:role==='A'?plan.courseFixture.student.id:null},{fetchImpl:s.boundedFetch});
+          if(timetable.studentRecordFound!==(role==='A')||!isDeepStrictEqual(timetable.courses.map(
+            ({enrollmentId,code,title,term,termStartsOn,termEndsOn,sourceMode})=>
+              ({id:enrollmentId,code,title,term,termStartsOn,termEndsOn,sourceMode})),
+              terms.map(({student_id:_student,...term})=>term)))
+            fail('fixture-state','The signed timetable disagrees with independent enrolled terms.');
+        }
+        callers[role]={ownerId:caller.id,workspace,terms};
+      }
+      return {stateDigest,callers};
+    },
+  });
+}
+
 async function runNativeBrowserPreview({origin,sourceRevision,previewToken,browserCase,artifactDirectory,signal,onCheckpoint}={},fixture){
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')
     ||!fixture.cases.some(testCase=>testCase.id===browserCase)||typeof artifactDirectory!=='string'||!artifactDirectory.startsWith('/')
@@ -2422,9 +2474,10 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
     };
     phase='seed';
     await assertScoped();
-    const plan=fixture.build(runId,verifiedDisposableBrowserOwners(s));
+    const plan=fixture.build(runId,verifiedDisposableBrowserOwners(s),selected);
     s.nativeBrowserPlan=plan;
     if(fixture.profile==='student-profile')s.recordIds.add(plan.student.id);
+    if(fixture.profile==='club-membership'&&plan.courseFixture)s.recordIds.add(plan.courseFixture.student.id);
     await saveLedger();
     await query(()=>feeTransaction(s,async()=>{
       await seedDisposableNativeBrowserProfiles(s.sql,plan);

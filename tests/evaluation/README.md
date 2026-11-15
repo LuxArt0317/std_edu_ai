@@ -434,3 +434,5 @@ both accounts. The browser acceptance gate retains its own requirements.
 node tests/evaluation/run-club-equipment-preview.mjs <protected-preview-origin> <source-revision> --route-context
 node --experimental-strip-types --test tests/evaluation/club-equipment-{hosted,runner}.test.mjs
 ```
+
+The `--client-dispatch club-membership` profile runs the original membership, membership plus current subjects, and empty membership turns on the exact protected OIDC Preview. The operator compares the membership RPC and enrolled terms against independent SQL rows, checks both disposable owners, and validates the complete streamed answer and owned workspace in Chromium. It verifies the version-zero save, a fresh browser restore, the crossed conversation response, unchanged fixture state and disposal. Foreign-request and upstream-unavailable variants are still separate members of the frozen bank.
