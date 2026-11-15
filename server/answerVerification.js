@@ -42,11 +42,14 @@ export function verificationStopActivity(question, cause = 'no_safe_continuation
 
 export function unverifiedAnswer(question, candidate, activity, attempts, reason) {
   const chinese = /[\u3400-\u9fff]/.test(question);
+  const answer = reason === 'provider_quota_exhausted'
+    ? (chinese ? '答案查核服務暫時無法使用，因此這次無法確認答案。請稍後再試。'
+      : 'The answer checker is temporarily unavailable. I couldn’t verify an answer to this question. Please try again later.')
+    : (chinese ? '我已檢查可用的紀錄或來源，但這次仍無法驗證答案。請稍後重試，或提供更具體的課程、日期或問題。'
+      : 'I checked the available records or sources, but I could not verify this answer. Please try again or specify the course, date, or detail you need.');
   return {
     status: 'abstained',
-    answer: chinese
-      ? '我已檢查可用的紀錄或來源，但這次仍無法驗證答案。請稍後重試，或提供更具體的課程、日期或問題。'
-      : 'I checked the available records or sources, but I could not verify this answer. Please try again or specify the course, date, or detail you need.',
+    answer,
     citations: [], suggestedQuestions: [],
     grounding: { ...candidate?.grounding, degraded: true },
     verification: { status: 'unverified', attempts, reason },
@@ -178,7 +181,9 @@ export async function runAnswerVerification({
               : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
           verdict = { ok: false, reason };
         }
-        emit(`verification-${ordinal}`, verdict.ok ? 'Answer checked against evidence' : 'Draft did not pass verification',
+        const label = verdict.ok ? 'Answer checked against evidence'
+          : verdict.reason === 'provider_quota_exhausted' ? 'Answer checker unavailable' : 'Draft did not pass verification';
+        emit(`verification-${ordinal}`, label,
           verdict.ok ? 'The answer passed the evidence checks.' : reviewFailureDetails.get(verdict.reason) || 'This draft did not pass the evidence checks.',
           verdict.ok ? 'complete' : 'unavailable');
       } else {
