@@ -100,7 +100,9 @@ function ownerGuard(alias,table,runParameter){
     +' and u.raw_user_meta_data->>\'assistant_evaluation_run\'='+runParameter+' and p.role=\'student\' and u.email ~ \'^[a-z0-9][a-z0-9._+-]{0,230}@example[.]invalid$\')';
 }
 /** Caller must supply targets from exact reconciled plans inside its transaction.
- * Composite row+owner predicates and inline run guards prohibit broad deletion. */
+ * Composite row+owner predicates and inline run guards prohibit broad deletion.
+ * Bind the serialized recordsets as text so Postgres.js cannot encode them
+ * as JSON strings before PostgreSQL parses them. */
 export async function deleteRows(sql,input){
   request(sql,input,['runId','targets']);requireValue(array(input.targets,502));const runId=input.runId;
   for(const target of input.targets)requireValue(object(target)&&exact(target,target.table===fee?['table','id','userId']:['table','id','studentId'])&&[fee,charges].includes(target.table)
@@ -113,7 +115,7 @@ export async function deleteRows(sql,input){
   for(const table of [fee,charges]){
     const selected=targets.filter(target=>target.table===table);if(!selected.length)continue;
     const column=table===fee?'user_id':'student_id',payload=selected.map(target=>({id:target.id,[column]:target[table===fee?'userId':'studentId']}));
-    const result=await query(sql,'delete from '+schema[table].name+' as r using jsonb_to_recordset($1::jsonb) as v(id uuid,'+column+' uuid) where r.id=v.id and r.'+column+'=v.'+column+' and '+ownerGuard('r',table,'$2')+' returning r.id,r.'+column,[JSON.stringify(payload),runId]);
+    const result=await query(sql,'delete from '+schema[table].name+' as r using jsonb_to_recordset($1::text::jsonb) as v(id uuid,'+column+' uuid) where r.id=v.id and r.'+column+'=v.'+column+' and '+ownerGuard('r',table,'$2')+' returning r.id,r.'+column,[JSON.stringify(payload),runId]);
     requireValue(rowsValid(result)&&result.length===selected.length&&result.every(row=>exact(row,['id',column]))
       &&sameSet(result.map(row=>row.id+':'+row[column]),payload.map(row=>row.id+':'+row[column])),'mutation_mismatch');deleted+=result.length;
   }
@@ -125,7 +127,7 @@ export async function insertRows(sql,input){
   const column=table===fee?'user_id':'student_id',owners=table===fee?[...new Set(rows.map(row=>row.user_id))]:[],students=table===charges?[...new Set(rows.map(row=>row.student_id))]:[];
   await guard(sql,runId,owners,students);
   const rule=schema[table],result=await query(sql,'insert into '+rule.name+' ('+rule.columns.join(',')+') select '+rule.columns.map(key=>'v.'+key).join(',')
-    +' from jsonb_populate_recordset(null::'+rule.name+',$1::jsonb) as v where '+ownerGuard('v',table,'$2')+' returning id,'+column,[JSON.stringify(rows),runId]);
+    +' from jsonb_populate_recordset(null::'+rule.name+',$1::text::jsonb) as v where '+ownerGuard('v',table,'$2')+' returning id,'+column,[JSON.stringify(rows),runId]);
   requireValue(rowsValid(result)&&result.length===rows.length&&result.every(row=>exact(row,['id',column]))
     &&sameSet(result.map(row=>row.id+':'+row[column]),rows.map(row=>row.id+':'+row[column])),'mutation_mismatch');
   return {inserted:result.length};
