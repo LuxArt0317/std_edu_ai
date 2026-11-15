@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Show teaching-feedback submission and review times in the requested time zone. Verify both requested views separately, honor exclusions, and keep saved review status distinct from teacher delivery. [#100]
+
 - Continue a public answer check with a distinct school source when an earlier reviewer reaches its response limit. [#100]
 
 - Evaluate Moodle assignment sample records and sign-in, ownership, file, grade, and bulk-submission boundaries with paired account readbacks. Include a request ID on accepted public assistant requests. [#100]
