@@ -7,9 +7,10 @@ import {createTranscriptDurableJournal,readTranscriptDurableJournal} from './tra
 import {transcriptPreviewOptions} from './run-transcript-preview.mjs';
 import {assessTranscriptPreview,runTranscriptPreview} from './transcript-preview-run.mjs';
 import {verifyTranscriptConversationRow} from './transcript-conversation-save.mjs';
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 
 const origin='https://std-edu-ai-fixture-v1-d286.vercel.app',sourceRevision='a'.repeat(40);
-const runId='17000000-0000-4000-8000-000000000001',conversationId='17000000-0000-4000-8000-000000000002',
+const runId='17000000-0000-4000-8000-000000000001',conversationId=newConversationId(),
   ownerId='17000000-0000-4000-8000-000000000003',token='SYNTHETIC_CALLER_TOKEN';
 const now='2026-11-16T08:00:00.000Z',stateHash='b'.repeat(64);
 const manifest=()=>({version:1,source:'vercel-git',environment:'preview',revision:sourceRevision,builtAt:'2026-11-15T01:00:00.000Z'});
@@ -118,6 +119,8 @@ test('all four exact questions run in one saved chat with fresh observed history
   const env=fixture(),report=await env.run();
   assert.equal(report.failure,null);
   assert.equal(report.execution,'deterministic');
+  assert.equal(report.plan.sessionId,conversationId);
+  assert.match(conversationId,/^.{14}7/u);
   assert.equal(report.plan.ownerId,ownerId);
   assert.equal(report.turns.length,4);
   assert.equal(report.deployment.status,'finished');

@@ -4,6 +4,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {constants} from 'node:fs';
 import {lstat,mkdir,open,realpath,rename} from 'node:fs/promises';
 import {dirname,isAbsolute,join,resolve} from 'node:path';
+import {isConversationId} from '../../src/services/assistantConversationId.js';
 
 const uuid=value=>typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(value);
 const sha=(value,length=64)=>typeof value==='string'&&new RegExp('^[a-f0-9]{'+length+'}$','u').test(value);
@@ -43,7 +44,7 @@ const caseIds=['account:reproduction-record-overview','account:reproduction-curr
 const bindingKeys=['runId','ownerId','conversationId','sourceRevision','suiteHash'];
 function checkedBinding(raw){
   const value=copy(raw);
-  if(!exact(value,bindingKeys)||![value.runId,value.ownerId,value.conversationId].every(uuid)
+  if(!exact(value,bindingKeys)||!uuid(value.runId)||!uuid(value.ownerId)||!isConversationId(value.conversationId)
     ||new Set([value.runId,value.ownerId,value.conversationId]).size!==3||!sha(value.sourceRevision,40)||!sha(value.suiteHash))fail('invalid_configuration');
   return value;
 }

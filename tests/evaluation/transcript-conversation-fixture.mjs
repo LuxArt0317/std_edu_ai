@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {isConversationId} from '../../src/services/assistantConversationId.js';
 import {verifyTranscriptConversationRow} from './transcript-conversation-save.mjs';
 
 // Injected reserved PostgreSQL connection only. No network, credentials, Auth
@@ -31,7 +32,7 @@ const pendingKeys=['ownerId','conversationId','title','expectedVersion','message
 const receivedKeys=['ownerId','conversationId','title','expectedVersion','messageDigest','requestHash','sourceRevision'];
 
 export function createTranscriptConversationFixture({runId,owners,conversationId,journal,sql,assertLease,persist}={}){
-  requireValue(uuid(runId)&&uuid(conversationId)&&Array.isArray(owners)&&owners.length===2&&typeof journal?.read==='function'
+  requireValue(uuid(runId)&&isConversationId(conversationId)&&Array.isArray(owners)&&owners.length===2&&typeof journal?.read==='function'
     &&typeof sql?.unsafe==='function'&&typeof assertLease==='function'&&typeof persist==='function');
   const ownerBindings=owners.map(row=>{
     requireValue(exact(row,['id','email'])&&uuid(row.id)&&typeof row.email==='string'&&/^[a-z0-9][a-z0-9._+-]{0,230}@example\.invalid$/u.test(row.email));

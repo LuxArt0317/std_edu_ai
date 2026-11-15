@@ -1,6 +1,7 @@
 /** Offline exact-transcript packet. No HTTP, Auth, database, model or disk adapter. */
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
+import {isConversationId} from '../../src/services/assistantConversationId.js';
 import {buildAccountCases} from './account-cases.mjs';
 import {fixtureForCase,DEFAULT_EVAL_NOW} from './fixtures.mjs';
 import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
@@ -56,7 +57,7 @@ export const transcriptReplayManifest=freeze({version:1,id:'reported-four-turn-t
     'The ordinary runner accepts static history per case; it does not currently save this evolving four-turn session.']});
 
 export function buildTranscriptReplayPlan({runId,sessionId,ownerId='17000000-0000-4000-8000-000000009001',sourceRevision,now=DEFAULT_EVAL_NOW}={}){
-  if(![runId,sessionId,ownerId].every(uuid)||new Set([runId,sessionId,ownerId]).size!==3||typeof sourceRevision!=='string'||!/^[a-f0-9]{40}$/u.test(sourceRevision)
+  if(!uuid(runId)||!uuid(ownerId)||!isConversationId(sessionId)||new Set([runId,sessionId,ownerId]).size!==3||typeof sourceRevision!=='string'||!/^[a-f0-9]{40}$/u.test(sourceRevision)
     ||typeof now!=='string'||!Number.isFinite(Date.parse(now)))fail('invalid_identity');
   const timestamp=Date.parse(now),window=sampleEnrollmentManifest.validity;
   if(timestamp<Date.parse(window.startsAt)||timestamp>=Date.parse(window.expiresAt))fail('fixture_window');

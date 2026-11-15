@@ -4,9 +4,10 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import {test} from 'node:test';
 import {createTranscriptConversationFixture as create} from './transcript-conversation-fixture.mjs';
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 
 const id=n=>'f1000000-0000-4000-8000-'+String(n).padStart(12,'0');
-const runId=id(1),ownerId=id(2),otherId=id(3),conversationId=id(4);
+const runId=id(1),ownerId=id(2),otherId=id(3),conversationId=newConversationId();
 const owners=[{id:ownerId,email:'assistant-eval-a@example.invalid'},{id:otherId,email:'assistant-eval-b@example.invalid'}];
 const stable=value=>Array.isArray(value)?value.map(stable):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,stable(value[key])])):value;
 const hash=value=>createHash('sha256').update(JSON.stringify(stable(value))).digest('hex');

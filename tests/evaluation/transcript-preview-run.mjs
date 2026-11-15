@@ -1,4 +1,4 @@
-import {newConversationId} from '../../src/services/assistantConversationId.js';
+import {isConversationId,newConversationId} from '../../src/services/assistantConversationId.js';
 import {randomUUID} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {setTimeout as delay} from 'node:timers/promises';
@@ -89,7 +89,7 @@ export async function runTranscriptPreview({
 }={},{
   fixture,createJournal,writeReport,wait=ms=>delay(ms,undefined,{signal}),
 }={}){
-  if(!uuid(runId)||!uuid(conversationId)||runId===conversationId||!sha(sourceRevision)
+  if(!uuid(runId)||!isConversationId(conversationId)||runId===conversationId||!sha(sourceRevision)
     ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin||origin==='https://stu.best'||typeof simulation!=='boolean'
     ||!hasMethods(fixture,['prepare','transcriptFixtureIdentity','reserveTranscriptConversation','forCase','afterCase','cleanup'])
     ||typeof createJournal!=='function'||typeof writeReport!=='function'||typeof wait!=='function')

@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
+import {isConversationId} from '../../src/services/assistantConversationId.js';
 
 const uuid=value=>typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[a-f0-9]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(value);
 const canonical=value=>{
@@ -10,7 +11,7 @@ const canonical=value=>{
 };
 const digest=value=>createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 export function verifyTranscriptConversationRow(commitment,rows){
-  if(!uuid(commitment?.ownerId)||!uuid(commitment?.conversationId)||typeof commitment.title!=='string'
+  if(!uuid(commitment?.ownerId)||!isConversationId(commitment?.conversationId)||typeof commitment.title!=='string'
     ||!Number.isInteger(commitment.expectedVersion)||commitment.expectedVersion<1||commitment.expectedVersion>4
     ||!/^[a-f0-9]{64}$/u.test(commitment.messageDigest??'')||!Array.isArray(rows)||rows.length!==1)
     fail('reconciliation_required');
@@ -32,7 +33,7 @@ const fail=code=>{throw new TranscriptSaveError(code);};
  * returning. Keep uncertainty for independent DB reconciliation; never replay.
  */
 export function createTranscriptConversationSave({transport,ownerId,conversationId,title,journal}={}){
-  if(!uuid(ownerId)||!uuid(conversationId)||ownerId===conversationId||typeof title!=='string'
+  if(!uuid(ownerId)||!isConversationId(conversationId)||ownerId===conversationId||typeof title!=='string'
     ||title!==title.trim()||!title||title.length>100||typeof transport?.saveConversation!=='function'
     ||typeof transport?.readConversation!=='function'||typeof journal?.pending!=='function'||typeof journal?.received!=='function')
     fail('invalid_configuration');
