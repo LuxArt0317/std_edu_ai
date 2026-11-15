@@ -20,3 +20,51 @@ test('conversation API derives owner from verified Google session and strips exe
     assert.equal((await call('DELETE')).status,400);assert.equal((await call('POST',{id,title:'Chat',version:-1,messages:[]})).status,400);
   }finally{globalThis.fetch=original;for(const key of ['VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY'])if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}
 });
+
+test('conversation DELETE acknowledges only the owner-scoped database receipt',async()=>{
+  const original=globalThis.fetch;
+  const config={VITE_SUPABASE_URL:'https://xiftudmvxphxcjtmfmib.supabase.co',VITE_SUPABASE_PUBLISHABLE_KEY:'fixture'};
+  const saved=Object.fromEntries(Object.keys(config).map(key=>[key,process.env[key]]));
+  Object.assign(process.env,config);
+  const owner='10000000-0000-4000-8000-000000000099';
+  const id='20000000-0000-4000-8000-000000000099';
+  const alternate='30000000-0000-4000-8000-000000000099';
+  const token='x'.repeat(40);
+  let rpcCalls=0;
+  let receipt:unknown={deleted:true};
+  let rpcStatus=200;
+  globalThis.fetch=async(input,init)=>{
+    const url=new URL(String(input));
+    if(url.pathname==='/auth/v1/user')return Response.json({id:owner,identities:[{provider:'google'}]});
+    assert.equal(url.pathname,'/rest/v1/rpc/affairs_delete_conversation');
+    assert.equal(url.search,'');
+    assert.equal(init?.method,'POST');
+    assert.equal((init?.headers as Record<string,string>).Authorization,'Bearer '+token);
+    assert.deepEqual(JSON.parse(String(init?.body)),{p_id:id});
+    rpcCalls++;
+    return Response.json(receipt,{status:rpcStatus});
+  };
+  const request=async (query:Record<string,string>)=>{
+    let status=200,payload:unknown;
+    const response={status(code:number){status=code;return response;},json(value:unknown){payload=value;},setHeader(){}};
+    await handler({method:'DELETE',query:{...query,resource:'conversations'},headers:{authorization:'Bearer '+token},body:{user_id:alternate}},response);
+    return {status,payload};
+  };
+  try{
+    const query={id,user_id:alternate};
+    assert.deepEqual(await request(query),{status:200,payload:{deleted:true}});
+    assert.deepEqual(await request(query),{status:200,payload:{deleted:true}});
+    assert.equal((await request({})).status,400);
+    assert.equal((await request({id:'invalid'})).status,400);
+    assert.equal(rpcCalls,2);
+    receipt={deleted:false};
+    assert.equal((await request(query)).status,503);
+    receipt={error:'Provider request failed'};
+    rpcStatus=503;
+    assert.equal((await request(query)).status,503);
+    assert.equal(rpcCalls,4);
+  }finally{
+    globalThis.fetch=original;
+    for(const [key,value] of Object.entries(saved))if(value===undefined)delete process.env[key];else process.env[key]=value;
+  }
+});

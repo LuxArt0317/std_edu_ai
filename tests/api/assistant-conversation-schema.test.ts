@@ -62,3 +62,22 @@ test('execution grants remain authenticated-only and the migration contains no o
   // Only line comments and whitespace may surround the exact replacement/grants.
   assert.equal(remaining.replace(/^\s*--[^\n]*(?:\n|$)/gm, '').trim(), '');
 });
+
+test('deletion and saving share the existing lock and only an owner-bound receipt can veto a save', () => {
+  const migration=readFileSync(new URL('../../supabase/migrations/20261115230000_assistant_conversation_delete_receipts.sql',import.meta.url),'utf8');
+  const lock="  perform pg_advisory_xact_lock(hashtextextended('affairs-chat:'||v_uid::text,0));\n";
+  const guard="  if exists(select 1 from private.affairs_conversation_tombstones where user_id=v_uid and conversation_id=p_id)\n    then raise exception 'Conversation was deleted' using errcode='PT409'; end if;\n";
+  assert.equal(extractFunction(migration),extractFunction(replacement).replace(lock,lock+guard));
+  const deleteDefinition=migration.slice(migration.indexOf('create function public.affairs_delete_conversation'),migration.indexOf('create or replace function public.affairs_save_conversation'));
+  assert.ok(deleteDefinition.includes('v_uid is null or not private.affairs_google_identity()'));
+  assert.ok(deleteDefinition.includes("language plpgsql security definer set search_path=''"));
+  const insertion='  insert into private.affairs_conversation_tombstones(user_id,conversation_id) values(v_uid,p_id)';
+  const deletion='  delete from public.affairs_conversations where id=p_id and user_id=v_uid;';
+  assert.ok(deleteDefinition.includes(lock+insertion));
+  assert.ok(deleteDefinition.includes('on conflict (user_id,conversation_id) do nothing;\n'+deletion));
+  assert.ok(deleteDefinition.includes("return jsonb_build_object('deleted',true)"));
+  assert.ok(deleteDefinition.includes('revoke all on function public.affairs_delete_conversation(uuid) from public,anon;'));
+  assert.ok(deleteDefinition.includes('grant execute on function public.affairs_delete_conversation(uuid) to authenticated;'));
+  assert.match(migration,/user_id uuid not null references auth\.users\(id\) on delete cascade,\s+conversation_id uuid not null,\s+primary key \(user_id,conversation_id\)/u);
+  assert.match(migration,/revoke all on private\.affairs_conversation_tombstones from public,anon,authenticated;/u);
+});

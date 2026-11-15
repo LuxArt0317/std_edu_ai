@@ -23,16 +23,21 @@ export default async function handler(req,res){
       path='rpc/affairs_save_conversation';
       try{content=JSON.stringify({p_id:id,p_title:title,p_expected_version:body.version,p_messages:sanitizeStoredConversation(body.messages)});}
       catch(error){if(error instanceof RangeError)throw new AffairsWorkspaceError('This conversation turn is too large to save. Start a new conversation.',400);throw error;}
+    }else if(req.method==='DELETE'){
+      if(!id)throw new AffairsWorkspaceError('Choose a conversation to delete.',400);
+      path='rpc/affairs_delete_conversation';content=JSON.stringify({p_id:id});
     }else{
-      if(req.method==='DELETE'&&!id)throw new AffairsWorkspaceError('Choose a conversation to delete.',400);
       if(id)params.set('id',`eq.${id}`);
       params.set('select',id?'id,title,messages,version,updated_at':'id,title,version,updated_at');params.set('order','updated_at.desc,id.asc');params.set('limit',id?'1':'100');
       path+='?'+params.toString();
     }
-    const response=await fetch(`${account.url}/rest/v1/${path}`,{method:req.method,headers,...(content?{body:content}:{}),signal:AbortSignal.timeout(10000)});
+    const response=await fetch(`${account.url}/rest/v1/${path}`,{method:req.method==='DELETE'?'POST':req.method,headers,...(content?{body:content}:{}),signal:AbortSignal.timeout(10000)});
     if(!response.ok)throw new AffairsWorkspaceError(response.status===409?'This conversation changed in another tab. Reload it before editing.':response.status===403?'This conversation is unavailable for your account.':'Conversations could not be saved or loaded.',[400,401,403,409].includes(response.status)?response.status:503);
-    if(req.method==='DELETE'){res.status(200).json({deleted:true});return;}
     const data=await response.json();
+    if(req.method==='DELETE'){
+      if(data?.deleted!==true)throw new AffairsWorkspaceError('Conversations could not be deleted.',503);
+      res.status(200).json({deleted:true});return;
+    }
     if(req.method==='GET'&&id){if(!Array.isArray(data)||!data[0])throw new AffairsWorkspaceError('Conversation not found.',404);res.status(200).json(data[0]);}
     else res.status(200).json(req.method==='GET'?{conversations:data}:data);
   }catch(error){res.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'Conversations are temporarily unavailable.'});}
