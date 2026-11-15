@@ -1,6 +1,6 @@
 import type { studentLeaveLookupContext } from './studentLeaveEvidenceIntent.js';
 export type StudentLeaveAssistantPlan = ReturnType<typeof studentLeaveLookupContext> & {
-  feeQuestion:string; feeLabel:string|null; classQuestion:string; gradeQuestion:string; hasOtherQuestion:boolean; deterministicRead:boolean;
+  feeQuestion:string; feeLabel:string|null; classQuestion:string; gradeQuestion:string; hasOtherQuestion:boolean; deterministicRead:boolean; deterministicGradePair:boolean;
 };
 export function studentLeaveAssistantPlan(question:string,route:string,history:Array<{role:string;content:string}>):StudentLeaveAssistantPlan|null;
 export function studentLeaveSelectedTools(plan:StudentLeaveAssistantPlan):Array<'leaveRecords'|'charges'|'courses'|'dtmGradeReport'>;

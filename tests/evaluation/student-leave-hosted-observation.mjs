@@ -144,11 +144,11 @@ export async function requestObservedStudentLeave({plan,testCase,key,token,fetch
     &&step.kind.startsWith('account-read:')&&!/^account-read:leaveRecords:[1-3]$/u.test(step.kind)
     &&!(grade&&/^account-read:dtmGradeReport:[1-3]$/u.test(step.kind)));
   const completedReview=observation.completedModelOperations.includes('answer_evidence_review');
-  const completedNativeCheck=observation.verificationMethod==='native-exact'
+  const completedNativeCheck=observation.verificationMethod===(grade?'native-paired':'native-exact')
     &&observation.completedModelOperations.length===0
     &&reply.verification?.status==='verified'
     &&reply.verification.attempts===observation.attempts.length
-    &&activity.filter(step=>step?.kind==='student-leave-evidence-check'&&step.status==='complete').length===1;
+    &&activity.filter(step=>step?.kind===(grade?'student-leave-moodle-evidence-check':'student-leave-evidence-check')&&step.status==='complete').length===1;
   const execution=completedNativeCheck?'live-native':completedReview?'live-model':'unverified';
   // The exact read proof supplies grading's execution input independently.
   // Keep non-read activity for other grading checks.
@@ -160,14 +160,19 @@ export async function requestObservedStudentLeave({plan,testCase,key,token,fetch
   const failures=outcome.failures.map(row=>row.id);
   if(unrelatedReader)failures.push('observation.unexpected_reader_activity');
   if(grade){
-    if(!completedReview||observation.verificationMethod!=='model'||reply.verification?.status!=='verified'
-      ||reply.verification.attempts!==observation.attempts.length
-      ||!observation.gradeAttempts.every((_,index)=>activity.some(step=>step?.kind==='account-read:dtmGradeReport:'+(index+1)&&step.status==='complete')))
-      failures.push('observation.independent_grade_review_not_completed');
+    const completedReads=['leaveRecords','dtmGradeReport'].every(source=>{
+      const terminal=activity.filter(step=>step?.kind?.startsWith('account-read:'+source+':')&&step.status==='complete');
+      return terminal.length===observation.attempts.length&&observation.attempts.every((_,index)=>
+        terminal.some(step=>step.kind==='account-read:'+source+':'+(index+1)));
+    });
+    const checked=completedNativeCheck
+      ||completedReview&&observation.verificationMethod==='model'&&reply.verification?.status==='verified'
+        &&reply.verification.attempts===observation.attempts.length;
+    if(!checked||!completedReads)failures.push('observation.independent_grade_review_not_completed');
   }else if(!completedNativeCheck)failures.push('observation.native_check_not_completed');
   return {caseId:bound.caseId,passed:failures.length===0,observed:true,attempts:observation.attempts.length,
     reads:observation.attempts.reduce((count,row)=>count+row.reads.length,0),
-    ...(grade?{gradeOverviewReads:observation.gradeAttempts.length}:{}),
+    ...(grade?{gradeOverviewReads:observation.gradeAttempts.length,verificationMethod:observation.verificationMethod}:{}),
     execution,completedModelCalls:observation.completedModelOperations.length,
     completedReview,completedNativeCheck,failures,
     receiptDigest:studentLeaveObservationDigest(receipt),responseDigest:observation.responseDigest};
