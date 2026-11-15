@@ -1021,3 +1021,13 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Reproduce and repair the third-check stop when the model reviewer truncates after a verified partial. Require a fresh official page for the fourth check and keep prior verified content under the time limit.
 - [x] Stage the retained-partial change as protected `c123fd5`. Pass 94 focused controlled tests on the exact revision, then verify the Ready release and both unchanged public About smoke cases.
 - [ ] Verify the complete Quality run, continue the remaining 11 original teaching cases and mount the remaining hosted service acceptance cases.
+
+### Facility repair and scoped follow-up [Issue #100]
+
+- [x] Pass all 13 protected repair cancellation cases with two account readbacks and verified cleanup.
+- [x] Preserve the separate six-case hosted read failure and prove cleanup after stopping quota-exhausted requests.
+- [ ] Verify local facility repair answers without the unavailable model reviewer, then replay the unchanged hosted packet.
+- [x] Add independent fixture variants for the five non-clock Moodle gaps and pass 119 focused checks on exact `8d74216`.
+- [ ] Verify the exact protected 20-case Moodle run and preserve its four separately cleaned-up snapshots.
+- [x] Run all 40 original teaching prompts against isolated PostgreSQL and the actual handlers. Correct the no-read rubric and keep all cases in the denominator.
+- [ ] Bind independent hosted teaching evidence and finish the signed-in release evaluation.

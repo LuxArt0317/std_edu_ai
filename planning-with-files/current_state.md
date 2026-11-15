@@ -1,3 +1,13 @@
+## Confirmed actions and remaining signed-in reads [Issue #100]
+
+Exact protected `c123fd5` passed Quality 43740337322. All 13 facility repair cancellation checks passed with 56 release checks and matching before/after SQL and both account readbacks. The proposal did not mutate records. Exact confirmation cancelled the designated report once, replay returned the same receipt, another caller could not read or act on it, and cleanup preserved the protected owner. Report SHA-256 `81a69a12353db5c664dac1815391d91417fa16f386ea309f622ae726503fa37c`.
+
+A separate facility repair read packet observed six successful native reads followed by `provider_quota_exhausted` and six failed answer grades. Its seventh case was interrupted before HTTP dispatch. The runner verified cleanup and matched all six issued request tickets. Preserve the failure report (SHA-256 `09ee3d404fc3d6e8af5193ba8997f4b9d64e49f2761d7c8c903f306f678a8eb5`). The direct repair evidence fix is in a separate agent checkout.
+
+The frozen Moodle assignment grader now admits 20 of 25 questions. The ordinary fixture, the fixture with personal courses but only a sample assignment, the sample-only fixture, and the capped 21-record fixture each form a separate exact packet. The exact candidate `8d74216` passed all 119 focused tests. The full integrated evaluator at the test-only change passed 1,522 of 1,528 with six optional skips. Protected build and Quality are pending.
+
+All 40 original teaching-feedback prompts now pass against isolated PostgreSQL and the actual handlers. The final no-read prompt uses its correct access rubric: acknowledge the exclusion and produce no private read, verification event, data card or citation. This corrects the earlier contradictory record-answer classification without changing the prompt or accepting a missing answer. Of the 40, eight use a controlled reviewer. The integrated focused run passed 133 with one optional case skipped. The broader 40-case hosted packet is still pending trusted fixture data.
+
 ## Adaptive review and signed-in coverage [Issue #100]
 
 Protected `fe576ac` passed Quality 43737902684, all 15 mounted Moodle assignment questions and all 11 teaching-feedback sample questions. They completed 46 and 48 release checks respectively, with paired caller readbacks and verified cleanup. Report SHA-256 values are `5f837b073cf6938757c790a12fc256a7d42cf001332e1641a99cd596f8f65ba0` and `88c02a72b82f083ea6216de0b0753eef898b722815dc010a1c65d83d1b5d19a9`. An independent Chromium run at `8731020` passed 561 comparisons across 265 routes with controlled authentication and records. Report SHA-256 `59b41ed944c4f4b954acb9fc5ba09422bb5524de1d92ee0696eaa0ef22c653ea`.

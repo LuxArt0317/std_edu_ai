@@ -1,3 +1,9 @@
+## Confirmed actions and exact record access [Issue #100]
+
+Repair cancellation passed independently of the read-answer evaluator. Native records were accessible under the correct caller while the model reviewer was unavailable. For questions requiring literal saved status, note or count, prove the selected record and scope directly. Only a separately retrieved and verified timetable can support the next-class portion. The failed hosted run and subsequent changes are kept in [the November 16 archive](archive/progress_2026-11-16.md).
+
+An expected access acknowledgment must not be graded as an account record answer. The existing 40-question Teaching Feedback bank now preserves the original exclusion-only prompt and requires no private read or verification activity for it. The other 39 retain their original response rubrics.
+
 ## Hosted answers and adaptive public retrieval [Issue #100]
 
 The four reported signed-in prompts passed independent grading on protected Preview `4eb1522`. The answer-only diagnostic carried each reply into the next request and verified the same disposable records throughout. No conversation endpoint ran. The account cleanup and protected owner preservation passed. GitHub Quality and the exact 394-outcome fixture-controlled Chromium matrix passed. The archive `progress_2026-11-15_hosted-preview.md` records the work that led to this checkpoint.
