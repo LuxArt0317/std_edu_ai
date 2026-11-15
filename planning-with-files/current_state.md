@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+Exact protected `2427eee` passed all nine Counseling cancellation cases and all twenty signed-in cases for 30-1, 30-2, 31-2 and 35-1. Both completed their exact manifest checks and verified cleanup. Counseling separately verified the action receipt, replay and unchanged protected owner. Payroll passed eight of eight on `f5b37da` with verified cleanup. Earlier Moodle grade receipt evidence of 7/10 remains separate from the locally repaired three answer cases. Production still serves `076c79a`.
+
 The public LangGraph now follows a fresh source after a verified partial answer improves or a later draft is rejected for a fixable reason. It carries forward the best verified reply and retains the four-check cap. Controlled actual-handler tests observed check four after an actionable third rejection, preservation on reviewer outage or insufficient time, no rereview on duplicate source content, and durable activity with no raw reviewer labels. Hosted acceptance of this exact graph change is pending.
 
 Exact protected `f5b37da` passed three pinned public requests with matching release metadata. The English and Traditional Chinese summaries preserve the captured student services, exact route and date. Traditional Chinese uses 擷取日期. The OneDrive answer used three real verification checks, searched for more evidence, and returned the known sign-in-required DTM notice without guessing its quota or publication date. Public report SHA-256 `3b24d518405d4bbbb1579c32ff2e991ac95473cfc1f90c62a5f0b4e2c8cfbb21`.

@@ -903,9 +903,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Mount a protected facilities cancellation fixture that allows only its expected native event.
 - [x] Implement and locally verify explicit confirmation of one eligible caller-owned 29-1 appointment through the versioned workflow.
 - [x] Mount nine hosted Counseling cancellation cases and exercise the real handlers, native PostgreSQL with RLS, exact receipts and fixture cleanup locally.
-- [ ] Verify the confirmed Counseling cancellation against protected Preview fixture rows and operation receipts.
+- [x] Verify nine protected Counseling cancellation cases on `2427eee`, with exact owner readback, unchanged protected owner and fixture/identity cleanup.
 - [x] Mount twenty authenticated service boundary cases at 30-1, 30-2, 31-2 and 35-1. Correct the Traditional Chinese possessive routing found by the evaluation.
-- [ ] Replay the four service boundary families on protected Preview.
+- [x] Verify all twenty protected service boundary cases on `2427eee`, with exact pinning and verified cleanup.
 - [x] Continue a verified partial reply when exact missing-detail coverage improves and another distinct source is available. Recover actionable rejected drafts within the same cap and keep the best verified reply on terminal failure.
 - [x] Exercise four observed checks, a third-draft rejection followed by verified recovery, a duplicate source, a lost detail, reviewer outage, time, and persisted activity through the actual public endpoint with controlled providers.
 - [ ] Replay public questions on the exact protected candidate and independently grade the outcomes.

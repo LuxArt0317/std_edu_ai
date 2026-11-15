@@ -169,7 +169,7 @@ test('the real action endpoint verifies the receipt and preserves the exact nati
     return Response.json({id:report,status:'cancelled',version:returnedVersion});
   });
   const {body}=await h.ask();
-  assert.deepEqual(h.writes,[]);
+  assert.equal(h.writes.length,0);
   const {kind,payload,requestId}=body.proposedAction;
   const request={kind,payload:{id:payload.id,version:Number(payload.version),request_id:requestId}};
   const denied=await dispatch(confirm,request,otherToken);
