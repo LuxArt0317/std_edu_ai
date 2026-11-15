@@ -8,6 +8,7 @@ import dataHandler from '../../api/affairs-data.ts';
 import {studentProfilePath} from '../../server/studentProfileContract.js';
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
+import {seedDisposableNativeBrowserProfiles} from './live-fixtures.mjs';
 import {bindStudentProfileBrowserCase,buildStudentProfileBrowserFixture,deleteStudentProfileBrowserFixture,
   observeStudentProfileBrowserCallers,observeStudentProfileBrowserFixture,seedStudentProfileBrowserFixture,
   verifyStudentProfileBrowserFixtureAbsent} from './student-profile-browser-fixture.mjs';
@@ -37,7 +38,7 @@ test('the three 8-1 browser cases use the unmodified inventory prompts and selec
 });
 
 function sqlTag(db){
-  return (template,...values)=>{
+  const sql=(template,...values)=>{
     if(!template.raw)return {list:template};
     const parameters=[],param=value=>'$'+parameters.push(value);
     const fragment=value=>{
@@ -49,6 +50,8 @@ function sqlTag(db){
     const statement=template.reduce((out,part,index)=>out+(index?fragment(values[index-1]):'')+part,'');
     return db.query(statement,parameters).then(result=>result.rows);
   };
+  sql.json=value=>JSON.stringify(value);
+  return sql;
 }
 
 async function invoke(user,path){
@@ -144,12 +147,40 @@ test('migrated 8-1 browser packet observes two signed scopes, the actual API, ex
     for(const owner of Object.values(owners)){
       await db.query('insert into auth.users values($1,$2,now(),$3)',[owner.id,owner.email,{assistant_evaluation_run:runId}]);
       await db.query('insert into auth.identities values($1,$2)',[owner.id,'google']);
-      await db.query("insert into public.affairs_profiles(user_id,email,display_name,role) values($1,$2,'Disposable QA','student')",[owner.id,owner.email]);
     }
     const plan=buildStudentProfileBrowserFixture(runId,owners),sql=sqlTag(db);
+    const inRollback=async work=>{
+      await db.exec('begin');
+      try{await work();}
+      finally{await db.exec('rollback');}
+    };
+    await t.test('exact Auth owners can recover an empty rolled-back fixture with zero or one app profile',async()=>{
+      await inRollback(async()=>{
+        await seedDisposableNativeBrowserProfiles(sql,plan);
+        await seedStudentProfileBrowserFixture(sql,plan);
+      });
+      await inRollback(async()=>{
+        await assert.rejects(seedStudentProfileBrowserFixture(sql,plan),/student profile fixture mismatch/u);
+        await deleteStudentProfileBrowserFixture(sql,plan);
+        await db.query("insert into public.affairs_profiles(user_id,email,display_name,role) values($1,$2,'Evaluation Student','student')",
+          [owners.A.id,owners.A.email]);
+        await assert.rejects(seedStudentProfileBrowserFixture(sql,plan),/student profile fixture mismatch/u);
+        await deleteStudentProfileBrowserFixture(sql,plan);
+        await db.query("update public.affairs_profiles set role='admin' where user_id=$1",[owners.A.id]);
+        await assert.rejects(deleteStudentProfileBrowserFixture(sql,plan),/student profile fixture mismatch/u);
+        await db.query('delete from public.affairs_profiles where user_id=$1',[owners.A.id]);
+        await db.query("update auth.users set raw_user_meta_data='{}' where id=$1",[owners.B.id]);
+        await assert.rejects(deleteStudentProfileBrowserFixture(sql,plan),/student profile fixture mismatch/u);
+      });
+    });
     await db.exec('begin');
+    await seedDisposableNativeBrowserProfiles(sql,plan);
     const savedDigest=await seedStudentProfileBrowserFixture(sql,plan);
     await db.exec('commit');
+    await inRollback(async()=>{
+      await db.query('delete from public.affairs_profiles where user_id=$1',[owners.B.id]);
+      await assert.rejects(deleteStudentProfileBrowserFixture(sql,plan),/student profile fixture mismatch/u);
+    });
     let pendingRead=Promise.resolve();
     const authorized=(user,work)=>{
       const reading=pendingRead.then(async()=>{

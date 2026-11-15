@@ -46,19 +46,19 @@ async function validateScope(sql,plan,lock){
     await sql`select pg_advisory_xact_lock(hashtextextended('student-profile-target:'||${id},0))`;
   }
   const people=await sql`select u.id,u.email,u.raw_user_meta_data->>'assistant_evaluation_run' as "runMarker",
-    u.email_confirmed_at is not null and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google')
-      and exists(select 1 from public.affairs_profiles p where p.user_id=u.id and p.role='student') as disposable
-    from auth.users u where u.id in ${sql(ids)} limit 3`;
-  need(people.length===2&&roles.every(role=>people.some(({disposable,...person})=>disposable===true
-    &&isDeepStrictEqual(person,plan.owners[role]))));
-  return ids;
+    u.email_confirmed_at is not null and exists(select 1 from auth.identities i where i.user_id=u.id and i.provider='google') as disposable,
+    p.user_id is not null as "hasProfile",p.role as "profileRole"
+    from auth.users u left join public.affairs_profiles p on p.user_id=u.id where u.id in ${sql(ids)} limit 3`;
+  need(people.length===2&&roles.every(role=>people.some(({disposable,hasProfile,profileRole,...person})=>disposable===true
+    &&(!hasProfile||profileRole==='student')&&isDeepStrictEqual(person,plan.owners[role]))));
+  return {ids,hasStudentProfiles:people.every(row=>row.hasProfile===true)};
 }
 
 async function readRows(sql,plan,ids){
   const studentId=plan.student.id;
   const profiles=await sql`select to_jsonb(p) as value from public.affairs_student_profiles p where user_id in ${sql(ids)} limit 3`;
   const students=await sql`select s.id,s.user_id,s.student_number,s.full_name,s.year_level,s.source_mode,s.status,p.code as program_code,
-    p.source_mode as program_mode from public.affairs_students s join public.affairs_programs p on p.id=s.program_id
+    p.source_mode as program_mode from public.affairs_students s left join public.affairs_programs p on p.id=s.program_id
     where s.id=${studentId} or s.user_id in ${sql(ids)} limit 3`;
   const receipts=await sql`select 1 from private.affairs_student_profile_receipts where actor in ${sql(ids)} or target in ${sql(ids)} limit 1`;
   need(receipts.length===0);
@@ -103,7 +103,9 @@ async function observe(sql,plan,ids){
 
 export async function seedStudentProfileBrowserFixture(sql,plan){
   await assertStudentProfileBrowserSchema(sql);
-  const ids=await validateScope(sql,plan,true),rows=await readRows(sql,plan,ids);
+  const {ids,hasStudentProfiles}=await validateScope(sql,plan,true);
+  need(hasStudentProfiles);
+  const rows=await readRows(sql,plan,ids);
   need(!rows.profiles.length&&!rows.students.length);
   await readChildren(sql,plan.student.id,{empty:true});
   const student=plan.student;
@@ -116,12 +118,15 @@ export async function seedStudentProfileBrowserFixture(sql,plan){
 }
 
 export async function observeStudentProfileBrowserFixture(sql,plan){
-  return observe(sql,plan,await validateScope(sql,plan,false));
+  const {ids,hasStudentProfiles}=await validateScope(sql,plan,false);
+  need(hasStudentProfiles);
+  return observe(sql,plan,ids);
 }
 
 export async function deleteStudentProfileBrowserFixture(sql,plan){
-  const ids=await validateScope(sql,plan,true),rows=await readRows(sql,plan,ids);
+  const {ids,hasStudentProfiles}=await validateScope(sql,plan,true),rows=await readRows(sql,plan,ids);
   if(!rows.profiles.length&&!rows.students.length){await readChildren(sql,plan.student.id,{empty:true});return;}
+  need(hasStudentProfiles);
   await observe(sql,plan,ids);
   const owner=plan.owners.A.id;
   const profile=await sql`delete from public.affairs_student_profiles where user_id=${owner} and version=${plan.record.version} returning user_id`;
