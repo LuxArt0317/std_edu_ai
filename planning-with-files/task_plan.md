@@ -256,6 +256,7 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [ ] Bind live Digital Academy catalog and metadata observations.
 - [x] Compare the saved chat and activity to the submitted transcript. Send an account-scoped delete for an already committed but unacknowledged save.
 - [x] Prevent an in-flight first save from recreating a deleted conversation and verify both transaction orderings in scratch PostgreSQL.
+- [x] Verify an already open legacy browser tab through the upgraded API and a simulated database cutover.
 - [ ] Apply the conversation migration after client preflight and verify the deployed save/delete behavior.
 - [x] Replace the venue history shortcut with a caller-scoped reader and LangGraph verification.
 - [x] Check venue history and tuition independently when a question uses both sources.
