@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {buildCounselingAppointmentFixturePlan,counselingAppointmentFixtureReadContract} from './counseling-appointment-fixture-plan.mjs';
-import {counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
+import {counselingCompoundFixtureMode,counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
   transitionCounselingFixtures,validateCounselingHostedCases} from './counseling-appointment-hosted.mjs';
 import {prepare,runCounselingHostedEvaluation} from './live-fixtures.mjs';
 
@@ -40,6 +40,21 @@ test('only the exact scoped counseling packet can reach owned fixture preparatio
     fixtureMode:'counseling-appointments-only',caseFamily:'counseling-appointments'}),{code:'fixture-target'});
   await assert.rejects(runCounselingHostedEvaluation({origin:'https://stu.best',sourceRevision:'a'.repeat(40)}),{code:'fixture-config'});
   await assert.rejects(prepare({runId,cases,now:new Date().toISOString(),origin}),{code:'fixture-target'});
+});
+
+test('the tuition mode admits only both frozen question orders and the explicit exclusion',async()=>{
+  const cases=counselingHostedCases({compound:true});
+  assert.deepEqual(cases.map(row=>row.id),['mixed-tuition','mixed-reversed','negative-counseling'].map(id=>'account:counseling-appointments-'+id));
+  assert.deepEqual(cases.map(row=>row.expected.requiredTools),[['counselingAppointments','charges'],['counselingAppointments','charges'],['charges']]);
+  assert.equal(validateCounselingHostedCases(cases,{compound:true}),true);
+  const denied=()=>assert.fail('Invalid admission must not reach the Preview.');
+  const preparation={runId,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,
+    fixtureMode:counselingCompoundFixtureMode,caseFamily:'counseling-appointments',previewReadbackFetch:denied};
+  await assert.rejects(prepare({...preparation,cases,fixtureMode:counselingFixtureMode}),/exact read-only/u);
+  await assert.rejects(prepare({...preparation,cases:counselingHostedCases()}),/exact read-only/u);
+  await assert.rejects(prepare({...preparation,cases:[{...cases[0],question:'Altered question.'},...cases.slice(1)]}),/exact read-only/u);
+  await assert.rejects(prepare({...preparation,cases,caseFamily:undefined}),{code:'fixture-target'});
+  await assert.rejects(prepare({...preparation,cases,applicationFetch:denied}),{code:'fixture-target'});
 });
 
 test('exact planner transitions, rollback recovery and unknown rows fail closed',async()=>{

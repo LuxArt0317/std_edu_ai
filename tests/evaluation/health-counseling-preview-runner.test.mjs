@@ -51,3 +51,25 @@ test('partial, duplicated, wrong-pin, injected or missing readback reports canno
   assert.equal(packetVerdict('health',null,origin,sourceRevision).cleanup,'unproven');
   assert.equal(packetVerdict('counseling',{...counseling(),cleanup:null},origin,sourceRevision).cleanup,'unproven');
 });
+
+test('a tuition packet needs both linked proofs, the explicit exclusion, a stable combined digest and exact cleanup',()=>{
+  const cases=counselingHostedCases({compound:true});
+  const full={sourceRevision,terminal:true,liveAcceptance:true,deployment:pin(3),
+    cleanup:{verified:true,counselingCompoundCleanup:true,protectedOwnerUnchanged:true},
+    results:cases.map((row,index)=>({caseId:row.id,passed:true,requestIndex:index+1,failures:[],
+      correlationId:'f1300000-0000-4000-8000-'+String(index+1).padStart(12,'0'),requestSha256:String(index).repeat(64),
+      recordDigest:'d'.repeat(64),attempts:1,callerCounts:[3,1],completedTools:row.expected.requiredTools}))};
+  assert.deepEqual(packetVerdict('counseling-tuition',full,origin,sourceRevision),
+    {status:'passed',expected:3,executed:3,passed:3,failed:0,cleanup:'verified'});
+  for(const breakProof of [
+    row=>{row.cleanup.counselingCompoundCleanup=false;},
+    row=>{row.cleanup.protectedOwnerUnchanged=false;},
+    row=>{row.results[1].recordDigest='f'.repeat(64);},
+    row=>{row.results[2].completedTools=['charges','counselingAppointments'];},
+    row=>{row.results[1].requestSha256=row.results[0].requestSha256;},
+    row=>{row.results[0].correlationId=row.results[1].correlationId;},
+  ]){
+    const report=structuredClone(full);breakProof(report);
+    assert.equal(packetVerdict('counseling-tuition',report,origin,sourceRevision).status,'incomplete');
+  }
+});

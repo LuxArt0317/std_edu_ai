@@ -1,30 +1,36 @@
 import {createHash} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {buildPlannedCounselingAppointmentCases} from './counseling-appointment-cases.mjs';
-import {assertCounselingAppointmentFixtureIdentities,assertCounselingAppointmentFixtureRows,
+import {assertCounselingAppointmentFixtureIdentities,assertCounselingAppointmentFixtureRows,buildCounselingAppointmentFixturePlan,
   counselingAppointmentCancellationTarget,counselingAppointmentFixtureCaseBinding,counselingAppointmentFixtureReadContract,counselingAppointmentFixtureSqlReadContract,
   reconcileCounselingAppointmentFixturePlans,verifyCounselingAppointmentFixtureReadback} from './counseling-appointment-fixture-plan.mjs';
 import {gradeCase} from './grading.mjs';
 import {readReply} from './run.mjs';
+import {buildCounselingChargeFixture,cleanupOwnedChargeRows,stageOwnedChargeRows} from './internship-charge-fixture.mjs';
 
 export const counselingFixtureMode='counseling-appointments-only';
+export const counselingCompoundFixtureMode='counseling-appointments-with-tuition';
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
 const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const suffixes=new Set(['history','requested-date','scheduled-time','assessment-kind','cancelled-history','closed-history',
   'empty','capped-history','history-followup']);
 const prefix='account:counseling-appointments-';
+const compoundSuffixes=new Set(['mixed-tuition','mixed-reversed','negative-counseling']);
 const roles=['A','B'];
 const table='affairs_counseling_appointments';
+const reportsFileOperation=step=>/storage|file.download|report.authoriz|download.report/iu.test(String(step?.kind));
+const unsupportedClinicalClaim=answer=>/\b(?:diagnosis|clinical notes|counselor (?:name|email))\s*:\s*[^.\n]|\b(?:I|we) (?:have )?(?:booked|cancelled|canceled|rescheduled|downloaded)\b/iu.test(answer);
 
-export function counselingHostedCases(){
-  return structuredClone(buildPlannedCounselingAppointmentCases().filter(row=>suffixes.has(row.id.slice(prefix.length))))
-    .map(({plannedFixture,...row})=>({...row,fixtureRequirement:'counseling_appointments_disposable',
+export function counselingHostedCases({compound=false}={}){
+  const selected=compound?compoundSuffixes:suffixes;
+  return structuredClone(buildPlannedCounselingAppointmentCases().filter(row=>selected.has(row.id.slice(prefix.length))))
+    .map(({plannedFixture,...row})=>({...row,fixtureRequirement:compound?'counseling_tuition_disposable':'counseling_appointments_disposable',
       fixtureKey:'live:'+plannedFixture.family,capability:{level:'native',gap:false}}));
 }
 
-export function validateCounselingHostedCases(cases){
-  if(!isDeepStrictEqual(cases,counselingHostedCases()))
-    throw new Error('Counseling evaluation requires the exact read-only appointment packet.');
+export function validateCounselingHostedCases(cases,options){
+  if(!isDeepStrictEqual(cases,counselingHostedCases(options)))
+    throw new Error('Counseling evaluation requires the exact read-only packet.');
   return true;
 }
 
@@ -159,6 +165,51 @@ export function redactCounselingReply(envelope,privateMarkers){
     /"(?:(?:consent|contact)_(?:version|at|email)|consentversion|consentat|contactemail|userid|can_coordinate|cancoordinate|clinicalnotes|counselorname|signedurl)"\s*:|storage\/v1\/|object\/sign\/|[?&]token=|2027-01-(?:19|20)/u.test(body);
 }
 
+export async function verifyCounselingFixtureAbsent(sql,plan){
+  const owners=roles.map(role=>plan.owners[role].id);
+  const rows=await readRows(sql,plan,plan.recordIds);
+  const extra=await sql`select user_id from private.affairs_counseling_coordinators where user_id in ${sql(owners)}
+    union all select actor from private.affairs_counseling_operations where actor in ${sql(owners)} limit 1`;
+  if(rows[table].length||extra.length)throw new Error('Reserved counseling fixture rows remain.');
+}
+
+export function buildCounselingCompoundFixture({runId,owners,programId}){
+  const chargePlan=buildCounselingChargeFixture({runId,owners:{A:owners.A.id,B:owners.B.id},programId});
+  const appointmentPlan=buildCounselingAppointmentFixturePlan({runId,owners,fixtureKey:'counselingAppointments'});
+  if(new Set([...chargePlan.recordIds,...appointmentPlan.recordIds]).size!==chargePlan.recordIds.length+appointmentPlan.recordIds.length)
+    throw new Error('Counseling tuition fixture reservations overlap.');
+  return {chargePlan,appointmentPlan};
+}
+
+function checkCompoundPlan(plan){
+  const {appointmentPlan,chargePlan}=plan;
+  if(!isDeepStrictEqual(plan,buildCounselingCompoundFixture({runId:appointmentPlan.runId,owners:appointmentPlan.owners,
+    programId:chargePlan.programId})))throw new Error('The reserved Counseling tuition inputs changed.');
+}
+
+/** Caller holds the fixture lock and uses one transaction for both sources. */
+export async function stageCounselingCompoundRows(sql,plan){
+  checkCompoundPlan(plan);
+  const {appointmentPlan,chargePlan}=plan;
+  for(const owner of Object.values(appointmentPlan.owners)){
+    const profile=await sql`insert into public.affairs_profiles(user_id,email,display_name,role)
+      select id,email,'Evaluation Counseling Student','student' from auth.users
+      where id=${owner.id} and email=${owner.email} and raw_user_meta_data->>'assistant_evaluation_run'=${appointmentPlan.runId}
+      returning user_id`;
+    if(profile.length!==1||profile[0].user_id!==owner.id)throw new Error('Counseling disposable roles could not be verified.');
+  }
+  await stageOwnedChargeRows(sql,chargePlan);
+  await transitionCounselingFixtures(sql,{next:appointmentPlan,knownIds:appointmentPlan.recordIds});
+}
+
+export async function cleanupCounselingCompoundRows(sql,plan){
+  checkCompoundPlan(plan);
+  const {appointmentPlan,chargePlan}=plan;
+  await transitionCounselingFixtures(sql,{previous:appointmentPlan,recovering:true,knownIds:appointmentPlan.recordIds});
+  await verifyCounselingFixtureAbsent(sql,appointmentPlan);
+  await cleanupOwnedChargeRows(sql,chargePlan);
+}
+
 /** The caller's separately verified mine projection and persisted unchanged
  * state complement server activity. Activity does not prove downstream egress. */
 export function gradeHostedCounseling(testCase,envelope,before,after){
@@ -183,12 +234,56 @@ export function gradeHostedCounseling(testCase,envelope,before,after){
   if(!pairedReadback)failures.push('counseling.readback');
   if(!acceptableReads||!verification||envelope.body?.verification?.status!=='verified')
     failures.push('counseling.request_activity');
-  if(stream.some(step=>/storage|file.download|report.authoriz|download.report/iu.test(String(step?.kind))))
+  if(stream.some(reportsFileOperation))
     failures.push('counseling.file_activity');
-  if(/\b(?:diagnosis|clinical notes|counselor (?:name|email))\s*:\s*[^.\n]|\b(?:I|we) (?:have )?(?:booked|cancelled|canceled|rescheduled|downloaded)\b/iu.test(answer))
+  if(unsupportedClinicalClaim(answer))
     failures.push('counseling.extra_claim');
   return {caseId:testCase.id,passed:failures.length===0,failures,attempts:checks??null,completedReads:reads.length,
     callerCounts:before?.counts??null,recordDigest:before?.rowsDigest??null};
+}
+
+export function gradeHostedCounselingCompound(testCase,envelope,before,after){
+  const cases=counselingHostedCases({compound:true});
+  if(!cases.some(row=>isDeepStrictEqual(testCase,row)))throw new Error('Unknown exact Counseling tuition request.');
+  const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
+  const paired=isDeepStrictEqual(before,after)&&isDeepStrictEqual(before?.appointments?.counts,[3,1])
+    &&sha(before?.appointments?.rowsDigest)&&sha(before?.charges?.rowsDigest)&&sha(before?.charges?.digest)
+    &&before.charges.checks===8;
+  const result=gradeCase(testCase,{...envelope,stateBefore:{ownedRecordsDigest:paired?digest(before):null},
+    stateAfterProposal:{ownedRecordsDigest:paired?digest(after):null},fixtureReadback:{verified:paired,independentGolden:paired}});
+  const failures=result.failures.map(row=>row.id);
+  if(!paired)failures.push('counseling-compound.readback');
+  const stream=Array.isArray(envelope.events)?envelope.events:[];
+  const events=stream.filter(step=>String(step?.kind).startsWith('account-read:'));
+  const {requiredTools}=testCase.expected;
+  const allowed=new RegExp('^account-read:(?:'+requiredTools.join('|')+'):[12]$','u');
+  const checks=envelope.body?.verification?.attempts;
+  if(envelope.body?.verification?.status!=='verified'||!Number.isInteger(checks)||checks<1||checks>3
+    ||!stream.some(step=>step.kind==='verification-'+checks&&step.status==='complete')
+    ||!events.every(step=>allowed.test(step.kind)&&['running','complete'].includes(step.status))
+    ||!requiredTools.every(tool=>{
+      const completed=events.filter(step=>step.kind.startsWith('account-read:'+tool+':')&&step.status==='complete');
+      return completed.length>=1&&completed.length<=2&&completed.every((step,index)=>step.kind==='account-read:'+tool+':'+(index+1));
+    }))failures.push('counseling-compound.activity');
+  if(stream.some(reportsFileOperation))
+    failures.push('counseling-compound.file_activity');
+  if(unsupportedClinicalClaim(envelope.body?.answer??''))
+    failures.push('counseling-compound.extra_claim');
+  return {caseId:testCase.id,passed:failures.length===0,failures,attempts:checks??null,
+    completedTools:requiredTools.filter(tool=>events.some(step=>step.kind==='account-read:'+tool+':1'&&step.status==='complete')),
+    callerCounts:before?.appointments?.counts??null,recordDigest:paired?digest(before):null};
+}
+
+export function hasCounselingCompoundProof(results){
+  const cases=counselingHostedCases({compound:true});
+  const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
+  return Array.isArray(results)&&results.length===cases.length
+    &&new Set(results.map(row=>row?.correlationId)).size===cases.length&&new Set(results.map(row=>row?.requestSha256)).size===cases.length
+    &&results.every((row,index)=>row?.caseId===cases[index].id&&row.passed===true&&row.failures?.length===0
+      &&row.requestIndex===index+1&&uuid.test(row.correlationId??'')&&sha(row.requestSha256)&&sha(row.recordDigest)
+      &&row.recordDigest===results[0].recordDigest&&isDeepStrictEqual(row.callerCounts,[3,1])
+      &&Number.isInteger(row.attempts)&&row.attempts>=1&&row.attempts<=3
+      &&isDeepStrictEqual(row.completedTools,cases[index].expected.requiredTools));
 }
 
 export async function requestCounselingHostedCase({testCase,origin,token,signal,fetchImpl,privateMarkers,correlationIds}){

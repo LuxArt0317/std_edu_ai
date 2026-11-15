@@ -4,12 +4,13 @@ import {fileURLToPath} from 'node:url';
 import {runCounselingCancellationPreview,runCounselingHostedEvaluation} from './live-fixtures.mjs';
 import {main as runEvaluation,sourceIdentity} from './run.mjs';
 import {counselingCancellationCaseIds,hasCounselingCancellationProof} from './counseling-cancellation-preview.mjs';
-import {counselingHostedCases} from './counseling-appointment-hosted.mjs';
+import {counselingHostedCases,hasCounselingCompoundProof} from './counseling-appointment-hosted.mjs';
 import {healthMetadataFamily,healthMetadataLiveCases} from './health-examination-live.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const packetCases={health:healthMetadataLiveCases().map(row=>row.id),counseling:counselingHostedCases().map(row=>row.id),
+  'counseling-tuition':counselingHostedCases({compound:true}).map(row=>row.id),
   'counseling-cancellation':counselingCancellationCaseIds()};
 const packets=['health','counseling'];
 
@@ -17,7 +18,9 @@ export function packetVerdict(packet,report,origin,sourceRevision){
   const expected=packetCases[packet],health=packet==='health';
   const pin=health?report?.deploymentPin:report?.deployment;
   const cleanup=health?report?.cleanup?.complete===true&&report?.cleanup?.proof?.verified===true
-    :report?.cleanup?.verified===true&&(packet!=='counseling-cancellation'||report?.cleanup?.counselingCancellationCleanup===true&&report?.cleanup?.protectedOwnerUnchanged===true);
+    :report?.cleanup?.verified===true
+      &&(packet!=='counseling-cancellation'||report?.cleanup?.counselingCancellationCleanup===true&&report?.cleanup?.protectedOwnerUnchanged===true)
+      &&(packet!=='counseling-tuition'||report?.cleanup?.counselingCompoundCleanup===true&&report?.cleanup?.protectedOwnerUnchanged===true);
   const terminal=health?Boolean(report?.finishedAt)&&report?.sourceUnchanged===true
     &&report.mode==='live'&&report.caseFamily===healthMetadataFamily&&report.injectedDependencies===false:report?.terminal===true;
   const results=Array.isArray(report?.results)?report.results:[];
@@ -28,7 +31,8 @@ export function packetVerdict(packet,report,origin,sourceRevision){
     &&results.length===expected.length&&results.every((row,index)=>row?.caseId===expected[index]
       &&typeof row.passed==='boolean'&&(health?row.executed===true&&row.response?.fixtureReadback?.verified===true:row.requestIndex===index+1));
   const accepted=complete&&passed===expected.length&&(health||report.liveAcceptance===true)
-    &&(packet!=='counseling-cancellation'||hasCounselingCancellationProof(results));
+    &&(packet!=='counseling-cancellation'||hasCounselingCancellationProof(results))
+    &&(packet!=='counseling-tuition'||hasCounselingCompoundProof(results));
   return {status:accepted?'passed':complete&&passed<expected.length?'failed':'incomplete',
     expected:expected.length,executed:observed.size,passed,failed:observed.size-passed,cleanup:cleanup?'verified':'unproven'};
 }
@@ -69,7 +73,7 @@ async function runCounseling({origin,sourceRevision,path,signal,packet}){
   await writePrivateReport(path,{sourceRevision,origin,terminal:false,results:[],cleanup:null});
   const run=packet==='counseling-cancellation'?runCounselingCancellationPreview:runCounselingHostedEvaluation;
   await run({origin,sourceRevision,previewToken:process.env.VERCEL_OIDC_TOKEN,
-    signal,onCheckpoint:value=>writePrivateReport(path,value)});
+    signal,...(packet==='counseling-tuition'?{compound:true}:{}),onCheckpoint:value=>writePrivateReport(path,value)});
 }
 
 export async function runAccountPacketCli(args,{selection=packets}={}){

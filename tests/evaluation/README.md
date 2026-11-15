@@ -46,9 +46,16 @@ The dedicated counseling evaluator grades nine own-appointment questions on a pr
 node tests/evaluation/run-counseling-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
 ```
 
-Supply the authorized Development OIDC identity for the exact deployed project and use a clean checkout of the deployed revision. Compound tuition, access, booking, reporting and deliberately failed-read cases remain pending for independent hosted coverage.
+Supply the authorized Development OIDC identity for the exact deployed project and use a clean checkout of the deployed revision. Access, booking, reporting and deliberately failed-read cases remain pending for independent hosted coverage.
 
-The two Counseling and tuition question orders and the explicit Counseling exclusion also run through the actual assistant handler with migrated PGlite. Before and after each answer, the test checks paired appointment metadata, owned and crossed billing reads, the selected fee currency, and persistence. It uses an injected reviewer and verifies exact fixture disposal. The appointment-only protected operator keeps its existing packet.
+The separate tuition packet admits only the two frozen Counseling and tuition question orders and the explicit exclusion. The protected operator records two disposable owners and both source plans before any fixture write. It reads the private appointment page under both callers before and after every answer, then compares the exact linked students and charge rows with own and crossed PostgREST reads. The explicit exclusion permits only the charge tool. The packet requires the same combined fixture digest for all three results, the exact deployment pin and verified disposal. It does not change shared programs, real accounts or the appointment-only and cancellation packets. A retained journal blocks a fresh run after an unresolved interruption. Resume by reconciling only its exact reserved plans under the fixture lease and verifying their absence before replaying.
+
+```sh
+node tests/evaluation/run-counseling-tuition-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION" --preflight
+node tests/evaluation/run-counseling-tuition-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+The actual-handler local check runs the mounted packet with migrated PGlite and an injected reviewer. It exercises both scoped readbacks, the saved currency, exact disposal and cleanup retries. It does not establish protected Preview acceptance.
 
 ```sh
 STU_COUNSELING_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index.js \

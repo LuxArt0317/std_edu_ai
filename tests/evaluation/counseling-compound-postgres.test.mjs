@@ -1,16 +1,13 @@
 import assert from 'node:assert/strict';
-import {createHash,randomUUID} from 'node:crypto';
+import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {test} from 'node:test';
 import {pathToFileURL} from 'node:url';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
-import {buildPlannedCounselingAppointmentCases,buildCounselingAppointmentCases,counselingAppointmentFixtureForCase} from './counseling-appointment-cases.mjs';
-import {buildCounselingAppointmentFixturePlan} from './counseling-appointment-fixture-plan.mjs';
-import {observeCounselingFixture,transitionCounselingFixtures} from './counseling-appointment-hosted.mjs';
-import {gradeCase} from './grading.mjs';
-import {changeNoteCompanionRows,observeNoteCompanion} from './service-note-companion-fixture.mjs';
-import {readReply} from './run.mjs';
+import {buildCounselingCompoundFixture,cleanupCounselingCompoundRows,counselingHostedCases,gradeHostedCounselingCompound,
+  observeCounselingFixture,requestCounselingHostedCase,stageCounselingCompoundRows,verifyCounselingFixtureAbsent} from './counseling-appointment-hosted.mjs';
+import {observeOwnedChargeCallers,observeOwnedChargeRows,verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
 
 const runtime=process.env.STU_COUNSELING_TEST_PGLITE_ENTRY;
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -20,20 +17,25 @@ const prefix='account:counseling-appointments-';
 const caseIds=['mixed-tuition','mixed-reversed','negative-counseling'].map(id=>prefix+id);
 const chargeFields='id,student_id,label,amount_due,amount_paid,currency,due_on,source_mode,occurrence_on,category,contact_unit,contact_extension,payment_unit';
 const foreignLabel='FOREIGN COUNSELING TUITION CONTROL';
-const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 
 function pgliteSql(db){
   return function sql(template,...values){
     if(!template.raw)return {list:template};
     const parameters=[],param=value=>'$'+parameters.push(value);
-    const fragment=value=>{
+    const fragment=(value,previous)=>{
       if(!Array.isArray(value?.list))return param(value);
       const rows=value.list;
-      if(typeof rows[0]!=='object')return '('+rows.map(param).join(',')+')';
+      if(typeof rows[0]!=='object'){
+        if(/select\s+$/u.test(previous)){
+          assert.ok(rows.every(column=>/^[a-z_]+$/u.test(column)));
+          return rows.join(',');
+        }
+        return '('+rows.map(param).join(',')+')';
+      }
       const columns=Object.keys(rows[0]);
       return '('+columns.join(',')+') values '+rows.map(row=>'('+columns.map(column=>param(row[column])).join(',')+')').join(',');
     };
-    const statement=template.reduce((out,part,index)=>out+(index?fragment(values[index-1]):'')+part,'');
+    const statement=template.reduce((out,part,index)=>out+(index?fragment(values[index-1],template[index-1]):'')+part,'');
     return db.query(statement,parameters).then(result=>result.rows);
   };
 }
@@ -61,33 +63,22 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
 
     const runId=randomUUID(),owners={A:{id:randomUUID(),email:'counseling-a@example.invalid',runMarker:runId},
       B:{id:randomUUID(),email:'counseling-b@example.invalid',runMarker:runId}};
-    const users=Object.values(owners).map(owner=>({id:owner.id,studentId:randomUUID(),token:'local-counseling-token-'+owner.id}));
+    const {rows:[program]}=await db.query("select id from public.affairs_programs where code='SAMPLE-GEN'");
+    const plan=buildCounselingCompoundFixture({runId,owners,programId:program.id});
+    const {appointmentPlan,chargePlan}=plan;
+    const users=chargePlan.students.map(student=>({id:student.user_id,studentId:student.id,token:'local-counseling-token-'+student.user_id}));
+    const saved=chargePlan.charges[0];
     const as=(owner,read)=>db.transaction(async tx=>{
       await tx.exec('set local role authenticated');
       await tx.query("select set_config('request.jwt.claim.sub',$1,true)",[owner]);
       return read(tx);
     });
-    const appointmentPlan=buildCounselingAppointmentFixturePlan({runId,owners,fixtureKey:'counselingAppointments'});
-    const original=buildCounselingAppointmentCases().find(row=>row.id===caseIds[0]);
-    const saved=counselingAppointmentFixtureForCase(original).charges[0];
-    const chargePlan={kind:'charges',students:users.map(user=>({id:user.studentId,user_id:user.id})),
-      rows:users.map((user,index)=>({id:randomUUID(),student_id:user.studentId,label:index?foreignLabel:saved.label,
-        amount_due:index?98200:saved.amountDue,amount_paid:index?320:saved.amountPaid,currency:saved.currency,
-        due_on:null,source_mode:saved.sourceMode,occurrence_on:null,category:null,contact_unit:null,contact_extension:null,payment_unit:null}))
-        .sort((a,b)=>a.id.localeCompare(b.id))};
-    for(const [index,owner] of Object.values(owners).entries()){
+    for(const owner of Object.values(owners)){
       await db.query('insert into auth.users values($1,$2,now(),$3,null,null)',[owner.id,owner.email,{assistant_evaluation_run:runId}]);
       await db.query("insert into auth.identities values($1,'google')",[owner.id]);
-      await db.query(`insert into public.affairs_profiles(user_id,email,display_name,role) values($1,$2,'Local fixture student','student')`,
-        [owner.id,owner.email]);
-      await db.query(`insert into public.affairs_students(id,user_id,student_number,full_name,program_id,year_level)
-        select $1,$2,$3,'Local fixture student',id,1 from public.affairs_programs where code='SAMPLE-GEN'`,
-      [users[index].studentId,owner.id,'EVAL-'+owner.id]);
     }
-    await db.transaction(async tx=>{
-      await transitionCounselingFixtures(pgliteSql(tx),{next:appointmentPlan});
-      await changeNoteCompanionRows(pgliteSql(tx),{next:chargePlan});
-    });
+    await db.transaction(tx=>cleanupCounselingCompoundRows(pgliteSql(tx),plan));
+    await db.transaction(tx=>stageCounselingCompoundRows(pgliteSql(tx),plan));
 
     const readResponse=async(response,url,maxBytes)=>{
       assert.equal(response.status,200,url.pathname);
@@ -99,11 +90,14 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
       return as(owner,async tx=>(await tx.query("select public.affairs_read_counseling('mine') as value")).rows[0].value);
     }
     const callerFrom=init=>users.find(user=>new Headers(init?.headers).get('authorization')==='Bearer '+user.token);
-    async function readCharges(user,target,order){
+    async function readCharges(user,target){
       const columns=chargeFields.replace('due_on,','due_on::text,').replace('occurrence_on,','occurrence_on::text,');
-      return as(user.id,async tx=>(await tx.query(`select ${columns} from public.affairs_charges
-        where student_id=$1 order by ${order} limit 6`,[target])).rows);
+      const rows=await as(user.id,async tx=>(await tx.query(`select ${columns} from public.affairs_charges
+        where student_id=$1 order by occurrence_on desc nulls last,id asc limit 500`,[target])).rows);
+      return rows.map(row=>({...row,amount_due:Number(row.amount_due),amount_paid:Number(row.amount_paid)}));
     }
+    const readStudent=(caller,owner)=>as(caller.id,async tx=>(await tx.query(
+      'select id,user_id from public.affairs_students where user_id=$1 limit 1',[owner])).rows);
     async function observe(){
       const appointments=await observeCounselingFixture(appointmentPlan,{
         sql,users,origin:preview,readResponse,knownIds:appointmentPlan.recordIds,
@@ -114,16 +108,26 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
           return Response.json(await counseling(user.id));
         },
       });
-      const charges=await observeNoteCompanion({sql,plan:chargePlan,users,publishable:key,readResponse,
-        async fetchImpl(url,init){
-          assert.equal(url.origin,origin);assert.equal(url.pathname,'/rest/v1/affairs_charges');
-          const user=callerFrom(init),owner=users.find(item=>'eq.'+item.studentId===url.searchParams.get('student_id'));
-          assert.ok(user&&owner&&init.method==='GET');
-          assert.deepEqual(Object.fromEntries(url.searchParams),{select:chargeFields,student_id:'eq.'+owner.studentId,order:'id.asc',limit:'6'});
-          const rows=await readCharges(user,owner.studentId,'id');
-          return Response.json(rows,{headers:{'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
-        },
-      });
+      const charges={rowsDigest:await observeOwnedChargeRows(sql,chargePlan),
+        ...await observeOwnedChargeCallers(chargePlan,{callers:users,publishableKey:key,readResponse,
+          async fetchImpl(url,init){
+            assert.equal(url.origin,origin);assert.equal(init.method,'GET');
+            const user=callerFrom(init);assert.ok(user);
+            if(url.pathname==='/rest/v1/affairs_students'){
+              const owner=users.find(item=>'eq.'+item.id===url.searchParams.get('user_id'));
+              assert.ok(owner);
+              assert.deepEqual(Object.fromEntries(url.searchParams),{select:'id,user_id',user_id:'eq.'+owner.id,limit:'1'});
+              return Response.json(await readStudent(user,owner.id));
+            }
+            assert.equal(url.pathname,'/rest/v1/affairs_charges');
+            const owner=users.find(item=>'eq.'+item.studentId===url.searchParams.get('student_id'));
+            assert.ok(owner);
+            assert.deepEqual(Object.fromEntries(url.searchParams),{select:chargeFields,student_id:'eq.'+owner.studentId,
+              order:'occurrence_on.desc.nullslast,id.asc',limit:'500',offset:'0'});
+            return Response.json(await readCharges(user,owner.studentId));
+          },
+        })};
+
       return {appointments,charges};
     }
     const initial=await observe();
@@ -166,14 +170,13 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
         if(url.pathname==='/rest/v1/affairs_students'){
           assert.deepEqual(Object.fromEntries(url.searchParams),{select:'id,user_id',user_id:'eq.'+caller.id,limit:'1'});
           reads.push('student');
-          return Response.json(await as(caller.id,async tx=>(await tx.query(
-            'select id,user_id from public.affairs_students where user_id=$1',[caller.id])).rows));
+          return Response.json(await readStudent(caller,caller.id));
         }
         assert.equal(url.pathname,'/rest/v1/affairs_charges');
         assert.deepEqual(Object.fromEntries(url.searchParams),{select:chargeFields,student_id:'eq.'+caller.studentId,
           order:'occurrence_on.desc.nullslast,id.asc',limit:'500',offset:'0'});
         reads.push('charges');
-        const rows=await readCharges(caller,caller.studentId,'occurrence_on desc nulls last,id');
+        const rows=await readCharges(caller,caller.studentId);
         return Response.json(rows,{headers:{'content-range':'0-'+(rows.length-1)+'/'+rows.length}});
       }catch(error){errors.push(error);throw error;}
     });
@@ -182,34 +185,43 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
       loadSnapshot:async()=>assert.fail('Scoped inquiries cannot load the broad workspace.'),
       publicResearch:async()=>assert.fail('Private inquiries cannot search the public web.'),
     });
-    const rows=buildPlannedCounselingAppointmentCases().filter(row=>caseIds.includes(row.id));
+    const rows=counselingHostedCases({compound:true}),correlationIds=new Set();
     assert.deepEqual(rows.map(row=>row.id),caseIds);
     for(const row of rows){
       const before=await observe();
       reads=[];reviews=[];errors=[];
-      let status=200;const frames=[],headers=new Headers();
-      const response={status(value){status=value;return response;},setHeader(name,value){headers.set(name,value);},
-        write(value){frames.push(value);},end(){},json(){assert.fail('The assistant must stream a terminal result.');}};
-      await handler({method:'POST',headers:{authorization:'Bearer '+caller.token},body:{
-        question:row.question,history:[],route:row.route,stream:true,
-      }},response);
+      const {envelope}=await requestCounselingHostedCase({testCase:row,origin:preview,token:caller.token,
+        privateMarkers:[foreignLabel,...chargePlan.recordIds,...appointmentPlan.recordIds],correlationIds,
+        async fetchImpl(url,init){
+          assert.equal(url.href,preview+'/api/affairs-assistant');assert.equal(init.method,'POST');
+          const frames=[],headers=new Headers();let status=200;
+          const response={status(value){status=value;return response;},setHeader(name,value){headers.set(name,value);},
+            write(value){frames.push(value);},end(){},json(){assert.fail('The assistant must stream a terminal result.');}};
+          await handler({method:init.method,headers:{authorization:init.headers.Authorization},body:JSON.parse(init.body)},response);
+          return new Response(frames.join(''),{status,headers});
+        },
+      });
       assert.deepEqual(errors,[],row.id);
       const after=await observe();
       assert.deepEqual(before,initial);assert.deepEqual(after,before);
-      const envelope=await readReply(new Response(frames.join(''),{status,headers}));
-      const result=gradeCase(row,{...envelope,fixtureKey:row.fixtureKey,statusCode:status,execution:'recorded',
-        stateBefore:{ownedRecordsDigest:digest(before)},stateAfterProposal:{ownedRecordsDigest:digest(after)},
-        fixtureReadback:{verified:true,independentGolden:true}});
+      const result=gradeHostedCounselingCompound(row,envelope,before,after);
       assert.equal(result.passed,true,JSON.stringify({caseId:row.id,failures:result.failures,answer:envelope.body?.answer}));
+      assert.equal(gradeHostedCounselingCompound(row,envelope,before,{...after,charges:{...after.charges,checks:7}}).passed,false);
       const excluded=row.id.endsWith('-negative-counseling');
       assert.deepEqual(reads.sort(),[...(excluded?[]:['appointments']),'charges','student']);
       assert.deepEqual(reviews,['answer_evidence_review']);
       t.diagnostic(row.id+' passed with stable appointments and charges');
     }
-    await db.transaction(async tx=>{
-      await changeNoteCompanionRows(pgliteSql(tx),{previous:chargePlan,recovering:true});
-      await transitionCounselingFixtures(pgliteSql(tx),{previous:appointmentPlan,recovering:true,knownIds:appointmentPlan.recordIds});
-    });
+    // Reconcile the same journal after an interrupted setup or cleanup. Unknown
+    // charge changes must abort both deletions until independent review.
+    await db.query('update public.affairs_charges set amount_paid = $1 where id = $2',[1,saved.id]);
+    await assert.rejects(db.transaction(tx=>cleanupCounselingCompoundRows(pgliteSql(tx),plan)),/unrecognized/i);
+    assert.deepEqual((await counseling(users[0].id)).rows.length,3);
+    await db.query('update public.affairs_charges set amount_paid = $1 where id = $2',[saved.amount_paid,saved.id]);
+    await db.transaction(tx=>cleanupCounselingCompoundRows(pgliteSql(tx),plan));
+    await db.transaction(tx=>cleanupCounselingCompoundRows(pgliteSql(tx),plan));
+    await verifyOwnedChargeRowsAbsent(sql,chargePlan);
+    await verifyCounselingFixtureAbsent(sql,appointmentPlan);
     for(const user of users)await db.query('delete from auth.users where id=$1',[user.id]);
     for(const table of ['auth.users','public.affairs_profiles','public.affairs_students','public.affairs_charges','public.affairs_counseling_appointments']){
       const rows=await db.query('select count(*)::integer as count from '+table);

@@ -1,9 +1,12 @@
 import {isDeepStrictEqual} from 'node:util';
 import {internshipObservationDigest} from '../../server/internshipObservation.js';
 import {buildInternshipNativeCases,internshipNativeFixtureForCase} from './internship-native-cases.mjs';
+import {buildCounselingAppointmentCases,counselingAppointmentFixtureForCase} from './counseling-appointment-cases.mjs';
 
 const tuitionCase=buildInternshipNativeCases().find(row=>row.id==='account:internship-native-fees');
 const [tuition]=internshipNativeFixtureForCase(tuitionCase).companion.records;
+const counselingCase=buildCounselingAppointmentCases().find(row=>row.id==='account:counseling-appointments-mixed-tuition');
+const [counselingTuition]=counselingAppointmentFixtureForCase(counselingCase).charges;
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const roles=['A','B'];
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -17,25 +20,36 @@ const normalizeCharge=row=>({...row,amount_due:Number(row.amount_due),amount_pai
 const digest=internshipObservationDigest;
 
 export function buildInternshipChargeFixture({runId,owners,programId}){
+  return buildOwnedChargeFixture({runId,owners,programId});
+}
+
+export function buildCounselingChargeFixture({runId,owners,programId}){
+  return buildOwnedChargeFixture({runId,owners,programId},true);
+}
+
+function buildOwnedChargeFixture({runId,owners,programId},counseling=false){
   if(![runId,owners?.A,owners?.B,programId].every(value=>uuid.test(value??''))
     ||new Set([runId,owners.A,owners.B,programId]).size!==4)fail('invalid identities or sample program');
   const id=suffix=>runId.slice(0,24)+'000000000'+suffix;
   const students=roles.map((role,index)=>({
-    id:id(611+index),user_id:owners[role],student_number:'EVAL-'+id(611+index),full_name:'Evaluation Internship Student '+role,
+    id:id((counseling?711:611)+index),user_id:owners[role],student_number:'EVAL-'+id((counseling?711:611)+index),
+    full_name:'Evaluation '+(counseling?'Counseling':'Internship')+' Student '+role,
     program_id:programId,year_level:1,status:'active',source_mode:'sample',
   }));
   const charges=students.map((student,index)=>({
-    id:id(621+index),student_id:student.id,label:index?'QA foreign Internship Tuition control':tuition.label,
-    amount_due:index?11850:tuition.remaining+5000,amount_paid:index?1850:5000,currency:tuition.currency,
+    id:id((counseling?721:621)+index),student_id:student.id,
+    label:counseling?(index?'FOREIGN COUNSELING TUITION CONTROL':counselingTuition.label):(index?'QA foreign Internship Tuition control':tuition.label),
+    amount_due:index?11850:counseling?counselingTuition.amountDue:tuition.remaining+5000,
+    amount_paid:index?1850:counseling?counselingTuition.amountPaid:5000,currency:counseling?counselingTuition.currency:tuition.currency,
     due_on:null,source_mode:'sample',occurrence_on:null,category:null,contact_unit:null,contact_extension:null,payment_unit:null,
   }));
   const recordIds=[...students,...charges].map(row=>row.id);
   if(recordIds.some(value=>[runId,owners.A,owners.B,programId].includes(value)))fail('reserved identity collision');
-  return {runId,owners:{...owners},programId,students,charges,recordIds};
+  return {runId,owners:{...owners},programId,students,charges,recordIds,...(counseling?{purpose:'counseling'}:{})};
 }
 
 function checked(plan){
-  const rebuilt=buildInternshipChargeFixture(plan);
+  const rebuilt=plan?.purpose==='counseling'?buildCounselingChargeFixture(plan):buildInternshipChargeFixture(plan);
   if(!isDeepStrictEqual(plan,rebuilt))fail('invalid fixture plan');
   return rebuilt;
 }
@@ -128,3 +142,7 @@ export async function observeInternshipChargeCallers(plan,{callers,publishableKe
     }))));
   return {checks:proof.length,digest:digest(proof)};
 }
+
+export {stageInternshipCharges as stageOwnedChargeRows,cleanupInternshipCharges as cleanupOwnedChargeRows,
+  verifyInternshipChargesAbsent as verifyOwnedChargeRowsAbsent,observeInternshipChargeCallers as observeOwnedChargeCallers,
+  observeInternshipChargeRows as observeOwnedChargeRows};

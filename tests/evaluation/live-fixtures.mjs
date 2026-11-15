@@ -77,8 +77,10 @@ import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataC
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
 import {assertDtmAssignmentListClock,assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamilies,
   dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,initializeDtmAssignmentListStudent,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
-import {counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
-  cleanupCounselingCancellation,transitionCounselingFixtures,validateCounselingHostedCases,verifyCounselingCancellationAbsent} from './counseling-appointment-hosted.mjs';
+import {counselingCompoundFixtureMode,counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,gradeHostedCounselingCompound,observeCounselingFixture,
+  requestCounselingHostedCase,cleanupCounselingCancellation,transitionCounselingFixtures,validateCounselingHostedCases,
+  verifyCounselingCancellationAbsent,verifyCounselingFixtureAbsent,buildCounselingCompoundFixture,cleanupCounselingCompoundRows,
+  stageCounselingCompoundRows} from './counseling-appointment-hosted.mjs';
 import {counselingCancellationCaseIds,requestCounselingCancellation,verifyCounselingCancellation} from './counseling-cancellation-preview.mjs';
 import {buildCounselingAppointmentFixturePlan,counselingAppointmentFixtureCaseBinding} from './counseling-appointment-fixture-plan.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
@@ -89,7 +91,8 @@ import {internshipFixtureKindForCase,internshipHostedCases,internshipPublishedTi
 import {buildInternshipTimetableFixture,cleanupInternshipTimetable,observeInternshipTimetableCallers,observeInternshipTimetableRows,
   readInternshipNextMeeting,stageInternshipTimetable,verifyInternshipTimetableAbsent} from './internship-timetable-fixture.mjs';
 import {buildInternshipChargeFixture,cleanupInternshipCharges,observeInternshipChargeCallers,observeInternshipChargeRows,
-  stageInternshipCharges,verifyInternshipChargesAbsent} from './internship-charge-fixture.mjs';
+  stageInternshipCharges,verifyInternshipChargesAbsent,observeOwnedChargeCallers,observeOwnedChargeRows,
+  verifyOwnedChargeRowsAbsent} from './internship-charge-fixture.mjs';
 import {buildTeachingSampleFixture,createTeachingSampleFixture,observeTeachingSampleCallers,readTeachingSampleCatalog} from './teaching-feedback-sample-fixture.mjs';
 import {requestTeachingSampleCase,teachingOriginalProtectedCases,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -391,6 +394,7 @@ async function saveLedger(){
         activeFamily:s.counselingFixture?.fixtureKey??null,pendingFamily:s.pendingCounselingFixture?.fixtureKey??null,
         ...(s.counselingCancellation?{cancellation:s.counselingCancellation.command}:{}),
       }}:{}),
+      ...(s.counselingCompound?{counselingCompound:s.counselingCompound}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.healthMetadataJournal?{healthMetadataFixture:s.healthMetadataJournal}:{}),
       ...(s.dtmMaterialPreview?{dtmMaterialPreview:{plan:s.dtmMaterialPreview.plan,
@@ -482,6 +486,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(typeof studentLeaveGradePair!=='boolean'||studentLeaveGradePair&&!leaveDataOnly)
     fail('fixture-config','Moodle grade pairing requires the dedicated Student Leave fixture mode.');
   const counselingOnly=caseFamily==='counseling-appointments';
+  const counselingCompound=counselingOnly&&fixtureMode===counselingCompoundFixtureMode;
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
   const assignmentTrackerOnly=fixtureMode===confirmedAssignmentTrackerMode;
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
@@ -551,11 +556,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
   if(counselingOnly){
-    if(fixtureMode!==counselingFixtureMode||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+    if(![counselingFixtureMode,counselingCompoundFixtureMode].includes(fixtureMode)||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
       ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
       fail('fixture-target','Counseling fixtures require the exact protected Preview.');
-    validateCounselingHostedCases(cases);
-  }else if(cases.some(row=>row?.fixtureRequirement==='counseling_appointments_disposable'))
+    validateCounselingHostedCases(cases,{compound:counselingCompound});
+  }else if(cases.some(row=>['counseling_appointments_disposable','counseling_tuition_disposable'].includes(row?.fixtureRequirement)))
     fail('fixture-target','Counseling fixture cases must run in the isolated evaluator.');
   const clubEquipmentOnly=caseFamily===clubEquipmentFamily;
   if(clubEquipmentOnly){
@@ -804,7 +809,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     }
     if(counselingOnly){
       state.prepared=true;
-      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['counselingAppointments']};
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:counselingCompound?['counselingAppointments','charges']:['counselingAppointments']};
     }
     if(clubEquipmentOnly){
       state.prepared=true;
@@ -1968,33 +1973,62 @@ async function stageCounselingFixture(s,owners,fixtureKey){
   return plan;
 }
 
-export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
+async function stageCounselingCompound(s,owners){
+  await assertRecordedFixtureLease(s,'Counseling tuition fixtures');
+  assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+  await s.previewGate.assertCurrent();
+  const programs=await s.sql`select id from public.affairs_programs where code='SAMPLE-GEN' and source_mode='sample'`;
+  if(programs.length!==1)fail('fixture-create','The existing sample program could not be bound.');
+  s.counselingCompound=buildCounselingCompoundFixture({runId:s.runId,owners,programId:programs[0].id});
+  const {chargePlan,appointmentPlan}=s.counselingCompound;
+  for(const id of [...chargePlan.recordIds,...appointmentPlan.recordIds])s.recordIds.add(id);
+  // The complete two-source intent precedes every disposable record write.
+  await saveLedger();
+  await query(()=>feeTransaction(s,()=>stageCounselingCompoundRows(s.sql,s.counselingCompound)),
+    'Could not stage exact disposable Counseling and tuition evidence.');
+  return s.counselingCompound;
+}
+
+export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal,onCheckpoint,compound=false}={}){
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
     fail('fixture-config','Counseling requires an exact protected Preview and source revision.');
+  if(typeof compound!=='boolean')fail('fixture-config','Invalid counseling evaluation mode.');
   const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
   const identity=await sourceIdentity();
   if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Counseling requires the exact clean deployed source.');
-  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=counselingHostedCases();
+  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=counselingHostedCases({compound});
   await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
-    signal,fixtureMode:counselingFixtureMode,caseFamily:'counseling-appointments',previewReadbackFetch:readback});
+    signal,fixtureMode:compound?counselingCompoundFixtureMode:counselingFixtureMode,caseFamily:'counseling-appointments',previewReadbackFetch:readback});
   const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
   let cleanupProof=null,completed=false;
   const report=terminal=>structuredClone({runId,origin,sourceRevision,terminal,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
-    noFileActivityObserved:results.every(row=>!row.failures.includes('counseling.file_activity')),
-    egressObservation:false,liveAcceptance:terminal&&completed&&results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof?.verified===true});
+    noFileActivityObserved:results.every(row=>!row.failures.some(id=>id.endsWith('.file_activity'))),
+    egressObservation:false,liveAcceptance:terminal&&completed&&results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof?.verified===true
+      &&(!compound||cleanupProof.counselingCompoundCleanup===true&&cleanupProof.protectedOwnerUnchanged===true)});
   try{
     const owners=counselingFixtureOwners(s);
+    const paired=compound?await stageCounselingCompound(s,owners):null;
     for(const testCase of cases){
       const {fixtureKey}=counselingAppointmentFixtureCaseBinding(testCase);
-      await stageCounselingFixture(s,owners,fixtureKey);
+      const appointmentPlan=paired?.appointmentPlan??await stageCounselingFixture(s,owners,fixtureKey);
       const observe=async()=>{
         await assertRecordedFixtureLease(s,'Counseling evaluation');
+        if(paired){
+          await s.previewGate.assertCurrent();
+          assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+        }
         for(const user of s.users)await user.renewSession({signal});
-        return observeCounselingFixture(s.counselingFixture,{sql:s.sql,users:s.users,origin,
+        const appointments=await observeCounselingFixture(appointmentPlan,{sql:s.sql,users:s.users,origin,
           fetchImpl:readback,readResponse:readBoundedFixtureResponse,signal:signals(signal),knownIds:[...s.recordIds]});
+        if(!paired)return appointments;
+        const charges={rowsDigest:await observeOwnedChargeRows(s.sql,paired.chargePlan),
+          ...await observeOwnedChargeCallers(paired.chargePlan,{callers:s.users,publishableKey:s.publishable,
+            fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal)})};
+        return {appointments,charges};
       };
       const before=await observe();
-      const markers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),...s.recordIds];
+      const markers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),...s.recordIds,
+        ...(paired?[paired.chargePlan.charges[1].label]:[])];
       let ticket,request;
       try{
         request=await pace(()=>requestCounselingHostedCase({testCase,origin,token:s.users[0].token,signal:signals(signal,65000),
@@ -2002,7 +2036,8 @@ export async function runCounselingHostedEvaluation({origin,sourceRevision,previ
       }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
       const after=await observe();
       const {envelope,...requestProof}=request;
-      results.push({...gradeHostedCounseling(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
+      const grade=paired?gradeHostedCounselingCompound:gradeHostedCounseling;
+      results.push({...grade(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
       await onCheckpoint?.(report(false));
     }
     const final=await sourceIdentity();
@@ -4534,7 +4569,12 @@ export async function cleanup(){
       s.clubAttendancePlan=null;s.clubAttendancePending=false;
       await saveLedger();
     }
-    if(s.counselingCancellation){
+    if(s.counselingCompound){
+      await assertRecordedFixtureLease(s,'Counseling tuition cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>feeTransaction(s,()=>cleanupCounselingCompoundRows(s.sql,s.counselingCompound)),
+        'Could not reconcile the exact Counseling tuition rows. The recovery ledger is retained.');
+    }else if(s.counselingCancellation){
       await assertRecordedFixtureLease(s,'Counseling cancellation cleanup');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
       await query(()=>feeTransaction(s,()=>cleanupCounselingCancellation(s.sql,s.counselingCancellation)),
@@ -4821,6 +4861,16 @@ export async function cleanup(){
       await verifyInternshipChargesAbsent(s.sql,s.internshipChargePlan);
       s.internshipChargeCleanup=true;
     }
+    if(s.counselingCompound){
+      const {appointmentPlan,chargePlan}=s.counselingCompound;
+      await verifyCounselingFixtureAbsent(s.sql,appointmentPlan);
+      await verifyOwnedChargeRowsAbsent(s.sql,chargePlan);
+      const ownerIds=Object.values(appointmentPlan.owners).map(owner=>owner.id);
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(ownerIds)} limit 1`,
+        'Could not verify Counseling tuition fixture identity cleanup.');
+      if(identities.length)fail('fixture-cleanup','A reserved Counseling tuition fixture identity remains.');
+      s.counselingCompoundCleanup=true;
+    }
     if(s.internshipTimetablePlan){
       await verifyInternshipTimetableAbsent(s.sql,s.internshipTimetablePlan,s.internshipTimetableState);
       s.internshipTimetableCleanup=true;
@@ -4886,6 +4936,7 @@ export async function cleanup(){
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
+    ...(s.counselingCompoundCleanup?{counselingCompoundCleanup:true}:{}),
     ...(s.venueProtectedCleanup?{venueProtectedCleanup:true}:{}),
     ...(s.certificateAwardPreviewCleanup?{certificateAwardPreviewCleanup:true,certificateAwardCatalogUnchanged:s.certificateAwardCatalogUnchanged}:{}),
     ...(s.facilityRepairCancellationCleanup?{facilityRepairCancellationCleanup:true}:{}),
