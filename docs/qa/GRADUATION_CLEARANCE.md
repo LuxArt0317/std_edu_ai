@@ -27,6 +27,12 @@ node tests/evaluation/run-clearance-status-preview.mjs APPROVED_PREVIEW_ORIGIN F
 
 The 16-case status packet compares both callers' native page responses with independent SQL snapshots. It grades visible office statuses, authorized notes, empty results, navigation, and access and action denials. It pins all 80 application requests and verifies cleanup of the disposable accounts, profiles, applications and review rows. It records the three positive window questions as deferred pending approved period bindings. The redacted report records the request coverage and shared-row digest.
 
+## Positive windows in isolated PostgreSQL
+
+Set `STU_CLEARANCE_TEST_PG_SOCKET` to an owner-only scratch socket using the [evaluation PostgreSQL setup](../../tests/evaluation/README.md#housing-and-dormitory-conduct-in-scratch-postgresql) and directory prefix `stu100-clearance-pg.`. Run `node --test tests/evaluation/clearance-windows-scratch-postgres.test.mjs`. The original dated fixture requires the database clock to fall in November 2026 UTC. The test creates and drops a dedicated scratch database.
+
+The replay grades the three frozen positive window questions through the actual API handlers and native student RPC. One caller sees two owned applications and both assigned windows. The other sees the same windows with no submitted application. A separate unassigned window is absent from both response scopes. SQL verifies the records and receipts before and after each answer. The answer reviewer is controlled, and this replay supplies isolated database and handler evidence.
+
 ## Deployed evidence
 
 Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries. Successful administrator changes and scope denial were verified by the exact-target rollback. The production browser used fixtures.

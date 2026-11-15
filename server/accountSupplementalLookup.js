@@ -9,7 +9,7 @@ import {selectTutorEvaluationEvidence,isTutorEvaluationFieldClause,withoutExclud
 import {tutorEvaluationEvidenceMaxBytes,unavailableTutorEvaluationEvidence} from './accountTutorEvaluationEvidence.js';
 import {teachingFeedbackEvidenceLimits,unavailableTeachingFeedbackEvidence} from './accountTeachingFeedbackEvidence.js';
 import {selectTeachingFeedbackEvidence} from './teachingFeedbackEvidenceIntent.js';
-import {selectClearanceEvidence,isClearanceFieldClause,withoutExcludedClearanceClause,isExactClearanceNextClassQuestion} from './clearanceEvidenceIntent.js';
+import {selectClearanceEvidence,isClearanceFieldClause,isClearanceWindowSubmissionQuestion,withoutExcludedClearanceClause,isExactClearanceNextClassQuestion} from './clearanceEvidenceIntent.js';
 import {clearanceEvidenceMaxBytes,unavailableClearanceEvidence} from './accountClearanceEvidence.js';
 import {selectCounselingEvidence,isCounselingFieldClause,withoutExcludedCounselingClause} from './counselingEvidenceIntent.js';
 import {counselingEvidenceMaxBytes,unavailableCounselingEvidence} from './accountCounselingEvidence.js';
@@ -154,7 +154,9 @@ export function nativePageLookupContext(question,route='',history=[]){
   if(selections.graduationClearance){
     parts.forEach((part,index)=>{if(selectClearanceEvidence(part))clearanceClauses.add(index);});
     for(const index of [...clearanceClauses]){
-      for(let cursor=index+1;parts[cursor]&&isClearanceFieldClause(parts[cursor]);cursor++)clearanceClauses.add(cursor);
+      for(let cursor=index+1;parts[cursor]&&(isClearanceFieldClause(parts[cursor])
+        ||selections.graduationClearance.periodsRequested&&isClearanceWindowSubmissionQuestion(parts[cursor]));cursor++)
+        clearanceClauses.add(cursor);
     }
   }
   const studentConductClauses=new Set();

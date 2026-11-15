@@ -1,9 +1,9 @@
-import {exactClearanceVerification} from '../../server/clearanceEvidenceIntent.js';
+import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {readClearanceEvidence,clearanceEvidenceMaxBytes,unavailableClearanceEvidence,type ClearanceEvidenceResult} from '../../server/accountClearanceEvidence.js';
-import {selectClearanceEvidence,isClearanceEvidenceQuestion} from '../../server/clearanceEvidenceIntent.js';
+import {exactClearanceVerification,selectClearanceEvidence,isClearanceEvidenceQuestion} from '../../server/clearanceEvidenceIntent.js';
 const owner='16000000-0000-4000-8000-000000000001',foreign='16000000-0000-4000-8000-000000000002';
 const path='/school-affairs/services/16-1',question='Show my graduation clearance office statuses.';
 const account=()=>({url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'OFFLINE_KEY',token:'OFFLINE_TOKEN',user:{id:owner}});
@@ -193,4 +193,22 @@ test('deterministic clearance stays within explicit status and note scope',()=>{
     assert.equal(exactClearanceVerification(question,path),null,question);
   }
   assert.equal(exactClearanceVerification('Show my graduation clearance notes.',path+'?user_id=example'),null);
+});
+
+
+test('a window submission inference stays window-scoped and keeps independent questions separate',()=>{
+  const windows='Show my assigned graduation clearance windows.';
+  const ask=windows+' Do they prove I submitted an application?';
+  const route='/school-affairs/services/10-1';
+  const scope=nativePageLookupContext(ask,route);
+  assert.equal(scope.readerOnly,true);
+  assert.deepEqual(scope.tools,['graduationClearance']);
+  const projected=selectClearanceEvidence(ask,route);
+  assert.equal(projected?.periodsRequested,true);
+  assert.equal(projected?.applicationsRequested,false);
+  assert.equal(projected?.operation,false);
+  const mixed=nativePageLookupContext(ask+' What is my next class?',route);
+  assert.equal(mixed.readerOnly,false);
+  assert.equal(mixed.clearanceAndNextClass,true);
+  assert.equal(nativePageLookupContext(windows+' Did I submit an application?',route).readerOnly,false);
 });
