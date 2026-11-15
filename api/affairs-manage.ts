@@ -30,6 +30,8 @@ import { StudentLoanError, studentLoanKinds, studentLoanMaxPayloadBytes, manageS
 import { DormitoryConductError, dormitoryConductKinds, dormitoryConductMaxPayloadBytes, manageDormitoryConductRecord } from '../server/dormitoryConduct.js';
 import { DtmGradeReportError, dtmGradeReportKinds, dtmGradeReportMaxPayloadBytes, manageDtmGradeReport } from '../server/dtmGradeReport.js';
 import { DtmCourseContentError, dtmCourseContentKinds, dtmCourseContentMaxPayloadBytes, manageDtmCourseContent } from '../server/dtmCourseContent.js';
+import { changeChargePayment } from '../server/chargePaymentHistory.js';
+import { chargePaymentActions, chargePaymentMaxPayloadBytes } from '../server/chargePaymentContract.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void};
@@ -46,6 +48,7 @@ export default async function handler(request:Request,response:Response) {
   const submissionReview=input?.kind==='save_dtm_submission_review';
   const syllabusMetadata=input?.kind==='syllabus-metadata';
   const tuitionKind=tuitionDocumentKinds.find(kind=>kind===input?.kind);
+  const chargePaymentKind=chargePaymentActions.find(kind=>kind===input?.kind);
   const conductKind=studentConductKinds.find(kind=>kind===input?.kind);
   const loanKind=studentLoanKinds.find(kind=>kind===input?.kind);
   const dormitoryKind=dormitoryConductKinds.find(kind=>kind===input?.kind);
@@ -58,13 +61,17 @@ export default async function handler(request:Request,response:Response) {
   const earlyGraduation=earlyGraduationManagerActions.find(kind=>kind===input?.kind);
   const teachingFeedback=teachingFeedbackManagerActions.find(kind=>kind===input?.kind);
   const clearance=clearanceManagerActions.find(kind=>kind===input?.kind);
-  const maxBodyBytes=clearance?8024:teachingFeedback?teachingFeedbackMaxBytes+1024:earlyGraduation?3424:feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
+  const maxBodyBytes=chargePaymentKind?chargePaymentMaxPayloadBytes+1024:clearance?8024:teachingFeedback?teachingFeedbackMaxBytes+1024:earlyGraduation?3424:feeRemissionKind?feeRemissionMaxPayloadBytes+1024:courseContentKind?dtmCourseContentMaxPayloadBytes+1024:gradeReportKind?dtmGradeReportMaxPayloadBytes+1024:dormitoryKind?dormitoryConductMaxPayloadBytes+1024:loanKind?studentLoanMaxPayloadBytes+1024:conductKind?studentConductMaxPayloadBytes+1024:tuitionKind?tuitionDocumentMaxPayloadBytes+1024:syllabusMetadata?2000:certificateKind?10000:input?.kind==='save_graduation_review'?140000:input?.kind==='save_housing_period'?26000:catalogAction?48000:submissionReview?14000:12000;
   if(!input || typeof input.kind!=='string' || !input.payload || typeof input.payload!=='object'
     || Array.isArray(input.payload) || Buffer.byteLength(JSON.stringify(input),'utf8')>maxBodyBytes
-    || (certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind||earlyGraduation||teachingFeedback||clearance)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
+    || (chargePaymentKind||certificateKind||syllabusMetadata||tuitionKind||conductKind||loanKind||dormitoryKind||gradeReportKind||courseContentKind||feeRemissionKind||earlyGraduation||teachingFeedback||clearance)&&(Object.keys(input).length!==2||!Object.hasOwn(input,'kind')||!Object.hasOwn(input,'payload'))){response.status(400).json({error:'Invalid manager request.'});return;}
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(chargePaymentKind){
+      response.status(200).json(await changeChargePayment({...account,requestDeadline},chargePaymentKind,input.payload));
+      return;
+    }
     if(input.kind==='review_club_foundation'){
       if(Object.keys(input).length!==2||Buffer.byteLength(JSON.stringify(input),'utf8')>4500){
         response.status(400).json({error:'Invalid club foundation review.'});return;

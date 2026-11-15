@@ -37,7 +37,7 @@ export async function verifyAffairsToken(token) {
 }
 
 async function request(account, table, options = {}) {
-  const {rpc=false,body,query={},exactCount=false}=options;
+  const {rpc=false,body,query={},exactCount=false,readJson,errorMessages}=options;
   const target=new URL(`${account.url}/rest/v1/${rpc?'rpc/':''}${table}`);
   for (const [name,value] of Object.entries(query)) if (value !== undefined) target.searchParams.set(name,String(value));
   let response;
@@ -47,12 +47,21 @@ async function request(account, table, options = {}) {
     response=await fetch(target,{method:rpc?'POST':'GET',headers:{...headers(account.token,account.key,rpc),...(exactCount?{Prefer:'count=exact'}:{})},redirect:'error',...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
   } catch { throw new AffairsWorkspaceError('The School Affairs database did not respond. Please try again.'); }
   if (!response.ok) {
+    if (errorMessages) {
+      void response.body?.cancel().catch(()=>{});
+      if (Object.hasOwn(errorMessages,response.status)) throw new AffairsWorkspaceError(errorMessages[response.status],response.status);
+      throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
+    }
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
     if (response.status===400) throw new AffairsWorkspaceError('The School Affairs request was invalid. Check the fields and try again.',400);
     if (response.status===409) throw new AffairsWorkspaceError(['affairs_scholarship_action','affairs_manage_student_aid_record','affairs_housing_action','affairs_manage_credit_load_history','affairs_manage_course_selection','affairs_manage_academic_grades','affairs_manage_graduation_review','affairs_manage_academic_attendance'].includes(table)
       ? 'This record or its application period changed. Refresh and try again.'
       : 'A matching School Affairs record already exists.',409);
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
+  }
+  if (readJson) {
+    try { return await readJson(response); }
+    catch { throw new AffairsWorkspaceError('School Affairs returned an invalid record.'); }
   }
   const raw=await response.text().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an unreadable record.');});
   if (!raw && rpc) return null; // PostgREST void RPCs may return 204 without JSON.
@@ -66,6 +75,10 @@ async function request(account, table, options = {}) {
     return value;
   }
   catch { throw new AffairsWorkspaceError('School Affairs returned an invalid record.'); }
+}
+
+export function requestAffairsRpc(account,name,body,{readJson,errorMessages}={}) {
+  return request(account,name,{rpc:true,body,readJson,errorMessages});
 }
 
 const own=(userId,limit=50)=>({select:'*',user_id:`eq.${userId}`,limit});

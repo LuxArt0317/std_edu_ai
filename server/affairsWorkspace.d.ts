@@ -3,6 +3,8 @@ export class AffairsWorkspaceError extends Error { status:number; constructor(me
 export type AffairsAccount = {user:{id:string;email?:string};token:string;url:string;key:string};
 export function schoolAffairsDatabaseConfiguration(): {url:string;key:string};
 export function verifyAffairsToken(token:string):Promise<AffairsAccount&{user:{user_metadata?:Record<string,unknown>}}>;
+export function requestAffairsRpc(account:AffairsAccount&{requestDeadline?:number},name:string,body:unknown,
+  options?:{readJson?:(response:Response)=>Promise<unknown>;errorMessages?:Record<number,string>}):Promise<unknown>;
 export function loadAffairsSnapshot(account:AffairsAccount,includeAdmin?:boolean,options?:{initialize?:boolean;deadline?:number;includeServiceRecords?:boolean}):Promise<Record<string,unknown>>;
 export type AffairsCharge={id:string;label:string;amountDue:number;amountPaid:number;currency:string;dueOn:string|null;sourceMode:string;
   occurrenceOn:string|null;category:string|null;contactUnit:string|null;contactExtension:string|null;paymentUnit:string|null};

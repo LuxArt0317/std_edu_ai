@@ -1,0 +1,25 @@
+export const chargePaymentHistoryScope: 'fee-payment-history';
+export const chargePaymentHistoryPath: '/school-affairs/services/39-1/payment-history';
+export const chargePaymentPageSize: 25;
+export const chargePaymentMaxPage: 201;
+export const chargePaymentActions: readonly ['record_charge_payment', 'reverse_charge_payment'];
+export const chargePaymentMaxPayloadBytes: 1500;
+export type ChargePaymentKind = typeof chargePaymentActions[number];
+export type ChargePaymentSelection = {from?: string; through?: string; chargeId?: string; page?: number};
+type SelectedPage = ChargePaymentSelection & {page: number};
+type PaymentEntry = {id: string; chargeId: string; paidOn: string; amount: string; currency: 'TWD'; sourceMode: 'local_recorded'} &
+  ({entryKind: 'payment'; reversesPaymentId: null} | {entryKind: 'reversal'; reversesPaymentId: string});
+export type ChargePaymentRow = PaymentEntry & {chargeLabel: string; chargeCategory: string | null};
+export type ChargePaymentHistory = {userId: string; studentRecordFound: boolean; rows: ChargePaymentRow[]; total: number; hasUndatedPaidAmount: boolean};
+type ActionIdentity = {request_id: string; student_id: string; charge_id: string; paid_on: string};
+export type ChargePaymentRecord = ActionIdentity & {amount: string; currency: 'TWD'};
+export type ChargePaymentReverse = ActionIdentity & {payment_id: string};
+export type ChargePaymentAction = {kind: 'record_charge_payment'; payload: ChargePaymentRecord} | {kind: 'reverse_charge_payment'; payload: ChargePaymentReverse};
+export type ChargePaymentReceipt = PaymentEntry & {studentId: string; amountPaid: string; legacyAmountPaid: string};
+export function chargePaymentDate(value: unknown): value is string;
+export function chargePaymentCents(value: unknown): number | null;
+export function chargePaymentSelection(value?: unknown): SelectedPage | null;
+export function chargePaymentQuery(query: unknown): SelectedPage | null;
+export function parseChargePaymentHistory(value: unknown, userId: string, filter?: ChargePaymentSelection): ChargePaymentHistory;
+export function validateChargePaymentAction(kind: unknown, payload: unknown): boolean;
+export function parseChargePaymentReceipt(value: unknown, kind: ChargePaymentKind, payload: unknown): ChargePaymentReceipt;
