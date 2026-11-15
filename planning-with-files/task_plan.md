@@ -823,7 +823,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
 - [x] Exercise all 79 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
 - [x] Verify the 75 mounted note-only and access cases on protected `9e43792`.
-- [ ] Verify the four timetable and charge companions on protected `3f706aa`.
+- [x] Verify the four timetable and charge companions on protected `3f706aa`. The direct tuition-payment handoff also passed.
 - [x] Run the 18 Student Leave cases on protected `9e43792` with signed reader and provider receipts. Eight answers passed and ten exposed formatting or verification failures.
 - [ ] Verify all 18 Student Leave cases on the exact-field recovery Preview with signed reader and deterministic verification receipts.
 
