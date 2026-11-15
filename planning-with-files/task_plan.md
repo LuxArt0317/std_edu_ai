@@ -963,6 +963,17 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Bind the 27-1 hosted confirmation transport to one exact native withdrawal, and test a lost receipt, a deliberate identical replay and rejection of alternate callers or payloads.
 - [x] Complete the 11-case protected `85b4bdc` Tutor run. All paired native readbacks, selected ratings, pinning and cleanup passed. Preserve the saved-comment attribution and empty-submission failures.
 - [x] Verify all 11 Tutor answers directly against the typed owned questionnaire in the controlled real handler while keeping the original independent scope and meaning tests.
-- [ ] Complete the 11-case hosted Tutor replay on exact `1f082b9` after Ready.
+- [x] Pass all 11 hosted Tutor cases on exact `1f082b9` with paired own records, one direct verification per reply and verified disposal.
+- [x] Replay the original four-turn conversation on exact `1f082b9`, preserve each saved revision, independently grade overview and interview usefulness, and verify all 13 pins plus disposal.
+- [x] Reproduce the 21-3 setup transaction failure using real PostgreSQL and the exact schema. Pass all three fixture families, 24 native reads and crossed-owner checks after binding serialized JSON as text.
+- [x] Verify a named tuition instalment through the same scoped read and fresh retry. Test common balance phrasing, literal quoted labels, no matching charge and separation from other charges.
+- [x] Keep both public clauses on a library question with registrar contact or Wi-Fi setup. Verify partial retention and signed-in isolation on the unrelated fee page.
+- [x] Verify the 36-1 owned, hidden, missing and foreign document paths through the same simulated Storage registry and enforce metadata-only assistant access.
+- [x] Mount the exact 27-1 action operator and prove its lease, revision, receipts and cleanup on disposable PostgreSQL. Confirm with a read-only plan that hosting still needs the exact additive migration.
+- [x] Observe the protected `5430bd5` baseline for public companion and fee-remission verification. Record both quota failures and verified cleanup.
+- [x] Check exact regular weekday library hours and literal fee-remission fields locally without calling the model. Preserve the original per-case acceptance rules and test both orders of a separate named balance request.
+- [x] Pass both public companion questions on exact protected `54319c0` with independently checked facts, citation order and the explicit native schedule Activity step in the streamed and returned reply.
+- [ ] Replay the 20 isolated fee-remission questions on protected paired-charge `4d7cc15`.
+- [ ] Wire the checked exact-origin relay into the protected browser operator and verify two durable conversations, saved Activity and independent readbacks.
 - [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.

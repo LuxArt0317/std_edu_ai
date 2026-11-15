@@ -1,5 +1,11 @@
 # Progress
 
+- 2026-11-15 [#100] Protected `5430bd5` passed Quality 43719599905 and one of two public companion cases. The repaired 21-3 fixture sent six requests. Five evaluated responses withheld their draft during the live provider quota outage. A deliberate stop interrupted the sixth check and verified cleanup. Integrated direct weekday library and fee-remission evidence checks, a separate named-charge companion, and explicit quota handling. Pinned `54319c0` passed 114 focused tests and a 62-case adaptive repair and source suite. Added 18 controlled protected browser transport checks.
+
+- 2026-11-15 [#100] Protected `1f082b9` passed 11/11 Tutor Evaluation replies with paired readbacks, exact pin and cleanup, then all four original conversation answers with independent reviews, four saved revisions and exact cleanup. Reproduced the original 21-3 setup failure in disposable PostgreSQL and fixed the insert/delete JSONB binding. Its first exact hosted run sent zero requests. Staged `5430bd5` after 70 focused checks.
+
+- 2026-11-15 [#100] Fixed exact named tuition balances and retained both explicitly requested public clauses in registrar/Wi-Fi plus library questions. Added positive health document controls and the dedicated learning-support Preview operator. Combined local checks passed 1,937 API/source and 1,434 evaluation tests with five opt-in skips and both TypeScript checks. The read-only client database plan confirms the 27-1 schema remains pending.
+
 - 2026-11-15 [#100] All 12 corrected 34-2, 37-1 and 38-1 questions passed on exact protected `f74c3bf` with final pin and cleanup. Tutor Evaluation separately completed all 11 pinned requests with verified cleanup and unchanged protected owner. The evaluator lost its paired readback match after native JSONB field reordering and one reply failed saved provenance. Retained the failed result. Standalone exact tutor ratings passed 33 controlled tests.
 
 - 2026-11-15 [#100] Continued alternate school discovery after a deeper evidence gap and mounted dated library-hours and holiday content. Exact schema-independent Preview `f8ebca2` passed 99 focused cases and is Ready. The 17-case 27-1 paired read/write oracle passed scratch PostgreSQL and checks exact version, receipt replay and unchanged foreign rows.
