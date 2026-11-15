@@ -1,5 +1,6 @@
 import {venueRunnerCases,assertNativeVenueCaseReady,nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {assertNativeDtmCaseReady,nativeDtmRunnerCases,nativeDtmSetupRequired} from './dtm-native-runner.mjs';
+import {accountStatusCases,accountStatusSetupRequired,assertAccountStatusCaseReady} from './account-status-cases.mjs';
 import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
 import {assertNativeInternshipCaseReady,internshipRunnerCases,nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {assertNativeStudentLeaveCaseReady,nativeStudentLeaveSetupRequired,studentLeaveRunnerCases} from './student-leave-runner.mjs';
@@ -314,6 +315,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,assertNativeDtmCaseReady,assertNativeStudentLeaveCaseReady,assertNativeInternshipCaseReady,
       nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,gradeElearningCatalogCase,
       assertNativeVenueCaseReady,nativeVenueSetupRequired,
+      assertAccountStatusCaseReady,accountStatusSetupRequired,
       persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);
@@ -380,12 +382,16 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.deepEqual(suite.cases.filter(elearningCatalogSetupRequired),elearningCatalogRunnerCases());
   assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_native_venue_requests'),venueRunnerCases());
   assert.equal(suite.cases.filter(nativeVenueSetupRequired).length,12);
+  assert.deepEqual(suite.cases.filter(accountStatusSetupRequired),accountStatusCases());
 
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['clubAttendance','courseCatalog','elearningCatalog','elearningMetadata','dtmAssignmentList','dtmMaterials','leaveRecords','venueRequests','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['accountIdentity','clubAttendance','courseCatalog','elearningCatalog','elearningMetadata','dtmAssignmentList','dtmMaterials','leaveRecords','venueRequests','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});
   assert.equal(assessment.clientDispatch.executed,0);
+  assert.equal(assessment.accountIdentitySetup.registered,7);
+  assert.equal(assessment.accountIdentitySetup.liveEligible,0);
+  assert.ok(assessment.releaseBlockers.includes('run.accountIdentityFixtureUnbound'));
   assert.equal(assessment.nativeDtmSetup.registered,nativeDtmRunnerCases().length+4);
   assert.equal(assessment.nativeDtmSetup.legacyAssignmentListCaseIds.length,4);
   assert.equal(assessment.nativeDtmSetup.liveEligible,0);

@@ -7,6 +7,7 @@ import {runInNewContext} from 'node:vm';
 import ts from 'typescript';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
 import * as materialIntent from '../../server/dtmMaterialIntent.js';
+import {accountStatusIntent} from '../../server/accountStatusIntent.js';
 import * as catalogIntent from '../../server/elearningCatalogPageIntent.js';
 import * as metadataIntent from '../../server/elearningMetadataIntent.js';
 import * as internshipIntent from '../../server/internshipEvidenceIntent.js';
@@ -61,6 +62,7 @@ test('compiled client selects account verification before older direct readers a
   let caller=leaveFixtureOwner;
   const exports={},requests=[];
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
     if(specifier.endsWith('catalogDetailIntent.js'))return {catalogDetailIntent};
     if(specifier.endsWith('elearningCatalogPageIntent.js'))return catalogIntent;
     if(specifier.endsWith('accountActionIntent.js'))return actions;

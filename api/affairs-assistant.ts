@@ -7,6 +7,8 @@ import {venueRequestBoundary,venueRequestPlan} from '../server/venueRequestInten
 import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
+import {accountStatusIntent} from '../server/accountStatusIntent.js';
+import {answerAccountStatus} from '../server/accountStatusAnswer.js';
 import {answerElearningCatalog,answerElearningMetadata,elearningCatalogBoundary,elearningMetadataBoundary} from '../server/accountElearningCatalogAnswer.js';
 import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../server/elearningCatalogPageIntent.js';
 import {isElearningMetadataQuestion,selectElearningMetadata} from '../server/elearningMetadataIntent.js';
@@ -249,6 +251,17 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  if(accountStatusIntent(question,route)){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your current sign-in using text.'});
+      return;
+    }
+    try{
+      stream.send(200,await answerAccountStatus({account,question,route,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The current School Affairs sign-in could not be checked.'});}
+    return;
+  }
   const clubAttendance=clubAttendanceSelection(question,route);
   if(clubAttendance){
     if(clubAttendance.reason){stream.send(200,clubAttendanceBoundary(clubAttendance,question,true));return;}

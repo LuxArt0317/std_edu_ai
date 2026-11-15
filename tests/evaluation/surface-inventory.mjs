@@ -106,7 +106,7 @@ export async function discoverSurfaces() {
     ...[...new Set(publicPages.map(row=>new URL(row.source).hostname))].sort().map(host=>publicFamily('public:'+host,publicPages.filter(row=>new URL(row.source).hostname===host).map(row=>row.route))),
   ];
   const value={version:3,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
-    tools:Object.entries({...accountTools,...supplementalAccountTools,dtmAssignmentList:'Owned Moodle assignment list metadata and local tracker status for the selected view.',dtmMaterials:'Saved Moodle material lists and exact resource metadata for the caller’s course.',
+    tools:Object.entries({...accountTools,...supplementalAccountTools,accountIdentity:'The verified School Affairs sign-in state and explicitly requested account email.',dtmAssignmentList:'Owned Moodle assignment list metadata and local tracker status for the selected view.',dtmMaterials:'Saved Moodle material lists and exact resource metadata for the caller’s course.',
       venueRequests:'Saved caller-owned venue request status, date, room, period and filtered count; supports a separate scoped fee-balance companion.',
       elearningCatalog:'The verified Digital Academy catalog search or category result page, with local course links.',
       elearningMetadata:'The saved Digital Academy category hierarchy or exact notice title and body.'}).map(([id,description])=>({id,description})),routeFamilies,publicPages,

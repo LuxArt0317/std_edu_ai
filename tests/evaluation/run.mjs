@@ -11,6 +11,7 @@ import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
 import {buildAccountCases} from './account-cases.mjs';
+import {accountStatusCases,accountStatusSetupRequired,assertAccountStatusCaseReady} from './account-status-cases.mjs';
 import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
 import {feeRemissionLivePlanManifest,feeRemissionLiveFamilyForCase} from './fee-remission-live-plan.mjs';
 import {fixtureForCase} from './fixtures.mjs';
@@ -111,7 +112,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
     :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
-      ...elearningCatalogRunnerCases(),...buildPublicCases(inventory)];
+      ...elearningCatalogRunnerCases(),...accountStatusCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -276,6 +277,11 @@ export function gradeRetrievalCase(testCase,evidence,metadata={}){
 export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,browserAcceptance}){
   const assessment=assessCoverage({cases,results:report.results,inventory,requestedSuite,sourceRevision,browserAcceptance,requireLive:true});
   const integrity=[];
+  const identityCases=cases.filter(accountStatusSetupRequired);
+  if(identityCases.length){
+    assessment.accountIdentitySetup={registered:identityCases.length,liveEligible:0,caseIds:identityCases.map(row=>row.id)};
+    integrity.push({id:'run.accountIdentityFixtureUnbound',detail:'Sign-in cases require independent verified caller observations on the deployed revision.'});
+  }
   const teachingSetup=teachingFeedbackSetupSummary(cases);
   if(teachingSetup.registered){
     assessment.teachingFeedbackSetup=teachingSetup;
@@ -430,7 +436,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(!selected.length)throw new Error('No cases match.');
   // Do not pass an unmounted native case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
-  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row));
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row)&&!accountStatusSetupRequired(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -500,6 +506,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         assertNativeInternshipCaseReady(testCase);
         assertElearningCatalogCaseReady(testCase);
         assertNativeVenueCaseReady(testCase);
+        assertAccountStatusCaseReady(testCase);
         if(opt.mode==='live'){
           assertCatalogCaseBound(testCase,report);
           if(feeOnly||testCase.fixtureKey!=='anonymous'){
@@ -544,7 +551,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase))?'not-run':opt.mode==='live'?'live-model':'deterministic';
+        const execution=phase==='setup'&&(nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase))?'not-run':opt.mode==='live'?'live-model':'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
