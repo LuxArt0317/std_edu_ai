@@ -102,6 +102,18 @@ test('request scope binds the follow-up and drops excluded fields before reporti
   await assert.rejects(requestCounselingHostedCase(args),/excluded private fields/);
   const proof={counts:[3,1],rowsDigest:'a'.repeat(64)};
   assert.equal(gradeHostedCounseling(testCase,result.envelope,proof,proof).failures.includes('counseling.request_activity'),false);
+  assert.equal(gradeHostedCounseling(testCase,result.envelope,proof,proof).failures.includes('action.ownedRecordsUnchanged'),false);
+  const claimedProof={...result.envelope,fixtureReadback:{verified:true,independentGolden:true}};
+  for(const [before,after] of [
+    [proof,{...proof,rowsDigest:'b'.repeat(64)}],
+    [{...proof,counts:[3,0]},{...proof,counts:[3,0]}],
+    [{...proof,rowsDigest:'invalid'},{...proof,rowsDigest:'invalid'}],
+    [undefined,undefined],
+  ]){
+    const failures=gradeHostedCounseling(testCase,claimedProof,before,after).failures;
+    assert.ok(failures.includes('action.ownedRecordsUnchanged'));
+    assert.ok(failures.includes('counseling.readback'));
+  }
   assert.ok(gradeHostedCounseling(testCase,{...result.envelope,events:[]},proof,{...proof,rowsDigest:'b'.repeat(64)}).failures.includes('counseling.readback'));
   assert.ok(gradeHostedCounseling(testCase,{...result.envelope,events:[]},proof,proof).failures.includes('counseling.request_activity'));
 });

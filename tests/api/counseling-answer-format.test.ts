@@ -31,6 +31,16 @@ test('own counseling metadata displays safe status/date cards, preserving null a
   assert.equal(answerLinksSupported(out.answer,[source.evidence]),true);assert.deepEqual(source,before);
 });
 
+test('UTC display preserves the saved instant, fractional precision and the raw evidence',async()=>{
+  const source=await read(native([row(1,'scheduled','2026-11-27T02:30:00.000000+00:00'),
+    row(2,'cancelled','2026-10-22T06:00:00.123456+00:00'),row(3,'closed','2026-09-18T09:00:00+08:00')]));
+  const before=structuredClone(source),out=format([source]);
+  assert.deepEqual(out.views[0].rows.map(cells=>cells[4]),['2026-11-27T02:30:00Z','2026-10-22T06:00:00.123456Z','2026-09-18T09:00:00+08:00']);
+  assert.match(out.answer,/Scheduled time: ` 2026-11-27T02:30:00Z `/u);
+  assert.match(out.answer,/Scheduled time: ` 2026-10-22T06:00:00\.123456Z `/u);
+  assert.deepEqual(source,before);
+});
+
 test('successful empty differs from a native50 cap and displayed row omission',async()=>{
   const empty=format([await read(native([]))]);assert.equal(empty.complete,true);assert.match(empty.answer,/no saved appointments in your stu.best account/u);
   const rows=Array.from({length:50},(_,index)=>({...row(index+1,'closed'),preferred_on:'2026-01-'+String(index%28+1).padStart(2,'0')}));

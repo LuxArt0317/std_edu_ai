@@ -5,6 +5,8 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
 import {isOwnCounselingTrackingNoteQuestion} from '../../server/counselingEvidenceIntent.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
+import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const base='/school-affairs/services/29-1';
 const path=base+'/appointments';
@@ -177,9 +179,9 @@ async function offline(run:()=>Promise<void>,{read='records',charges,retry=false
     assert.deepEqual(errors,[]);
     assert.equal(appointments,read==='none'?0:retry?2:1);
     assert.equal(chargeReads,charges?retry?2:1:0);
-    assert.equal(reviews,retry?2:1);
+    assert.equal(reviews,retry&&charges?2:1);
     assert.equal(operations.includes('account_lookup_plan'),false);
-    assert.equal(operations.includes('correct_grounded_answer'),retry);
+    assert.equal(operations.includes('correct_grounded_answer'),retry&&Boolean(charges));
     assert.equal(operations.includes('compose_grounded_answer'),charges==='amount-out-of-contract');
   }catch(error){throw errors[0]??error;}
   finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
@@ -192,10 +194,77 @@ test('the graph checks a rejected appointment answer against a fresh own record'
     assert.equal(result.body.verification.status,'verified');
     assert.equal(result.body.verification.attempts,2);
     assert.match(result.body.answer,/2026-11-26/);
+    assert.ok(result.steps.some(step=>step.kind==='counseling-appointment-evidence-check'&&step.status==='complete'));
     assert.doesNotMatch(result.body.answer,/2026-11-25/);
     assert.ok(result.body.citations.some((citation:{url:string})=>citation.url===path));
     assert.deepEqual(observedTools(result.steps),['counselingAppointments']);
   },{retry:true});
+});
+
+test('the handler verifies each hosted counseling question against exact refreshed appointment metadata',async()=>{
+  const cases=buildAccountCases({includePlannedCounselingAppointments:true});
+  const oldFetch=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY;
+  const row=(index:number,kind:string,status:string,preferred_on:string,preferred_period:string,scheduled_at:string|null)=>({
+    id:'29000001-0000-4000-8000-'+String(index).padStart(12,'0'),kind,status,preferred_on,preferred_period,scheduled_at,
+    updated_at:'2026-11-18T03:00:00+00:00',version:status==='requested'?1:3,
+  });
+  process.env.OPENAI_API_KEY='COUNSELING_TEST_MODEL';
+  try{
+    for(const suffix of ['history','requested-date','scheduled-time','assessment-kind','cancelled-history','closed-history','empty','capped-history','history-followup']){
+      const testCase=cases.find(value=>value.id==='account:counseling-appointments-'+suffix);
+      assert.ok(testCase,suffix);
+      const scheduled=suffix==='scheduled-time';
+      const regular=[
+        row(1,'counseling',scheduled?'scheduled':'requested','2026-11-25','morning',scheduled?'2026-11-27T02:30:00+00:00':null),
+        row(2,'counseling','cancelled','2026-10-20','afternoon','2026-10-22T06:00:00+00:00'),
+        row(3,'assessment','closed','2026-09-15','morning','2026-09-18T01:00:00+00:00'),
+      ];
+      const rows=suffix==='empty'?[]:suffix==='capped-history'?Array.from({length:50},(_,i)=>
+        row(i+1,'counseling','closed',new Date(Date.UTC(2026,0,i+1)).toISOString().slice(0,10),'morning',null)):regular;
+      const data={userId:owner,available:false,canCoordinate:false,rows};
+      const before=structuredClone(data);
+      const observed:string[]=[],errors:unknown[]=[];
+      const intercept:typeof fetch=async(input,init)=>{
+        const url=new URL(String(input));
+        if(url.hostname==='api.openai.com'){
+          observed.push('review');
+          const request=JSON.parse(String(init?.body));
+          assert.equal(request.text.format.name,'answer_evidence_review');
+          const input=JSON.parse(request.input[0].content[0].text);
+          assert.deepEqual(input.evidence.map((value:{id:string})=>value.id),['account-scope','account:counselingAppointments']);
+          const payload=JSON.parse(input.evidence[1].content);
+          assert.doesNotMatch(JSON.stringify(payload),/2900000|canCoordinate|contact_email|updated_at|storage\/v1/u);
+          assert.deepEqual(payload.records,rows.map(value=>({kind:value.kind,status:value.status,preferredOn:value.preferred_on,
+            preferredPeriod:value.preferred_period,scheduledAt:value.scheduled_at})));
+          return Response.json({status:'completed',output:[{content:[{type:'output_text',
+            text:JSON.stringify({supported:false,answersQuestion:false,claims:[]})}]}]});
+        }
+        observed.push('read');
+        assert.equal(url.href,account.url+'/rest/v1/rpc/affairs_read_counseling');
+        assert.equal(init?.method,'POST');
+        assert.equal(init?.body,'{"p_view":"mine"}');
+        assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+        return Response.json(data);
+      };
+      globalThis.fetch=(...args)=>intercept(...args).catch(error=>{errors.push(error);throw error;});
+      const result=await call(makeHandler(),testCase.question,testCase.route,true,testCase.history);
+      assert.deepEqual(errors,[],suffix);
+      assert.deepEqual(observed,['read','review','read'],suffix);
+      assert.deepEqual(data,before,suffix);
+      assert.equal(result.body.verification.status,'verified',suffix);
+      assert.equal(result.body.verification.attempts,2,suffix);
+      assert.ok(result.steps.some(step=>step.kind==='counseling-appointment-evidence-check'&&step.status==='complete'),suffix);
+      assert.ok(!result.steps.some(step=>step.kind==='account-replan'||step.kind==='account-compose'),suffix);
+      // This local test exercises the independent answer oracle. Hosted fixture readback is independently performed on Preview.
+      const {requireUnchangedOwnedRecords:_hostedReadback,...expected}=testCase.expected;
+      const grade=gradeCase({...testCase,expected},{statusCode:result.status,execution:'deterministic',fixtureKey:testCase.fixtureKey,
+        body:{...result.body,activity:result.steps}});
+      assert.deepEqual(grade.failures,[],suffix);
+    }
+  }finally{
+    globalThis.fetch=oldFetch;
+    if(oldKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldKey;
+  }
 });
 
 test('combined appointment and fee questions check independent sources in either order and keep one available half',async()=>{

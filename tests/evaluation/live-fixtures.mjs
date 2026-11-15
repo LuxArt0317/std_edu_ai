@@ -812,8 +812,8 @@ export async function runTuitionLedgerPreview({origin,sourceRevision,previewToke
     liveAcceptance:result.passed&&cleanupProof.verified&&cleanupProof.tuitionLedgerCleanup===true};
 }
 
-export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal}={}){
-  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
     fail('fixture-config','Counseling requires an exact protected Preview and source revision.');
   const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
   const identity=await sourceIdentity();
@@ -822,7 +822,10 @@ export async function runCounselingHostedEvaluation({origin,sourceRevision,previ
   await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
     signal,fixtureMode:counselingFixtureMode,caseFamily:'counseling-appointments',previewReadbackFetch:readback});
   const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
-  let cleanupProof;
+  let cleanupProof=null,completed=false;
+  const report=terminal=>structuredClone({runId,origin,sourceRevision,terminal,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
+    noFileActivityObserved:results.every(row=>!row.failures.includes('counseling.file_activity')),
+    egressObservation:false,liveAcceptance:terminal&&completed&&results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof?.verified===true});
   try{
     const owners=Object.fromEntries(s.users.map((user,index)=>{
       const request=s.identityRequests.find(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
@@ -860,15 +863,18 @@ export async function runCounselingHostedEvaluation({origin,sourceRevision,previ
       const after=await observe();
       const {envelope,...requestProof}=request;
       results.push({...gradeHostedCounseling(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
+      await onCheckpoint?.(report(false));
     }
     const final=await sourceIdentity();
     if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
       fail('fixture-target','Counseling source changed during evaluation.');
     await s.previewGate.finish();
-  }finally{cleanupProof=await cleanup();}
-  return {runId,origin,sourceRevision,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
-    noFileActivityObserved:results.every(row=>!row.failures.includes('counseling.file_activity')),
-    egressObservation:false,liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified};
+    completed=true;
+  }finally{
+    try{cleanupProof=await cleanup();}
+    finally{await onCheckpoint?.(report(true));}
+  }
+  return report(true);
 }
 
 export async function runTutorEvaluationPreview({origin,sourceRevision,previewToken,signal}={}){

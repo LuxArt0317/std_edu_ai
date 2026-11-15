@@ -4,6 +4,8 @@ import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {nativePageLookupContext} from '../../server/accountSupplementalLookup.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
+import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const path='/school-affairs/services/36-1';
 const route=path+'?page=2';
@@ -129,7 +131,7 @@ async function offline(run:()=>Promise<void>,{mixed=false,retry=false,denyHealth
     assert.deepEqual(errors,[]);
     assert.equal(health,denyHealth?0:retry?2:1);
     assert.equal(charges,mixed||chargesOnly?1:0);
-    assert.deepEqual(calls,[...(mixed?['compose_grounded_answer']:[]),'answer_evidence_review',...(retry?['correct_grounded_answer','answer_evidence_review']:[])]);
+    assert.deepEqual(calls,[...(mixed?['compose_grounded_answer']:[]),'answer_evidence_review',...(retry&&mixed?['correct_grounded_answer','answer_evidence_review']:[])]);
   }catch(error){throw errors[0]??error;}
   finally{globalThis.fetch=original;if(originalKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=originalKey;}
 }
@@ -144,8 +146,72 @@ test('a rejected answer checks the same caller page again and verifies the refre
     assert.doesNotMatch(result.body.answer,/QA-HEALTH-OLD/u);
     assert.deepEqual(result.body.citations.map((value:{url:string})=>value.url),[route]);
     assert.ok(result.steps.some(step=>step.kind==='account-read:healthExaminations:2'&&step.status==='complete'));
+    assert.ok(result.steps.some(step=>step.kind==='health-examination-evidence-check'&&step.status==='complete'));
     assert.equal(result.body.proposedAction,undefined);
   },{retry:true});
+});
+
+test('the actual handler preserves all 25 health rows and exact boundaries after an independent rejection',async()=>{
+  const cases=buildAccountCases({includePlannedHealthExaminations:true});
+  const oldFetch=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY;
+  const pageRows=Array.from({length:25},(_,i)=>'QA HEALTH PAGE '+String(i+1).padStart(2,'0'));
+  const threeRows=['QA HEALTH A-01','QA HEALTH A-02','QA HEALTH A-03'];
+  process.env.OPENAI_API_KEY='HEALTH_TEST_MODEL';
+  try{
+    for(const suffix of ['page-one','ambiguous-page','document-boundary','identity-boundary','write-boundary']){
+      const testCase=cases.find(value=>value.id==='account:health-examinations-'+suffix);
+      assert.ok(testCase,suffix);
+      const paged=suffix==='page-one',noRead=suffix==='ambiguous-page'||suffix==='write-boundary';
+      const rows=(paged?pageRows:threeRows).map((examination_code,i)=>({
+        id:'36000000-0000-4000-8010-'+String(i+1).padStart(12,'0'),examination_code,
+        student_number:'PRIVATE_STUDENT_NUMBER',student_name:'PRIVATE_STUDENT_NAME',class_label:'PRIVATE_CLASS',report_available:false,
+      }));
+      const data={userId:owner,total:paged?26:3,rows};
+      const before=structuredClone(data);
+      const observed:string[]=[],errors:unknown[]=[];
+      const intercept:typeof fetch=async(input,init)=>{
+        const url=new URL(String(input));
+        if(url.hostname==='api.openai.com'){
+          observed.push('review');
+          const request=JSON.parse(String(init?.body));
+          assert.equal(request.text.format.name,'answer_evidence_review');
+          const input=JSON.parse(request.input[0].content[0].text);
+          assert.deepEqual(input.evidence.map((row:{id:string})=>row.id),['account-scope','account:healthExaminations']);
+          const payload=JSON.parse(input.evidence[1].content);
+          assert.doesNotMatch(JSON.stringify(payload),/PRIVATE_|36000000|storage\/v1|signedURL/iu);
+          if(noRead)assert.deepEqual(payload.records,[]);
+          else assert.deepEqual(payload.records,rows.map(row=>({examinationCode:row.examination_code,reportAvailable:false})));
+          return Response.json({status:'completed',output:[{content:[{type:'output_text',
+            text:JSON.stringify({supported:false,answersQuestion:false,claims:[]})}]}]});
+        }
+        observed.push('read');
+        assert.equal(url.href,account.url+'/rest/v1/rpc/affairs_read_health_examinations');
+        assert.equal(init?.method,'POST');
+        assert.equal(init?.body,'{"p_offset":0}');
+        assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
+        assert.equal(noRead,false);
+        return Response.json(data);
+      };
+      globalThis.fetch=(...args)=>intercept(...args).catch(error=>{errors.push(error);throw error;});
+      const result=await call(handler(),testCase.question,testCase.route);
+      assert.deepEqual(errors,[],suffix);
+      assert.deepEqual(observed,noRead?['review']:['read','review','read'],suffix);
+      assert.deepEqual(data,before,suffix);
+      assert.equal(result.body.verification.status,'verified',suffix);
+      assert.equal(result.body.verification.attempts,2,suffix);
+      assert.ok(result.steps.some(step=>step.kind==='health-examination-evidence-check'&&step.status==='complete'),suffix);
+      assert.ok(!result.steps.some(step=>step.kind==='account-replan'||step.kind==='account-compose'),suffix);
+      assert.doesNotMatch(JSON.stringify(result.body),/PRIVATE_|36000000|storage\/v1|signedURL/iu);
+      // Hosted readback is covered by the protected fixture. Keep the independent answer, source, tool and safety checks here.
+      const {requireUnchangedOwnedRecords:_hostedReadback,...expected}=testCase.expected;
+      const grade=gradeCase({...testCase,expected},{statusCode:result.status,execution:'deterministic',fixtureKey:testCase.fixtureKey,
+        body:{...result.body,activity:result.steps}});
+      assert.deepEqual(grade.failures,[],suffix);
+    }
+  }finally{
+    globalThis.fetch=oldFetch;
+    if(oldKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldKey;
+  }
 });
 
 test('both compound orders and unavailable halves use two independently scoped collections',async()=>{

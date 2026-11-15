@@ -190,13 +190,13 @@ The local handler tests inject the two source responses and the verification mod
 
 ### Health examination availability
 
-Service 36-1 questions use the signed-in account's existing paged inquiry. The assistant receives examination codes, the paired report-availability flag, and explicit page counts. The verification graph can retry the same selected page, keep the total distinct from the number of rows on that page, and distinguish a failed read from an empty result. Clinical content, examination dates and file authorization stay in their existing service flows. Navigation questions give the relevant page link. Signed-out inquiries return to sign-in with the requested local page preserved. Combined tuition questions read charges separately and retain verified facts if one source is unavailable.
+Service 36-1 questions use the signed-in account's existing paged inquiry. The assistant receives examination codes, the paired report-availability flag, and explicit page counts. After a rejected review of a standalone health question, the verification graph refreshes the same selected page and checks the exact rendering against that evidence. It keeps the total distinct from the returned count and preserves every included code and its paired flag in the answer even when the table has a shorter display limit. Ambiguous pages and write requests do not read the metadata. Clinical content, examination dates and file authorization stay in their existing service flows. Navigation questions give the relevant page link. Signed-out inquiries return to sign-in with the requested local page preserved. Combined tuition questions read charges separately and retain verified facts if one source is unavailable.
 
 The 26-question health packet includes 19 planned live cases and seven offline controls. Sixteen planned cases use only disposable health metadata or verify an access boundary. Three need a separately prepared charge ledger. The pure fixture plan includes two account owners, exact paged DTOs and cleanup contracts. Its planned rows keep all report flags false. The true-flag control uses a synthetic native response. The API and Chromium checks run with injected provider boundaries. Signed-in deployed-model evaluation, private object testing for live true flags, and fixture cleanup acceptance remain pending.
 
 ### Counseling appointment history
 
-Questions about counseling appointments enter the verification graph with the current caller's native appointment reader. The answer keeps a preferred date or period separate from a scheduled time, and treats cancelled and closed appointments as historical. A successful empty response and a failed read produce distinct answers. A response at the native 50-row limit leaves the total unknown. Booking, cancellation, private notes, identities, files and coordinator views have no authority through this reader.
+Questions about counseling appointments enter the verification graph with the current caller's native appointment reader. The answer keeps a preferred date or period separate from a scheduled time, and treats cancelled and closed appointments as historical. A successful empty response and a failed read produce distinct answers. A response at the native 50-row limit leaves the total unknown. After a rejected standalone review, the verifier repeats the same caller-scoped read and checks the rendered dates, statuses, record counts and links against the refreshed metadata. It preserves the saved timestamps and displays PostgreSQL UTC offsets as Z. Booking, cancellation, private notes, identities, files and coordinator views have no authority through this reader. The protected runner binds its independent SQL digest and both caller readbacks to the shared unchanged-record check. The binding requires exact pre/post equality and the expected counts for both disposable accounts.
 
 An exact combined fee question reads the caller's charge records separately. Both sections use bounded evidence, and the independent review can reject the draft and force both readers to refresh. The displayed charge card uses the same evidence as the answer. The signed-in endpoint and browser tests exercise both question orders, an unavailable source and unrelated or excluded questions with injected dependencies. The 28-question independent packet includes 21 planned model cases and seven offline controls. The fixture plan specifies both disposable owners and exact cleanup. Three planned cases require an independent charge ledger. Deployment acceptance still requires the isolated live fixture adapter and authorized runner access.
 
@@ -215,6 +215,17 @@ Service 28-1 answers questions about the student's saved questionnaire. The assi
 For a combined fee question, the account graph checks the selected fee and questionnaire independently and rereads both after a rejected draft. A failed read stays distinct from a successful lookup that found no submission. Private profile fields from the form never enter the assistant's evidence. Questions about other students are refused without a record lookup.
 
 The independent packet covers 33 scenarios, with 27 planned live cases and six offline controls. Three planned cases need separate charge fixtures. The live fixture and two-account cleanup checks remain unmounted. Local HTTP, graph and browser tests use synthetic accounts, model responses and record fixtures.
+
+### Protected Health and Counseling replay
+
+From the clean checkout used for the protected Preview, run the local preflight and then the replay with its authorized Development OIDC environment.
+
+```sh
+node tests/evaluation/run-health-counseling-preview.mjs <protected-preview-origin> <full-deployed-revision> --preflight
+node tests/evaluation/run-health-counseling-preview.mjs <protected-preview-origin> <full-deployed-revision>
+```
+
+The preflight lists the frozen packet sizes without dispatching requests. The replay writes `health.json`, `counseling.json` and `summary.json` in an owner-only, unique directory under `artifacts/assistant-evaluation`. Health runs first. Counseling begins only after verified Health cleanup. Interrupted reports retain their latest graded results, and the summary distinguishes a complete behavioral failure from blocked or incomplete execution. A successful replay requires both complete packets, their exact deployment pins and verified cleanup. Standalone Counseling uses `tests/evaluation/run-counseling-preview.mjs` with the same arguments and reporting.
 
 ### Private tracking notes
 
