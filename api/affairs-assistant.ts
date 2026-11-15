@@ -792,7 +792,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const exactBalance=(question===requestedQuestion||question===resolvedFee)
     &&(chargeLabel?chargeLabel===standaloneChargeLabel:isOwnFeeBalanceQuestion(question)
-      &&/\b(?:balance|owe|remain(?:s)? unpaid)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC')))
+      &&/^how much\b|\b(?:balance|owe|remain(?:s)? unpaid)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC')))
     &&!pageContext.selected&&!notes.keys.length
     &&!dtmCompound&&!assignment.selection&&!aid.selection&&!teachingSelection&&!housingSelection&&!applicationSelection;
   const timetableOnly=Boolean(clearanceTimetableQuestion(question,pageContext))||aidNext||teachingNext||housingNext;

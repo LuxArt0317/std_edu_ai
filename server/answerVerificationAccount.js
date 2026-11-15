@@ -860,10 +860,12 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
     verify:context=>{
       const expected=candidateFrom(context.evidence);
       if(!expected||JSON.stringify(context.candidate)!==JSON.stringify(expected))return {ok:false,reason:'evidence_unavailable'};
-      if(context.attempt===1)return verifyEvidenceAnswer({...context,responseIntent:'records',
+      const linked=current.studentRecordFound===true;
+      if(context.attempt===1&&linked)return verifyEvidenceAnswer({...context,responseIntent:'records',
         diagnosticContext:correlationId?{correlationId,attempt:context.attempt}:undefined});
-      emit({kind:'fee-balance-evidence-check',label:'Recalculated your saved fee balance',
-        detail:'Checked the amounts, currencies, source labels and read limits against the refreshed fee records.',status:'complete'});
+      emit({kind:'fee-balance-evidence-check',label:linked?'Recalculated your saved fee balance':'Checked for a linked student record',
+        detail:linked?'Checked the amounts, currencies, source labels and read limits against the refreshed fee records.'
+          :'The scoped read found no linked student record for this account.',status:'complete'});
       return {ok:true};
     },
     repair:context=>candidateFrom(context.evidence)??withheld(),

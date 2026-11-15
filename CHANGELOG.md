@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Route exact unpaid-tuition questions to the caller’s fee records. Verify an unlinked account directly and report that a balance is unknown. [#100]
+
 - Check an explicit account display-name question against the signed-in caller’s saved profile. Distinguish a missing name from a read failure. [#100]
 
 - Derive the protected DTM browser’s exact asset allowlist from the pinned Preview shell and its selected runtime dependencies. [#100]

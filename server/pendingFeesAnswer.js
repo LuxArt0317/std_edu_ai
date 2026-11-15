@@ -37,6 +37,7 @@ export function isOwnFeeBalanceQuestion(question) {
   const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'').trim();
   return /^how much(?: (?:school |tuition )?fees?| tuition)? do i (?:still )?owe(?: (?:at|in|for) (?:the )?(?:school|tuition))?$/iu.test(text)
     ||/^how much tuition and fees (?:remain(?:s)? unpaid|do i (?:still )?owe)$/iu.test(text)
+    ||/^how much (?:is my (?:remaining|outstanding|unpaid|pending) tuition|(?:remaining|outstanding|unpaid|pending) tuition do i (?:have|owe))$/iu.test(text)
     || /^(?:(?:(?:please )?(?:show(?: me)?|list|tell me|check)|what is|what's|how much is) )?my (?:(?:remaining|outstanding|unpaid|pending) )?(?:(?:school|tuition) )?(?:fees?|charges|balance)(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
     ||/^(?:請問|請查詢|幫我查|顯示)?(?:我(?:的|目前)?)(?:學雜費|學費|費用|待繳)(?:還(?:要繳|有|欠)|尚欠|剩餘|待繳|餘額|還剩)?(?:多少|金額|明細)?$/u.test(text);
 }

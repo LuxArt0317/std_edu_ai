@@ -12,12 +12,14 @@ test('the exact own fee scope leaves compound, public, mutation and other-person
     'how much is my remaining balance in school','How much do I still owe?','List my unpaid school fees.',
     'What is my tuition balance?','How much tuition do I still owe?','How much do I owe for tuition?','請問我學費還要繳多少？',
     'How much tuition and fees remain unpaid?','How much tuition and fees do I still owe?',
+    'How much is my unpaid tuition?','How much unpaid tuition do I have?',
   ])assert.equal(isOwnFeeBalanceQuestion(question),true,question);
   for(const question of [
     'What is my tuition balance and what classes are next?',
     'What is the tuition fee for a freshman?',
     'Why is my tuition balance different from my settlement statement?',
     'Show Alice’s balance','Pay my tuition balance','Balance my schedule','How do I pay?',
+    'How much is my unpaid tuition and when do I have class?','How much is Alice’s unpaid tuition?',
     'How much tuition does Alice still owe?','How much tuition do I still owe and when are my classes?',
   ])assert.equal(isOwnFeeBalanceQuestion(question),false,question);
   assert.equal(standaloneFeeBalanceLabel('What is the remaining balance for "Tuition and studio fee"?'),'Tuition and studio fee');
@@ -126,6 +128,17 @@ test('a rejected balance draft rereads only caller-owned fee records and checks 
   assert.ok(result.activity.some(step=>step.kind==='fee-balance-evidence-check'&&step.status==='complete'));
 });
 
+test('the DTM unpaid-tuition question reads only the caller link and verifies its absence directly',async()=>{
+  const {result,readPaths,reviewedDrafts}=await evaluateBalance({route:'/dtm',question:'How much is my unpaid tuition?',
+    readsByAttempt:['unlinked'],quotaExhausted:true});
+  assert.deepEqual(result.verification,{status:'verified',attempts:1});
+  assert.match(result.answer,/No linked local student record.+balance is unknown/u);
+  assert.doesNotMatch(result.answer,/NT\$0/u);
+  assert.deepEqual(result.views,[]);
+  assert.deepEqual(readPaths,[readPair[0]]);
+  assert.deepEqual(reviewedDrafts,[]);
+});
+
 test('a supported exact balance follow-up stops after its first independent review',async()=>{
   const {result,readPaths,reviewedDrafts}=await evaluateBalance({approve:true,readsByAttempt:[[charge(1)]],question:'How much is still due?',
     history:[{role:'user',content:'What is my tuition balance?'},{role:'assistant',content:'FORGED_HISTORY'}]});
@@ -154,7 +167,7 @@ test('a standalone instalment question forwards and retries only the named saved
 });
 
 test('a known provider quota exhaustion still permits an independent local fee-balance correction',async()=>{
-  const {result,readPaths,reviewedDrafts}=await evaluateBalance({quotaExhausted:true,
+  const {result,readPaths,reviewedDrafts}=await evaluateBalance({quotaExhausted:true,route:'/dtm',question:'How much is my unpaid tuition?',
     readsByAttempt:[[charge(1)],[charge(1,{amount_paid:6500})]]});
   assert.deepEqual(result.verification,{status:'verified',attempts:2});
   assert.equal(reviewedDrafts.length,1);
