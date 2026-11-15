@@ -899,3 +899,11 @@ RPCs. Finish independent Health cleanup before starting Counseling and then the
 student-only tuition replay. Staff roles/replay passed in controlled HTTP,
 Chromium and isolated PostgreSQL; do not use the protected owner for a finance
 fixture. Keep these Preview deliveries separate from public application release.
+
+The independent Health packet passed 16/16 with exact manifest and cleanup.
+The first Counseling answers passed their nine scoped content/readback checks;
+the no-write evidence envelope needed a validator fix. The first tuition
+packet reached the second monthly answer, then exposed the account-wide
+undated default charge missing from its oracle. Cleanup was independently
+verified. Protected `bb5f650` and `da77afd` are the corrected exact candidates.
+Keep their fixture operators serialized until both reach terminal cleanup.

@@ -59,3 +59,5 @@
 
 - 2026-11-15 [#100] Protected `ea1e9a0` passed 16/16 Health cases and exact cleanup. Counseling passed its nine answer/readback/activity checks and cleanup. All nine full grades failed the same harness proof field. Corrected the grader without dropping the no-write check.
 - 2026-11-15 [#100] Fixed the dated-history auth-module import exposed by CI and obtained all 544 local unit passes. Protected tuition packet reached B's monthly reply and surfaced a mismatch between charge-level and whole-account legacy expectations. A fresh database read proved zero residual fixture users, charges or ledger rows.
+
+- 2026-11-15 [#100] Integrated both independent grading corrections. Protected `db78083` passed GitHub Quality. Corrected Counseling `bb5f650` and combined tuition `da77afd` are queued for exact protected replays in that order, with verified cleanup required between them. Club equipment records are the next identified private reader gap.
