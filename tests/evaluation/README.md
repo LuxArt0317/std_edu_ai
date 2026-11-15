@@ -65,6 +65,21 @@ This command creates disposable Supabase accounts through the client fixture ada
 
 The Preview runner creates the same UUIDv7 chat ID as the browser. The operator transport must relay that exact conversation ID. The offline transcript tests exercise planning, all four saves, durable readback and isolated cleanup; the hosted run requires independently observed data and model responses.
 
+### Third-stage model comparison
+
+The benchmark runs the existing LangGraph repair and evidence review with two identical earlier rejections. It holds the evidence, question, draft, feedback, time budget and reasoning effort fixed. It uses one fictional notice and two checksum-verified school captures. An independent rubric checks the requested facts, citation, snapshot date and the distinction between a specific missing detail and a generic withholding.
+
+Run the offline transport and scoring checks with `node --test tests/evaluation/verification-escalation-benchmark.test.mjs`. An authorized operator can explicitly run the paired calls from a clean checkout with an already provisioned `OPENAI_API_KEY` in the process environment.
+
+```sh
+node tests/evaluation/verification-escalation-benchmark.mjs \
+  --live --revision "$CHECKOUT_REVISION" --report "$NEW_PRIVATE_REPORT_PATH"
+```
+
+Each repetition permits up to 12 Responses requests. The default stronger arm is GPT-6.1 Sol. Choose `--stronger gpt-5.6-sol` if that is the available comparison model. Use `--repeats 2` or `--repeats 3` to repeat the fixed cases with alternating model order. The report records whether the paired repair request bodies match apart from the model, each provider status, resolved model, token counts and stage timings. A rejected or unattempted call stays visible. An independent reviewer can rescore factual language from the public answers with the model names masked.
+
+This tests repair plus verification after a request has already qualified for a third check. Live retrieval, natural escalation frequency, paid account access, hosted sessions and overall release acceptance require their own evidence.
+
 The main evaluation runner also accepts `--preview-auth oidc` with `--mode live`, `--origin` and `--approved-preview-origin`. Use the deployment-specific host verified for the exact Vercel project. The transport checks the pinned revision before fixture setup and relays the token only to that host. It rejects branch aliases and keeps the Vercel header separate from the fixture user's Supabase authorization. Direct Supabase, Auth renewal and SQL connections retain their existing credentials and guards. [Vercel Trusted Sources](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/trusted-sources)
 
 Club attendance has 18 independently specified cases. The live fixture verifies disposable caller-owned attendance for two accounts before and after the request. Native reader results can satisfy the corresponding live case contract without earning model execution credit. See `node --test tests/evaluation/club-attendance-runner.test.mjs` for the local runner and grading contracts.
