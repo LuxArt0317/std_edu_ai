@@ -34,3 +34,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Exact `5e6af59` passed Attendance 10/10, Course Selection 12/12, six paired monthly answers and five access checks. All 33 release pins, three disposals, and Quality 43757754637 passed. Local payment history browser checks and the eight opt-in suites passed with isolated database setup. Production still serves `076c79a`.
 
 - 2026-11-16 [#100] Bound the two frozen 52-1 browser questions to the independent aggregate response oracle. Pinned a 36-asset preflight to `5e6af59`; controlled Chromium and migrated PostgreSQL passed. Mounted the one-case-per-lease browser replay and durable save proof for the next protected revision.
+
+- 2026-11-16 [#100] Both `b156471` browser startup attempts stopped at a denied asset; no answer was sent and both fixture leases were cleared. An isolated shell probe confirmed the declared favicon, now admitted only as a same-origin PNG. 24 transport and asset checks passed.

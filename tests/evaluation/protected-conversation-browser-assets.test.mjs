@@ -82,17 +82,17 @@ test('the pinned shell, selected lazy preloads, static imports and stylesheet as
   assert.ok(!f.paths.includes('/favicon.png')&&!f.paths.includes('/api/affairs-data'));
 });
 
-test('the fixed certificate profile reads the 52-1 shell and includes its entry and heading',async()=>{
+test('the fixed certificate profile reads the 52-1 shell and admits its declared public icon and heading',async()=>{
   const f=fixture(),certificateRoute='/school-affairs/services/52-1';
   f.files.set(certificateRoute,f.files.get('/dtm'));
   f.files.set(signInElsewhere,'import '+JSON.stringify(relative(auth))+';');
   const result=await f.derive({profile:certificateBrowserProfile});
   assert.deepEqual(result,{revision,assets:[
-    entry,site,signInElsewhere,auth,research,supabase,runtime,style,secondStyle,mediaPaths.at(-1),certificateBrowserHeading,
+    entry,site,signInElsewhere,auth,research,supabase,runtime,style,secondStyle,mediaPaths.at(-1),certificateBrowserHeading,'/favicon.png',
   ].sort()});
   assert.deepEqual(f.paths.slice(0,2),['/release.json',certificateRoute]);
   assert.equal(f.paths.at(-1),'/release.json');
-  assert.ok(!f.paths.includes('/dtm')&&!f.paths.includes(dtm)&&!f.paths.includes(routeElsewhere));
+  assert.ok(!f.paths.includes('/dtm')&&!f.paths.includes(dtm)&&!f.paths.includes(routeElsewhere)&&!f.paths.includes('/favicon.png'));
   const missing=fixture();
   missing.files.set(certificateRoute,missing.files.get('/dtm'));
   missing.files.set(site,'export default true;');

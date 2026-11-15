@@ -1,7 +1,7 @@
 import {load} from 'cheerio';
 import ts from 'typescript';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
-import {certificateBrowserHeading,certificateBrowserProfile,validateProtectedConversationBrowserResources} from './vercel-preview-browser-transport.mjs';
+import {certificateBrowserHeading,certificateBrowserIcon,certificateBrowserProfile,validateProtectedConversationBrowserResources} from './vercel-preview-browser-transport.mjs';
 import {isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {certificateAwardPath} from '../../server/certificateAwardsContract.js';
 
@@ -44,7 +44,8 @@ function moduleList(html){
   const $=load(html);
   const entry=$('script[type="module"][src]').toArray();
   check(entry.length===1&&$('#root').length===1&&$('[data-stu-boot]').length>0&&!$('base').length,'invalid application shell');
-  return [$(entry[0]).attr('src'),...$('link[rel~="modulepreload"],link[rel~="stylesheet"]').toArray().map(tag=>$(tag).attr('href'))];
+  return {modules:[$(entry[0]).attr('src'),...$('link[rel~="modulepreload"],link[rel~="stylesheet"]').toArray().map(tag=>$(tag).attr('href'))],
+    icons:$('link[rel="icon"]').toArray().map(tag=>$(tag).attr('href'))};
 }
 
 function preloadIndices(node,tree){
@@ -190,7 +191,9 @@ export async function deriveProtectedConversationBrowserAssets({origin,approvedP
     if(!assets.has(path))pending.push(record(path));
   }
   const html=await textResource(fetchImpl,origin,shell,'html',active,charge);
-  const [entry,...links]=moduleList(html).map(reference=>absoluteAssetPath(reference,shell,origin));
+  const {modules,icons}=moduleList(html);
+  if(profile===certificateBrowserProfile&&icons.includes(certificateBrowserIcon))record(certificateBrowserIcon);
+  const [entry,...links]=modules.map(reference=>absoluteAssetPath(reference,shell,origin));
   check(stem(entry)==='index','invalid shell entry');
   add(entry);
   links.forEach(add);

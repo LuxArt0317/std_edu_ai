@@ -12,6 +12,7 @@ const dataPath='/api/affairs-data';
 const pages=new Set(['/dtm','/dtm/login','/school-affairs','/school-affairs/login','/school-affairs/signed-out',
   '/school-affairs/services/leave','/school-affairs/services/39-1']);
 export const certificateBrowserProfile='certificate-award';
+export const certificateBrowserIcon='/favicon.png';
 export const certificateBrowserHeading='/stu-reference/certificate-award/heading.png';
 const certificateBootstrap=dataPath+'?scope='+certificateAwardScope+'&view=mine';
 const certificateAnswers=new Map(certificateAwardPreviewManifest().filter(row=>row.id.endsWith('-aggregate-control')||row.bankReceipt)
@@ -59,7 +60,7 @@ export function validateProtectedConversationBrowserResources({origin,assets,dat
   check(isEvaluationPreviewOrigin(origin),'invalid resource origin');
   check(profile==='dtm'||profile===certificateBrowserProfile,'invalid fixture config');
   const certificate=profile===certificateBrowserProfile;
-  check(Array.isArray(assets)&&assets.length<=256&&assets.every(path=>asset.test(path)&&target(origin+path).pathname===path
+  check(Array.isArray(assets)&&assets.length<=256&&assets.every(path=>(asset.test(path)||certificate&&path===certificateBrowserIcon)&&target(origin+path).pathname===path
     &&(!certificate||path.startsWith('/assets/')||browserMedia.test(path)))
     &&(!certificate||assets.includes(certificateBrowserHeading)),'invalid resource allowlist');
   if(certificate){
@@ -230,6 +231,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       void response.body?.cancel().catch(()=>{});check(false,'unexpected redirect or response URL',response.status);
     }
     check(response.status===200,'unexpected application status',response.status);
+    if(certificate&&path===certificateBrowserIcon)check(/^image\/png(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
     if(certificate&&document)check(/^text\/html(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
     const limit=publicResource?4_000_000:ownDataPaths.has(path)?1_000_000:ask?300000:
       certificate&&path===certificateTurn?.answerPath?32768:220000;

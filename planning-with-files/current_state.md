@@ -1,5 +1,7 @@
 ## Original certificate browser dispatch [Issue #100]
 
+Protected `b156471ff18109226491abb0afc5f8e07f53fd4c` reached the real signed-in Chromium shell for both original cases. Both stopped before asking because the protected relay rejected a shell resource. The two disposable account leases verified exact cleanup. The report digests are `0c7ade9af5fd6bf1642836d16c3770064bf4853af373fbd77bd849115809897a` and `3149013c49380d0826fc5fc8ca9270e98a3d7d8abeccede7692ba3023b9228b7`. A credential-free browser probe using only the protected build assets identified its declared favicon request. The corrected profile admits just the shell-declared same-origin PNG and keeps the read/write policies in force. [Protected baseline Preview](https://stdedu-a3svfd3vb-v1-d286.vercel.app/campus-assistant) · [Quality](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43760057055)
+
 The new operator binds the two frozen 52-1 questions to independently prepared certificate records and the exact deployed Chromium response. Both browser questions use the aggregate page. The bank receipt clause preserves all saved applications and explicitly limits what can be established about the deposit. Local migrated SQL passed the eight native cases and both aggregate browser selectors. A pinned preflight discovered 36 exact route assets on `5e6af59`. The candidate adds journal-bound autosave, restored answer and Activity, crossed HTTP reads, independent SQL and exact cleanup. Its hosted two-case replay is pending.
 
 ## Attendance, international services and course selection [Issue #100]
