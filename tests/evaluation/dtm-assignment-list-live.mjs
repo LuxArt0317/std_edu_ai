@@ -10,34 +10,59 @@ const project='xiftudmvxphxcjtmfmib';
 const uuid=/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/iu;
 const digest=value=>createHash('sha256').update(value).digest('hex');
 const prefix='account:dtm-assignment-list-';
-const mounted=new Set(['course-all','account-all','exact-day','open-zh','done','graded','submitted','title-only','count',
-  'exact-sample','foreign-question','uploads','grades','bulk-change','anonymous']);
+const mounted=new Map([
+  [dtmAssignmentListFamily,['course-all','account-all','exact-day','open-zh','done','graded','submitted','title-only','count',
+    'exact-sample','foreign-question','foreign-course','uploads','grades','bulk-change','anonymous']],
+  [dtmAssignmentListFamily+'-empty',['empty-course','hide-sample-without-personal-records']],
+  [dtmAssignmentListFamily+'-sample',['fallback-sample']],
+  [dtmAssignmentListFamily+'-partial',['partial']],
+]);
+export const dtmAssignmentListFamilies=Object.freeze([...mounted.keys()]);
 const readEvents=[['account-read:dtmAssignmentList:1','complete'],['verification-1','running'],['verification-1','complete']];
+const unavailableEvents=[
+  ['account-read:dtmAssignmentList:1','unavailable'],['verification-1','running'],['verification-1','unavailable'],
+  ['verification-retry','complete'],['account-read:dtmAssignmentList:2','unavailable'],
+  ['verification-2','running'],['verification-2','unavailable'],['verification-stop','unavailable'],
+];
 const courseFields=['id','user_id','code','source_mode'];
 const assignmentFields=['id','student_id','enrollment_id','dtm_course_id','source_mode','title','status','due_at','submitted_at','details'];
 const submittedAt='2026-11-15T00:00:00.000Z';
 const details='SENSITIVE FULL INSTRUCTIONS';
 
-export function dtmAssignmentListLiveCases(){
-  return dtmAssignmentListCases().filter(row=>mounted.has(row.id.slice(prefix.length))).map(row=>({
+export function dtmAssignmentListLiveCases(family=dtmAssignmentListFamily){
+  const selected=mounted.get(family);
+  if(!selected)throw new Error('Unknown Moodle assignment-list evaluation family.');
+  return dtmAssignmentListCases().filter(row=>selected.includes(row.id.slice(prefix.length))).map(row=>({
     ...row,
-    fixtureKey:row.auth==='anonymous'?'anonymous':'live:'+dtmAssignmentListFamily,
+    fixtureKey:row.auth==='anonymous'?'anonymous':'live:'+family,
     fixtureRequirement:dtmAssignmentListRequirement,
     executionContract:'live-native',
     capability:{level:'native',gap:false},
   }));
 }
 
-export function assertDtmAssignmentListLiveCases(cases){
-  if(!isDeepStrictEqual(cases,dtmAssignmentListLiveCases()))
+export function assertDtmAssignmentListLiveCases(cases,family=dtmAssignmentListFamily){
+  if(!isDeepStrictEqual(cases,dtmAssignmentListLiveCases(family)))
     throw new Error('Moodle assignment-list evaluation requires the complete unchanged disposable packet.');
 }
 
-export function buildDtmAssignmentListFixture(users){
+function frozenFixture(caseId){
+  const known=dtmAssignmentListCases().find(row=>row.id===caseId);
+  return dtmAssignmentListFixture(known);
+}
+
+export function dtmAssignmentListExpectedReadCounts(testCase){
+  const {courses,records,identity:{caller,other}}=frozenFixture(testCase.id);
+  return [caller,other].map(id=>courses.filter(row=>row.user_id===id).length
+    +records.filter(row=>row.affairs_students.user_id===id).length);
+}
+
+export function buildDtmAssignmentListFixture(users,family=dtmAssignmentListFamily){
   if(!Array.isArray(users)||users.length!==2||users.some(user=>!uuid.test(user?.id)||!uuid.test(user?.studentId))
     ||new Set(users.flatMap(user=>[user.id,user.studentId])).size!==4)
     throw new Error('Two distinct disposable Moodle callers and student records are required.');
-  const oracle=dtmAssignmentListFixture(dtmAssignmentListCases()[0]);
+  const [fixtureCase]=dtmAssignmentListLiveCases(family);
+  const oracle=frozenFixture(fixtureCase.id);
   const bind=fixtureOwner=>users[fixtureOwner===oracle.identity.caller?0:1];
   const courses=oracle.courses.map(row=>({...row,user_id:bind(row.user_id).id}));
   const assignments=oracle.records.map(row=>({
@@ -62,15 +87,17 @@ function assertRows(response,expected,normalize=value=>value){
     throw new Error('Moodle assignment-list fixture returned different rows or crossed an owner boundary.');
 }
 
-export async function readDtmAssignmentListFixture(plan,users,{publishable,fetchImpl,readResponse,signal}){
-  if(!isDeepStrictEqual(plan,buildDtmAssignmentListFixture(users))
+export async function readDtmAssignmentListFixture(plan,users,{family=dtmAssignmentListFamily,publishable,fetchImpl,readResponse,signal}){
+  if(!isDeepStrictEqual(plan,buildDtmAssignmentListFixture(users,family))
     ||users.some(user=>typeof user.token!=='string'||!user.token)||users[0].token===users[1].token)
     throw new Error('The Moodle assignment-list fixture has no matching caller sessions.');
   const courseIds='in.('+plan.courses.map(row=>row.id).join(',')+')';
+  // Include room to detect one unexpected row in either caller's scope.
+  const limit=String(Math.max(plan.courses.length,plan.assignments.length)+1);
   return Promise.all(users.map(async user=>{
     async function select(table,fields,key,filter){
       const url=new URL('/rest/v1/'+table,'https://'+project+'.supabase.co');
-      url.search=new URLSearchParams({select:fields.join(','),[key]:filter,order:'id.asc',limit:'12'});
+      url.search=new URLSearchParams({select:fields.join(','),[key]:filter,order:'id.asc',limit});
       const response=await fetchImpl(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
         headers:{apikey:publishable,Authorization:'Bearer '+user.token},signal});
       return readResponse(response,url,16384);
@@ -99,13 +126,22 @@ export function bindDtmAssignmentListReadback(testCase,envelope,{before,after}){
   }),authenticated);
   const events=envelope.events?.map(({kind,status})=>[kind,status]);
   const {body}=envelope;
-  const observedBehavior=testCase.observation.read
-    ?body?.verification?.status==='verified'&&body.verification.attempts===1&&isDeepStrictEqual(events,readEvents)
-    :body?.status==='handoff'&&body.verification===undefined&&body.grounding?.webSearched===false
+  const observation=testCase.observation;
+  let observedBehavior;
+  if(observation.verification==='unverified'){
+    observedBehavior=body?.status==='abstained'&&body.verification?.status==='unverified'&&body.verification.attempts===2
+      &&body.verification.reason==='evidence_unavailable'&&isDeepStrictEqual(events,unavailableEvents)
+      &&isDeepStrictEqual(body.citations,[])&&body.grounding?.webSearched===false&&!body.proposedAction&&!body.views?.length;
+  }else if(observation.read){
+    observedBehavior=body?.verification?.status==='verified'&&body.verification.attempts===1&&isDeepStrictEqual(events,readEvents);
+  }else{
+    observedBehavior=body?.status==='handoff'&&body.verification===undefined&&body.grounding?.webSearched===false
       &&!body.proposedAction&&!body.views?.length&&isDeepStrictEqual(events,[])&&Array.isArray(body.citations)
       &&isDeepStrictEqual(body.citations.map(row=>row.url),testCase.expected.requiredLinks);
+  }
+  const expectedCounts=dtmAssignmentListExpectedReadCounts(testCase);
   const observedReadbacks=Array.isArray(before)&&before.length===2&&before.every(({count,sha256},index)=>
-    count===[8,2][index]&&/^[a-f0-9]{64}$/u.test(sha256));
+    count===expectedCounts[index]&&/^[a-f0-9]{64}$/u.test(sha256));
   if(!observedReadbacks||!isDeepStrictEqual(before,after)
     ||envelope.execution!=='live-native'||envelope.statusCode!==200||envelope.fixtureIntegrityFailed
     ||!uuid.test(envelope.correlationId)||!/^[a-f0-9]{40}$/u.test(envelope.sourceRevision??'')
@@ -131,12 +167,18 @@ export function gradeDtmAssignmentListLiveCase(testCase,envelope){
   const overall=gradeCase(testCase,envelope);
   const answer=envelope.body?.answer||'';
   const links=[...answer.matchAll(/\]\((\/dtm\/course\/[a-f0-9-]+\/assignment\/[a-f0-9-]+)\)/gu)].map(match=>match[1]);
-  const expectedLinks=testCase.expected.requiredLinks.filter(path=>path.includes('/assignment/'));
+  let expectedLinks=testCase.expected.requiredLinks.filter(path=>path.includes('/assignment/'));
+  if(testCase.observation.partial){
+    const {records,identity:{caller}}=frozenFixture(testCase.id);
+    expectedLinks=records.filter(row=>row.affairs_students.user_id===caller&&row.source_mode==='personal')
+      .sort((a,b)=>(a.due_at??'9999').localeCompare(b.due_at??'9999')||a.id.localeCompare(b.id))
+      .slice(0,20).map(row=>'/dtm/course/'+row.dtm_course_id+'/assignment/'+row.id);
+  }
   const reportedCount=answer.match(/(?:Matching saved assignments: |相符的已儲存作業筆數：)(\d+)\./gu)||[];
   const checks=[...overall.checks,
     {id:'dtm-assignment-list.exact-links',passed:isDeepStrictEqual(links,expectedLinks),
       detail:'The reply exposes exactly the selected assignment links.'},
-    {id:'dtm-assignment-list.exact-count',passed:testCase.observation.read
+    {id:'dtm-assignment-list.exact-count',passed:testCase.observation.verification==='verified'&&testCase.observation.amount>0
       ?reportedCount.length===1&&Number(reportedCount[0].match(/\d+/u)[0])===testCase.observation.amount:reportedCount.length===0,
       detail:'The listed count matches the independent saved-record expectation.'},
   ];

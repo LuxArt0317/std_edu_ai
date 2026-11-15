@@ -72,7 +72,7 @@ import {requestClubEquipmentCancellation,verifyClubEquipmentCancellation} from '
 import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataCase,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
-import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamily,
+import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamilies,
   dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
 import {counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
   cleanupCounselingCancellation,transitionCounselingFixtures,validateCounselingHostedCases,verifyCounselingCancellationAbsent} from './counseling-appointment-hosted.mjs';
@@ -559,10 +559,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   }else if(cases.some(row=>row?.fixtureRequirement===healthMetadataRequirement))
     fail('fixture-unsupported','Health metadata requires its complete isolated fixture mode.');
   if(assignmentListOnly){
-    if(caseFamily!==dtmAssignmentListFamily||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+    if(!dtmAssignmentListFamilies.includes(caseFamily)||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
       ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
       fail('fixture-target','Moodle assignment-list fixtures require the exact protected Preview and isolated case packet.');
-    assertDtmAssignmentListLiveCases(cases);
+    assertDtmAssignmentListLiveCases(cases,caseFamily);
   }else if(cases.some(row=>row?.fixtureRequirement===dtmAssignmentListRequirement))
     fail('fixture-unsupported','Moodle assignment-list fixtures must use their isolated case packet.');
   if(!assignmentListOnly&&cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||row?.fixtureRequirement==='legacy_dtm_assignment_list_rebind'||typeof row?.id==='string'
@@ -766,7 +766,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['tutorEvaluation']};
     }
     if(assignmentListOnly){
-      await prepareDtmAssignmentListFixture(state,cases);
+      await prepareDtmAssignmentListFixture(state,cases,caseFamily);
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmAssignmentList']};
     }
@@ -2843,15 +2843,16 @@ async function healthMetadataObservation(s,page,signal){
   return {rowsSha256,pages};
 }
 
-async function prepareDtmAssignmentListFixture(s,cases){
+async function prepareDtmAssignmentListFixture(s,cases,family){
   await assertRecordedFixtureLease(s,'Moodle assignment list');
   await s.previewGate.assertCurrent();
-  const plan=buildDtmAssignmentListFixture(s.users);
+  const plan=buildDtmAssignmentListFixture(s.users,family);
   const occupied=await query(()=>s.sql`select id from public.dtm_courses where id in ${s.sql(plan.recordIds)}
     union all select id from public.affairs_assignments where id in ${s.sql(plan.recordIds)}`,
     'Could not check the reserved Moodle assignment-list IDs.');
   if(occupied.length)fail('fixture-state','A reserved Moodle assignment-list ID already exists.');
   s.dtmAssignmentListPlan=plan;
+  s.dtmAssignmentListFamily=family;
   s.dtmAssignmentListCases=new Map(structuredClone(cases).map(testCase=>[testCase.id,testCase]));
   for(const id of plan.recordIds)s.recordIds.add(id);
   await saveLedger();
@@ -2871,7 +2872,7 @@ async function dtmAssignmentListObservation(s,signal){
   await s.previewGate.assertCurrent();
   const active=signal||s.signal;
   await Promise.all(s.users.map(user=>user.renewSession({signal:active})));
-  return readDtmAssignmentListFixture(s.dtmAssignmentListPlan,s.users,{publishable:s.publishable,
+  return readDtmAssignmentListFixture(s.dtmAssignmentListPlan,s.users,{family:s.dtmAssignmentListFamily,publishable:s.publishable,
     fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:active});
 }
 
@@ -3813,7 +3814,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     return testCase.fixtureKey==='anonymous'?{}:{token:s.users[0].token};
   }
   if(s.dtmAssignmentListPlan){
-    if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==dtmAssignmentListFamily
+    if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==s.dtmAssignmentListFamily
       ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
       fail('fixture-case','The Moodle assignment-list case is outside its isolated fixture.');
     const before=await dtmAssignmentListObservation(s,signal);
@@ -4012,7 +4013,7 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
       return;
     }
     if(current.dtmAssignmentList){
-      if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==dtmAssignmentListFamily
+      if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==s.dtmAssignmentListFamily
         ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
         fail('fixture-case','The Moodle assignment-list case changed after dispatch.');
       const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();

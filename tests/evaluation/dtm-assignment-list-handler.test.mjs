@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
-import {bindDtmAssignmentListReadback,dtmAssignmentListDispatch,dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase} from './dtm-assignment-list-live.mjs';
+import {bindDtmAssignmentListReadback,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListLiveCases,dtmAssignmentListExpectedReadCounts,gradeDtmAssignmentListLiveCase} from './dtm-assignment-list-live.mjs';
 import {readReply} from './run.mjs';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import research from '../../api/research-assistant.ts';
@@ -172,9 +172,9 @@ test('native list cases and unchanged legacy oracles reject live setup before pr
 
 
 test('real assistant stream matches the protected Preview request observation for the mounted packet',async t=>{
-  const observed=[{count:8,sha256:'a'.repeat(64)},{count:2,sha256:'b'.repeat(64)}];
   const revision=randomUUID().replaceAll('-','')+'b'.repeat(8);
-  for(const item of dtmAssignmentListLiveCases())await t.test(item.id,async()=>{
+  for(const item of dtmAssignmentListFamilies.flatMap(dtmAssignmentListLiveCases))await t.test(item.id,async()=>{
+    const observed=dtmAssignmentListExpectedReadCounts(item).map((count,index)=>({count,sha256:(index?'b':'a').repeat(64)}));
     const source=bank.find(row=>row.id===item.id);
     const {envelope}=await exercise(source,{stream:true});
     const authenticated=item.auth==='signed-in';
@@ -184,7 +184,8 @@ test('real assistant stream matches the protected Preview request observation fo
         question:item.question,history:[],route:item.route,stream:true,consentedResearchUse:false,
       }),authenticated),
     });
-    assert.doesNotThrow(()=>bindDtmAssignmentListReadback(item,envelope,{before:observed,after:observed}));
+    assert.doesNotThrow(()=>bindDtmAssignmentListReadback(item,envelope,{before:observed,after:observed}),
+      ()=>JSON.stringify({events:envelope.events,verification:envelope.body.verification}));
     if(!item.observation.read){
       const wrong={...envelope,events:[{kind:'account-read:dtmAssignmentList:1',status:'complete'}]};
       assert.throws(()=>bindDtmAssignmentListReadback(item,wrong,{before:observed,after:observed}),/two caller readbacks/);
