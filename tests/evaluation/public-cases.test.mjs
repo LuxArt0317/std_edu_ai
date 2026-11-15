@@ -75,6 +75,24 @@ test('an unchecked metadata draft cannot pass the public-page verification expec
   assert.equal(result.passed,false);assert.ok(result.failures.some(check=>check.id==='answer.verification.expected'));
 });
 
+test('institutional cases require factual content and an exact dated snapshot citation',()=>{
+  const cases=buildPublicCases({publicPages:captures,tools:[]}).filter(row=>row.domain==='public-institution');
+  assert.equal(cases.length,2);
+  for(const row of cases){
+    const source=row.expected.requiredSourceBindings[0];
+    const answer=row.language==='en'
+      ?'The school was approved to establish and recruit students in 1997. Its mission emphasizes the balance of theory and practice.'
+      :'樹德科技大學的校訓是「學術、知性、快樂、希望」。';
+    const graded=envelope(row,answer+'\n\nSource snapshot: '+row.source.capturedOn+'.');
+    graded.body.citations=[{chunkId:source.sourceId,url:source.url}];
+    assert.deepEqual(gradeCase(row,graded).failures,[],row.id);
+    const removedFacts={...graded,body:{...graded.body,answer:'[Open school page]('+source.url+')\nSource snapshot: '+row.source.capturedOn}};
+    assert.ok(gradeCase(row,removedFacts).failures.some(item=>item.id==='text.required.0'));
+    const wrongCitation={...graded,body:{...graded.body,citations:[{chunkId:'other-source',url:source.url}]}};
+    assert.ok(gradeCase(row,wrongCitation).failures.some(item=>item.id==='source.binding.0'));
+  }
+});
+
 test('Student Leave form directions select only the application page through both assistant entry points',async()=>{
   const [{createResearchAssistantHandler},{createAffairsAssistantHandler}]=await Promise.all([
     import('../../server/researchAssistantHandler.js'),import('../../api/affairs-assistant.ts'),

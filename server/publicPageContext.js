@@ -66,6 +66,15 @@ export function isPublicPageQuestion(question) {
   return /\b(?:this|current|present)\s+(?:web\s*)?page\b|\bpage\s+(?:(?:that\s+)?i(?:'m| am)\s+(?:on|viewing|reading)|i (?:have )?opened)\b|(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:網頁|頁面|頁)/i.test(String(question));
 }
 
+/** Route explicit institutional facts to their manifested primary source. */
+export function institutionalPublicCapture(question) {
+  const text=String(question).normalize('NFKC').trim();
+  const institution=/\b(?:shu[-\s]?te(?: university)?|stu)\b|樹德(?:科技大學|科大)/iu;
+  const facts=/\b(?:found(?:er|ing|ed)s?|(?:school |educational |university )?mission|motto|educational philosophy|history|renamed)\b|創辦|創校|沿革|校史|校訓|治校理念|教育(?:使命|理念)|更名|改名/iu;
+  const otherScope=/\b(?:my|compare|versus|recent(?:ly)?|updated|changed|changes|admissions?|tuition|scholarships?|grades?|attendance|timetable|assignments?|deadlines?|registration|foundations?|departments?|clubs?|associations?|library|dormitories|housing)\b|我的|本人|個人|學號|比較|最近|更新|改變|招生|學費|獎學金|成績|出勤|課表|作業|截止|報名|校友會|系所|社團|圖書館|宿舍/iu;
+  return institution.test(text)&&facts.test(text)&&!otherScope.test(text) ? publicPageForRoute('/關於樹德/') : null;
+}
+
 async function captureBytes(response) {
   if(!response.body||Number(response.headers.get('content-length'))>maxCaptureBytes)throw new Error('capture_size');
   const reader=response.body.getReader(),chunks=[];

@@ -55,6 +55,8 @@ Shared server-only retrieval, authorization and validation helpers for `api/`. `
 
 Web verification uses independently fetched source text. If a source is unavailable, an exact URL match to the versioned public-capture manifest may supply checksum-verified, explicitly dated text from stu.best; it is never represented as a live page.
 
+Explicit public questions about Shu-Te University's founding, mission and motto can start with the checksum-verified About STU capture. The response cites its date, and a separate review checks the factual draft. A rejected draft can trigger a focused official source read in the same verification loop. Current information requests go through the regular public research flow.
+
 Evidence quote matching tolerates JSON formatting whitespace only outside string values. Unsupported claims and invented/noncontiguous excerpts still fail; aggregate diagnostic counts never contain questions, records, quotes or drafts.
 
 The claim reviewer supplies up to four independent verbatim quotes per claim, so arithmetic/time comparisons can cite separated operands without fabricating one joined excerpt. Every quote still has to occur in the referenced evidence.

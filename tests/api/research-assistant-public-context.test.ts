@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {after,test} from 'node:test';
 import captures from '../../src/features/public/mirror/pages.json' with {type:'json'};
 import {createResearchAssistantHandler} from '../../api/research-assistant.ts';
@@ -12,8 +13,8 @@ function configure(){process.env.OPENAI_API_KEY='synthetic-public-context';proce
 const page=captures.find(item=>decodeURI(item.route)==='/在校學生/')!;
 const question='What is this page about? Give me its page title and a link to this page on stu.best. State its capture date.';
 let address=0;
-async function invoke(body:unknown,loadPublicPage?:typeof loadPublicPageContext){
-  const run=createResearchAssistantHandler({loadPublicPage});
+async function invoke(body:unknown,loadPublicPage?:typeof loadPublicPageContext,readSources?:NonNullable<Parameters<typeof createResearchAssistantHandler>[0]>['readSources']){
+  const run=createResearchAssistantHandler({loadPublicPage,readSources});
   const result:{statusCode:number;body:any;headers:Record<string,string>}={statusCode:200,body:null,headers:{}};
   const response={status(code:number){result.statusCode=code;return response;},json(value:unknown){result.body=value;},setHeader(name:string,value:string){result.headers[name]=value;}};
   await run({method:'POST',body,headers:{'x-forwarded-for':'public-context-'+(++address)}},response);
@@ -96,4 +97,154 @@ test('attached images retain the image flow instead of being replaced by page me
   globalThis.fetch=async(_url,init)=>{const body=JSON.parse(String(init?.body));assert.equal(body.text.format.name,'school_affairs_image_answer');return new Response(null,{status:503});};
   const result=await invoke({question,route:page.route,images:[{name:'test.png',dataUrl:'data:image/png;base64,'+image.toString('base64')}]},async()=>{loads++;return context();});
   assert.equal(result.statusCode,502);assert.equal(loads,0);
+});
+
+const about=captures.find(item=>decodeURI(item.route)==='/關於樹德/')!;
+const foundingQuestion='What does Shu-Te University say about its founding and educational mission?';
+const motto='學術、知性、快樂、希望';
+const foundingClaim='民國86年奉准設校招生';
+const missionClaim='理論與實務之平衡發展';
+const historicalSummary='The school received approval to establish and enroll students in 1997 (ROC 86). Its educational mission emphasizes the balance of theory and practice.';
+const loadAbout=async(route:string,deadline:number)=>loadPublicPageContext(route,deadline,{fetchCapture:async url=>{
+  assert.equal(String(url),'https://stu.best'+about.file);
+  return new Response(await readFile(new URL('../../public'+about.file,import.meta.url)));
+}});
+const publicLatest='What is Shu-Te University’s latest educational mission?';
+const modelCallsFor=(name:string,question:string,answer:string)=>{
+  const calls:string[]=[];
+  globalThis.fetch=async(url,init)=>{
+    assert.equal(String(url),'https://api.openai.com/v1/responses');
+    const body=JSON.parse(String(init?.body));
+    calls.push(body.text.format.name);
+    const input=JSON.parse(body.input[0].content[0].text);
+    assert.equal(input.question,question);
+    assert.equal(input.evidence.length,1);
+    assert.doesNotMatch(JSON.stringify(input),/PRIVATE-HISTORY-SENTINEL/);
+    const evidence=input.evidence[0],data=JSON.parse(evidence.content);
+    assert.equal(evidence.url,about.route);
+    assert.equal(data.contentStatus,'verified_snapshot');
+    assert.equal(data.capturedOn,about.capturedOn);
+    assert.ok(data.excerpt.includes(motto));
+    assert.ok(data.excerpt.includes(foundingClaim));
+    if(body.text.format.name==='compose_grounded_answer'){
+      return modelResponse({status:'answered',answer,sourceIds:[evidence.id]});
+    }
+    assert.equal(body.text.format.name,'answer_evidence_review');
+    return modelResponse({supported:true,answersQuestion:true,claims:(name==='founding'?[foundingClaim,missionClaim]:[motto])
+      .map(quote=>({claim:quote,supported:true,evidenceId:evidence.id,quotes:[quote],jsonPaths:['/excerpt']}))});
+  };
+  return calls;
+};
+
+test('explicit English and Chinese institutional questions independently verify the actual approved capture',async()=>{
+  configure();
+  for(const [name,question,answer] of [
+    ['founding',foundingQuestion,historicalSummary],
+    ['motto','樹德科技大學的校訓是什麼？','樹德科技大學的校訓是「學術、知性、快樂、希望」。'],
+  ]){
+    const calls=modelCallsFor(name,question,answer);
+    const result=await invoke({question,route:'/campus-assistant',
+      history:[{role:'user',content:'My private student number is PRIVATE-HISTORY-SENTINEL.'}]},loadAbout);
+    assert.equal(result.statusCode,200);
+    assert.deepEqual(result.body.verification,{status:'verified',attempts:1});
+    assert.equal(result.body.answer,answer+'\n\nSource snapshot: '+about.capturedOn+'.');
+    assert.deepEqual(result.body.citations.map((citation:{url:string})=>citation.url),[about.route]);
+    assert.equal(result.body.grounding.source,'public-page-context');
+    assert.equal(result.body.grounding.webSearched,false);
+    assert.deepEqual(result.body.activity.map((step:{kind:string})=>step.kind),['saved-public-source','verification-1']);
+    assert.deepEqual(calls,['compose_grounded_answer','answer_evidence_review']);
+  }
+});
+
+test('a rejected capture draft can read novel official content within the same verification budget',async()=>{
+  configure();
+  const url='https://www.stu.edu.tw/university-history/';
+  const requests:string[]=[];
+  let reviews=0,reads=0;
+  globalThis.fetch=async (_input,init)=>{
+    const body=JSON.parse(String(init?.body)),name=body.text.format.name;
+    requests.push(name);
+    if(name==='stu_web_answer'){
+      assert.equal(JSON.parse(body.input).question,foundingQuestion);
+      const sources=[about.source,url].map(link=>({url:link,title:'Official university history'}));
+      return Response.json({output:[{type:'web_search_call',status:'completed',action:{sources}}]});
+    }
+    const input=JSON.parse(body.input[0].content[0].text);
+    if(name==='compose_grounded_answer'){
+      return modelResponse({status:'answered',answer:'Shu-Te University was founded in 2040.',sourceIds:[input.evidence[0].id]});
+    }
+    if(name==='correct_grounded_answer'){
+      assert.equal(input.evidence.length,2);
+      assert.equal(input.evidence[0].url,url);
+      assert.equal(input.evidence[1].url,about.route);
+      return modelResponse({status:'answered',answer:historicalSummary,sourceIds:[input.evidence[0].id]});
+    }
+    assert.equal(name,'answer_evidence_review');
+    reviews++;
+    return modelResponse({supported:reviews===2,answersQuestion:reviews===2,claims:[{
+      claim:reviews===1?'Unfounded 2040 date':historicalSummary,supported:reviews===2,evidenceId:input.evidence[0].id,
+      quotes:reviews===2?[historicalSummary]:[],jsonPaths:[],
+    }]});
+  };
+  const result=await invoke({question:foundingQuestion,route:'/campus-assistant',
+    history:[{role:'user',content:'Which events are listed by the STU library next month?'}]},loadAbout,async citations=>{
+    reads++;
+    assert.deepEqual(citations.map(item=>item.url),[url]);
+    return citations.map(item=>({id:item.chunkId,url:item.url,content:historicalSummary}));
+  });
+  assert.deepEqual(requests,['compose_grounded_answer','answer_evidence_review','stu_web_answer','correct_grounded_answer','answer_evidence_review']);
+  assert.equal(reads,1);
+  assert.deepEqual(result.body.verification,{status:'verified',attempts:2});
+  assert.equal(result.body.answer,historicalSummary);
+  assert.equal(result.body.grounding.source,'web');
+  assert.equal(result.body.grounding.webSearched,true);
+  assert.equal(result.body.grounding.capturedOn,undefined);
+  assert.deepEqual(result.body.activity.map((step:{kind:string})=>step.kind),
+    ['saved-public-source','verification-1','verification-retry','web-follow-up','verification-2']);
+});
+
+test('tampered or unavailable capture contents fall through to regular public research',async()=>{
+  configure();
+  const requests:string[]=[];
+  globalThis.fetch=async(input,init)=>{
+    const url=String(input);
+    if(url.includes('/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+    if(url.includes('/rpc/search_public_knowledge'))return Response.json([]);
+    if(!url.endsWith('/v1/responses'))return Response.json([]);
+    const body=JSON.parse(String(init?.body)),name=body.text.format.name;
+    requests.push(name);
+    assert.equal(name,'stu_web_answer');
+    return Response.json({output:[]});
+  };
+  const result=await invoke({question:foundingQuestion,route:'/campus-assistant'},async (route,deadline)=>
+    loadPublicPageContext(route,deadline,{fetchCapture:async()=>new Response('<p>Tampered institutional content</p>')}));
+  assert.ok(['abstained','handoff'].includes(result.body.status));
+  assert.equal(result.body.grounding.webSearched,true);
+  assert.equal(result.body.activity.find((step:{kind:string})=>step.kind==='saved-public-source')?.status,'unavailable');
+  assert.ok(requests.length>0);
+  assert.doesNotMatch(result.body.answer,/Tampered institutional content/);
+});
+
+test('fresh institutional and mixed private questions preserve their existing source scopes',async()=>{
+  configure();
+  let loads=0,searches=0;
+  globalThis.fetch=async(input,init)=>{
+    const url=String(input);
+    if(url.includes('/embeddings'))return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+    if(url.includes('/rpc/search_public_knowledge'))return Response.json([]);
+    if(!url.endsWith('/v1/responses'))return Response.json([]);
+    assert.equal(JSON.parse(String(init?.body)).text.format.name,'stu_web_answer');
+    searches++;
+    return Response.json({output:[]});
+  };
+  const load:typeof loadPublicPageContext=(route,deadline)=>{loads++;return loadAbout(route,deadline);};
+  const fresh=await invoke({question:publicLatest,route:'/campus-assistant'},load);
+  assert.equal(fresh.body.grounding.webSearched,true);
+  assert.equal(fresh.body.activity.some((step:{kind:string})=>step.kind==='saved-public-source'),false);
+  assert.ok(searches>0);
+  const publicSearches=searches;
+  const privateAnswer=await invoke({question:'Give me my student number and the founding date of Shu-Te University.',route:'/campus-assistant'},load);
+  assert.equal(privateAnswer.body.status,'handoff');
+  assert.equal(searches,publicSearches);
+  assert.equal(loads,0);
 });

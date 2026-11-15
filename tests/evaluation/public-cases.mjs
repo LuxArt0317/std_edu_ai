@@ -72,5 +72,21 @@ export function buildPublicCases(inventory) {
     expected:{behavior:'denial',requiredText:['links saved in your browser'],requiredLinks:['/school-affairs/menu/menu/custom'],
       allowedTools:[],requiredTools:[],requiredAttemptedTools:[],noAction:true,forbidPublicResearch:true},
   };
-  return [...pages,...questions,...menuPages,customMenu,...buildSchoolMenuNativeCases(),...privacy,studyPlanning];
+  const aboutRoute='/%E9%97%9C%E6%96%BC%E6%A8%B9%E5%BE%B7/';
+  const about=inventory.publicPages.find(page=>page.route===aboutRoute&&page.source==='https://www.stu.edu.tw'+aboutRoute);
+  const institutional=about?[
+    ['founding-mission','en','What does Shu-Te University say about its founding and educational mission?',
+      [{anyOf:['1997','ROC 86','ROC year 86','民國86']},'theory','practice']],
+    ['motto','zh-TW','樹德科技大學的校訓是什麼？', ['學術','知性','快樂','希望']],
+  ].map(([id,language,question,requiredText])=>({
+    ...caseBase,id:'public-institution-'+id,domain:'public-institution',routeFamily:'public:www.stu.edu.tw',
+    route:'/campus-assistant',language,question,
+    source:{url:about.source,checksum:about.checksum,capturedOn:about.capturedOn},
+    expected:{behavior:'answer',requiredText:[...requiredText,about.capturedOn],
+      requiredLinks:[about.route],requiredSourceBindings:[{sourceId:'public-page:'+createHash('sha256').update(about.route).digest('hex').slice(0,24),url:about.route}],
+      verification:'verified',provenance:'snapshot',forbiddenText:['Private student number'],allowedTools:[],requiredTools:[],
+      forbidPublicResearch:true,noAction:true},
+    coveragePurpose:'Institutional facts, citation binding and dated capture provenance.',
+  })):[];
+  return [...pages,...questions,...menuPages,customMenu,...buildSchoolMenuNativeCases(),...privacy,studyPlanning,...institutional];
 }

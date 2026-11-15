@@ -249,8 +249,10 @@ test('route coverage retains only unresolved semantic cases after adding public 
   newIds.push(...venueCases.map(row=>row.id),'anonymous-records-venueRequests');
   newIds.push(...identityCases.map(row=>row.id),'anonymous-records-accountIdentity');
   newIds.push(...clubCases.map(row=>row.id),'anonymous-records-clubAttendance');
+  const institutionalIds=['public-institution-founding-mission','public-institution-motto'];
+  newIds.push(...institutionalIds);
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,579);
   assert.equal(expected.length,15);assert.equal(added.length,5);

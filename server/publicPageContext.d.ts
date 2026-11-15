@@ -4,6 +4,7 @@ export type PublicPageContext={page:Pick<PublicCapture,'title'|'route'|'source'|
 export function publicPageForRoute(route:unknown,pages?:PublicCapture[]):PublicCapture|null;
 export function normalizePublicPageRoute(route:unknown):string;
 export function isPublicPageQuestion(question:unknown):boolean;
+export function institutionalPublicCapture(question:unknown):PublicCapture|null;
 export function loadPublicPageContext(route:string,deadline:number,dependencies?:{captures?:PublicCapture[];fetchCapture?:typeof fetch}):Promise<PublicPageContext|null>;
 export function boundedPublicPageEvidence(context:PublicPageContext,options?:{budget?:number}):VerificationEvidence;
 export function publicPageCandidate(context:PublicPageContext,question:string):VerificationCandidate;

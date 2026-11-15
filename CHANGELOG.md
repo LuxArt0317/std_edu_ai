@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Verify public founding, mission and motto questions from the approved About STU capture. Try a focused official source read after a rejected draft. [#100]
 - Let rejected public web answers search for a more specific official source and verify the resulting page content independently. [#100]
 - Try public school pages when managed excerpts fail verification and the request has time for an independent check. Keep both source paths visible in Activity. [#100]
 - Give eligible account and public answers a deeper verification check when the previous review identifies a resolvable gap and time remains. Preserve the observed check in chat history. [#100]

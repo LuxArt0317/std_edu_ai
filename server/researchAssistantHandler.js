@@ -80,9 +80,9 @@ import { recordResearchOperation, safeOperationalCode } from "./researchOperatio
 import { answerCampusNavigation, answerDirectoryQuestion, directoryEntries } from "./schoolAffairsDirectory.js";
 import { createAssistantStream } from "./assistantStream.js";
 import { runAnswerVerification } from "./answerVerification.js";
-import { validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
+import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
-import { isPublicPageQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
+import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
     const authoritative = retrieved.filter((item) => ["primary_official", "delegated_official"].includes(item.authority_level) && Boolean(item.document_logical_key && item.document_checksum));
     for (let left = 0; left < authoritative.length; left += 1) {
@@ -918,6 +918,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             .update(input.question.normalize("NFKC").toLowerCase())
             .digest("hex");
         let webAttempted = false;
+        const captureActivity = [];
         const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
             item.role === 'user' && !personalPublicQuestion(item.content)));
         let knowledgeWebSwitch;
@@ -961,14 +962,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 grounding: { source: 'web', webSearched: true, checkedAt: web.result.checkedAt, officialOnly: web.result.officialOnly,
                     retrieverVersion: 'school-web@1', responseMs: Date.now() - started },
                 activity: [
+                    ...captureActivity,
                     { kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No sufficient current answer found', status: 'complete' },
                     ...priorActivity,
                     ...(earlierReview ? [knowledgeWebSwitch] : []),
                     { kind: 'web', label: 'Searched public school sources', detail: `${web.result.citations.length} source links found`, status: 'complete' },
                 ],
             };
-            const checkedSources = new Map();
-            const seenUrls = new Set();
+            return verifyPublicSources(candidate, { previousChecks });
+        }
+        async function verifyPublicSources(candidate, { previousChecks = 0, capture } = {}) {
+            const checkedSources = new Map(capture ? candidate.citations.map(citation => [citation.chunkId, citation]) : []);
+            const canonicalUrl = url => safeWebSource(url)?.replace(/\/(?=\?|$)/u, '');
+            const seenUrls = new Set(capture ? [canonicalUrl(capture.originalUrl)] : []);
             const steps = new Map();
             let evidence = [];
             const progress = (step) => {
@@ -978,7 +984,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             async function checkNewSources(citations, until, limit) {
                 const candidates = [];
                 for (const citation of citations) {
-                    const url = safeWebSource(citation.url)?.replace(/\/(?=\?|$)/u, '');
+                    const url = canonicalUrl(citation.url);
                     if (!url || seenUrls.has(url)) continue;
                     seenUrls.add(url);
                     candidates.push(citation);
@@ -996,7 +1002,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true, previousChecks,
                 async loadEvidence({ attempt, previousFailure, deadline: until }) {
                     if (attempt === 1) {
-                        evidence = await checkNewSources(web.result.citations, earlierReview ? Math.min(until - 8_000, Date.now() + 4_000) : until, 4);
+                        evidence = capture ? [capture.evidence]
+                            : await checkNewSources(candidate.citations, previousChecks ? Math.min(until - 8_000, Date.now() + 4_000) : until, 4);
                         return evidence;
                     }
                     const searchUntil = Math.min(until - 15_000, Date.now() + 6_500);
@@ -1005,7 +1012,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     progress({ ...step, detail: 'Checking the requested detail on official school pages.', status: 'running' });
                     // Use only the same screened public question. Review feedback and
                     // the earlier draft can contain details that must never enter a search.
-                    const followUp = await searchSchoolWeb(publicQuestion, { deadline: searchUntil, followUp: true }).catch(() => null);
+                    const followUp = await searchSchoolWeb(capture ? verificationQuestion : publicQuestion, { deadline: searchUntil, followUp: true }).catch(() => null);
+                    if (capture && followUp?.attempted) webAttempted = true;
                     const fresh = await checkNewSources(followUp?.discoveredSources || [], Math.min(until - 11_000, Date.now() + 4_000), 2);
                     if (fresh.length) {
                         evidence = [...fresh, ...evidence].reduce((merged, source) =>
@@ -1020,6 +1028,14 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
             });
             checked.activity = [...candidate.activity, ...steps.values()];
+            if (capture && webAttempted) {
+                checked.grounding.webSearched = true;
+                if (checked.citations.length && !checked.citations.some(citation => citation.chunkId === capture.evidence.id)) {
+                    checked.grounding.source = 'web';
+                    delete checked.grounding.capturedOn;
+                    delete checked.grounding.contentAvailable;
+                }
+            }
             if (checked.verification?.status === 'unverified') {
                 checked.answer = chinese
                     ? '目前查閱的頁面無法確認你要找的資訊。若你有公告標題或連結，請提供給我，我可以查那份資料。'
@@ -1027,6 +1043,33 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             stream.send(200, checked);
             return true;
+        }
+        const preferredCapture = !kind.fresh && !personalQuestion && !pageQuestion && !publicStudyGuidance &&
+            publicQuestion && institutionalPublicCapture(input.question);
+        if (preferredCapture) {
+            const stepKind = 'saved-public-source';
+            const label = chinese ? '查閱已儲存的學校資料' : 'Checked a saved school source';
+            stream.progress(stepKind, label, chinese ? '正在核對公開頁面。' : 'Reading the saved public page.');
+            const capture = await loadPublicPage(preferredCapture.route, started + 4000).then(context => {
+                if (!context?.contentAvailable) return null;
+                const evidence = { ...boundedPublicPageEvidence(context), urls: [context.page.route, preferredCapture.source] };
+                return validEvidence([evidence]) ? { context, evidence } : null;
+            }).catch(() => null);
+            const savedPublicSource = { kind: stepKind, label, status: capture ? 'complete' : 'unavailable',
+                detail: capture ? `${capture.context.page.title} · ${capture.context.page.capturedOn}`
+                    : chinese ? '暫時無法核對已儲存的頁面內文。' : 'The saved page contents were unavailable.' };
+            captureActivity.push(savedPublicSource);
+            verificationProgress(savedPublicSource);
+            if (capture) {
+                const { context, evidence } = capture;
+                const seed = { ...publicPageCandidate(context, input.question), activity: captureActivity };
+                const candidate = await composeEvidenceAnswer({ question: verificationQuestion, candidate: seed,
+                    evidence: [evidence], deadline: started + 12000 }).catch(() => null);
+                if (candidate?.status === 'answered' && candidate.citations.some(citation => citation.chunkId === evidence.id)) {
+                    await verifyPublicSources(candidate, { capture: { evidence, originalUrl: preferredCapture.source } });
+                    return;
+                }
+            }
         }
         try {
             // A public follow-up may use only a previous public school question. Never
@@ -1258,7 +1301,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     responseMs: Date.now() - started,
                     semanticDegraded: search.degraded,
                 },
-                activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' },
+                activity: [...captureActivity,
+                    { kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' },
                     ...(knowledgeWebSwitch ? [...checkedActivity, knowledgeWebSwitch, ...failedWebActivity] : [...failedWebActivity, ...checkedActivity])],
             });
         }
@@ -1268,7 +1312,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 return;
             stream.send(200, { status: "handoff", answer: chinese
                     ? "這次查詢未能驗證答案，我不會猜測。您仍可查看[在校學生服務目錄](/在校學生/)或[學校官網](https://www.stu.edu.tw/)。告訴我要找的單位或具體服務，我可以再協助查找。"
-                    : "I could not verify this answer during the lookup, so I will not guess. You can still browse [student services](/在校學生/) or the [official school website](https://www.stu.edu.tw/). Tell me the office or specific service and I can help narrow it down.", citations: [], suggestedQuestions: [], grounding: { source: "helpful-fallback", webSearched: webAttempted, degraded: true }, activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No answer could be verified', status: 'unavailable' }, ...(webAttempted ? [{ kind: 'web', label: 'Tried public school web search', detail: 'No verified source answer was available', status: 'unavailable' }] : [])] });
+                    : "I could not verify this answer during the lookup, so I will not guess. You can still browse [student services](/在校學生/) or the [official school website](https://www.stu.edu.tw/). Tell me the office or specific service and I can help narrow it down.", citations: [], suggestedQuestions: [], grounding: { source: "helpful-fallback", webSearched: webAttempted, degraded: true }, activity: [...captureActivity, { kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No answer could be verified', status: 'unavailable' }, ...(webAttempted ? [{ kind: 'web', label: 'Tried public school web search', detail: 'No verified source answer was available', status: 'unavailable' }] : [])] });
         }
     };
 }
