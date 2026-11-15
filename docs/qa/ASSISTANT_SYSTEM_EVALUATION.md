@@ -258,6 +258,6 @@ The assistant selects a single requested change from the original current-turn t
 
 The Moodle assignment-list packet independently grades 25 signed-in and guest outcomes. It checks deadlines and tracker statuses from the selected local account or course list. File submission and grade report claims require their own sources. Four earlier cases remain visible as fixture rebind obligations.
 
-The Student Leave observer verifies 18 data cases and 14 boundary cases with controlled two-owner transport. It binds the current request and exact course/form selectors to the observed reader calls and projected results. This caught a UUID parsing bug. A complete offline observation records no live answer result.
+The Student Leave observer verifies 18 data cases and 14 boundary cases with controlled two-owner transport. It binds the current request and exact leave selectors to the observed reader calls and projected results. This caught a UUID parsing bug. A complete offline observation records no live answer result.
 
 The combined candidate passed 1,717 API and source checks, 1,096 offline evaluator checks and 541 unit tests. Build, TypeScript, lint, handoff and dependency audit finished successfully. The inventory is 1,240 questions, 94 services, 41 tools and 395 public page captures. There are 28 routes without a semantic case. Pinned live transcript, real browser acceptance and hosted fixture readback remain open.

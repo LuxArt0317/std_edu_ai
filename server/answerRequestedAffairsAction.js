@@ -35,7 +35,7 @@ export async function answerRequestedAffairsAction({account,question,selection,d
         kind:`account-read:${tool}:${attempt}`,label:readLabels[tool],status,
         detail:status==='running'?'Looking up the requested action context.':status==='complete'?'The selected lookup returned a response.':'The selected lookup failed.',
       })});
-      progress({kind,label:'Checked the requested action',detail:'Verified the signed-in account and any required saved target. The change is pending review.',status:'complete'});
+      progress({kind,label:'Checked the requested action',detail:'Checked the signed-in account and any required saved target.',status:'complete'});
       return [{id:'account:action-context',content:JSON.stringify(context)}];
     }catch{
       progress({kind,label:'Action details unavailable',detail:'The requested change could not be checked.',status:'unavailable'});
@@ -55,5 +55,7 @@ export async function answerRequestedAffairsAction({account,question,selection,d
     },
     repair:async ({evidence})=>evidence.length?format(evidence):initial,
   });
-  return {...result,activity};
+  return {...result,activity,...(result.status==='abstained'?{
+    answer:say('I couldn’t verify the saved record for this change. Please try again before confirming it.','目前無法查核此變更所需的已儲存紀錄，請稍後重試。'),
+  }:{})};
 }
