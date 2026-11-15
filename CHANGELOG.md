@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Preserve the selected club equipment request when signing in from its edit page. Continue to handle invalid or extra selectors as ordinary sign-in redirects. [#100]
+
 - Verify combined Internship and next-class answers directly when the complete timetable has a unique upcoming meeting with a saved room. [#100]
 
 - Add protected evaluation for owned venue requests, pending counts, and cross-account boundaries using disposable records that do not reserve public rooms. [#100]

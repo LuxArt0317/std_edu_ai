@@ -1,4 +1,5 @@
 export const clubPath = '/school-affairs/services/40-1';
+export const clubEquipmentNewPath = clubPath+'/equipment/new';
 export const clubScope = 'student-clubs';
 export const clubActions = ['submit_club_equipment', 'edit_club_equipment', 'cancel_club_equipment', 'review_club_equipment'];
 export const clubDate = /^\d{4}-\d{2}-\d{2}$/u;

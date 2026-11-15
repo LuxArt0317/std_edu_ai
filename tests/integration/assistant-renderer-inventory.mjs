@@ -12,6 +12,7 @@ import tailwindcss from '@tailwindcss/vite';
 import {affairsTestUser as user,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 import {schoolServiceReadFixture,schoolServiceSnapshot} from './helpers/school-service-route-inventory.mjs';
 import {clubStudentScope,isClubStudentView,validClubStudentWorkspace} from '../../server/clubStudentContract.js';
+import {clubEquipmentNewPath} from '../../server/clubServicesContract.js';
 import {fixtureIds as ids,rendererInventory} from './helpers/assistant-renderer-inventory.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -179,13 +180,10 @@ async function checkAccountMenu(page,origin,route,device){
   }catch{/* Retain only the failure stage. */}
   accountMenuChecks.push({route,device,passed:stage===null,failureStage:stage});
 }
-async function checkClubReturnTargets(page,origin){
-  const path='/school-affairs/services/40-1/my-attendance';
+async function checkClubReturnTargets(page,origin,path,validQueries,invalidQueries){
   const targets=[
-    [path+'?page=2',path+'?page=2'],
-    [path+'?page=1000',path+'?page=1000'],
-    ...['page=0','page=1001','page=02','page=2&page=3','page=2&user_id=foreign','page=2#unexpected']
-      .map(query=>[path+'?'+query,'/school-affairs']),
+    ...validQueries.map(query=>[path+'?'+query,path+'?'+query]),
+    ...invalidQueries.map(query=>[path+'?'+query,'/school-affairs']),
   ];
   for(const [requested,expected] of targets){
     let passed=false;
@@ -229,7 +227,13 @@ try{
           if(!outcome.passed)console.log(JSON.stringify({route:row.route,auth:outcome.auth,device,failureStage:outcome.failureStage,finalPath:outcome.finalPath}));
         }
         if(device==='desktop'&&mode.state&&selected.some(row=>row.families.includes('student-club-attendance')))
-          await checkClubReturnTargets(page,origin);
+          await checkClubReturnTargets(page,origin,'/school-affairs/services/40-1/my-attendance',['page=2','page=1000'],
+            ['page=0','page=1001','page=02','page=2&page=3','page=2&user_id=foreign','page=2#unexpected']);
+        if(device==='desktop'&&mode.state&&selected.some(row=>row.families.includes('student-club-equipment'))){
+          const edit='edit='+ids.course;
+          await checkClubReturnTargets(page,origin,clubEquipmentNewPath,[edit],
+            ['edit=invalid','edit=','edit=%2Foutside',edit+'&'+edit,edit+'&other=1',edit+'?other=1',edit+'#unexpected']);
+        }
         if(mode.state)for(const route of ['/school-affairs','/dtm'].filter(path=>selected.some(row=>row.route===path)))
           await checkAccountMenu(page,origin,route,device);
       }finally{await context.close();}

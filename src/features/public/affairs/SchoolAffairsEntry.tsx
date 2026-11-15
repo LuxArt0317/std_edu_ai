@@ -15,6 +15,7 @@ import { permanentCoursesPath } from './permanentCourseRouting.js';
 import { venuePaths } from './venueContract.js';
 import { healthExaminationPath } from '../../../../server/healthExaminationContract.js';
 import { clubAttendancePath } from '../../../../server/clubAttendanceIntent.js';
+import { clubEquipmentNewPath } from '../../../../server/clubServicesContract.js';
 import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
 const base = 'https://info.stu.edu.tw/ePortal/';
 const campusPhotos = Array.from({ length: 16 }, (_, index) =>
@@ -99,7 +100,7 @@ export default function SchoolAffairsEntry() {
     const ordinaryTarget = safeSchoolReturnPath(pathname + hash);
     const barePath = pathname.replace(/\/$/,'');
     const offering=catalogDetailRoute(pathname+search);
-    const target = offering?.path ?? (barePath === clubAttendancePath || barePath === healthExaminationPath || barePath === chargePaymentHistoryPath || Object.values(aidPaymentsPaths).includes(barePath)
+    const target = offering?.path ?? (barePath === clubAttendancePath || barePath === clubEquipmentNewPath || barePath === healthExaminationPath || barePath === chargePaymentHistoryPath || Object.values(aidPaymentsPaths).includes(barePath)
       ? safeSchoolReturnPath(barePath + search + hash,ordinaryTarget)
       : [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(barePath)
         ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget);

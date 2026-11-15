@@ -7,6 +7,7 @@ import { healthExaminationPath } from '../../../../server/healthExaminationContr
 import { aidPaymentsMaxPage,aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
 import { elearningCatalogPageRoute } from '../../../../server/elearningCatalogPageIntent.js';
 import { clubAttendancePath, clubAttendancePagePattern } from '../../../../server/clubAttendanceIntent.js';
+import { clubEquipmentNewPath, clubUuid } from '../../../../server/clubServicesContract.js';
 import {chargePaymentHistoryPath, chargePaymentOperationStoragePrefix} from '../../../../server/chargePaymentContract.js';
 import {chargePaymentHistorySelection,chargePaymentHistoryUrl} from './chargePaymentHistoryRoute';
 import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
@@ -30,6 +31,8 @@ export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs
   if(value?.includes('?')){
     const [path,query]=value.split('?');
     if(path===clubAttendancePath&&query.startsWith('page=')&&clubAttendancePagePattern.test(query.slice(5))
+      &&value===path+'?'+query)return value;
+    if(path===clubEquipmentNewPath&&query.startsWith('edit=')&&clubUuid.test(query.slice(5))
       &&value===path+'?'+query)return value;
     if(path===healthExaminationPath||Object.values(aidPaymentsPaths).includes(path)){
       const match=/^page=([1-9]\d{0,2})$/u.exec(query);

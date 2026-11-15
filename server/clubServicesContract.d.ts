@@ -18,6 +18,7 @@ export type ClubAction = {kind:'submit_club_equipment';payload:ClubApplication}
   | {kind:'cancel_club_equipment';payload:{request_id:string;id:string;expected_version:number}}
   | {kind:'review_club_equipment';payload:{request_id:string;id:string;expected_version:number;status:'approved'|'declined'|'returned';collateral:string}};
 export const clubPath:string;
+export const clubEquipmentNewPath:string;
 export const clubScope:'student-clubs';
 export const clubActions:ClubAction['kind'][];
 export const clubDate:RegExp;
