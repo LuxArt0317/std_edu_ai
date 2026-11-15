@@ -4,6 +4,7 @@ import {
   createInternshipProbe,internshipObservationDigest,internshipObservationHeader,verifyInternshipObservation,
 } from '../../server/internshipObservation.js';
 import {gradeCase} from './grading.mjs';
+import {maxAnswerVerificationChecks} from '../../src/services/assistantVerificationLimits.js';
 import {internshipCaseHasProtectedBinding,internshipRunnerCases} from './internship-native-runner.mjs';
 import {internshipNativeFixtureForCase} from './internship-native-cases.mjs';
 
@@ -77,21 +78,28 @@ export async function requestInternshipHostedCase({testCase,plan,origin,sourceRe
       operations=observation.modelOperations.length;
       if(expected){
         if(!observation.attempts.length||observation.attempts.some(attempt=>!isDeepStrictEqual(attempt,expected)))failures.push('observation.read_or_projection');
-        if(body.verification?.status!=='verified'||body.verification.attempts!==observation.attempts.length
-          ||reads!==observation.attempts.length||reviews!==observation.attempts.length)failures.push('observation.model_review');
+        const checks=body.verification?.attempts;
+        // Account verification refreshes scoped rows once. Its deeper review
+        // may then use that same evidence without authorizing a third read.
+        const expectedPhysicalReads=Math.min(checks,2);
+        // Transport/provider failures may lack a completion receipt. They are
+        // diagnostic rather than a complete hosted model acceptance.
+        if(body.verification?.status!=='verified'||!Number.isInteger(checks)||checks<1||checks>maxAnswerVerificationChecks
+          ||reads!==expectedPhysicalReads||observation.attempts.length!==expectedPhysicalReads||reviews!==checks)
+          failures.push('observation.model_review');
       }else if(reads||observation.attempts.length||operations)failures.push('observation.unexpected_lookup');
     }
   }
   const activity=Array.isArray(body.activity)?body.activity:[];
-  if(activity.some(step=>String(step.kind).startsWith('account-read:')&&(!source||!/^account-read:internshipRecords:[1-3]$/u.test(step.kind))))
+  if(activity.some(step=>String(step.kind).startsWith('account-read:')&&(!source||!/^account-read:internshipRecords:[12]$/u.test(step.kind))))
     failures.push('observation.unrelated_activity');
   if(body.grounding?.webSearched!==false)failures.push('observation.public_research');
   const execution=guest?'live-native':!observation?'unverified':source?(reviews?'live-model':'unverified'):'live-native';
   const outcome=gradeCase({...testCase,executionContract:'live-native'},{statusCode:response.status,fixtureKey:testCase.fixtureKey,
-    body,events:[],execution});
+    body,events:activity,execution});
   failures.push(...outcome.failures.map(failure=>failure.id));
   return {caseId:testCase.id,passed:failures.length===0,execution,readCount:observation?reads:null,
-    completedEvidenceReviews:observation?reviews:null,completedModelCalls:observation?operations:null,observed:observation!==null,...(observation?{correlationId,responseDigest:observation.responseDigest,
+    verificationChecks:body.verification?.attempts??null,completedEvidenceReviews:observation?reviews:null,completedModelCalls:observation?operations:null,observed:observation!==null,...(observation?{correlationId,responseDigest:observation.responseDigest,
       receiptDigest:internshipObservationDigest(receipt),readDigests:observation.attempts.flatMap(attempt=>attempt.reads),
       projectionDigests:observation.attempts.map(attempt=>attempt.evidenceDigest)}:{}),failures};
 }
