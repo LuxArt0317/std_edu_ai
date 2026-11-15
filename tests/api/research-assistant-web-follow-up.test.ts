@@ -780,7 +780,7 @@ test('verified public detail can advance through four checks and survives stalle
     ['visitor identification','step-free access','opening time'],['opening time'],[]];
   const statements=[admissible,entrance,identity,noticeContent];
   const question=testQuestion+' Please also confirm admission, the entrance, visitor identification, and step-free access.';
-  for(const outcome of ['complete','still-partial','mirror','swapped-gaps','relabeled','outage','time'] as const){
+  for(const outcome of ['complete','still-partial','rejected-then-recovered','mirror','swapped-gaps','relabeled','outage','time'] as const){
     configured();
     const unresolved=outcome==='still-partial'?['guide handouts']:[];
     const missingAt=(index:number)=>[...gaps[index],...unresolved];
@@ -803,7 +803,7 @@ test('verified public detail can advance through four checks and survives stalle
       const call=JSON.parse(String(init?.body)),name=call.text.format.name;
       if(name==='stu_web_answer'){
         const index=searches++;
-        assert.doesNotMatch(call.input,/PRIVATE_GAP_LABEL|previousMissingRequestedDetails/u);
+        assert.doesNotMatch(call.input,/PRIVATE_GAP_LABEL|previousMissingRequestedDetails|REJECTED_(?:DRAFT|FEEDBACK)_MARKER/u);
         assert.ok(index<4,'No fifth discovery pass.');
         const source=outcome==='mirror'&&index===2?mirror:sourceUrls[index];
         return Response.json(searchPayload([source],admissible+' The entrance, identification, step-free access, and opening time remain unresolved.'));
@@ -814,17 +814,30 @@ test('verified public detail can advance through four checks and survives stalle
       if(name==='correct_grounded_answer'){
         corrections++;
         assert.match(call.instructions,/The prior answer verified/u);
+        if(outcome==='rejected-then-recovered'&&evidence.length===4){
+          assert.match(context.previousAnswer,/free admission.+North Reading Room/u);
+          assert.doesNotMatch(context.previousAnswer,/REJECTED_DRAFT_MARKER/u);
+          assert.match(context.unsupportedClaims.join(' '),/REJECTED_FEEDBACK_MARKER/u);
+        }
         const facts=claimIndices(evidence.length).filter(index=>!(outcome==='swapped-gaps'&&evidence.length===3&&index===0));
+        const unverifiedOpening=outcome==='rejected-then-recovered'&&evidence.length===3?' The opening time is 8:00 a.m. REJECTED_DRAFT_MARKER.':'';
         return provider({status:'answered',answer:facts.map(index=>statements[index]).join(' ')
-          +(evidence.length===4?unresolved.length?' I could not verify whether guide handouts are available.':'':' Some requested details remain unverified.'),
+          +(evidence.length===4?unresolved.length?' I could not verify whether guide handouts are available.':'':' Some requested details remain unverified.')+unverifiedOpening,
           sourceIds:facts.map(index=>found(index).id)});
       }
       assert.equal(name,'answer_evidence_review');
       assert.equal(call.text.format.schema.required.includes('missingRequestedDetails'),true);
       const index=reviews++;
       const resolveGap=(name:string)=>name.toLowerCase();
-      assert.deepEqual(context.previousMissingRequestedDetails,index?missingAt(index-1).map(resolveGap):undefined);
+      const prior=outcome==='rejected-then-recovered'&&index===3?1:index-1;
+      assert.deepEqual(context.previousMissingRequestedDetails,index?missingAt(prior).map(resolveGap):undefined);
       if(outcome==='outage'&&index===2)return Response.json({error:{code:'service_unavailable'}},{status:503});
+      if(outcome==='rejected-then-recovered'&&index===2){
+        assert.match(context.answer,/REJECTED_DRAFT_MARKER/u);
+        return provider({supported:false,answersQuestion:false,missingRequestedDetails:['opening time'],claims:[{
+          claim:'The opening time remains unsupported. REJECTED_FEEDBACK_MARKER.',supported:false,evidenceId:found(2).id,quotes:[],jsonPaths:[],
+        }]});
+      }
       if(outcome==='time'&&index===1)elapsed=44_000;
       const swapped=outcome==='swapped-gaps'&&index===2;
       const claims=claimIndices(index+1).filter(fact=>!swapped||fact!==0).map(fact=>({claim:statements[fact],supported:true,
@@ -836,13 +849,13 @@ test('verified public detail can advance through four checks and survives stalle
     };
     const progress:Progress[]=[];
     const answer=await invoke({question:question+(unresolved.length?' Are guide handouts available?':'')},run,'verified-public-continuation-'+outcome,progress);
-    const reachedFourth=['complete','still-partial'].includes(outcome),expectedReviews=reachedFourth?4:['outage','swapped-gaps','relabeled'].includes(outcome)?3:2;
+    const reachedFourth=['complete','still-partial','rejected-then-recovered'].includes(outcome),expectedReviews=reachedFourth?4:['outage','swapped-gaps','relabeled'].includes(outcome)?3:2;
     assert.deepEqual(answer.verification,{status:'verified',attempts:expectedReviews},outcome);
     assert.equal(reviews,expectedReviews,outcome);
     assert.equal(corrections,expectedReviews-1,outcome);
     assert.equal(searches,reachedFourth?4:outcome==='time'?2:3,outcome);
     assert.deepEqual(acquired,reachedFourth?sourceUrls:[...sourceUrls.slice(0,2),...(outcome==='time'?[]:[outcome==='mirror'?mirror:eventCalendar])]);
-    assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL/u);
+    assert.doesNotMatch(JSON.stringify(answer),/PRIVATE_GAP_LABEL|REJECTED_(?:DRAFT|FEEDBACK)_MARKER/u);
     assert.ok(answer.answer.includes(entrance),outcome);
     assert.ok(answer.answer.includes(admissible),outcome);
     assert.equal(answer.answer.includes(noticeContent),reachedFourth,outcome);
@@ -853,6 +866,8 @@ test('verified public detail can advance through four checks and survives stalle
     assert.equal(progress.some(step=>step.kind==='verification-extended-review'),reachedFourth,outcome);
     assert.equal(progress.some(step=>step.kind==='web-alternate-discovery'&&step.status==='complete'),reachedFourth,outcome);
     assert.equal(progress.some(step=>step.kind==='verification-kept-partial'),!reachedFourth&&outcome!=='time',outcome);
+    if(outcome==='rejected-then-recovered'||outcome==='outage')
+      assert.ok(progress.some(step=>step.kind==='verification-3'&&step.status==='unavailable'));
     assert.equal(progress.filter(step=>/^verification-[1-4]$/u.test(step.kind)&&step.status!=='running').length,expectedReviews,outcome);
     if(reachedFourth){
       const restored=sanitizeStoredConversation([{id:'verified-continuation',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);

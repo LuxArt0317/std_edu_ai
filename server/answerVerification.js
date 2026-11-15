@@ -177,6 +177,7 @@ export async function runAnswerVerification({
     })
     .addNode('retry', state => {
       const nextCheck = state.attempt + previousChecks + 1;
+      if (verifiedPartial && !state.verdict.ok) candidate = verifiedPartial.candidate;
       if (nextCheck > maxAnswerVerificationChecks) emit('verification-extended-review', 'Following another source lead',
         'Checking new source content for the remaining detail.');
       if (state.verdict.ok) {
@@ -189,7 +190,7 @@ export async function runAnswerVerification({
           loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
         else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
       }
-      return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.ok?'verified_partial':state.verdict.reason };
+      return { attempt: state.attempt + 1, verdict: null, previousFailure:verifiedPartial?'verified_partial':state.verdict.reason };
     })
     .addEdge(START, 'retrieve')
     .addEdge('retrieve', 'draft')
@@ -203,7 +204,12 @@ export async function runAnswerVerification({
         verifiedPartial={candidate,missing:missingRequestedDetails};
         return 'retry';
       }
-      if(verifiedPartial)return END;
+      if(verifiedPartial){
+        const recoverable=['unsupported_claims','no_supported_answer','snapshot_provenance_missing'].includes(state.verdict.reason);
+        return recoverable&&checks===state.attempt+previousChecks&&feedback.some(detail=>typeof detail==='string'&&detail.trim())
+          &&safeToContinue()&&canFollowLead(state.attempt)&&enoughTimeToContinue(state.attempt)
+          &&lookForMissingPublicDetails?.()===true?'retry':END;
+      }
       if(!canFollowLead(state.attempt))return END;
       if(previousChecks>0)return canRetryAfterSourceSwitch(state.verdict) && enoughTimeToContinue(state.attempt) ? 'retry' : END;
       return (state.attempt < standardChecks && (!publicRecovery || enoughTimeToContinue(state.attempt))) || (shouldDeepen(state.verdict) && enoughTimeToContinue(state.attempt)) ? 'retry' : END;
