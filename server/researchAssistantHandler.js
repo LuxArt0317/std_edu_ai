@@ -846,6 +846,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const verificationQuestion = input.question;
         const deadline = started + 55_000;
         const verificationProgress = (step) => stream.progress(step.kind, step.label, step.detail, step.status);
+        const needsPublicEvidence = reason => ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer'].includes(reason)
+            || (reason === 'snapshot_provenance_missing' && kind.fresh);
         const verifyPublicAnswer = context => {
             // A source-free generic plan cannot satisfy an explicit request for
             // school resources, even if a reviewer accepts its suggestions.
@@ -918,9 +920,23 @@ export function createResearchAssistantHandler(dependencies = {}) {
         let webAttempted = false;
         const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
             item.role === 'user' && !personalPublicQuestion(item.content)));
-        async function tryWebAnswer() {
+        let knowledgeWebSwitch;
+        async function tryWebAnswer(earlierReview) {
             if (webAttempted || !publicQuestion || personalQuestion)
                 return false;
+            const priorActivity = earlierReview?.activity || [];
+            const previousChecks = priorActivity.filter(step => /^verification-[0-9]+$/u.test(step.kind)
+                && step.status !== 'running').length;
+            if (earlierReview) {
+                // Keep five seconds for discovery beyond the existing web
+                // path's 19-second reserve for reading and verification.
+                if (input.images.length || !previousChecks || !needsPublicEvidence(earlierReview.verification?.reason)
+                    || deadline - Date.now() < 24_000)
+                    return false;
+                knowledgeWebSwitch = { kind: 'verification-source-switch', label: 'Checking public school sources',
+                    detail: 'The managed excerpts did not verify the requested detail.', status: 'complete' };
+                verificationProgress(knowledgeWebSwitch);
+            }
             stream.progress('web', 'Searching school sources', 'Checking official school pages and related public sources.');
             const web = await searchSchoolWeb(publicQuestion, { deadline: Math.min(deadline - 19000, Date.now() + 22000) }).catch(() => null);
             if (!web) {
@@ -937,7 +953,20 @@ export function createResearchAssistantHandler(dependencies = {}) {
             await recordResearchOperation({ deadline, url: supabaseUrl, key: publishableKey, component: "retrieval", operation: "web_search", outcome: "success", httpStatus: 200, latencyMs: Date.now() - started, itemCount: web.result.citations.length, correlationHash: queryHash, metadata: { citation_count: web.result.citations.length, fallback_used: true } });
             // Web references are not approved corpus chunk IDs or research-evaluation evidence.
             stream.progress('web', 'Found school sources', `${web.result.citations.length} source links found; checking their contents.`, 'complete');
-            const candidate = { status: "answered", answer: web.result.answer, citations: web.result.citations, suggestedQuestions: [], grounding: { source: "web", webSearched: true, checkedAt: web.result.checkedAt, officialOnly: web.result.officialOnly, retrieverVersion: "school-web@1", responseMs: Date.now() - started }, activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No sufficient current answer found', status: 'complete' }, { kind: 'web', label: 'Searched public school sources', detail: `${web.result.citations.length} source links found`, status: 'complete' }] };
+            const candidate = {
+                status: 'answered',
+                answer: web.result.answer,
+                citations: web.result.citations,
+                suggestedQuestions: [],
+                grounding: { source: 'web', webSearched: true, checkedAt: web.result.checkedAt, officialOnly: web.result.officialOnly,
+                    retrieverVersion: 'school-web@1', responseMs: Date.now() - started },
+                activity: [
+                    { kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No sufficient current answer found', status: 'complete' },
+                    ...priorActivity,
+                    ...(earlierReview ? [knowledgeWebSwitch] : []),
+                    { kind: 'web', label: 'Searched public school sources', detail: `${web.result.citations.length} source links found`, status: 'complete' },
+                ],
+            };
             const checkedSources = new Map();
             const seenUrls = new Set();
             const steps = new Map();
@@ -964,16 +993,14 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     return [source];
                 });
             }
-            const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true,
+            const checked = await runAnswerVerification({ question: verificationQuestion, initialAnswer: candidate, deadline, onProgress: progress, allowDeeperReview: true, previousChecks,
                 async loadEvidence({ attempt, previousFailure, deadline: until }) {
                     if (attempt === 1) {
-                        evidence = await checkNewSources(web.result.citations, until, 4);
+                        evidence = await checkNewSources(web.result.citations, earlierReview ? Math.min(until - 8_000, Date.now() + 4_000) : until, 4);
                         return evidence;
                     }
-                    const needsEvidence = ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer'].includes(previousFailure)
-                        || (previousFailure === 'snapshot_provenance_missing' && kind.fresh);
                     const searchUntil = Math.min(until - 15_000, Date.now() + 6_500);
-                    if (attempt !== 2 || !needsEvidence || input.images.length || searchUntil - Date.now() < 2_500) return evidence;
+                    if (attempt !== 2 || !needsPublicEvidence(previousFailure) || input.images.length || searchUntil - Date.now() < 2_500) return evidence;
                     const step = { kind: 'web-follow-up', label: 'Looking for a more specific school source' };
                     progress({ ...step, detail: 'Checking the requested detail on official school pages.', status: 'running' });
                     // Use only the same screened public question. Review feedback and
@@ -1192,6 +1219,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         return retrieved.map(item => ({ id: item.chunk_id, title: item.document_title, url: item.source_url,
                             content: JSON.stringify({ content: item.content, effectiveAt: item.effective_at, reviewedAt: item.reviewed_at, sourceName: item.source_name, authority: item.authority_level }) }));
                     }, verify: verifyPublicAnswer, repair: repairPublicAnswer, });
+                if (checked.verification?.status === 'unverified' && await tryWebAnswer(checked)) return;
                 answer = { status: checked.status, answer: checked.answer, citations: checked.citations.map(item => ({ chunkId: item.chunkId, claim: item.claim })), suggestedQuestions: checked.suggestedQuestions || [] };
                 citations = checked.citations;
             }
@@ -1212,6 +1240,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 recordResearchOperation({ deadline, url: supabaseUrl, key: publishableKey, component: "citation", operation: "persist", outcome: "success", httpStatus: 200, latencyMs: Date.now() - started, itemCount: citations.length, correlationHash: queryHash, metadata: { citation_count: citations.length } }),
             ]);
             stream.progress('answer', answer.status === 'answered' ? 'Answer ready' : 'Answer could not be verified', answer.status === 'answered' ? 'Checked the answer against the retrieved source content.' : 'The unsupported draft was withheld.', answer.status === 'answered' ? 'complete' : 'unavailable');
+            const checkedActivity = checked?.activity || [];
+            const failedWebActivity = webAttempted ? [{ kind: 'web', label: 'Tried public school web search',
+                detail: 'No verified web answer replaced the managed sources', status: 'unavailable' }] : [];
             stream.send(200, {
                 status: answer.status,
                 answer: answer.answer,
@@ -1227,7 +1258,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     responseMs: Date.now() - started,
                     semanticDegraded: search.degraded,
                 },
-                activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' }, ...(webAttempted ? [{ kind: 'web', label: 'Tried public school web search', detail: 'No verified web answer replaced the managed sources', status: 'unavailable' }] : []), ...(checked?.activity || [])],
+                activity: [{ kind: 'knowledge', label: 'Checked managed school knowledge', detail: `${retrieved.length} matching evidence excerpts`, status: 'complete' },
+                    ...(knowledgeWebSwitch ? [...checkedActivity, knowledgeWebSwitch, ...failedWebActivity] : [...failedWebActivity, ...checkedActivity])],
             });
         }
         catch (error) {

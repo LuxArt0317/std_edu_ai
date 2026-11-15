@@ -26,6 +26,20 @@ test('a reported third check needs matching observed activity and the same read 
   envelope.events.push({kind:'account-read:charges:3',status:'complete'});
   failure(gradeCase(record,envelope),'answer.verification.deeperObserved');
 });
+test('an observed third check can use new public evidence after two failed managed checks',()=>{
+  const testCase={id:'public.notice',domain:'announcements',mode:'public',expected:{behavior:'answer',requiredText:['Public notice']}};
+  const envelope=response('The Public notice confirms the date.',{verification:{status:'verified',attempts:3},
+    citations:[],grounding:{source:'web',webSearched:true}});
+  envelope.events=[
+    {kind:'verification-1',status:'unavailable'},
+    {kind:'verification-2',status:'unavailable'},
+    {kind:'verification-source-switch',status:'complete'},
+    {kind:'verification-3',status:'complete'},
+  ];
+  assert.equal(gradeCase(testCase,envelope).passed,true);
+  envelope.events.splice(1,1);
+  failure(gradeCase(testCase,envelope),'answer.verification.deeperObserved');
+});
 test('self-reported verified and the right substring cannot hide a contradiction',()=>{
   const result=gradeCase(record,response('Your sample QA tuition balance is NT$23,000. Your remaining balance is 999999.'));
   assert.equal(result.passed,false);failure(result,'text.forbidden.0');failure(result,'fact.0');

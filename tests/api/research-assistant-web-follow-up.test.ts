@@ -41,7 +41,8 @@ function configured() {
   delete process.env.SUPABASE_SERVICE_ROLE_KEY;
 }
 
-async function invoke(input: unknown, run: ReturnType<typeof createResearchAssistantHandler>, address: string) {
+type Progress = {kind:string;label:string;detail:string;status:string};
+async function invoke(input: Record<string,unknown>, run: ReturnType<typeof createResearchAssistantHandler>, address: string, progress?: Progress[]) {
   let responseBody: any;
   const response = {
     status(code: number) {
@@ -50,8 +51,14 @@ async function invoke(input: unknown, run: ReturnType<typeof createResearchAssis
     },
     json(value: unknown) { responseBody = value; },
     setHeader() {},
+    write(packet: string) {
+      const [,event,payload] = /^event: (\w+)\ndata: (.+)\n\n$/u.exec(packet) ?? [];
+      if (event === 'progress') progress?.push(JSON.parse(payload));
+      if (event === 'result') responseBody = JSON.parse(payload);
+    },
+    end() {},
   };
-  await run({method:'POST',body:input,headers:{'x-forwarded-for':address,'user-agent':'research-web-follow-up-test'}},response);
+  await run({method:'POST',body:{...input,stream:Boolean(progress)},headers:{'x-forwarded-for':address,'user-agent':'research-web-follow-up-test'}},response);
   return responseBody;
 }
 
@@ -201,4 +208,137 @@ test('private records and explicit authorization text never trigger the public w
     assert.equal(answer.status,'handoff');
   }
   assert.equal(modelCalls,0);
+});
+
+const knowledgeQuestion = 'What time does the STU library archive exhibition open?';
+const managedExcerpt = {
+  chunk_id:'10000000-0000-4000-8000-000000000001',
+  document_id:'20000000-0000-4000-8000-000000000001',
+  source_id:'30000000-0000-4000-8000-000000000001',
+  source_name:'STU library',authority_level:'primary_official',document_title:'Archive exhibition overview',
+  document_domain:'library',document_language:'en',source_url:officialDirectory,source_locator:'section:1',
+  effective_at:null,reviewed_at:'2026-01-02T00:00:00Z',content:directoryContent,
+  exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
+  document_version:1,content_checksum:'a'.repeat(64),
+};
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'verified-knowledge') {
+  configured();
+  const started = Date.now();
+  let elapsed = 0;
+  Date.now = () => started + elapsed;
+  let knowledgeReviews = 0;
+  const calls: string[] = [];
+  const searches: Array<{question:string}> = [];
+  const run = createResearchAssistantHandler({
+    readSources: async citations => {
+      calls.push('read-public-page');
+      assert.deepEqual(citations.map(citation=>citation.url),[officialNotice]);
+      return citations.map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
+    },
+  });
+  globalThis.fetch = async (input,init) => {
+    const url = String(input);
+    if (url.endsWith('/v1/embeddings')) return Response.json({data:[{embedding:Array(1536).fill(0)}]});
+    if (url.includes('/rpc/search_public_knowledge')) return Response.json([managedExcerpt]);
+    if (url.includes('/knowledge_documents?')) return Response.json([{
+      id:managedExcerpt.document_id,logical_key:'archive-exhibit',content_checksum:managedExcerpt.content_checksum,
+    }]);
+    if (url.includes('/rpc/record_public_ai_exchange')) return Response.json([{
+      feedback_token:'a'.repeat(64),feedback_expires_at:'2026-12-01T00:00:00Z',
+    }]);
+    if (!url.endsWith('/v1/responses')) return Response.json(null);
+    const request=JSON.parse(String(init?.body));
+    const name=request.text.format.name;
+    calls.push(name);
+    switch(name) {
+      case 'public_grounded_answer':
+        return provider({status:'answered',answer:outcome==='verified-knowledge'
+          ? 'The library visitor directory explains how to contact staff. The directory gives no exhibition opening time.' : unsafeDraft,
+          citations:[{chunkId:managedExcerpt.chunk_id,claim:'Archive exhibition opening'}],suggestedQuestions:[]});
+      case 'correct_grounded_answer':
+        return provider({status:'answered',answer:unsafeDraft,sourceIds:[managedExcerpt.chunk_id]});
+      case 'stu_web_answer':
+        searches.push(JSON.parse(request.input));
+        if (outcome==='no-web-result'||outcome==='early-web') return Response.json({output:[]});
+        return Response.json(searchPayload([officialNotice],noticeContent));
+      case 'answer_evidence_review': {
+        const review=JSON.parse(request.input[0].content[0].text);
+        if (review.evidence[0].id!==managedExcerpt.chunk_id) {
+          assert.equal(review.evidence.length,1);
+          assert.equal(review.evidence[0].content,noticeContent);
+          return provider({supported:true,answersQuestion:true,claims:[{
+            claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
+          }]});
+        }
+        knowledgeReviews++;
+        if(outcome==='budget'&&knowledgeReviews===2)elapsed=32_000;
+        if(outcome==='verified-web'&&knowledgeReviews===2)elapsed=25_000;
+        if(outcome==='review-outage')return new Response(null,{status:503});
+        if(outcome==='verified-knowledge')return provider({supported:true,answersQuestion:true,claims:[{
+          claim:'Verified managed content',supported:true,evidenceId:managedExcerpt.chunk_id,quotes:[],jsonPaths:['/content'],
+        }]});
+        return provider({supported:false,answersQuestion:false,claims:[{
+          claim:rejectedClaim,supported:false,evidenceId:managedExcerpt.chunk_id,quotes:[],jsonPaths:[],
+        }]});
+      }
+      default:
+        throw Error('Unexpected controlled provider request '+name);
+    }
+  };
+  return {run,searches,calls};
+}
+
+test('two failed managed checks can switch to separately read public evidence within the same check budget',async()=>{
+  const attempt=managedHarness('verified-web');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:knowledgeQuestion,history:[
+    {role:'user',content:'What are my attendance records at STU?'},
+    {role:'assistant',content:'PRIVATE_ASSISTANT_HISTORY: account attendance and grades'},
+  ]},attempt.run,'knowledge-verified-web',progress);
+  assert.deepEqual(attempt.calls,[
+    'public_grounded_answer','answer_evidence_review','correct_grounded_answer','answer_evidence_review',
+    'stu_web_answer','read-public-page','answer_evidence_review',
+  ]);
+  assert.equal(attempt.searches.length,1);
+  assert.equal(attempt.searches[0].question,knowledgeQuestion);
+  assert.doesNotMatch(JSON.stringify(attempt.searches),/PRIVATE_|NOT_PUBLIC_SEARCH_INPUT|8:00|my attendance/);
+  assert.equal(answer.status,'answered');
+  assert.equal(answer.grounding.source,'web');
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.doesNotMatch(answer.answer,/supposedly|PRIVATE_REVIEW_FEEDBACK/);
+  assert.deepEqual(answer.citations.map(citation=>citation.url),[officialNotice]);
+  const checks=[
+    ['verification-1','unavailable'],['verification-retry','complete'],['verification-2','unavailable'],
+    ['verification-source-switch','complete'],['verification-3','complete'],
+  ];
+  const finalSteps=(steps:Progress[])=>steps.filter(step=>step.status!=='running'&&/^verification-/u.test(step.kind))
+    .map(({kind,status})=>[kind,status]);
+  assert.deepEqual(finalSteps(answer.activity),checks);
+  assert.deepEqual(finalSteps(progress),checks);
+});
+
+test('an attempted evidence switch preserves both managed checks when the web search finds no candidate',async()=>{
+  const attempt=managedHarness('no-web-result');
+  const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-no-web-result');
+  assert.equal(answer.status,'abstained');
+  assert.equal(answer.grounding.source,'knowledge');
+  assert.equal(answer.grounding.webSearched,true);
+  assert.equal(answer.verification.attempts,2);
+  assert.deepEqual(answer.citations,[]);
+  assert.equal(attempt.searches.length,2,'one web lookup tries official sources then broader results');
+  assert.deepEqual(answer.activity.map(({kind})=>kind),
+    ['knowledge','verification-1','verification-retry','verification-2','verification-source-switch','web']);
+  assert.equal(answer.activity.at(-1).status,'unavailable');
+});
+
+test('an already attempted web lookup, expired reserve or verifier outage does not trigger a new source switch',async()=>{
+  for(const outcome of ['early-web','budget','review-outage','verified-knowledge'] as const){
+    const attempt=managedHarness(outcome);
+    const answer=await invoke({question:outcome==='early-web'?testQuestion:knowledgeQuestion},attempt.run,'knowledge-'+outcome);
+    assert.equal(answer.grounding.source,'knowledge',outcome);
+    assert.equal(answer.status,outcome==='verified-knowledge'?'answered':'abstained',outcome);
+    assert.equal(attempt.searches.length,outcome==='early-web'?2:0,outcome);
+    assert.equal(answer.activity.some((step:Progress)=>step.kind==='verification-source-switch'),false,outcome);
+  }
 });

@@ -648,10 +648,13 @@ export function gradeCase(testCase, envelope = {}, {independentReview} = {}) {
   if (body.verification) check('answer.verification.bound',Number.isInteger(body.verification.attempts) && body.verification.attempts>=0 && body.verification.attempts<=maxAnswerVerificationChecks,'Verification stays within the allowed number of checks.');
   if(body.verification?.attempts===maxAnswerVerificationChecks){
     const events=Array.isArray(envelope.events)?envelope.events:[];
-    const observed=events.some(step=>step?.kind==='verification-deeper-review'&&step.status==='complete')
-      && events.some(step=>step?.kind==='verification-3'&&step.status===(body.verification.status==='verified'?'complete':'unavailable'));
-    check('answer.verification.deeperObserved',observed&&!events.some(step=>/^account-read:[^:]+:3$/u.test(step?.kind??'')),
-      'Observed the deeper check and its terminal result within the existing account read scope.');
+    const observed=(kind,status)=>events.some(step=>step?.kind===kind&&step.status===status);
+    const publicSourceSwitch=body.grounding?.source==='web'&&body.grounding.webSearched===true
+      && observed('verification-source-switch','complete')&&observed('verification-1','unavailable')&&observed('verification-2','unavailable');
+    const thirdCheckObserved=(observed('verification-deeper-review','complete')||publicSourceSwitch)
+      && observed('verification-3',body.verification.status==='verified'?'complete':'unavailable');
+    check('answer.verification.deeperObserved',thirdCheckObserved&&!events.some(step=>/^account-read:[^:]+:3$/u.test(step?.kind??'')),
+      'Observed the deeper review or the public evidence switch and its terminal check within authorized read scope.');
   }
   for (const [index,value] of (expected.requiredText || []).entries()) check(`text.required.${index}`,matches(text,value),'Required independent text is present with token boundaries.');
   for (const [index,value] of [...(expected.forbiddenText || []),...(expected.forbiddenAccountMarkers || [])].entries()) check(`text.forbidden.${index}`,!outputFields.some(field=>matches(field,value)),'No forbidden contradiction, foreign-account value or unsupported claim appears in prose, cards, citations or actions.');

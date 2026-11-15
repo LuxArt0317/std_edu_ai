@@ -33,11 +33,13 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
-  question, initialAnswer, loadEvidence, verify, repair, onProgress, allowDeeperReview = false, deadline = Date.now() + 50_000,
+  question, initialAnswer, loadEvidence, verify, repair, onProgress, allowDeeperReview = false, previousChecks = 0, deadline = Date.now() + 50_000,
 }) {
+  if (!Number.isInteger(previousChecks) || previousChecks < 0 || previousChecks >= maxAnswerVerificationChecks)
+    throw new RangeError('Invalid initial verification check count');
   // Keep account data out of graph traces/checkpoints. Every invocation owns its
   // evidence and draft; the graph state contains only bounded control metadata.
-  let candidate = initialAnswer, evidence = [], feedback = [], checks = 0;
+  let candidate = initialAnswer, evidence = [], feedback = [], checks = previousChecks;
   const activity = [];
   const emit = (kind, label, detail, status = 'complete') => {
     const step = { kind, label, detail, status };
@@ -87,9 +89,10 @@ export async function runAnswerVerification({
     })
     .addNode('verify', async state => {
       let verdict = state.verdict;
+      const ordinal = state.attempt + previousChecks;
       if (!verdict && withinBudget()) {
         checks++;
-        emit(`verification-${state.attempt}`, 'Checking answer against evidence', `Verification check ${checks}.`, 'running');
+        emit(`verification-${ordinal}`, 'Checking answer against evidence', `Verification check ${checks}.`, 'running');
         try {
           const review = await bounded(()=>verify({ question, candidate, evidence, deadline, feedback, attempt:state.attempt }));
           feedback = Array.isArray(review.feedback) ? review.feedback.slice(0, 12) : [];
@@ -99,12 +102,12 @@ export async function runAnswerVerification({
             : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
           verdict = { ok: false, reason };
         }
-        emit(`verification-${state.attempt}`, verdict.ok ? 'Answer checked against evidence' : 'Draft did not pass verification',
+        emit(`verification-${ordinal}`, verdict.ok ? 'Answer checked against evidence' : 'Draft did not pass verification',
           verdict.ok ? 'The answer passed the evidence checks.' : reviewFailureDetails.get(verdict.reason) || 'This draft did not pass the evidence checks.',
           verdict.ok ? 'complete' : 'unavailable');
       } else {
         verdict ||= { ok: false, reason: 'timeout' };
-        emit(`verification-preparation-${state.attempt}`, 'Could not prepare an answer to check',
+        emit(`verification-preparation-${ordinal}`, 'Could not prepare an answer to check',
           'This attempt ended before a draft could be checked.', 'unavailable');
       }
       if (verdict?.ok !== true) verdict = { ok: false, reason: verdict?.reason || 'unsupported_claims' };
@@ -120,7 +123,8 @@ export async function runAnswerVerification({
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
     .addConditionalEdges('verify', state => {
-      if(state.verdict.ok || state.attempt >= maxAnswerVerificationChecks || !withinBudget())return END;
+      // A public evidence switch is the last new source attempt in this request.
+      if(state.verdict.ok || previousChecks > 0 || state.attempt >= maxAnswerVerificationChecks || !withinBudget())return END;
       return state.attempt < standardChecks || shouldDeepen(state.verdict) ? 'retry' : END;
     })
     .addEdge('retry', 'retrieve')
@@ -131,7 +135,7 @@ export async function runAnswerVerification({
   } catch {
     return unverifiedAnswer(question, candidate, activity, checks, 'verification_unavailable');
   }
-  const attempts=allowDeeperReview?checks:result.attempt;
+  const attempts=allowDeeperReview || previousChecks > 0 ? checks : result.attempt;
   if (!result.verdict.ok) return unverifiedAnswer(question, candidate, activity, attempts, result.verdict.reason);
   return {
     ...candidate,
