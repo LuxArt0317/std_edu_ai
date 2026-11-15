@@ -30,12 +30,13 @@ if enough time remains to verify its contents. Sign-in and permanent failures
 end reads for the affected lead, and an exact dated capture can supply the
 evidence in place of a live reread.
 
-An unread official page can justify reserving part of the remaining request
-time before an early public review begins. If that review times out, the graph
-can read the queued page and verify a new draft. It makes another check only
-when the page provides different, readable contents. A timeout with no unread
-lead, or a duplicate page, ends that recovery. The Activity list records the
-timeout and the source check as separate events. This applies the same
+Unread official pages can justify reserving part of the remaining request
+time before an early public review begins. After an interrupted review or
+rewrite, the graph checks later queued pages when an early batch is unreadable
+or contains mirrored text. Every batch shares the page-read deadline. An
+independent check of the revised answer follows when a page supplies distinct,
+readable contents. The Activity list records the interruption and the source
+check as separate events. This applies the same
 evaluator feedback and explicit exit conditions described in the
 [Anthropic agent workflow guide](https://www.anthropic.com/research/building-effective-agents)
 and [OpenAI agent guide](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/).
