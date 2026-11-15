@@ -948,11 +948,6 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
   const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
   const tutorSelection=scopedSupplementalTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
-  const exactTutorRatings=tutorSelection?.positions.length&&!tutorSelection.reason&&!tutorSelection.commentRequested&&!tutorSelection.unavailableDetails;
-  const exactSupplemental=(conductCount||exactTutorRatings||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
-    &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
-    &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
-      ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
   const scopedTimetable=Boolean(clearanceTimetableQuestion(question,pageLookup));
   const scopedClearance=pageLookup.tools.includes('graduationClearance')&&pageLookup.readerOnly;
   const scopedCounseling=pageLookup.tools.includes('counselingAppointments')&&(pageLookup.readerOnly||pageLookup.feeAndBalance);
@@ -975,6 +970,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     publicPageRoute?loadPublicPageContext(publicPageRoute,Math.min(deadline-24000,Date.now()+5000)).catch(()=>null):Promise.resolve(null),
     readSupplemental(snapshot,1),
   ]);
+  const exactTutorRecord=Boolean(tutorSelection&&!tutorSelection.reason&&!tutorSelection.unavailableDetails
+    &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState));
+  const exactSupplemental=(conductCount||exactTutorRecord||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
+    &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
+    &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
+      ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
   const exactTeaching=allowNativeTeachingVerification&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='teachingFeedback'
     ?exactTeachingFeedbackRead(teaching):null;
@@ -1309,7 +1310,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ||supplemental[0].evidence!==sources.find(source=>source.id===sourceId))return null;
     if(conductCount&&(!['ok','empty'].includes(supplemental[0].readState)
       ||JSON.parse(supplemental[0].evidence.content).selection?.projection!=='count'))return null;
-    if(exactTutorRatings&&(!['ok','empty'].includes(supplemental[0].readState)
+    if(exactTutorRecord&&(!['ok','empty'].includes(supplemental[0].readState)
       ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,tutorSelection)))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
     if(scopedSupplementalTool!=='dormitoryConduct')return answerLinksSupported(rendered.answer,sources)?rendered:null;
@@ -1460,10 +1461,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
             detail:zh?'核對本人帳戶內的紀錄總筆數。':'Matched the displayed total to the exact count of your saved report rows.',status:'complete'});
           return {ok:true};
         }
-        if(exactTutorRatings){
+        if(exactTutorRecord){
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
-          emit({kind:'tutor-evaluation-ratings-check',label:zh?'已核對導師評量評分':'Verified the saved tutor evaluation ratings',
-            detail:zh?'比對所選題號、儲存的評分和問卷連結。':'Matched the selected question numbers, saved ratings and questionnaire link.',status:'complete'});
+          emit({kind:'tutor-evaluation-evidence-check',label:zh?'已核對導師評量紀錄':'Verified the tutor evaluation record',
+            detail:zh?'比對送出狀態、所查詢的已儲存欄位和問卷連結。':'Matched the saved submission status, requested fields and questionnaire link.',status:'complete'});
           return {ok:true};
         }
         if(context.attempt>1){
