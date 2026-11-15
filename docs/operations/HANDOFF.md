@@ -642,3 +642,20 @@ endpoint tests exercise a verified fourth check, duplicate evidence, time limits
 and recovery after a missed source. The hosted fourth-check path has controlled
 coverage only. The protected browser link requires Vercel project access.
 Public production currently serves `076c79a`.
+
+### Dated tuition ledger [Issue #100]
+
+The student route is `/school-affairs/services/39-1/payment-history`. The staff
+entry point is the selected student's charge in `/school-affairs/admin/records`.
+Dated receipts and reversals stay connected to their charge. The monthly
+assistant answer excludes undated legacy amounts from date-based totals.
+
+Both `20261116000000` and `20261116010000` applied on the exact client after
+rollback-only inspection. Stored SQL matches the tracked migrations. The
+client catalog has 173 migrations and 207 public RLS tables. Existing charge
+amounts had no synthetic history assigned. Local browser tests include an
+identical retry across reload after a simulated lost receipt, reversal and
+owner scope. Four socket-only PostgreSQL tests confirmed independent backend
+lock behavior. Protected application revision `6006d87` is staged for paired
+signed-in acceptance. The live fixture must use disposable student identities
+and exact cleanup. Production application remains `076c79a`.

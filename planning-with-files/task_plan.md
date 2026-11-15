@@ -839,7 +839,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
 - [x] Verify nine signed-out service boundaries and navigation paths on integrated protected Preview `6c76997`.
 - [ ] Verify the four service boundary families through authenticated protected Preview requests.
-- [ ] Add dated tuition payment history from explicitly recorded ledger entries. Preserve legacy aggregate-only payment amounts and verify per-month, undo, no-history, failed-read and owner-isolation cases.
+- [x] Add dated tuition payment history, the manager's receipt and reversal screen, and signed-in monthly assistant answers. Preserve aggregate-only legacy payment amounts.
+- [x] Verify the native PostgreSQL lock and replay behavior, manager and student browser routes, and the exact client migration source and RLS catalog.
+- [ ] Complete the protected paired student scope, monthly assistant and fixture cleanup replay; record the independent evidence for staff operation access.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.

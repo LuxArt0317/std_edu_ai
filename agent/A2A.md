@@ -887,3 +887,15 @@ The current integration branch includes 11 protected tutor questionnaire cases a
 ### Issue #100 public verification follow-through
 
 Root owns the public retrieval and shared verification control changes. Review adds an independent four-check oracle and bounded recovery of a briefly unavailable first source. The activity display packet preserves raw saved events and renders the final stop once. Keep the private-reader, tuition and fixture work out of this protected deployment branch.
+
+### Issue #100 tuition and native read releases
+
+Root holds the serialized signed-in fixture lane. The exact 171/206 rollback
+preflight passed. Only the dated ledger and staff read migrations were applied,
+bringing the client catalog to 173/207. Stored SQL and initial empty ledger
+verified. Protected `6006d87` holds the staff UI and student history. Protected
+`ea1e9a0` contains the scoped Health/Counseling recovery and uses existing read
+RPCs. Finish independent Health cleanup before starting Counseling and then the
+student-only tuition replay. Staff roles/replay passed in controlled HTTP,
+Chromium and isolated PostgreSQL; do not use the protected owner for a finance
+fixture. Keep these Preview deliveries separate from public application release.

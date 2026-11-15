@@ -53,3 +53,6 @@
 - 2026-11-15 [#100] Pinned protected `201ff75` and observed the remaining early-search stop in a real storage request. Added a bounded targeted lookup after a first search returned no leads and passed the remaining parent request budget to the public handler.
 
 - 2026-11-15 [#100] Pinned protected `57540ae` and graded four live public packets. The quota request recovered on its third check, the known founding and academic FAQ questions verified, and the guest private boundary held. Local API/source suite passed 1,815 tests. The fourth-review proof uses independently read controlled sources.
+
+- 2026-11-15 [#100] Integrated dated tuition history and the staff receipt/reversal flow. Passed full local API and evaluator checks, typed build, three local browser suites and actual multi-connection PostgreSQL lock tests. Applied only the two exact tuition ledger migrations after rollback preflight and verified their stored bytes, zero historical date backfill, 173 applied versions and 207 public RLS tables.
+- 2026-11-15 [#100] Published protected Health Exam and Counseling candidate `ea1e9a0`. Local independent tests pass the reproduced Health defects and the nine Counseling timestamp cases. Began the exact protected Health packet and staged a private separate Counseling report path.
