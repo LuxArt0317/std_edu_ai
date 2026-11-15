@@ -392,3 +392,9 @@ Four independent hosted case grades on `927ea4c` passed for saved tracking notes
 Protected `a3da38a` passed all eight Student Leave data families, 128 PostgREST reads across own and crossed callers, and 50 manifest checks. Cleanup removed both disposable identities and preserved the owner fingerprint. This test prepared and verified data only. The 42 native and nine legacy questions still require independent hosted observations of the actual assistant request and its readers.
 
 Digital Academy metadata migration `20261115110100` passed the exact isolated PostgreSQL permission and selector tests. Client preflight selected only that file, then the committed SQL checksum and authenticated-only grant matched. The live source still contains 43 categories and 20 notices. The six category and notice cases need hosted acceptance.
+
+### School sign-in leads
+
+The public source reader stops before following a recognized school sign-in redirect. A relevant original school link can appear under **Official source links**. The section provides navigation and keeps the unread notice outside the answer’s citations and verification evidence. A published notice index can still provide its original link after a timeout. The sign-in label requires an observed access gate.
+
+An unauthenticated read of the original OneDrive notice on 2026-11-15 returned HTTP 303 to the school’s DTM login path. The check stopped at that redirect. The public assistant can provide the indexed notice link while the student quota and publication date remain unverified. The local handler regressions cover both a withheld answer and a separately verified partial answer without including the login path or notice text in the reviewer input.

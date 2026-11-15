@@ -85,6 +85,7 @@ import { createAssistantStream } from "./assistantStream.js";
 import { runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
+import { createPublicSchoolSourceLeads } from "./publicSchoolSourceLeads.js";
 import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
     const authoritative = retrieved.filter((item) => ["primary_official", "delegated_official"].includes(item.authority_level) && Boolean(item.document_logical_key && item.document_checksum));
@@ -983,6 +984,38 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const captureActivity = [];
         const publicQuestion = publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
             item.role === 'user' && !personalPublicQuestion(item.content)));
+        const sourceLeads = publicQuestion && !personalQuestion && !input.images.length ? createPublicSchoolSourceLeads(input.question) : null;
+        const indexedSources = (sourceLeads?.indexed || []).map(lead => ({ chunkId: lead.id, url: lead.url,
+            title: chinese ? lead.titleZh : lead.titleEn, sourceName: 'STU Digital Teaching Materials' }));
+        async function readPublicSources(citations, until) {
+            const evidence = await readSources(citations, until, {
+                onAccessRequired: lead => sourceLeads?.recordAccessRequired(lead),
+            }).catch(() => []);
+            for (const source of evidence) if (validEvidence([source])) sourceLeads?.recordReadable(source.url);
+            return evidence;
+        }
+        async function readIndexedSources() {
+            const until = Math.min(deadline, started + 4_000);
+            const remaining = until - Date.now();
+            if (!indexedSources.length || remaining < 1_500) return [];
+            let timer;
+            try {
+                return await Promise.race([readPublicSources(indexedSources, until),
+                    new Promise(resolve => { timer = setTimeout(() => resolve([]), remaining); })]);
+            } finally { clearTimeout(timer); }
+        }
+        const indexedRead = readIndexedSources();
+        async function sendPublicReply(reply) {
+            if (sourceLeads) {
+                // The indexed destination remains useful when the independent
+                // access check has timed out or found an authentication gate.
+                await indexedRead;
+                const annotated = sourceLeads.append(reply);
+                if (annotated.step) verificationProgress(annotated.step);
+                reply = annotated.reply;
+            }
+            stream.send(200, reply);
+        }
         let knowledgeWebSwitch, publicStop, firstWebMiss, targetedWebStep, bootstrapRead;
         async function tryWebAnswer(earlierReview) {
             const recoveringEmptySearch = Boolean(earlierReview && firstWebMiss && !targetedWebStep);
@@ -1022,7 +1055,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 return false;
             }
             webAttempted ||= web.attempted;
-            const sourceLinks = web.result?.citations || web.discoveredSources || [];
+            const indexedEvidence = indexedSources.length ? await indexedRead : [];
+            const availableIndexed = indexedSources.filter(citation => indexedEvidence.some(source => source.id === citation.chunkId && source.url === citation.url && validEvidence([source])));
+            const sourceLinks = web.result?.citations || [...(web.discoveredSources || []), ...availableIndexed];
             if (!sourceLinks.length) {
                 publicStop = verificationStopActivity(verificationQuestion, 'no_usable_evidence');
                 const miss = reportSearch('Search found no usable lead', 'This lookup found no source page to check.', 'unavailable');
@@ -1053,7 +1088,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 // After two managed drafts failed, start from actual page
                 // contents, including leads the discovery draft never used.
                 const composeFromSources = !web.result || (previousChecks === maxAnswerVerificationChecks - 1 && Boolean(web.discoveredSources?.length));
-                return await verifyPublicSources(candidate, { previousChecks, composeFromSources, leads: web.discoveredSources });
+                return await verifyPublicSources(candidate, { previousChecks, composeFromSources, leads: [...(web.discoveredSources || []), ...availableIndexed] });
             } finally { await searchOperation; }
         }
         async function verifyPublicSources(candidate, { previousChecks = 0, capture, composeFromSources = false, leads = [] } = {}) {
@@ -1062,7 +1097,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const seenUrls = new Set(capture ? [canonicalUrl(capture.originalUrl)] : []);
             const readAttempts = new Map();
             const pendingLeads = new Map([...leads, ...candidate.citations].map(lead => [canonicalUrl(lead.url), lead]));
-            const canRead = url => Boolean(url) && !seenUrls.has(url) && (readAttempts.get(url) || 0) < 2;
+            const canRead = url => Boolean(url) && !seenUrls.has(url) && !sourceLeads?.isBlocked(url) && (readAttempts.get(url) || 0) < 2;
             const steps = new Map();
             let evidence = [];
             const progress = (step) => {
@@ -1079,7 +1114,14 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     if (candidates.length === limit) break;
                 }
                 if (!candidates.length) return [];
-                const fetched = await readSources(candidates, until).catch(() => []);
+                const haveIndexedCandidate = candidates.some(citation => indexedSources.some(indexed => indexed.url === citation.url));
+                const prechecked = haveIndexedCandidate ? await indexedRead : [];
+                const cached = candidates.flatMap(citation => {
+                    const source = prechecked.find(item => item.url === citation.url);
+                    return source ? [{ ...source, id: citation.chunkId }] : [];
+                });
+                const pending = candidates.filter(citation => !cached.some(source => source.url === citation.url) && !sourceLeads?.isBlocked(citation.url));
+                const fetched = [...cached, ...(pending.length ? await readPublicSources(pending, until) : [])];
                 return candidates.flatMap(citation => {
                     const source = fetched.find(item => item.id === citation.chunkId && item.url === citation.url);
                     if (!source || !validEvidence([source])) return [];
@@ -1233,7 +1275,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     ? '目前查閱的頁面無法確認你要找的資訊。若你有公告標題或連結，請提供給我，我可以查那份資料。'
                     : 'I could not verify that detail in the pages I checked. If you have the notice title or a link, send it and I can check that source.';
             }
-            stream.send(200, checked);
+            await sendPublicReply(checked);
             return true;
         }
         const preferredCapture = !kind.fresh && !personalQuestion && !pageQuestion && !publicStudyGuidance &&
@@ -1481,7 +1523,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             if (stop) verificationProgress(stop);
             const failedWebActivity = webAttempted ? [{ kind: 'web', label: 'Tried public school web search',
                 detail: 'No verified web answer replaced the managed sources', status: 'unavailable' }] : [];
-            stream.send(200, {
+            await sendPublicReply({
                 status: answer.status,
                 answer: answer.answer,
                 citations,
@@ -1511,7 +1553,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const stop = personalQuestion ? null : publicStop || verificationStopActivity(verificationQuestion,
                 deadline - Date.now() < 750 ? 'time_budget' : 'reviewer_unavailable');
             if (stop) verificationProgress(stop);
-            stream.send(200, { status: "handoff", answer: chinese
+            await sendPublicReply({ status: "handoff", answer: chinese
                     ? "這次查詢未能驗證答案，我不會猜測。您仍可查看[在校學生服務目錄](/在校學生/)或[學校官網](https://www.stu.edu.tw/)。告訴我要找的單位或具體服務，我可以再協助查找。"
                     : "I could not verify this answer during the lookup, so I will not guess. You can still browse [student services](/在校學生/) or the [official school website](https://www.stu.edu.tw/). Tell me the office or specific service and I can help narrow it down.", citations: [], suggestedQuestions: [], grounding: { source: "helpful-fallback", webSearched: webAttempted, degraded: true }, activity: [...captureActivity, { kind: 'knowledge', label: 'Checked managed school knowledge', detail: 'No answer could be verified', status: 'unavailable' }, ...(webAttempted ? [{ kind: 'web', label: 'Tried public school web search', detail: 'No verified source answer was available', status: 'unavailable' }] : []), ...(stop ? [stop] : [])] });
         }

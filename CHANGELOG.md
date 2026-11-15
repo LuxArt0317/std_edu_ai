@@ -5,6 +5,8 @@
 
 - Summarize the services listed on the exact archived page, with its title, link and capture date. [#100]
 
+- Preserve relevant official notice links when public research reaches a school sign-in gate, with a clear access label and separate verification evidence. [#100]
+
 - Answer whether the selected Moodle submission was late using the saved submission time and the deadline recorded with that upload. [#100]
 
 - Keep looking after a failed public source read when an unread lead or retry can still fit the deadline. Recheck questions about archived pages against the same capture. [#100]

@@ -2,6 +2,19 @@ import { createHash } from 'node:crypto';
 import captures from '../src/features/public/mirror/pages.json' with {type:'json'};
 import { acquireHttpsSource, detectAndExtractSource } from './knowledgeAcquisition.js';
 import { safeWebSource } from './schoolWebSearch.js';
+import { isSchoolSignInDestination, officialSchoolLeadUrl } from './publicSchoolSourceLeads.js';
+
+const accessRequired = Symbol('school sign-in required');
+function stopAtSignIn(destination) {
+  if (isSchoolSignInDestination(destination)) throw accessRequired;
+}
+function isSchoolLoginDocument(acquired, url) {
+  if (!officialSchoolLeadUrl(url) || !/^text\/html(?:;|$)/iu.test(acquired.mimeType)) return false;
+  const head = new TextDecoder().decode(acquired.bytes.subarray(0,65536));
+  // Moodle can serve the login template in place of the requested original URL.
+  return /<body\b[^>]*\b(?:id|class)\s*=\s*(['"])[^'"]*\b(?:page-login-index|pagelayout-login)\b[^'"]*\1/iu.test(head)
+    && /<input\b[^>]*\btype\s*=\s*(['"])password\1/iu.test(head);
+}
 
 const canonical=value=>{const url=safeWebSource(value);return url?url.replace(/\/$/,''):null;};
 async function capturedSource(url,deadline,dependencies) {
@@ -24,15 +37,20 @@ export async function readVerificationSources(citations, deadline, dependencies=
   const unique=[...new Map(citations.map(item=>[item.url,item])).values()].slice(0,4);
   const results=await Promise.allSettled(unique.map(async citation=>{
     const url=safeWebSource(citation.url);
-    if(!url||deadline-Date.now()<1500)throw new Error('No public source');
+    if(!url||isSchoolSignInDestination(url)||deadline-Date.now()<1500)throw new Error('No public source');
     let contents;
     try {
-      const acquired=await (dependencies.acquire||acquireHttpsSource)(url,{timeoutMs:Math.min(5000,deadline-Date.now())});
+      const acquired=await (dependencies.acquire||acquireHttpsSource)(url,{timeoutMs:Math.min(5000,deadline-Date.now()),onRedirect:stopAtSignIn});
+      stopAtSignIn(acquired.finalUrl);
+      if(isSchoolLoginDocument(acquired,url))throw accessRequired;
       const extracted=await detectAndExtractSource(acquired.bytes,acquired.mimeType,acquired.finalUrl);
       const content=extracted.sections.map(section=>section.content).join('\n').slice(0,16000);
       if(!content.trim())throw new Error('Source has no readable content');
       contents={content};
-    }catch{
+    }catch(error){
+      if(error===accessRequired&&officialSchoolLeadUrl(url)) {
+        dependencies.onAccessRequired?.({url,title:citation.title});
+      }
       contents=await capturedSource(url,deadline,dependencies);
     }
     return {id:citation.chunkId,...contents,url:citation.url,title:citation.title};

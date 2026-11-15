@@ -116,6 +116,7 @@ export async function acquireHttpsSource(value, options = {}) {
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
     const result = await requestOnce(current, options)
     if (!result.redirect) return result
+    options.onRedirect?.(result.redirect, current, result.status)
     if (redirects === MAX_REDIRECTS) throw new Error('The source exceeded the redirect limit.')
     current = result.redirect
   }
