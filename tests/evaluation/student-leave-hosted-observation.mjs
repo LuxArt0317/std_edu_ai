@@ -32,7 +32,20 @@ const boundaryExpectations=new Map(Object.entries({
 const gradeScopes=new Map(studentLeaveFixtureManifest.cases.filter(scope=>studentLeaveGradeCompanionCaseIds.includes(scope.caseId)
   &&scope.availability==='companion_fixture_required'&&scope.additionallyRequired.join()==='dtmGradeReport').map(scope=>[scope.caseId,scope.family]));
 if(gradeScopes.size!==studentLeaveGradeCompanionCaseIds.length)throw new Error('The frozen Student Leave/Moodle grade roster changed.');
-const cases=new Map(studentLeaveRunnerCases().filter(row=>readScopes.has(row.id)||boundaryScopes.has(row.id)||gradeScopes.has(row.id)).map(row=>[row.id,row]));
+const novemberCountIds=['count-only','category-status-count'].map(id=>prefix+id);
+const novemberCountScopes=new Map(studentLeaveFixtureManifest.cases.filter(scope=>novemberCountIds.includes(scope.caseId)
+  &&scope.availability==='request_clock_required'&&scope.additionallyRequired.join()==='trusted_taipei_request_clock')
+  .map(scope=>[scope.caseId,scope.family]));
+if(novemberCountScopes.size!==novemberCountIds.length)throw new Error('The frozen November Leave count roster changed.');
+// The literal “this month” had these specific Taipei dates in the frozen oracle.
+const novemberStart=Date.UTC(2026,9,31,16);
+const novemberEnd=Date.UTC(2026,10,30,16);
+const novemberClock=instant=>instant>=novemberStart&&instant<novemberEnd;
+function requireNovemberClock(){
+  if(!novemberClock(Date.now()))throw new Error('The frozen November Student Leave count window is closed.');
+}
+
+const cases=new Map(studentLeaveRunnerCases().filter(row=>readScopes.has(row.id)||boundaryScopes.has(row.id)||gradeScopes.has(row.id)||novemberCountScopes.has(row.id)).map(row=>[row.id,row]));
 for(const [id] of boundaryScopes){
   const row=cases.get(id);
   if(!boundaryExpectations.has(id)||row?.nativeLeaveContract.requiresScopedRecordRead!==false
@@ -48,15 +61,19 @@ const maxBodyBytes=128000;
 
 export const studentLeaveHostedBoundaryCaseIds=()=>[...boundaryScopes.keys()];
 export const studentLeaveHostedGradeCompanionCaseIds=()=>[...studentLeaveGradeCompanionCaseIds];
+export const studentLeaveHostedNovemberCountCaseIds=()=>[...novemberCountIds];
 
 export function studentLeaveHostedSelection(caseIds=[...readScopes.keys()]){
   if(!Array.isArray(caseIds)||!caseIds.length||new Set(caseIds).size!==caseIds.length)
     throw new Error('Invalid Student Leave hosted case selection.');
   // One disposable caller remains below the private per-minute endpoint limit.
   const grade=gradeScopes.has(caseIds[0]);
-  const scopes=boundaryScopes.has(caseIds[0])?boundaryScopes:grade?gradeScopes:readScopes;
-  if(caseIds.some(id=>!scopes.has(id))||grade&&!isDeepStrictEqual(caseIds,studentLeaveGradeCompanionCaseIds))
+  const november=novemberCountScopes.has(caseIds[0]);
+  const scopes=boundaryScopes.has(caseIds[0])?boundaryScopes:grade?gradeScopes:november?novemberCountScopes:readScopes;
+  if(caseIds.some(id=>!scopes.has(id))||grade&&!isDeepStrictEqual(caseIds,studentLeaveGradeCompanionCaseIds)
+    ||november&&!isDeepStrictEqual(caseIds,novemberCountIds))
     throw new Error('Invalid Student Leave hosted case selection.');
+  if(november)requireNovemberClock();
   return caseIds.map(id=>({testCase:cases.get(id),family:scopes.get(id),...(grade?{companion:'dtmGradeReport'}:{})}));
 }
 
@@ -99,7 +116,9 @@ function expectedGradeAttempt(ownerId,raw){
 /** Acceptance uses the frozen fixture oracle and a separately signed server
  * receipt. A terminal verification badge cannot populate either input. */
 export async function requestObservedStudentLeave({plan,testCase,key,token,fetchImpl,signal,seenCorrelations,gradeOverview}){
-  const grade=gradeScopes.has(testCase.id);
+  if(!cases.has(testCase?.id))throw new Error('Invalid Student Leave hosted case selection.');
+  const grade=gradeScopes.has(testCase.id),november=novemberCountScopes.has(testCase.id);
+  if(november)requireNovemberClock();
   const bound=bindStudentLeaveFixtureCase(plan,testCase,{gradeCompanion:grade});
   if(grade!==(gradeOverview!==undefined))throw new Error('The separate Moodle source fixture must match the frozen paired question.');
   const wantedGrade=grade?expectedGradeAttempt(bound.ownerId,gradeOverview):null;
@@ -118,6 +137,8 @@ export async function requestObservedStudentLeave({plan,testCase,key,token,fetch
     &&verifyStudentLeaveObservation({receipt,binding,correlationId,body:reply},key);
   const absent={caseId:bound.caseId,passed:false,observed:false,completedModelCalls:0,completedNativeCheck:false};
   if(!observation||seenCorrelations.has(correlationId))return {...absent,failures:['observation.missing_or_invalid']};
+  if(november&&(!novemberClock(Date.now())||!novemberClock(Date.parse(reply.grounding?.checkedAt))))
+    return {...absent,failures:['observation.request_clock_mismatch']};
   seenCorrelations.add(correlationId);
   if(boundary){
     const outcome=gradeCase({...testCase,expected:bound.expected,executionContract:'live-native'},{

@@ -4,7 +4,7 @@ import test from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {answerAccountWithVerification} from '../../server/answerVerificationAccount.js';
 import {createStudentLeaveBoundaryProbe,createStudentLeaveProbe,leaveObservationHeader,openStudentLeaveObservation,studentLeaveRowsDigest,verifyStudentLeaveObservation} from '../../server/studentLeaveObservation.js';
-import {requestObservedStudentLeave,studentLeaveHostedBoundaryCaseIds,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
+import {requestObservedStudentLeave,studentLeaveHostedBoundaryCaseIds,studentLeaveHostedNovemberCountCaseIds,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
 import {bindStudentLeaveFixtureCase,buildStudentLeaveFixturePlan,leaveFixtureProject,leaveFixtureTables} from './student-leave-fixture-plan.mjs';
 import {runStudentLeaveHostedEvaluation} from './live-fixtures.mjs';
 import {expectedAttempt} from './student-leave-offline-adapter.mjs';
@@ -28,7 +28,24 @@ test('hosted admission selects eighteen native read cases and excludes other tar
   await assert.rejects(runStudentLeaveHostedEvaluation({origin:'https://stu.best',sourceRevision}),{code:'fixture-config'});
 });
 
-test('all eighteen frozen hosted oracles pass the real deterministic handler and signed proof with zero provider calls',async t=>{
+test('the November count packet admits only its frozen pair and exact Taipei calendar month', t=>{
+  t.mock.timers.enable({apis:['Date'],now:Date.UTC(2026,9,31,16)-1});
+  const ids=studentLeaveHostedNovemberCountCaseIds();
+  assert.deepEqual(ids,[prefix+'count-only',prefix+'category-status-count']);
+  assert.throws(()=>studentLeaveHostedSelection(ids),/window is closed/u);
+  t.mock.timers.setTime(Date.UTC(2026,9,31,16));
+  assert.deepEqual(studentLeaveHostedSelection(ids).map(row=>row.family),['month-count','category-count']);
+  for(const selection of [[ids[0]],ids.slice().reverse(),[...ids,prefix+'dates'],[prefix+'taipei-today']])
+    assert.throws(()=>studentLeaveHostedSelection(selection),/Invalid Student Leave/u);
+  t.mock.timers.setTime(Date.UTC(2026,10,30,16)-1);
+  assert.equal(studentLeaveHostedSelection(ids).length,2);
+  t.mock.timers.setTime(Date.UTC(2026,10,30,16));
+  assert.throws(()=>studentLeaveHostedSelection(ids),/window is closed/u);
+});
+
+test('eighteen hosted record oracles and two November counts pass the real handler and independent signed proof',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:Date.UTC(2026,10,14,17)});
+
   const runId=randomUUID(),ownerId=randomUUID(),key='OFFLINE_LEAVE_OBSERVATION_KEY_'+randomUUID(),token='OFFLINE_FIXTURE_OWNER_TOKEN';
   const env={VERCEL_ENV:'preview',VERCEL_URL:new URL(origin).hostname,VERCEL_GIT_COMMIT_SHA:sourceRevision,
     SUPABASE_SERVICE_ROLE_KEY:key,OPENAI_API_KEY:'OFFLINE_PROVIDER_TEST_KEY'};
@@ -83,7 +100,10 @@ test('all eighteen frozen hosted oracles pass the real deterministic handler and
         const date=url.searchParams.get('and')?.match(/starts_on\.lt\.(\d{4}-\d{2}-\d{2})/u)?.[1];
         const from=url.searchParams.get('and')?.match(/ends_on\.gte\.(\d{4}-\d{2}-\d{2})/u)?.[1];
         const through=url.searchParams.get('and')?.match(/starts_on\.lte\.(\d{4}-\d{2}-\d{2})/u)?.[1];
-        rows=rows.filter(row=>(!date||row.starts_on<date)&&(!from||row.ends_on>=from)&&(!through||row.starts_on<=through))
+        const filter=url.searchParams.get('and')??'';
+        rows=rows.filter(row=>(!date||row.starts_on<date)&&(!from||row.ends_on>=from)&&(!through||row.starts_on<=through)
+          &&(!filter.includes('leave_category.in.(sick)')||row.leave_category==='sick')
+          &&(!filter.includes('status.in.(draft)')||row.status==='draft'))
           .sort((a,b)=>b.starts_on.localeCompare(a.starts_on)||a.id.localeCompare(b.id));
       }else rows.sort((a,b)=>a.id.localeCompare(b.id));
       const projected=rows.slice(0,Number(url.searchParams.get('limit')))
@@ -108,7 +128,8 @@ test('all eighteen frozen hosted oracles pass the real deterministic handler and
     readIndex=0;
     return requestObservedStudentLeave({plan,testCase,key,token,seenCorrelations,fetchImpl:endpoint(endpointOptions)});
   };
-  for(const selection of studentLeaveHostedSelection()){
+  const november=studentLeaveHostedSelection(studentLeaveHostedNovemberCountCaseIds());
+  for(const selection of [...studentLeaveHostedSelection(),...november]){
     const verified=await run(selection);
     assert.deepEqual(unexpected,[]);
     assert.equal(verified.passed,true,JSON.stringify({caseId:verified.caseId,failures:verified.failures}));

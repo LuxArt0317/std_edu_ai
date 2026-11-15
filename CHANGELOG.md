@@ -5,6 +5,8 @@
 
 - Answer the signed-in Student Profile confirmation and recorded year together when requested. Distinguish an empty record, an unavailable source and an attempt to read somebody else’s profile. [#100]
 
+- Verify saved Leave periods, exact counts, and fee or next-class companions. Keep saved dates available when only their linked review cannot be read. [#100]
+
 - Add a protected Chromium replay for the original certificate status and bank receipt questions. Verify the visible answer, private conversation restore, and account isolation. [#100]
 
 - Add a protected Preview evaluator for the three original Tutor Evaluation and tuition questions with exact caller readback and cleanup. [#100]

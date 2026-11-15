@@ -455,7 +455,7 @@ function requestedScheduleProjection(snapshot,context){
   return {records,availableRows:rows.length,nextDay:computed.next?.day??null,nextOnly,clearance:clearance||noteNext};
 }
 
-function clearanceNextClassAnswer(evidence,question,{labelFields=false}={}){
+function clearanceNextClassAnswer(evidence,question,{labelFields=false,labelTitle=false}={}){
   const source=evidence.find(item=>item.id==='account:courses');
   if(!source)return null;
   const payload=JSON.parse(source.content),next=payload.calendar?.records?.next;
@@ -471,13 +471,16 @@ function clearanceNextClassAnswer(evidence,question,{labelFields=false}={}){
   const room=course.room?.trim()||null;
   const where=room?t(' in ','，教室 ')+show(room):t('. No room is saved','，尚未記錄教室');
   const provenance=course.sourceMode==='sample'?t(' This is sample data.','這是示範資料。'):'';
+  if(labelTitle)return t(
+    `Next class: ${name}\n\nDate ${day}. Time ${time} (Taipei time)`,
+    `下一堂課：${name}\n\n日期 ${day}。時間 ${time}（台北時間）`)+where+t('.','。')+provenance;
   if(labelFields)return t(
     `Your next saved stu.best class is ${name}.\n  Date ${day}\n  Start time ${course.startsAt.slice(0,5)} (Taipei time)\n  Room ${show(room??'Not recorded')}`,
     `你在 stu.best 儲存的下一堂課是 ${name}。\n  日期：${day}\n  開始時間：${course.startsAt.slice(0,5)}（台北時間）\n  教室：${show(room??'未記錄')}`)+provenance;
   return t(`Your next saved stu.best class is ${name} on ${day}, ${time} (Taipei time)`,`你在 stu.best 儲存的下一堂課是 ${name}，${day} ${time}（台北時間）`)+where+t('.','。')+provenance;
 }
 
-function exactOwnedNextClass(source,snapshot,question,{labelFields=false,requireRoom=true}={}){
+function exactOwnedNextClass(source,snapshot,question,{labelFields=false,labelTitle=false,requireRoom=true}={}){
   const read=snapshot.completeness?.courses;
   if(source?.url!==schoolSubjectRecordsPath||snapshot.timetableReadUnavailable||snapshot.studentRecordFound!==true
     ||read?.scope!=='owned_enrolled_timetable'||read.complete!==true||!Array.isArray(snapshot.courses)
@@ -497,7 +500,7 @@ function exactOwnedNextClass(source,snapshot,question,{labelFields=false,require
   // row in the calendar excerpt alone does not resolve that overlap.
   if(snapshot.courses.some(row=>row.status==='enrolled'&&row.enrollmentId!==owned.enrollmentId&&row.weekday===owned.weekday
     &&row.startsAt===owned.startsAt&&day>=row.termStartsOn&&day<=row.termEndsOn))return null;
-  const answer=clearanceNextClassAnswer([source],question,{labelFields});
+  const answer=clearanceNextClassAnswer([source],question,{labelFields,labelTitle});
   if(!answer)return null;
   const title=supplementalAnswerLanguage(question)==='zh-TW'?'開啟校務系統的上課紀錄':'Open your saved class records';
   return {answer:answer+'\n\n['+title+']('+schoolSubjectRecordsPath+')',citations:evidenceCitations([source]),sourceIds:[source.id],views:[]};
@@ -969,15 +972,22 @@ async function answerExactAcademicGrades({question,snapshot,route,loadSnapshot,o
   return {...result,views:result.views??[],activity:[...observed.values()]};
 }
 
-function exactStudentLeaveCandidate(result,selection,question){
+function exactStudentLeaveCandidate(result,selection,question,{allowReviewFailure=false,allowReadFailure=false}={}){
   const source=result?.evidence;
   const url=studentLeaveBasePath+(selection.view==='record'?'/edit/'+selection.id:'/'+selection.view);
-  if(source?.id!=='account:leaveRecords'||source.url!==url||!['ok','empty'].includes(result.readState))return null;
+  if(source?.id!=='account:leaveRecords'||source.url!==url)return null;
+  const reviewFailure=allowReviewFailure&&result.readState==='partial'&&result.reason==='review_unavailable'
+    &&selection.view==='record'&&['dates','reviewStatus'].every(field=>selection.fields.includes(field));
+  const readFailure=allowReadFailure&&result.readState==='unavailable';
+  if(!['ok','empty'].includes(result.readState)&&!reviewFailure&&!readFailure)return null;
   const selected={view:selection.view,range:selection.range,filters:selection.filters,
-    fields:studentLeaveFieldNames.filter(field=>selection.fields.includes(field)),countOnly:false};
+    fields:studentLeaveFieldNames.filter(field=>selection.fields.includes(field)),countOnly:selection.countOnly};
   try{
-    if(!isDeepStrictEqual(JSON.parse(source.content).selection,selected))return null;
+    const payload=JSON.parse(source.content);
+    if(!isDeepStrictEqual(payload.selection,selected)
+      ||reviewFailure&&(payload.counts.matching!==1||payload.counts.included!==1||payload.counts.reviewUnavailable!==1))return null;
     const formatted=formatSupplementalAccountAnswers([result],{question});
+    if(reviewFailure&&Object.entries(formatted.formatting).some(([key,value])=>key!=='limited'&&value!==0))return null;
     return formatted.status==='answered'&&answerLinksSupported(formatted.answer,[source])?formatted:null;
   }catch{return null;}
 }
@@ -1454,9 +1464,72 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!completePair},
       activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
   }
-  if(leavePlan?.deterministicRead&&activeTools.length===1&&activeTools[0]==='leaveRecords'
-    &&firstSupplemental.length===1&&['ok','empty'].includes(firstSupplemental[0].readState)){
-    const canonical=results=>results.length===1?exactStudentLeaveCandidate(results[0],leavePlan.selection,question):null;
+  if(leavePlan?.deterministicCompanion){
+    const companion=leavePlan.classQuestion?'courses':'charges',requiredLeave=Boolean(leavePlan.selection);
+    const zh=supplementalAnswerLanguage(question)==='zh-TW',t=(en,tw)=>zh?tw:en;
+    let current=snapshot,results=firstSupplemental;
+    const render=()=>{
+      const leaveResult=requiredLeave&&results.length===1?results[0]:null;
+      const leave=leaveResult?exactStudentLeaveCandidate(leaveResult,leavePlan.selection,leavePlan.selection.question):null;
+      let otherSource,other=null;
+      try{
+        const clause=leavePlan.classQuestion||leavePlan.feeQuestion;
+        otherSource=accountEvidence(current,[companion],{...context,question:clause,history:[],scopedReadOnly:true})
+          .find(item=>item.id==='account:'+companion);
+        if(otherSource&&companion==='charges'){
+          const fees=formatSelectedChargeEvidence(otherSource,{language:zh?'zh-TW':'en',balanceOnly:true});
+          if(fees.complete&&fees.views[0]?.rows.length)other=fees;
+        }else if(otherSource)other=exactOwnedNextClass(otherSource,current,question,{labelTitle:true,requireRoom:false});
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;}
+      if(!leave&&!other)return null;
+      const trusted=[...(leave?[leaveResult.evidence]:[]),...(other?[otherSource]:[])];
+      const leaveText=leave?.answer??t('I couldn’t verify your saved leave dates.','無法核對您已儲存的請假日期。');
+      const otherText=other?.answer??(companion==='charges'
+        ?t('I couldn’t verify your remaining balance.','無法核對您的待繳金額。')
+        :t('I couldn’t verify your next class.','無法核對您的下一堂課。'));
+      const answer=(requiredLeave?(leavePlan.companionFirst?[otherText,leaveText]:[leaveText,otherText]):[otherText]).join('\n\n');
+      const visible=[leave,other].filter(Boolean);
+      const candidate={status:'answered',answer,citations:visible.flatMap(part=>part.citations),views:visible.flatMap(part=>part.views)};
+      if(answer.length>supplementalAnswerLimits.answerCharacters||Buffer.byteLength(JSON.stringify(candidate),'utf8')>supplementalAnswerLimits.resultBytes
+        ||!answerLinksSupported(answer,trusted))return null;
+      return {candidate,trusted,otherAvailable:Boolean(other),complete:Boolean(other)&&(!requiredLeave||leave?.complete===true)};
+    };
+    const withheld={status:'abstained',answer:'',citations:[],views:[]};
+    const checked=await runAnswerVerification({question,deadline,onProgress:emit,initialAnswer:render()?.candidate??withheld,
+      async loadEvidence({attempt}){
+        if(attempt>1){
+          const refreshed=await loadSnapshot();
+          if(refreshed.profile?.userId!==snapshot.profile?.userId)throw new Error('Account scope changed during the selected read.');
+          current=refreshed;
+          results=await readSupplemental(current,attempt);
+        }
+        const projected=render();
+        emit({kind:'account-read:'+companion+':'+attempt,
+          label:companion==='charges'?t('Checked your saved fee records','查閱已儲存的費用紀錄'):t('Checked your next class','查閱下一堂課'),
+          detail:companion==='charges'?t('Read charges for this signed-in account.','讀取目前登入帳戶的費用。')
+            :t('Checked the next dated meeting in your saved timetable.','核對已儲存課表中的下一堂課。'),
+          status:projected?.otherAvailable?'complete':'unavailable'});
+        return projected?.trusted??[];
+      },
+      verify({candidate,evidence}){
+        const expected=render();
+        if(!expected||!isDeepStrictEqual(evidence,expected.trusted)||!isDeepStrictEqual(candidate,expected.candidate))
+          return {ok:false,reason:'evidence_unavailable'};
+        emit({kind:expected.complete?'student-leave-companion-evidence-check':'student-leave-companion-verified-fragment',
+          label:expected.complete?t('Verified the selected saved records','核對選定的已儲存紀錄'):t('Verified part of your request','核對部分請求'),
+          detail:t('Matched the displayed values and page links to their separate saved sources.','分別比對顯示的數值及對應紀錄頁面。'),status:'complete'});
+        return {ok:true};
+      },
+      repair:async()=>render()?.candidate??withheld,
+    });
+    return {...checked,views:checked.views??[],suggestedQuestions:[],
+      grounding:{source:'account',webSearched:false,checkedAt:current.checkedAt,degraded:checked.verification?.status!=='verified'||render()?.complete!==true},
+      activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+  }
+  if(leavePlan?.deterministicRead&&activeTools.length===1&&activeTools[0]==='leaveRecords'&&firstSupplemental.length===1&&(['ok','empty','unavailable'].includes(firstSupplemental[0].readState)
+      ||firstSupplemental[0].reason==='review_unavailable'&&leavePlan.selection.view==='record'
+        &&['dates','reviewStatus'].every(field=>leavePlan.selection.fields.includes(field)))){
+    const canonical=results=>results.length===1?exactStudentLeaveCandidate(results[0],leavePlan.selection,question,{allowReviewFailure:true}):null;
     const withheld={status:'abstained',answer:'',citations:[],views:[]};
     let results=firstSupplemental;
     const checked=await runAnswerVerification({question,deadline,onProgress:emit,
@@ -1468,16 +1541,23 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       verify({candidate,evidence}){
         const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?canonical(results):null;
         if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
-        emit({kind:'student-leave-evidence-check',label:'Verified your saved leave records',
-          detail:'Matched the answer, table and record link to the exact fields read for this account.',status:'complete'});
+        const complete=results[0].readState!=='partial',zh=supplementalAnswerLanguage(question)==='zh-TW';
+        emit(complete?{kind:'student-leave-evidence-check',label:zh?'已核對儲存的請假紀錄':'Verified your saved leave records',
+          detail:zh?'已比對答案與本帳戶的選定紀錄。':'Matched the answer, table and record link to the exact fields read for this account.',status:'complete'}
+          :{kind:'student-leave-verified-fragment',label:zh?'已核對請假日期':'Verified the available leave fields',
+            detail:zh?'連結的審核狀態無法查核。':'The linked review status could not be checked.',status:'complete'});
         return {ok:true};
       },
       repair:async()=>canonical(results)??withheld,
     });
     const verified=checked.verification?.status==='verified';
-    if(verified)onNativeLeaveVerified?.();
-    return {...checked,views:checked.views??[],suggestedQuestions:[],
-      grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!verified},
+    const whole=verified&&results[0]?.readState!=='partial';
+    if(whole)onNativeLeaveVerified?.();
+    const unavailable=!verified&&results[0]?.readState==='unavailable'
+      ?exactStudentLeaveCandidate(results[0],leavePlan.selection,question,{allowReadFailure:true}):null;
+    return {...checked,...(unavailable?{answer:unavailable.answer,citations:unavailable.citations}:{}),
+      views:checked.views??[],suggestedQuestions:[],
+      grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!whole},
       activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
   }
   let current=snapshot,supplemental=firstSupplemental,needsComposition=false;

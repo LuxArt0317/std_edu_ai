@@ -64,11 +64,12 @@ const decimal=value=>(value/100).toLocaleString('en-US',{minimumFractionDigits:2
 const money=(value,currency)=>(currency==='TWD'?'NT$':currency+' ')+(value/100).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:true});
 
 export function formatSelectedChargeEvidence(source,options={}){
-  if(!keys(options,[],['language','includeAuthorityLimit','exactBalance','separateCurrency'])
+  if(!keys(options,[],['language','includeAuthorityLimit','exactBalance','separateCurrency','balanceOnly'])
     ||options.language!==undefined&&!['en','zh-TW'].includes(options.language)
     ||options.includeAuthorityLimit!==undefined&&typeof options.includeAuthorityLimit!=='boolean'
     ||options.exactBalance!==undefined&&typeof options.exactBalance!=='boolean'
-    ||options.separateCurrency!==undefined&&typeof options.separateCurrency!=='boolean')invalid();
+    ||options.separateCurrency!==undefined&&typeof options.separateCurrency!=='boolean'
+    ||options.balanceOnly!==undefined&&typeof options.balanceOnly!=='boolean')invalid();
   const {p,c,rows,state}=validate(source),zh=options.language==='zh-TW',t=(en,tw)=>zh?tw:en;
   const title=t('Selected local tuition and fee records','選定的站內學費及費用紀錄');
   const citation={chunkId:sourceId,claim:title,title,sourceName:'stu.best account records',url:path,locator:null,effectiveAt:null,reviewedAt:options.exactBalance?p.checkedAt??null:null};
@@ -90,7 +91,9 @@ export function formatSelectedChargeEvidence(source,options={}){
   function result(){
     const omitted=rows.length-shown.length,complete=state==='records'&&p.studentRecordFound===true&&!p.excerpted&&c.availableRows===c.matchingRows&&!omitted;
     const rowMode=row=>options.exactBalance?(row.sourceMode==='sample'?t('Sample charge: ','範例費用：'):t('Charge with saved verified label: ','儲存來源標記為 verified 的費用：')):'';
-    const lines=shown.map(row=>(shown.length>1?'- ':'')+rowMode(row)+literal(row.label)+(options.separateCurrency
+    const lines=shown.map(row=>options.balanceOnly
+      ?literal(row.label)+'\n\n'+t('Remaining balance: ','待繳金額：')+literal(money(row.remaining,row.currency))
+      :(shown.length>1?'- ':'')+rowMode(row)+literal(row.label)+(options.separateCurrency
       ?t('\n  Remaining: ','\n  待繳金額：')+literal(decimal(row.remaining))+t('\n  Currency: ','\n  幣別：')+literal(row.currency)
       :t('\n  Remaining balance ','\n  待繳金額：')+literal(money(row.remaining,row.currency)))
       +t('\n  Saved amount due ','\n  已儲存應繳金額：')+literal(money(row.due,row.currency))
@@ -118,7 +121,9 @@ export function formatSelectedChargeEvidence(source,options={}){
     const answer=[...lead,scope,...lines,...notes,provenance,authority,`[${t('Open saved fee records','開啟已儲存費用紀錄')}](${path})`].filter(Boolean).join('\n\n');
     const viewNote=[counts,scopeNote].filter(Boolean).join(' ');
     return {status:'answered',answer,citations:[citation],sourceIds:[sourceId],complete,
-      views:state==='records'&&rows.length?[{id:'charges',title,url:path,columns,rows:shown.map(row=>[row.label,row.currency,decimal(row.due),decimal(row.paid),decimal(row.remaining),row.sourceMode]),
+      views:state==='records'&&rows.length?[{id:'charges',title,url:path,columns:options.balanceOnly?columns.filter((_,index)=>index!==2&&index!==3):columns,
+        rows:shown.map(row=>options.balanceOnly?[row.label,row.currency,decimal(row.remaining),row.sourceMode]
+          :[row.label,row.currency,decimal(row.due),decimal(row.paid),decimal(row.remaining),row.sourceMode]),
         total:rows.length,checkedAt:p.checkedAt,note:viewNote}]:[],
       formatting:{limited:omitted>0,omittedItems:omitted,omittedViewRows:omitted,omittedViews:0}};
   }

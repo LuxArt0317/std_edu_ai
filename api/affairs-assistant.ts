@@ -612,7 +612,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     const loadServiceCompanions=async()=>{
       const base={checkedAt:new Date().toISOString(),profile:{userId:account.user.id}};
       const readFees=async(observeRead?:(read:unknown)=>void)=>{
-        const saved=await loadOwnAffairsCharges(account,{deadline,observeRead});
+        const saved=await loadOwnAffairsCharges(account,{deadline,observeRead,
+          requireExactProjection:leavePlan?.deterministicCompanion});
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return feeLabel?{...saved,chargeSelectionLabel:feeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(feeLabel))}:saved;
       };

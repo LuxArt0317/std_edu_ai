@@ -1032,16 +1032,20 @@ function sectionFor(parsed,question,zh){
     const {selection:s,counts:c}=p;
     section.complete=p.complete;
     section.limited=!p.complete;
-    section.lead.push(t('These are your saved stu.best leave records. The local tracking and review states don’t establish university approval or class attendance.',
-      '以下是你在 stu.best 已儲存的請假紀錄。站內追蹤與審核狀態無法證明校方核准或課堂出席。'));
+    section.lead.push(t('These are your saved stu.best leave records.','以下是你在 stu.best 已儲存的請假紀錄。'));
+    if(asksAboutOfficialRecords(question))section.lead.push(t('The saved tracking and review states don’t establish university approval or class attendance.',
+      '站內追蹤與審核狀態無法證明校方核准或課堂出席。'));
     if(s.view==='archive')section.lead.push(t('Archived records started before 2019-08-01.','舊紀錄的起日早於 2019-08-01。'));
     if(s.range)section.lead.push(t('Date range ', '日期範圍 ')+s.range.from+' – '+s.range.through);
+    if(s.countOnly){
+      section.lead.push(t('Matching saved leave records: ','相符的請假紀錄筆數：')+c.matching+'.');
+      return section;
+    }
     if(envelope.readState==='empty'){
       section.lead.push(t('No matching saved leave records were returned.','沒有相符的已儲存請假紀錄。'));
       return section;
     }
     section.lead.push(t('Matching saved leave records: ','相符的請假紀錄筆數：')+c.matching+'.');
-    if(s.countOnly)return section;
     if(c.unread||c.omitted)section.lead.push(t('The lookup included ','本次查詢納入 ')+c.included+' / '+c.matching+t(' rows. Open the record list for more.',' 筆。請開啟紀錄清單查看其餘資料。'));
     if(c.reviewUnavailable)section.lead.push(t('Some linked review requests couldn’t be checked.','部分連結的站內審核請求無法查核。'));
     const fields={

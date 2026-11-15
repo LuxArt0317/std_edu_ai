@@ -6,9 +6,14 @@ import { schoolSubjectRecordsPath } from '../src/features/public/affairs/student
 
 const exactGradeOverview=/^(?:(?:please )?(?:show|list|check) my (?:(?:saved|local) )?(?:moodle|dtm) grade overview|(?:請)?(?:顯示|查詢|查看)我的(?:已儲存的)?(?:Moodle|DTM|數位教材網)成績綜覽)[.?!。！？]*$/iu;
 
-export function studentLeaveAssistantPlan(question, route, history) {
+const nextClass = value => isServiceNoteNextClass(value) || /^(?:please )?show(?: me)? my next class$/iu.test(value);
+const leavePages = ['', '/index', '/history', '/archive', '/periods'].map(path => studentLeaveBasePath + path);
+
+export function studentLeaveAssistantPlan(question, route, history = []) {
   const lookup = studentLeaveLookupContext(question, route, history);
-  if (!lookup.selection && !lookup.excluded && !lookup.navigation) return null;
+  const independentNext = !lookup.selection && !lookup.excluded && !lookup.navigation
+    && leavePages.includes(route?.replace(/^https:\/\/stu\.best|\/$/gu, '')) && nextClass(lookup.otherQuestion);
+  if (!lookup.selection && !lookup.excluded && !lookup.navigation && !independentNext) return null;
   const clauses = lookup.otherQuestion.split(/\.\s+/u).filter(Boolean);
   let feeQuestion = '', classQuestion = '', gradeQuestion = '';
   const unknown = [];
@@ -17,7 +22,7 @@ export function studentLeaveAssistantPlan(question, route, history) {
     const label = ownFeeBalanceLabel(clause);
     const tuitionLabel = label && /\b(?:tuition|fees?|charges?)\b|學費|学费|費用|费用/iu.test(label);
     if (!feeQuestion && (isOwnFeeBalanceQuestion(clause) || tuitionLabel)) feeQuestion = clause;
-    else if (!classQuestion && isServiceNoteNextClass(clause)) classQuestion = clause;
+    else if (!classQuestion && nextClass(clause)) classQuestion = clause;
     else if (!gradeQuestion && /\b(?:moodle|dtm)\b|數位教材|数位教材/iu.test(clause)) {
       const grade = dtmNativeClauseScope(clause, '/dtm/grades', []);
       if (grade.recognized && grade.grades) gradeQuestion = grade.grades.question;
@@ -26,21 +31,25 @@ export function studentLeaveAssistantPlan(question, route, history) {
     else if (!/^(?:use|format) YYYY-MM-DD for dates[.!]?$/iu.test(clause)) unknown.push(clause);
   }
   const {selection}=lookup;
-  const dateWording=selection?.from==='history'
-    ?history.findLast(item=>item?.role==='user')?.content?.normalize('NFKC')??''
-    :selection?.question??'';
-  const fixedRange=!selection?.range||[selection.range.from,selection.range.through].every(date=>dateWording.includes(date));
-  const exactLeaveRead=Boolean(selection&&!selection.reason&&!selection.title&&!selection.countOnly
-    &&fixedRange&&!lookup.foreign&&!lookup.navigation&&!lookup.excluded&&!feeQuestion&&!classQuestion&&!unknown.length);
-  const deterministicRead=exactLeaveRead&&!gradeQuestion;
+  const exactLeave = Boolean(selection && !selection.reason && !selection.title
+    && !lookup.foreign && !lookup.navigation && !lookup.excluded && !unknown.length);
+  const exactLeaveRead = exactLeave && !feeQuestion && !classQuestion;
+  const deterministicRead = exactLeaveRead && !gradeQuestion;
+  const deterministicCompanion = Boolean(independentNext || (exactLeave && !selection.countOnly && !gradeQuestion
+    && Boolean(feeQuestion) !== Boolean(classQuestion)
+    && selection.from === 'question' && selection.view === 'history' && !selection.range && selection.fields.join() === 'dates'
+    && Object.values(selection.filters).every(filter => !filter.included.length && !filter.excluded.length)));
+  const companion = feeQuestion || classQuestion;
+  const companionFirst = Boolean(companion && question.normalize('NFKC').trimStart().startsWith(companion));
   const deterministicGradePair=Boolean(exactLeaveRead&&selection.from==='question'&&selection.view==='history'
-    &&selection.range===null&&selection.fields.join()==='dates'
+    &&!selection.countOnly&&selection.range===null&&selection.fields.join()==='dates'
     &&Object.values(selection.filters).every(filter=>!filter.included.length&&!filter.excluded.length)
     &&exactGradeOverview.test(lookup.otherQuestion)&&exactGradeOverview.test(gradeQuestion));
   return {
     ...lookup,
     feeQuestion, feeLabel: feeQuestion ? ownFeeBalanceLabel(feeQuestion) : null,
     classQuestion, gradeQuestion, hasOtherQuestion: unknown.length > 0, deterministicRead, deterministicGradePair,
+    deterministicCompanion, companionFirst,
   };
 }
 

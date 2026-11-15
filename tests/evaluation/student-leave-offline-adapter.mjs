@@ -63,20 +63,27 @@ export function expectedAttempt(plan,bound,rowsDigest=leaveFixtureDigest){
   // without a range field. Keep that independent expectation explicit here.
   const dateRange=bound.caseId==='account:student-leave-native-confirmed-empty'
     ?{from:'2026-11-18',through:'2026-11-18'}:bound.plannedRead.dateRange;
+  const countOnly=/(?:count-only|category-status-count)$/u.test(bound.caseId);
+  const filteredCount=bound.caseId==='account:student-leave-native-category-status-count';
   const selected=fields.filter(field=>selectedFields.includes(field));
+  const expectedFilters=filteredCount?{categories:{included:['sick'],excluded:[]},statuses:{included:['draft'],excluded:[]}}:filters;
   const ownerId=bound.ownerId,{projectRef}=plan.binding;
   const formColumns=['id','user_id','service_key','record_type','starts_on','ends_on',
-    ...(selected.includes('status')?['status']:[]),...(selected.includes('category')?['leave_category']:[]),
+    ...(selected.includes('status')||filteredCount?['status']:[]),...(selected.includes('category')||filteredCount?['leave_category']:[]),
     ...selected.filter(field=>field==='periods'||field==='reviewStatus').map(field=>field==='periods'?field:'review_request_id'),
   ];
-  requireOffline(selected.length>0&&selected.length===selectedFields.length&&['ok','empty'].includes(expectedReadState),'unsupported_oracle');
+  requireOffline((countOnly?selected.length===0:selected.length>0)&&selected.length===selectedFields.length
+    &&['ok','empty'].includes(expectedReadState),'unsupported_oracle');
   const archive=sourceView==='archive';
   const matched=plan.rows[forms].filter(row=>row.user_id===ownerId&&(!recordId||row.id===recordId)&&(!archive||row.starts_on<'2019-08-01')
-    &&(!dateRange||row.starts_on<=dateRange.through&&row.ends_on>=dateRange.from))
+    &&(!dateRange||row.starts_on<=dateRange.through&&row.ends_on>=dateRange.from)
+    &&(!filteredCount||row.leave_category==='sick'&&row.status==='draft'))
     .sort((a,b)=>b.starts_on.localeCompare(a.starts_on)||a.id.localeCompare(b.id));
-  const dateFilters=[...(archive?['starts_on.lt.2019-08-01']:[]),...(dateRange?['starts_on.lte.'+dateRange.through,'ends_on.gte.'+dateRange.from]:[])];
-  const limit=recordId?1:80;
-  requireOffline(matched.length<=limit&&Boolean(matched.length)===(expectedReadState==='ok'),'unsupported_oracle');
+  const dateFilters=[...(archive?['starts_on.lt.2019-08-01']:[]),...(dateRange?['starts_on.lte.'+dateRange.through,'ends_on.gte.'+dateRange.from]:[]),
+    ...(filteredCount?['leave_category.in.(sick)','status.in.(draft)']:[])];
+  const limit=recordId||countOnly?1:80;
+  requireOffline((countOnly?matched.length===(filteredCount?3:17):matched.length<=limit)
+    &&Boolean(matched.length)===(expectedReadState==='ok'),'unsupported_oracle');
   const reads=[projectedFetch(projectRef,forms,ownerId,{
     select:formColumns.join(','),user_id:'eq.'+ownerId,service_key:'eq.leave',record_type:'eq.leave',
     ...(recordId?{id:'eq.'+recordId}:{}),...(dateFilters.length?{and:'('+dateFilters.join(',')+')'}:{}),
@@ -89,7 +96,7 @@ export function expectedAttempt(plan,bound,rowsDigest=leaveFixtureDigest){
     select:'id,user_id,request_type,status',user_id:'eq.'+ownerId,request_type:'eq.general',id:'in.('+linkedIds.join(',')+')',
     order:'id.asc',limit:linkedIds.length,
   },linked,linkedIds.length,rowsDigest));
-  const records=matched.map(row=>Object.fromEntries(selected.flatMap(field=>{
+  const records=(countOnly?[]:matched).map(row=>Object.fromEntries(selected.flatMap(field=>{
     if(field==='dates')return [['startsOn',row.starts_on],['endsOn',row.ends_on]];
     if(field==='category')return [['category',row.leave_category]];
     if(field==='reviewStatus')return [['reviewStatus',linked.find(item=>item.id===row.review_request_id)?.status??null],
@@ -99,8 +106,8 @@ export function expectedAttempt(plan,bound,rowsDigest=leaveFixtureDigest){
   const n=matched.length,url=recordId?base+'/edit/'+recordId:base+'/'+sourceView;
   const dtoDigest=leaveFixtureDigest({
     collection:'leaveRecords',readState:expectedReadState,reason:null,
-    selection:{view:sourceView,range:dateRange,filters,fields:selected,countOnly:false},
-    counts:{matching:n,returned:n,included:n,unread:0,omitted:0,reviewUnavailable:0},records,complete:true,
+    selection:{view:sourceView,range:dateRange,filters:expectedFilters,fields:selected,countOnly},
+    counts:{matching:n,returned:Math.min(n,limit),included:records.length,unread:0,omitted:0,reviewUnavailable:0},records,complete:true,
     provenance:{sourceMode:'saved_local',system:'stu.best School Affairs',officialUniversityData:false,synchronized:false},
   });
   return {reads,evidence:{id:source,title:'Saved student leave records',url,urls:[url],provenance:'saved_local',dtoDigest}};
