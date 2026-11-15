@@ -1,5 +1,7 @@
 ## Assistant evaluation resumed [Issue #100]
 
+Protected Preview `8cfbd8d` completed four pinned public requests and passed all four independently graded signed-in replies. The public founding request read a new school source and ran a third review, then withheld unsupported claims. The balance recovered from refreshed charges and the signed-in fixture cleanup passed. Browser Activity, full local suites and build passed. The Preview build emitted two non-strict API diagnostics, resolved by the locally checked `c8f5a48` follow-up. The model comparison, matching hosted compiler proof and durable conversation gate are pending.
+
 The integrated overview and exact balance paths now refresh caller-owned evidence after a rejected review and reconstruct the answer from validated fields. The scoped handler, four-turn controlled replay, independent housing rubric and compiled activity display checks passed. A fresh protected deployment and independent hosted replay are required to confirm the fixes against the real provider.
 
 The public managed-knowledge handler now switches to school pages after an evidence failure when time remains. Its controlled HTTP and grading checks count the actual reviews across the switch and preserve both retrieval paths in chat. The protected Preview replay needs to establish whether that route is reached with the live model.

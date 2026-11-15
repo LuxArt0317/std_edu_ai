@@ -339,3 +339,11 @@ A rejected account overview refreshes the same seven caller-owned projections, c
 ### Switch sources after a failed knowledge check
 
 If managed excerpts still leave an evidence gap and time remains, the public handler can switch to official pages. It submits only the screened public question to search, reads the returned page independently, and spends the remaining verification check on that evidence. The earlier checks and source switch stay in the Activity timeline. Controlled handler cases verify a recovered answer, missing web results, expiring budget, a prior web attempt and a provider outage. No search is sent for a private question or image in this path.
+
+### Protected source recovery Preview
+
+Vercel deployment `dpl_392BytNSPQ9uxFuQm9a3tuMQ6jnz` served exact revision `8cfbd8d`. The local suite passed 1,783 API and source checks, 1,260 evaluator checks and 541 unit checks. Build, type checks, lint, handoff, dependency audit and the two-width Activity browser check passed. The Preview build also reported two non-strict TypeScript diagnostics while emitting the API. Follow-up `c8f5a48` resolves both in the strict and non-strict compilers.
+
+Four live public requests passed deployment pinning and transport checks. The founding request independently read a new official source and reached a third review. The reviewer still found unsupported claims, so the assistant withheld the answer. The quota response explained the missing quota and date based on the checked pages. The academic FAQ verified in one check. The private guest question required sign-in without web search. A successful third review and the switch from managed knowledge to web have controlled evidence on this revision. The stronger model comparison remains open.
+
+The same Preview passed independent grading on all four signed-in prompts. The balance recovered on the second check using refreshed charges, and interview coaching passed its six helpfulness criteria with zero account readers. Both disposable identities were removed and the protected owner was preserved. This run covers answering and scoped fixture readback. The conversation migration and exact durable chat replay remain pending.
