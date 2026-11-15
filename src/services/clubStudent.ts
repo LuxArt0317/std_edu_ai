@@ -22,9 +22,7 @@ export async function saveClubFoundation(userId:string,action:ClubFoundationActi
 }
 
 const safeLabel=(value:string)=>value.replace(/[\s\p{Cc}\p{Cf}]+/gu,' ').replace(/[\\`*_~{}[\]()<>#!|]/gu,'\\$&').trim();
-const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'});
-
-export async function answerStudentClubs(userId:string,question:string,view:Exclude<ClubStudentView,'foundation/review'>,
+export async function answerStudentClubs(userId:string,question:string,view:Exclude<ClubStudentView,'foundation/review'|'my-attendance'>,
   cancel?:AbortSignal):Promise<AssistantResponse> {
   const guide=clubStudentGuide(question,view,true);
   if(clubSearchViews.includes(view)||(view==='foundation'&&/^(?:how|where|如何|怎麼|在哪)/iu.test(question.trim())&&
@@ -33,7 +31,6 @@ export async function answerStudentClubs(userId:string,question:string,view:Excl
   const workspace=await loadStudentClubs(userId,view,'',1,cancel??new AbortController().signal);
   const lines=workspace.view==='my-memberships'?workspace.rows.map(row=>safeLabel(row.name)+' · '+safeLabel(row.role_label)
     +(row.active?'':zh?'（已停用）':' (inactive)')):
-    workspace.view==='my-attendance'?workspace.rows.map(row=>safeLabel(row.title)+' · '+safeLabel(row.club_name)+' · '+date.format(new Date(row.starts_at))):
     workspace.view==='foundation'?workspace.rows.map(row=>safeLabel(row.name)+' · '+(zh?clubFoundationStatuses[row.status]:row.status)):[];
   const items=lines.slice(0,8);
   const more=lines.length>items.length||workspace.hasMore;

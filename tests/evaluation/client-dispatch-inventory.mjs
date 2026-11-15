@@ -6,6 +6,7 @@ import {certificateAwardQuestion,certificateAwardScope} from '../../server/certi
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
 import {venueRequestPlan} from '../../server/venueRequestIntent.js';
+import {clubAttendanceSelection} from '../../server/clubAttendanceIntent.js';
 
 const dispatchPath='src/services/schoolAffairsAssistant.ts';
 const apiPath='api/affairs-data.ts';
@@ -17,11 +18,11 @@ const digest=value=>createHash('sha256').update(value).digest('hex');
 // fixture. Source linkage never constitutes an answered question or UI proof.
 const definitions=[
   {id:'club-student',call:'answerStudentClubs',file:'clubStudent',server:'clubStudent',scope:clubStudentScope,
-    routes:['/school-affairs/services/40-1/my-memberships','/school-affairs/services/40-1/my-attendance','/school-affairs/services/40-1/foundation'],
+    routes:['/school-affairs/services/40-1/my-memberships','/school-affairs/services/40-1/foundation'],
     selector:{view:'my-memberships',page:'1'},fields:['rows[].name','rows[].role_label','rows[].active','hasMore'],
     question:'Which clubs am I a member of, and which memberships are active?',
     secondPart:'Also show my current semester subjects.',secondTools:['courses'],
-    support:'owned_membership_attendance_and_foundation_summary',
+    support:'owned_membership_and_foundation_summary',
     limit:'Directory and general activity searches are guides, not private membership proof. Only the first page is summarized; hasMore must remain visible.'},
   {id:'certificate-awards',call:'readCertificateAwardAnswer',file:'certificateAwards',server:'certificateAwards',scope:certificateAwardScope,
     routes:['/school-affairs/services/52-1'],selector:{view:'mine',answer:'en'},fields:['rows[].name','rows[].status'],
@@ -49,6 +50,11 @@ const graphVenueDefinition={id:'venue-requests',call:'answerVenueRequests',graph
   question:'What is the status of my venue reservation requests?',
   secondPart:'Also show the fee balance recorded on my account.',secondTools:['charges']};
 
+const graphAttendanceDefinition={id:'club-activity-attendance',call:'answerClubActivityAttendance',graphTool:'clubAttendance',
+  routes:['/school-affairs/services/40-1/my-attendance'],fields:['title','club_name','starts_at','location','academic_year','term','recorded_at','hasMore'],
+  question:'Show my saved club activity attendance records.',
+  secondPart:'Also show my tuition balance.',secondTools:['charges']};
+
 const navigationOnly=[
   {calls:['clubOfficerGuide','clubGuide'],scopes:['club-officer','student-clubs'],reason:'Client opens an authorized page; it does not read private officer/application/equipment rows.'},
 ];
@@ -59,6 +65,7 @@ const otherDirectReaders=['readProgramRegistrationAnswer','readEarlyGraduationAn
 export function probeNativePredicate(id,question,route=''){
   switch(id){
     case 'club-student':return clubStudentQuestion(question);
+    case 'club-activity-attendance':{const selection=clubAttendanceSelection(question,route);return selection?selection.reason??(selection.partial?'partial':'mine'):null;}
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
@@ -105,7 +112,7 @@ export function inspectClientDispatchSource(source){
   const first=graphCalls[0];
   const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
     &&node.thenStatement.expression?.getStart(file)===first.at);
-  const graphPredicates={isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
+  const graphPredicates={clubAttendanceSelection:['clubAttendanceIntent','question,route'],isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
     isStudentLeaveEvidenceQuestion:['studentLeaveEvidenceIntent','question,route,history'],
     isVenueRequestQuestion:['venueRequestIntent','question,route,history'],
     isDtmAssignmentEvidenceQuestion:['dtmAssignmentEvidenceIntent','question,route,history'],
@@ -142,6 +149,7 @@ export function inspectClientDispatchSource(source){
   if(!valid||observed.size!==Object.keys(graphPredicates).length||first.at<=guardPosition||contracts.some(row=>row.line<=first.line))
     throw new Error('Graph-backed questions must enter account verification before any direct reader.');
   return {contracts,verifiedDispatch:[
+    {id:'club-activity-attendance',graphTool:'clubAttendance',serviceKeys:['40-1/my-attendance'],source:dispatchPath,line:first.line},
     {id:'published-course-detail',graphTool:'courseCatalog',source:dispatchPath,line:first.line},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog',source:dispatchPath,line:first.line},
     {id:'elearning-page-metadata',graphTool:'elearningMetadata',source:dispatchPath,line:first.line},
@@ -200,7 +208,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/elearningMetadataIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/clubAttendanceIntent.js','server/accountClubAttendanceAnswer.js','server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/elearningMetadataIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
@@ -219,7 +227,7 @@ export async function discoverClientDispatchSurfaces({read=readSource}={}){
       capabilityGap:'No independent live native fixture/client-dispatch acceptance in this inventory.'};
   });
   return {version:1,layer:'browser-client-dispatch',graphBankIncluded:false,sourceManifest:entries.map(([path,text])=>({path,sha256:digest(text)})),
-    services,scopes:[...new Set(services.map(row=>row.scope))],questions:[...definitions,graphVenueDefinition].flatMap(questionCases),verifiedDispatch:dispatch.verifiedDispatch,
+    services,scopes:[...new Set(services.map(row=>row.scope))],questions:[...definitions,graphVenueDefinition,graphAttendanceDefinition].flatMap(questionCases),verifiedDispatch:dispatch.verifiedDispatch,
     navigationOnly:dispatch.navigationOnly,otherDirectReaders:dispatch.otherDirectReaders,
     limits:['Static code linkage is not browser execution, deployed reachability, successful private reads or verified answer quality.',
       'The graph reader registry does not include these direct browser dispatch readers. Direct API evaluation cannot silently count their coverage.',

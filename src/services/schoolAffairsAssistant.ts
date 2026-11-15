@@ -10,6 +10,7 @@ import {isDtmAssignmentEvidenceQuestion} from '../../server/dtmAssignmentEvidenc
 import {isStudentConductScopeQuestion} from '../../server/studentConductEvidenceScope.js';
 import {boundedAssistantText} from './assistantActivityBudget.js';
 import { clubStudentQuestion } from '../../server/clubStudentContract.js';
+import {clubAttendanceSelection} from '../../server/clubAttendanceIntent.js';
 import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
@@ -78,12 +79,12 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
     ||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
     ||isTeachingFeedbackScopeQuestion(question,route,history)
-    ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history))
+    ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history)||clubAttendanceSelection(question,route))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
   const studentClub = !images.length ? clubStudentQuestion(question) : null;
-  if (studentClub) {
+  if (studentClub && studentClub!=='my-attendance') {
     onProgress?.({kind:'student-clubs',label:'Checking club records',detail:'Using your School Affairs session.',status:'running'});
     return answerStudentClubs(data.session.user.id,question,studentClub,signal);
   }

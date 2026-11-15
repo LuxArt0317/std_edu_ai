@@ -7,12 +7,13 @@ const dispatchSource=()=>readFile(new URL('../../src/services/schoolAffairsAssis
 
 test('the four direct readers and verified graph dispatch remain separately visible',async()=>{
   const inventory=await discoverClientDispatchSurfaces();
-  assert.equal(inventory.services.length,4);assert.equal(inventory.scopes.length,4);assert.equal(inventory.questions.length,25);
+  assert.equal(inventory.services.length,4);assert.equal(inventory.scopes.length,4);assert.equal(inventory.questions.length,30);
   assert.equal(inventory.graphBankIncluded,false);assert.equal(inventory.layer,'browser-client-dispatch');
   assert.deepEqual(inventory.scopes,['club-student',
     'certificate-awards','announcement-email','student-profile']);
-  assert.equal(new Set(inventory.questions.map(row=>row.id)).size,25);
+  assert.equal(new Set(inventory.questions.map(row=>row.id)).size,30);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
+    {id:'club-activity-attendance',graphTool:'clubAttendance'},
     {id:'published-course-detail',graphTool:'courseCatalog'},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog'},
     {id:'elearning-page-metadata',graphTool:'elearningMetadata'},
@@ -56,6 +57,10 @@ test('native questions require the fields the reader actually supplies and discl
     question=id=>inventory.questions.find(row=>row.id===id);
   assert.equal(service('aid-payments'),undefined);
   assert.equal(service('student-leave'),undefined);
+  assert.equal(service('club-activity-attendance'),undefined);
+  assert.equal(question('client:club-activity-attendance:record').endpoint,'/api/affairs-assistant');
+  assert.equal(question('client:club-activity-attendance:multipart').staticProbe.predicate,'partial');
+  assert.equal(question('client:club-activity-attendance:foreign').staticProbe.predicate,'foreign');
   assert.equal(service('venue-requests'),undefined);
   assert.equal(question('client:venue-requests:record').endpoint,'/api/affairs-assistant');
   assert.equal(question('client:venue-requests:record').staticProbe.predicate,'mine');

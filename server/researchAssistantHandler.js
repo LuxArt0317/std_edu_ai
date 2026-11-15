@@ -1,6 +1,7 @@
 import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
 import {catalogDetailGuestRoute,catalogDetailIntent} from './catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestPlan} from './venueRequestIntent.js';
+import {clubAttendanceBoundary,clubAttendanceRoute,clubAttendanceSelection} from './clubAttendanceIntent.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -147,7 +148,7 @@ function parse(body) {
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
-        /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
+        /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||clubAttendanceRoute.test(source.route)||
         /^\/school-affairs\/services\/37-1(?:\/salary)?\/?(?:\?page=[0-9]{1,4}(?:&page=[0-9]{1,4})?)?$/.test(source.route)||
         (source.route.startsWith(healthExaminationPath)&&selectHealthExaminationEvidence('Show my health records.',source.route)?.reason===null&&
           /^\/school-affairs\/services\/36-1\/?(?:\?page=[1-9]\d{0,2})?$/.test(source.route))||
@@ -433,6 +434,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
             return;
         }
+        const clubAttendance=clubAttendanceSelection(input.question,input.route);
+        if(clubAttendance){stream.send(200,clubAttendanceBoundary(clubAttendance,input.question,false));return;}
         const studyYear = !input.images.length && currentStudyForeignYearQuestion(studyQuestion);
         const currentStudy = !input.images.length && isCurrentStudyRecordQuestion(accountQuestionIntent(studyQuestion,[],''),studyQuestion);
         if(studyYear||currentStudy){
@@ -605,7 +608,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const studentClub = !kind.irrelevant && !input.images.length ? clubStudentQuestion(input.question) : null;
-        if (studentClub) {
+        if (studentClub && studentClub!=='my-attendance') {
             stream.send(200,clubStudentGuide(input.question,studentClub));
             return;
         }

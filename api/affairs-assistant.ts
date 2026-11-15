@@ -1,4 +1,6 @@
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
+import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
+import {clubAttendanceBoundary,clubAttendanceSelection} from '../server/clubAttendanceIntent.js';
 import {answerCatalogDetail} from '../server/accountCatalogDetailAnswer.js';
 import {catalogDetailIntent} from '../server/catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestPlan} from '../server/venueRequestIntent.js';
@@ -247,6 +249,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const clubAttendance=clubAttendanceSelection(question,route);
+  if(clubAttendance){
+    if(clubAttendance.reason){stream.send(200,clubAttendanceBoundary(clubAttendance,question,true));return;}
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your attendance using text, without an image.'});return;
+    }
+    try{
+      stream.send(200,await answerClubActivityAttendance({account,question,route,selection:clubAttendance,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The selected club attendance page could not be checked.'});}
+    return;
+  }
   const offering=catalogDetailIntent(question,route);
   if(offering){
     if(Array.isArray(input?.images)&&input.images.length){
