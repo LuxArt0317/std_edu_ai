@@ -9,6 +9,11 @@ const escapedPattern = /^"([^"\r\n]*)"$|^“([^”\r\n]*)”$|^「([^」\r\n]*)�
 const quotedText = /"[^"\r\n]*"|“[^”\r\n]*”|「[^」\r\n]*」|『[^』\r\n]*』/gu;
 const holdClause = /(?:^|[;；,.，。!?！？\n]\s*|\b(?:and|but|then|however)\s+)(?:(?:please|actually)\s+)*(?:do not|don['’]t|never|wait|hold off|cancel (?:it|that)|(?:請|先)?(?:不要|別|取消|稍等))(?:\b|(?=[\p{Script=Han}\s]|$))|\b(?:only if|unless|only after)\b|\bif\s+(?:i|we)\s+(?:approve|confirm|agree|say yes)\b|(?:等|待)我(?:同意|確認)|經我確認/iu;
 const badText = /[\p{Cs}\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/u;
+const learningSupportTopic=/\blearning[- ]support (?:applications?|requests?)\b|(?:學習輔導|学习辅导|完善就學)(?:獎勵學習輔導)?(?:申請|申请|請求)/iu;
+const learningSupportWithdrawalLead=/^(?:(?:do not|don['’]t|never|wait to|hold off on)\s+)?(?:withdraw(?:ing)?|cancel(?:l?ing)?)\b|^(?:幫我)?(?:先)?(?:不要|別|暫勿)?(?:先)?(?:撤回|撤銷|取消)/iu;
+const ownLearningSupportWithdrawal=/^(?:withdraw|cancel) my (?:(latest|most recent|active) )?(?:stu\.best )?learning[- ]support (?:application|request)\b([\s\S]*)$/iu;
+const ownLearningSupportWithdrawalZh=/^(?:幫我)?(?:撤回|撤銷|取消)\s*(?:我(?:的)?|本人(?:的)?)\s*(?:(最新|最近|進行中)(?:的)?)?\s*(?:學習輔導|学习辅导|完善就學(?:獎勵學習輔導)?)(?:申請|申请|請求)([\s\S]*)$/u;
+const learningSupportSelector=/^(?:(?:with\s+)?(?:id|reference)|編號|编号|#)?\s*[:：]?\s*([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12})$/iu;
 const repairCancellationLead = /^(?:(?:(?:do not|don['’]t|never|wait to|hold off on)\s+)?cancel(?:l?ing)?\b|(?:幫我)?(?:先)?(?:不要|別|暫勿)?(?:先)?取消)/iu;
 const repairTopic = /\b(?:repairs?|maintenance)\b|報修|报修|設備修繕/iu;
 const cancelOwnedRepair = /^cancel (?:my|this|that|the) (?:(?:stu\.best|local) )?(?:(?:facility|facilities|online) )?(?:repair(?: (?:report|request|ticket))?|maintenance (?:request|report|ticket))([\s\S]*)$/iu;
@@ -44,6 +49,15 @@ export function parseExplicitAccountAction(question) {
     const selector=/^(?:(?:\s+(?:for|on)\s+|\s*(?:於|日期[：:]?)\s*)(\d{4}-\d{2}-\d{2})|\s*(?:(?:with\s+)?ID[：:]?\s+|編號[：:]?\s*)([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}))?$/iu.exec(suffix);
     return checked({kind:'counseling_cancel',appointmentKind:cancellation[2]==='測驗'||/^psychological/iu.test(cancellation[1]??'')?'assessment':'counseling',
       date:selector?.[1]??'',id:selector?.[2]?.toLowerCase()??'',ambiguous:!selector||Boolean(selector[1]&&!counselingDate(selector[1]))});
+  }
+  if(learningSupportWithdrawalLead.test(command)&&learningSupportTopic.test(command)){
+    const own=ownLearningSupportWithdrawal.exec(command)??ownLearningSupportWithdrawalZh.exec(command);
+    const qualifier=own?.[1]?.toLowerCase()??'';
+    const suffix=own?.[2]?.trim()??'';
+    const id=learningSupportSelector.exec(suffix)?.[1].toLowerCase()??'';
+    const latest=['latest','most recent','最新','最近'].includes(qualifier);
+    return {kind:'withdraw_learning_support',id,mode:id?'exact':latest?'latest':'unique',
+      ambiguous:!own||Boolean(suffix&&!id||qualifier&&id)};
   }
   if(repairCancellationLead.test(command)&&repairTopic.test(command)){
     const ownRepair=cancelOwnedRepair.exec(command)??cancelOwnedRepairZh.exec(command);

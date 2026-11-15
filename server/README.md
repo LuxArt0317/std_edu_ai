@@ -15,6 +15,10 @@
 `courseWithdrawal.js` and its contract validate account and term binding, confirmed withdrawal or restore receipts, and direct assistant answers from the saved window and course records.
 
 
+## Learning support actions
+
+The signed-in assistant prepares one 27-1 withdrawal by exact ID, one active request, or a uniquely newest submission. The caller-scoped lookup reads only the identifying fields, saved status, version and submission timestamp. The confirmation button posts the saved ID, expected version and original operation ID to the existing student action endpoint. The native operation checks ownership and version, and replay returns the same receipt.
+
 ## Dated charge payment history
 
 `accountChargePaymentHistory.js` handles exact signed-in date and month questions before the aggregate fees path. It reads the caller’s saved payment entries through the shared payment ledger contract and uses the verification graph on the same date selection. The answer uses exact cents and reports reversals separately. Tuition totals use the saved category, and uncategorized rows remain separate. Undated paid totals and unread or incomplete histories never contribute to a dated amount. The source link opens the private payment history page with its date filter.

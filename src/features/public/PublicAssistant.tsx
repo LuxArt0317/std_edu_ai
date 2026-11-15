@@ -19,6 +19,7 @@ import { clubUuid } from "../../../server/clubServicesContract.js";
 import { writeClubEquipment } from "../../services/clubServices";
 import { changeCounseling } from "../../services/counseling";
 import { writeRepair } from '../../services/facilityRepair';
+import { changeLearningSupport } from '../../services/learningSupport';
 import { repairId } from './affairs/facilityRepair.js';
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
 import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
@@ -194,6 +195,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         const receipt=kind==='counseling_cancel'?await changeCounseling(user.id,'cancel',fields,signal)
           :await writeClubEquipment(user.id,{kind,payload:fields},signal);
         result={id:receipt.id,kind,summary:kind==='counseling_cancel'?'Cancelled your appointment':'Cancelled your club equipment request'};
+      }else if(kind==='withdraw_learning_support'){
+        if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^[12]$/u.test(payload.expected_version))
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const fields={request_id:requestId,id:payload.id,expected_version:Number(payload.expected_version)};
+        const receipt=await changeLearningSupport(user.id,{kind,payload:fields},signal);
+        result={id:receipt.id,kind,summary:'Withdrew your learning support request'};
       }else if(kind==='cancel_facility_repair'){
         if(!repairId(requestId)||!repairId(payload.id)||!/^[1-9]\d{0,3}$/u.test(payload.version))
           throw new Error('This action needs a new review. Ask again before applying it.');
@@ -203,7 +210,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         result=await performSchoolAffairsAction({kind,payload,requestId},{expectedUserId:user.id,signal});
       }
       if (pendingAction.current!==controller || controller.signal.aborted) return;
-      const expectedRecordId=kind==='complete_task'?payload.task_id:(kind==='set_assignment_status'||kind==='cancel_club_equipment'||kind==='counseling_cancel'||kind==='cancel_facility_repair')?payload.id
+      const expectedRecordId=kind==='complete_task'?payload.task_id:(kind==='set_assignment_status'||kind==='cancel_club_equipment'||kind==='counseling_cancel'||kind==='cancel_facility_repair'||kind==='withdraw_learning_support')?payload.id
         :kind==='update_display_name'?user.id:undefined;
       if (result.kind!==kind || expectedRecordId!==undefined&&result.id!==expectedRecordId || typeof result.id!=='string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(result.id)
         || typeof result.summary!=='string' || !result.summary.trim() || result.summary.length>500)

@@ -27,7 +27,7 @@ import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveA
 import {serviceNoteContextRoute,serviceNoteLookup,serviceNotePageNavigation,serviceOperationPageNavigation} from './serviceNoteIntent.js';
 import {serviceNoteGuide,serviceNoteNavigationAnswer} from './serviceNoteGuide.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel} from './pendingFeesAnswer.js';
-import { calendarPath, schoolSubjectRecordsPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
+import { calendarPath, learningSupportPath, schoolSubjectRecordsPath, wifiGuidePath } from '../src/features/public/affairs/studentServices.js';
 import { clubStudentGuide,clubStudentQuestion } from './clubStudentContract.js';
 import { clubOfficerGuide,clubOfficerQuestion } from './clubOfficerContract.js';
 import { clubGuide,clubIntent } from './clubServicesContract.js';
@@ -395,6 +395,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const zh=/[\u3400-\u9fff]/u.test(input.question);
             const path=action.kind==='counseling_cancel'?counselingAppointmentsPath
                 :action.kind==='cancel_facility_repair'?repairPaths.history
+                :action.kind==='withdraw_learning_support'?learningSupportPath
                 :action.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
             const url='/school-affairs/login?next='+encodeURIComponent(path);
             const title=zh?'登入後確認變更':'Sign in to review a change';

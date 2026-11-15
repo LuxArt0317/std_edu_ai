@@ -6,6 +6,7 @@ import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
 import {serviceNoteKeys} from './serviceNoteIntent.js';
 import {loadNativeAcademicRecords} from './nativeAcademicWorkspace.js';
+import {readFeeRemissionJson} from './feeRemissionContract.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
 }
@@ -97,6 +98,35 @@ async function readAccountRows(account, table, query, observeRead) {
     if (page.length < pageSize) return rows;
   }
 }
+/** Read only the owned fields needed to review a learning-support withdrawal. */
+export async function loadOwnLearningSupportWithdrawalContext(account,selection,deadline){
+  const exact=selection.mode==='exact',unique=selection.mode==='unique';
+  const validUuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u;
+  const malformed=()=>new AffairsWorkspaceError('The learning-support withdrawal target could not be checked.');
+  if(!validUuid.test(account.user.id)||!['exact','latest','unique'].includes(selection.mode)
+    ||(exact?!validUuid.test(selection.id):selection.id!==''))throw malformed();
+  const query={select:'id,user_id,status,version,submitted_at',user_id:'eq.'+account.user.id,limit:exact?1:2,
+    ...(exact?{id:'eq.'+selection.id}:{order:'submitted_at.desc,id.asc'}),
+    ...(unique?{status:'in.(submitted,in_review)'}:{})};
+  const rows=await request({...account,requestDeadline:deadline},'affairs_learning_support_requests',{
+    query,readJson:response=>readFeeRemissionJson(response,4096),
+  });
+  const versions={submitted:[1],in_review:[2],reviewed:[3],withdrawn:[2,3]};
+  if(!Array.isArray(rows)||rows.length>query.limit)throw malformed();
+  for(const row of rows){
+    if(!row||Object.keys(row).sort().join()!=='id,status,submitted_at,user_id,version'||!validUuid.test(row.id)
+      ||row.user_id!==account.user.id||exact&&row.id!==selection.id||!Object.hasOwn(versions,row.status)
+      ||!versions[row.status].includes(row.version)||unique&&!['submitted','in_review'].includes(row.status)
+      ||typeof row.submitted_at!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.][0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})$/u.test(row.submitted_at)
+      ||!Number.isFinite(Date.parse(row.submitted_at)))throw malformed();
+  }
+  if(rows.length===2&&(rows[0].id===rows[1].id||Date.parse(rows[0].submitted_at)<Date.parse(rows[1].submitted_at)))
+    throw malformed();
+  const row=rows[0];
+  return {ambiguous:rows.length===2&&(unique||Date.parse(row.submitted_at)===Date.parse(rows[1].submitted_at)),
+    row:row?{id:row.id,status:row.status,version:row.version,submittedAt:row.submitted_at}:null};
+}
+
 const chargeOrder = 'occurrence_on.desc.nullslast,id.asc';
 const chargeUuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
 function mapAffairsCharge(row) {

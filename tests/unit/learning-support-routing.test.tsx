@@ -10,13 +10,14 @@ const id='27000000-0000-4000-8000-000000000001',stamp='2026-11-15T08:50:00.00000
 const path='/school-affairs/services/27-1';
 const {JSDOM}=createRequire(import.meta.url)('jsdom') as {JSDOM:new(html:string,options:object)=>{window:Window&typeof globalThis}};
 const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'http://localhost',pretendToBeVisual:true});
-for(const name of ['window','document','HTMLElement','HTMLInputElement','HTMLButtonElement','HTMLTextAreaElement','HTMLSelectElement','Node','NodeFilter','Event','CustomEvent','FormData','MouseEvent','MutationObserver','getComputedStyle','localStorage','navigator'])Object.defineProperty(globalThis,name,{
+for(const name of ['window','document','HTMLElement','HTMLInputElement','HTMLButtonElement','HTMLTextAreaElement','HTMLSelectElement','Node','NodeFilter','Event','CustomEvent','FormData','MouseEvent','MutationObserver','getComputedStyle','localStorage','sessionStorage','navigator'])Object.defineProperty(globalThis,name,{
   value:name==='window'?dom.window:name==='document'?dom.window.document:dom.window[name as keyof Window],configurable:true,
 });
+Object.defineProperty(dom.window.HTMLElement.prototype,'scrollTo',{value:()=>{},configurable:true});
 const globals=globalThis as typeof globalThis&{__learningSupportTest?:{data:{session:{user:{id:string};access_token:string}|null};error:null}};
 const hook=registerHooks({load(url,context,next){
   if(/\/affairs\/authClient\.ts$/.test(url))return {format:'module',shortCircuit:true,source:'export const affairsClient={auth:{getSession:async()=>globalThis.__learningSupportTest}};'};
-  if(/\/public\/PublicAssistant\.tsx$/.test(url))return {format:'module',shortCircuit:true,source:'export const campusAssistantOpenEvent="synthetic-open";'};
+  if(/\/affairs\/authContext\.ts$/.test(url))return {format:'module',shortCircuit:true,source:'export const useAffairsAuth=()=>({user:globalThis.__learningSupportTest?.data.session?.user,loading:false});'};
   if(url.endsWith('.css'))return {format:'module',shortCircuit:true,source:'export {};'};return next(url,context);
 }});
 const initialFetch=globalThis.fetch,noFetch:typeof fetch=async()=>{throw new Error('Unexpected network request.');};
@@ -24,7 +25,8 @@ let routedFetch=noFetch;
 globalThis.fetch=(...args)=>routedFetch(...args);
 const {render,cleanup,fireEvent,waitFor}=await import('@testing-library/react');
 const {default:Portal}=await import('../../src/features/public/affairs/SchoolAffairsPortal');
-afterEach(()=>{cleanup();routedFetch=noFetch;delete globals.__learningSupportTest;dom.window.localStorage.clear();});
+const {PublicAssistant}=await import('../../src/features/public/PublicAssistant');
+afterEach(()=>{cleanup();routedFetch=noFetch;delete globals.__learningSupportTest;dom.window.localStorage.clear();dom.window.sessionStorage.clear();});
 after(()=>{globalThis.fetch=initialFetch;hook.deregister();dom.window.close();});
 const session=(id:string)=>{globals.__learningSupportTest={data:{session:{user:{id},access_token:'synthetic-'+id}},error:null};};
 const portal=(pathname:string,userId:string)=><MemoryRouter initialEntries={[pathname]}><Portal user={{id:userId,email:'synthetic@example.invalid'} as User}/></MemoryRouter>;
@@ -118,4 +120,42 @@ test('the review page uses the staff queue and matching versions, and a non-staf
   await waitFor(()=>assert.match(view.getByRole('alert').textContent??'',/Review access denied/u));
   assert.equal(view.queryByText(row.topic),null);
   assert.equal(view.queryByRole('button',{name:/Complete review/}),null);
+});
+
+test('the actual chatbot waits for confirmation and retries the exact native withdrawal command',async()=>{
+  session(a);
+  const requests:unknown[]=[];
+  const requestId='27500000-0000-4000-8000-000000000005';
+  routedFetch=async(target,init)=>{
+    assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer synthetic-'+a);
+    if(String(target).startsWith('/api/affairs-conversations')){
+      if(init?.method==='GET')return Response.json({conversations:[]});
+      const session=JSON.parse(String(init?.body));
+      assert.doesNotMatch(JSON.stringify(session.messages),/expected_version|proposedAction|27500000/u);
+      return Response.json({...session,version:1,updatedAt:stamp});
+    }
+    if(String(target)==='/api/affairs-assistant'){
+      assert.match(JSON.parse(String(init?.body)).question,/withdraw my learning support/u);
+      return Response.json({status:'answered',answer:'Confirm to withdraw your saved learning support request.',citations:[],suggestedQuestions:[],
+        proposedAction:{kind:'withdraw_learning_support',label:'Withdraw learning support request',requestId,payload:{id,expected_version:'1'},url:path}});
+    }
+    assert.equal(String(target),'/api/affairs-action');
+    requests.push(JSON.parse(String(init?.body)));
+    return requests.length===1?Response.json({error:'Synthetic lost withdrawal receipt'},{status:503})
+      :Response.json({id,version:2,status:'withdrawn',requestId});
+  };
+  const view=render(<MemoryRouter><PublicAssistant initialOpen /></MemoryRouter>);
+  await waitFor(()=>assert.equal((view.getByRole('textbox',{name:/Your question/}) as HTMLTextAreaElement).disabled,false));
+  fireEvent.change(view.getByRole('textbox',{name:/Your question/}),{target:{value:'withdraw my learning support request'}});
+  fireEvent.click(view.getByRole('button',{name:'Send'}));
+  await waitFor(()=>assert.ok(view.getByRole('button',{name:'Confirm action'})));
+  assert.deepEqual(requests,[]);
+  fireEvent.click(view.getByRole('button',{name:'Confirm action'}));
+  await waitFor(()=>assert.match(view.getByRole('alert').textContent??'',/Synthetic lost withdrawal receipt/u));
+  fireEvent.click(view.getByRole('button',{name:'Confirm action'}));
+  const receiptLink=await view.findByRole('link',{name:'View updated records'});
+  assert.match(receiptLink.parentElement?.textContent??'',/Withdrew your learning support request/u);
+  assert.equal(receiptLink.getAttribute('href'),path);
+  assert.deepEqual(requests,Array.from({length:2},()=>({kind:'withdraw_learning_support',payload:{id,expected_version:1,request_id:requestId}})));
+  assert.equal(view.queryByRole('button',{name:'Confirm action'}),null);
 });

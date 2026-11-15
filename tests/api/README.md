@@ -59,3 +59,5 @@ Announcement email tests check status intent, caller validation, worker authoriz
 The certificate award intent checks distinguish status from navigation and enrollment certificates.
 
 The housing bed tests cover the caller-only projection, field and term selection, signed-out handoff and mixed School Affairs questions through the real API handler with captured transports. The two-check tests exercise fresh evidence and confirm a twice rejected answer withholds the housing view.
+
+`learning-support-withdrawal-assistant.test.ts` uses the actual signed-in assistant and student action handlers with controlled database transport. It checks exact and ambiguous selection, guest and cross-account denial, stale state, and stable replay after a lost receipt. The rendered confirmation check is in `tests/unit/learning-support-routing.test.tsx`.

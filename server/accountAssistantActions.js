@@ -1,5 +1,6 @@
 import {randomUUID} from 'node:crypto';
 import {repairId,repairPaths} from '../src/features/public/affairs/facilityRepair.js';
+import {learningSupportPath} from '../src/features/public/affairs/studentServices.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {clubEquipmentPath} from './clubEquipmentIntent.js';
 import {counselingAppointmentsPath,counselingKinds,counselingStatus} from './counselingContract.js';
@@ -20,6 +21,9 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
   if(requested.ambiguous&&kind==='counseling_cancel')return clarify(
     'Please ask to cancel one of your saved appointments. You can give its exact date in YYYY-MM-DD format.',
     '請一次取消一筆自己的預約，可提供確切日期（YYYY-MM-DD）。');
+  if(requested.ambiguous&&kind==='withdraw_learning_support')return clarify(
+    'Ask to withdraw one of your own learning support requests. You can select it in [My learning support requests]('+learningSupportPath+').',
+    '請一次撤回一筆自己的學習輔導申請。你可以從[我的學習輔導申請]('+learningSupportPath+')選擇。');
   if(requested.ambiguous&&kind==='cancel_facility_repair')return clarify(
     'Ask to cancel one of your own saved repair reports. Open [My repair reports]('+repairPaths.history+') to select it.',
     '請一次要求取消一筆自己的已儲存報修。請從[我的報修紀錄]('+repairPaths.history+')選擇。');
@@ -80,6 +84,18 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
     const title=say(row.kind==='assessment'?'Psychological assessment':'Counseling',counselingKinds[row.kind]);
     return proposal(`${say('Cancel','取消')} ${title} · ${dateLabel} ${row.date} · ${counselingStatus[row.status][zh?0:1]}`,
       {id:row.id,expected_version:String(row.version)},counselingAppointmentsPath);
+  }
+  if(kind==='withdraw_learning_support'){
+    const context=snapshot.learningSupport, row=context?.row;
+    const open=say('[My learning support requests]','[我的學習輔導申請]')+'('+learningSupportPath+')';
+    if(context?.ambiguous)return clarify('Which learning support request should I withdraw? Give its exact ID or select it in '+open+'.',
+      '要撤回哪一筆學習輔導申請？請提供完整編號，或從'+open+'選擇。');
+    if(!row)return clarify('I couldn’t find a matching request in '+open+'.','在'+open+'找不到符合的申請。');
+    if(!['submitted','in_review'].includes(row.status))return clarify(
+      'That request is no longer eligible for withdrawal. See '+open+'.','這筆申請目前無法撤回。請查看'+open+'。');
+    const date=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(row.submittedAt));
+    const label=say('Withdraw learning support request','撤回學習輔導申請')+' '+row.id.slice(0,8).toUpperCase()+' · '+say('Submitted','已送出')+' '+date;
+    return proposal(label,{id:row.id,expected_version:String(row.version)},learningSupportPath);
   }
   if(kind==='cancel_facility_repair'){
     const row=snapshot.facilityRepair;
