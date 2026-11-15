@@ -186,7 +186,9 @@ test('actual assistant handles all mounted questions without broad, cross-accoun
     });
     const request=await requestTutorEvaluation({testCase:item,origin,token:users[0].token,fetchImpl:transport,
       privateMarkers:[...Object.values(owners).flatMap(owner=>[owner.id,owner.email]),...fixture.keys],correlationIds});
-    assert.deepEqual(outgoing,[supabase+'/rest/v1/rpc/affairs_read_tutor_evaluation','https://api.openai.com/v1/responses']);
+    const exactRatings=['all-ratings','selected-ratings','chinese-ratings','without-comment'].some(suffix=>item.id.endsWith(suffix));
+    assert.deepEqual(outgoing,[supabase+'/rest/v1/rpc/affairs_read_tutor_evaluation',...(exactRatings?[]:['https://api.openai.com/v1/responses'])]);
+    if(exactRatings)assert.ok(request.envelope.events.some(step=>step.kind==='tutor-evaluation-ratings-check'&&step.status==='complete'));
     const proof={rowsDigest:'a'.repeat(64),callers:await observations(fixture)};
     const outcome=gradeHostedTutorEvaluation(item,request.envelope,proof,structuredClone(proof));
     assert.ok(outcome.passed,JSON.stringify({answer:request.envelope.body.answer,failures:outcome.failures}));
