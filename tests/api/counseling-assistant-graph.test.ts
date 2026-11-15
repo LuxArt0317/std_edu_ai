@@ -179,9 +179,9 @@ async function offline(run:()=>Promise<void>,{read='records',charges,retry=false
     assert.deepEqual(errors,[]);
     assert.equal(appointments,read==='none'?0:retry?2:1);
     assert.equal(chargeReads,charges?retry?2:1:0);
-    assert.equal(reviews,retry&&charges?2:1);
+    assert.equal(reviews,charges&&(read==='failed'||charges==='failed')?0:1);
     assert.equal(operations.includes('account_lookup_plan'),false);
-    assert.equal(operations.includes('correct_grounded_answer'),retry&&Boolean(charges));
+    assert.equal(operations.includes('correct_grounded_answer'),false);
     assert.equal(operations.includes('compose_grounded_answer'),charges==='amount-out-of-contract');
   }catch(error){throw errors[0]??error;}
   finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
@@ -267,15 +267,21 @@ test('the handler verifies each hosted counseling question against exact refresh
   }
 });
 
-test('combined appointment and fee questions check independent sources in either order and keep one available half',async()=>{
-  for(const [prompt,read,charges] of [[mixed,'records','records'],[reversed,'records','records'],[mixed,'failed','records'],[mixed,'records','failed']] as const){
+test('combined appointment and fee questions distinguish an empty history from one unavailable source',async()=>{
+  for(const [prompt,read,charges] of [[mixed,'records','records'],[reversed,'records','records'],[mixed,'empty','records'],
+    [mixed,'failed','records'],[reversed,'records','failed']] as const){
     await offline(async()=>{
       const result=await call(makeHandler(),prompt);
       assert.equal(result.status,200);
       assert.equal(result.body.verification.status,'verified');
       assert.deepEqual(observedTools(result.steps),['charges','counselingAppointments']);
-      assert.match(result.body.answer,read==='failed'?/counseling appointment lookup failed/iu:/2026-11-25/);
-      assert.match(result.body.answer,charges==='failed'?/balance is unknown/u:/23,000/);
+      assert.match(result.body.answer,read==='failed'?/counseling appointment lookup failed/iu:read==='empty'?/no saved appointments/iu:/2026-11-25/);
+      assert.match(result.body.answer,charges==='failed'?/charge balance.+remain unknown/su:/23,000/);
+      if(read==='failed'||charges==='failed'){
+        assert.equal(result.body.grounding.degraded,true);
+        assert.ok(result.steps.some(step=>step.kind==='counseling-appointment-evidence-check'&&step.status==='complete'));
+        assert.equal(result.body.views.some((view:{id:string})=>view.id===(read==='failed'?'counselingAppointments':'charges')),false);
+      }
       assert.doesNotMatch(JSON.stringify(result.body),/Unrelated other fee/);
     },{read,charges});
   }
@@ -288,6 +294,7 @@ test('a compound retry refreshes both readers and renders the new fee amount fro
     assert.equal(result.body.verification.attempts,2);
     assert.match(result.body.answer,/2026-11-26/);
     assert.match(result.body.answer,/22,000/);
+    assert.ok(result.steps.some(step=>step.kind==='counseling-appointment-evidence-check'&&step.status==='complete'));
     const chargeView=result.body.views.find((view:{id:string})=>view.id==='charges');
     assert.deepEqual(chargeView.rows,[[tuition,'TWD','28,000.00','6,000.00','22,000.00','sample']]);
     assert.doesNotMatch(JSON.stringify(result.body.views),/23,000|Unrelated other fee/u);

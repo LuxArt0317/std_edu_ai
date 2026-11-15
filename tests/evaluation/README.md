@@ -55,7 +55,7 @@ node tests/evaluation/run-counseling-tuition-preview.mjs "$PREVIEW_ORIGIN" "$SOU
 node tests/evaluation/run-counseling-tuition-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
 ```
 
-The actual-handler local check runs the mounted packet with migrated PGlite and an injected reviewer. It exercises both scoped readbacks, the saved currency, exact disposal and cleanup retries. It does not establish protected Preview acceptance.
+The actual-handler local check runs the same three frozen cases with migrated PGlite under reviewer acceptance, explicit rejection, quota exhaustion and a missing provider key. It verifies the exact saved currency, the refreshed caller scopes during native recovery, disposal and cleanup retries. Dedicated handler checks distinguish a successful empty appointment history from a failed read and preserve the verified half after either single-source outage. These local checks do not establish protected Preview acceptance.
 
 ```sh
 STU_COUNSELING_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index.js \

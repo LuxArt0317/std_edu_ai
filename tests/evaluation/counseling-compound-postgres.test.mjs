@@ -132,7 +132,7 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
     }
     const initial=await observe();
     assert.deepEqual(initial.appointments.counts,[3,1]);
-    let reads=[],reviews=[],errors=[];
+    let reads=[],reviews=[],errors=[],reviewMode='accept';
     const caller=users[0];
     const account={url:origin,key,token:caller.token,user:{id:caller.id}};
     t.mock.method(globalThis,'fetch',async(input,init)=>{
@@ -141,6 +141,7 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
         if(url.href==='https://api.openai.com/v1/responses'){
           const request=JSON.parse(init.body),name=request.text.format.name;
           assert.equal(name,'answer_evidence_review');reviews.push(name);
+          if(reviewMode==='quota')return Response.json({error:{code:'insufficient_quota'}},{status:429});
           const packet=JSON.parse(request.input[0].content[0].text);
           const sources=packet.evidence.filter(item=>item.id.startsWith('account:'));
           assert.deepEqual(sources.map(row=>row.id).sort(),reads.includes('appointments')
@@ -157,7 +158,7 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
               quotes:[],jsonPaths:['/records/'+index+'/preferredOn'],supported:true}));
           });
           return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({
-            supported:true,answersQuestion:true,claims,
+            supported:reviewMode==='accept',answersQuestion:reviewMode==='accept',claims:reviewMode==='accept'?claims:[],
           })}]}]});
         }
         assert.equal(url.origin,origin);assert.equal(callerFrom(init),caller);
@@ -187,30 +188,38 @@ test('frozen appointment and tuition compounds agree with two migrated caller sc
     });
     const rows=counselingHostedCases({compound:true}),correlationIds=new Set();
     assert.deepEqual(rows.map(row=>row.id),caseIds);
-    for(const row of rows){
-      const before=await observe();
-      reads=[];reviews=[];errors=[];
-      const {envelope}=await requestCounselingHostedCase({testCase:row,origin:preview,token:caller.token,
-        privateMarkers:[foreignLabel,...chargePlan.recordIds,...appointmentPlan.recordIds],correlationIds,
-        async fetchImpl(url,init){
-          assert.equal(url.href,preview+'/api/affairs-assistant');assert.equal(init.method,'POST');
-          const frames=[],headers=new Headers();let status=200;
-          const response={status(value){status=value;return response;},setHeader(name,value){headers.set(name,value);},
-            write(value){frames.push(value);},end(){},json(){assert.fail('The assistant must stream a terminal result.');}};
-          await handler({method:init.method,headers:{authorization:init.headers.Authorization},body:JSON.parse(init.body)},response);
-          return new Response(frames.join(''),{status,headers});
-        },
-      });
-      assert.deepEqual(errors,[],row.id);
-      const after=await observe();
-      assert.deepEqual(before,initial);assert.deepEqual(after,before);
-      const result=gradeHostedCounselingCompound(row,envelope,before,after);
-      assert.equal(result.passed,true,JSON.stringify({caseId:row.id,failures:result.failures,answer:envelope.body?.answer}));
-      assert.equal(gradeHostedCounselingCompound(row,envelope,before,{...after,charges:{...after.charges,checks:7}}).passed,false);
-      const excluded=row.id.endsWith('-negative-counseling');
-      assert.deepEqual(reads.sort(),[...(excluded?[]:['appointments']),'charges','student']);
-      assert.deepEqual(reviews,['answer_evidence_review']);
-      t.diagnostic(row.id+' passed with stable appointments and charges');
+    for(reviewMode of ['accept','reject','quota','absent']){
+      if(reviewMode==='absent')delete process.env.OPENAI_API_KEY;
+      for(const row of rows){
+        const before=await observe();
+        reads=[];reviews=[];errors=[];
+        const {envelope}=await requestCounselingHostedCase({testCase:row,origin:preview,token:caller.token,
+          privateMarkers:[foreignLabel,...chargePlan.recordIds,...appointmentPlan.recordIds],correlationIds,
+          async fetchImpl(url,init){
+            assert.equal(url.href,preview+'/api/affairs-assistant');assert.equal(init.method,'POST');
+            const frames=[],headers=new Headers();let status=200;
+            const response={status(value){status=value;return response;},setHeader(name,value){headers.set(name,value);},
+              write(value){frames.push(value);},end(){},json(){assert.fail('The assistant must stream a terminal result.');}};
+            await handler({method:init.method,headers:{authorization:init.headers.Authorization},body:JSON.parse(init.body)},response);
+            return new Response(frames.join(''),{status,headers});
+          },
+        });
+        const after=await observe();
+        assert.deepEqual(before,initial);assert.deepEqual(after,before);
+        const result=gradeHostedCounselingCompound(row,envelope,before,after);
+        const name=reviewMode+' '+row.id, excluded=row.id.endsWith('-negative-counseling');
+        const attempts=reviewMode==='accept'?1:2;
+        assert.deepEqual(errors,[],name);
+        assert.equal(result.passed,true,JSON.stringify({name,failures:result.failures}));
+        assert.equal(result.attempts,attempts,name);
+        const selectedReads=[...(excluded?[]:['appointments']),'charges','student'];
+        assert.deepEqual(reads.toSorted(),Array.from({length:attempts},()=>selectedReads).flat().sort(),name);
+        assert.deepEqual(reviews,reviewMode==='absent'?[]:['answer_evidence_review'],name);
+        if(attempts===2)assert.ok(envelope.events.some(step=>step.status==='complete'&&step.kind===
+          (excluded?'fee-balance-evidence-check':'counseling-appointment-evidence-check')),name);
+        assert.equal(gradeHostedCounselingCompound(row,envelope,before,{...after,charges:{...after.charges,checks:7}}).passed,false);
+        t.diagnostic(name+' passed with stable selected records');
+      }
     }
     // Reconcile the same journal after an interrupted setup or cleanup. Unknown
     // charge changes must abort both deletions until independent review.
