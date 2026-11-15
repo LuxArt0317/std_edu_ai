@@ -16,6 +16,8 @@ Use `--family academic-document-readback` to replay the four academic detail rou
 
 Use `--family facility-repair-readback` for the four repair history and management routes. The signed-in student fixture verifies the owned list and detail, including a status, history note, and exact assistant request from the detail. Both management routes must render the expected student refusal and keep the assistant available. The report counts those two denials separately from owned-record rendering. A successful manager view requires its own manager fixture.
 
+Use `--family student-clubs-readback` for the Club Services and Club Officer subpages. One synthetic student has an officer membership in a single club. The runner checks the calendar, owned equipment request and prefilled edit, application and completion records, profile, and the chosen club's roster and participation results. Both review routes must deny the student and show the pending review row to a separate synthetic site-manager. The report counts manager reviews, student denials, and signed-in record rendering separately. Two assistant transport probes verify the exact selected equipment and roster routes. The manager checks use local response fixtures and leave live manager authorization to its separate test.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).

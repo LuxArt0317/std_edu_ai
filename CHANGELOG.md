@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify student club records, scoped officer views, and separate student and manager review behavior in Chromium. [#100]
+
 - Verify the student’s owned repair list and detail, the assistant’s exact repair context, and student access denials on management routes. [#100]
 
 - Verify complete standalone Academic Services answers directly from their selected saved records. Match the answer, table and link without calling a model, and check unsupported grade views against their capability limits. [#100]

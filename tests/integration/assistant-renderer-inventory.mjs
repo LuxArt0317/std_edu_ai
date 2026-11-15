@@ -17,6 +17,7 @@ import {fixtureIds as ids,rendererInventory} from './helpers/assistant-renderer-
 import {rendererDtmContextProbes,rendererDtmExpectation,rendererDtmRead,rendererDtmSnapshotCourse} from './helpers/assistant-renderer-dtm.mjs';
 import {curriculumPdfApiPath,rendererAcademicExpectation,rendererAcademicRead,rendererCurriculumPdf} from './helpers/assistant-renderer-academic.mjs';
 import {rendererRepairContextProbe,rendererRepairExpectation,rendererRepairRead,verifyRendererRepair} from './helpers/assistant-renderer-facility.mjs';
+import {rendererClubContextProbes,rendererClubExpectation,rendererClubRead,verifyRendererClub} from './helpers/assistant-renderer-clubs.mjs';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const git=args=>execFileSync('git',args,{cwd:root,encoding:'utf8'}).trim();
@@ -24,12 +25,17 @@ const sourceRevision=git(['rev-parse','HEAD']),workingTreeDirty=Boolean(git(['st
 const launcherName='開啟 AI 校園助理',dialogName='校園助理 · Assistant';
 const fixtureOrigin='https://renderer-fixture.supabase.co';
 const roleAccount={state:true,name:'School Affairs account'},roleGuest={state:false,name:'School Affairs sign in'};
+const clubManagerId='45000000-0000-4000-8000-000000000026';
+const roleClubManager={...roleAccount,manager:true,user:{...user,id:clubManagerId,email:'club-manager@renderer.invalid',
+  app_metadata:{...user.app_metadata,role:'admin'},user_metadata:{name:'Renderer club manager'},
+  identities:user.identities.map(identity=>({...identity,id:'google-club-manager',user_id:clubManagerId}))}};
 const args=process.argv.slice(2);
 const {hash,cases}=await rendererInventory();
 const family=args.length===2&&args[0]==='--family'?args[1]:null;
 const readbackFamilies=new Map([
   ['academic-document-readback',rendererAcademicExpectation],
   ['facility-repair-readback',rendererRepairExpectation],
+  ['student-clubs-readback',rendererClubExpectation],
 ]);
 const readback=readbackFamilies.get(family);
 const selected=cases.filter(row=>readback?readback(row.route):!family||row.families.includes(family));
@@ -41,7 +47,7 @@ const contextualPhoneRoutes=new Set(['/school-affairs','/school-affairs/services
   '/school-affairs/services/36-1','/school-affairs/services/27-1','/school-affairs/services/39-1/payment-history',
   '/school-affairs/services/40-1/officer/applications','/dtm','/dtm/course/'+ids.course+'/grades','/elearning','/elearning/course/9408/activity/293395']);
 const syntheticDtmReply='The renderer received the exact saved Moodle page context.';
-const rendererContextProbes=new Map([...rendererDtmContextProbes,[rendererRepairContextProbe.route,rendererRepairContextProbe]]);
+const rendererContextProbes=new Map([...rendererDtmContextProbes,...rendererClubContextProbes,[rendererRepairContextProbe.route,rendererRepairContextProbe]]);
 const academyCourse={id:Number(ids.elearningCourse),category_id:Number(ids.elearningCategory),title:'Renderer safety course',self_enroll:false,position:1};
 const academyCategory={id:Number(ids.elearningCategory),parent_id:null,title:'Renderer safety category',source_count:1,position:1};
 const publicScopes=new Set(['permanent-courses','interdisciplinary-programs','first-selection-notice','late-add-notice',
@@ -93,6 +99,7 @@ const outcomes=[],returnPathChecks=[],accountMenuChecks=[];
 let server,browser;
 
 async function wire(context,mode,origin){
+  const actor=mode.user??user;
   const observed={api:[],security:[],externalBlocked:0,pageErrors:0,authVerified:0,activeProbe:null,assistantCalls:0,conversationSaves:0};
   const conversations=new Map();
   await context.route('**/*',async route=>{
@@ -106,7 +113,7 @@ async function wire(context,mode,origin){
     catch{/* Malformed authorization continues into the fixture denial. */}
     // Synthetic assistant transport and its matching conversation receipt. No
     // other POST or external request can reach an application or provider.
-    if(mode.state&&caller===user.id&&req.method()==='POST'&&!url.search&&observed.activeProbe){
+    if(mode.state&&caller===actor.id&&req.method()==='POST'&&!url.search&&observed.activeProbe){
       const {probe,reply}=observed.activeProbe;
       try{
         if(url.pathname==='/api/affairs-assistant'){
@@ -135,7 +142,7 @@ async function wire(context,mode,origin){
       }
     }
     if(req.method()!=='GET'){observed.security.push('non-read-request');return route.abort();}
-    if(!mode.state||(!publicScopes.has(scope)&&caller!==user.id)
+    if(!mode.state||(!publicScopes.has(scope)&&caller!==actor.id)
       ||!['/api/affairs-data','/api/affairs-conversations'].includes(url.pathname)){
       observed.security.push('unexpected-api-or-caller');return route.fulfill({status:403,json:{error:'Synthetic renderer read denied.'}});
     }
@@ -145,6 +152,14 @@ async function wire(context,mode,origin){
         observed.api.push({path:url.pathname,scope,status:200});
         return route.fulfill({status:200,contentType:'application/pdf',body:rendererCurriculumPdf,
           headers:{'Content-Disposition':'inline; filename="curriculum-115101.pdf"','Content-Security-Policy':"default-src 'none'; frame-ancestors 'self'"}});
+      }
+      const club=url.pathname==='/api/affairs-data'?rendererClubRead(url,actor.id,Boolean(mode.manager)):null;
+      if(club){
+        observed.api.push({path:url.pathname,scope,status:club.status});
+        return route.fulfill(club);
+      }
+      if(mode.manager&&url.pathname!=='/api/affairs-conversations'){
+        observed.security.push('unexpected-club-manager-read');return route.abort();
       }
       const repair=url.pathname==='/api/affairs-data'?rendererRepairRead(url,user.id):null;
       if(repair){
@@ -158,7 +173,7 @@ async function wire(context,mode,origin){
     }
   });
   await context.routeWebSocket('**/*',socket=>socket.close());
-  await mockAffairsAuth(context,{signedIn:mode.state});
+  await mockAffairsAuth(context,{signedIn:mode.state,user:actor});
   await context.route('https://*.supabase.co/**',route=>{
     const url=new URL(route.request().url());
     if(url.origin===fixtureOrigin&&route.request().method()==='GET'&&url.pathname==='/auth/v1/user')
@@ -190,9 +205,10 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   const dtmExpectation=mode.state?rendererDtmExpectation(row.route):null;
   const academicExpectation=mode.state?rendererAcademicExpectation(row.route):null;
   const repairExpectation=mode.state?rendererRepairExpectation(row.route):null;
-  const probe=mode.state?rendererContextProbes.get(row.route):null;
+  const clubExpectation=mode.state?rendererClubExpectation(row.route):null;
+  const probe=mode.state&&!mode.manager?rendererContextProbes.get(row.route):null;
   contextState.activeProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
-  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,repairViewVerified=false,assistantPageContextPassed=false;
+  let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,repairViewVerified=false,clubView=null,readbackRoute,assistantPageContextPassed=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
     const [pdfResponse,response]=await Promise.all([
@@ -249,6 +265,15 @@ async function checkRoute(page,contextState,row,mode,device,origin){
         [{path:'/api/affairs-data',scope:'facility-repairs',status:repairExpectation.status}]);
       repairViewVerified=true;
     }
+    if(clubExpectation){
+      stage='student-clubs-readback';
+      const readback=await verifyRendererClub(page,clubExpectation,{manager:mode.manager,origin,route:row.route});
+      const workspaceReads=contextState.api.filter(read=>read.path==='/api/affairs-data');
+      assert.equal(workspaceReads.length,readback.selectedRoute?2:1);
+      assert.ok(workspaceReads.every(read=>read.scope===clubExpectation.scope&&read.status===readback.status));
+      clubView=readback.view;
+      if(readback.selectedRoute)finalPath=readbackRoute=readback.selectedRoute;
+    }
     stage='launcher';
     const launcher=page.getByRole('button',{name:launcherName,exact:true});
     await launcher.waitFor();
@@ -299,12 +324,15 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   }
   const reads=[...new Map(contextState.api.map(read=>[read.path+':'+read.scope+':'+read.status,read])).values()];
   const workspaceReads=reads.filter(read=>read.path==='/api/affairs-data');
-  const verifiedDenial=stage===null&&repairViewVerified&&repairExpectation?.kind==='student-denied';
+  const verifiedDenial=stage===null&&(clubView==='student-denied'||repairViewVerified&&repairExpectation?.kind==='student-denied');
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
-    auth:mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
+    auth:mode.manager?'synthetic-club-manager':mode.state?'synthetic-signed-in':'guest',device,checks,passed:stage===null,failureStage:stage,reads,
     ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),
     ...(repairExpectation?{repairView:repairExpectation.kind,repairViewVerified}:{}),
-    ...(probe?{assistantContext:probe===rendererRepairContextProbe?'facility-repair':'dtm',assistantPageContextPassed}:{}),
+    ...(clubExpectation?{clubView:clubExpectation.review?(mode.manager?'manager-review':'student-denied'):'signed-in-records',
+      clubViewVerified:clubView!==null&&stage===null,...(readbackRoute?{readbackRoute}:{})}:{}),
+    ...(probe?{assistantContext:probe===rendererRepairContextProbe?'facility-repair':
+      rendererClubContextProbes.has(row.route)?'student-clubs':'dtm',assistantPageContextPassed}:{}),
     nativeData:verifiedDenial?'synthetic-denial-verified':
       workspaceReads.some(read=>read.status!==200)?'fixture-unavailable':workspaceReads.length?'synthetic-response-sent':'no-observed-read',
     externalRequestsBlocked:contextState.externalBlocked,securityFailures:contextState.security.length,pageErrors:contextState.pageErrors};
@@ -363,7 +391,9 @@ try{
   assert.ok(isAbsolute(executablePath),'CHROME_PATH must be an absolute local path.');
   browser=await chromium.launch({headless:true,executablePath});
   for(const [device,viewport] of Object.entries(viewports)){
-    for(const mode of [roleAccount,roleGuest]){
+    for(const mode of [roleAccount,roleGuest,roleClubManager]){
+      const routes=selected.filter(row=>(device==='desktop'||contextualPhoneRoutes.has(row.route))&&(!mode.manager||rendererClubExpectation(row.route)?.review));
+      if(!routes.length)continue;
       const context=await browser.newContext({viewport,reducedMotion:'reduce',serviceWorkers:'block'});
       try{
         const observation=await wire(context,mode,origin);
@@ -372,7 +402,7 @@ try{
           return page;
         };
         const page=await openPage();
-        for(const row of selected.filter(row=>device==='desktop'||contextualPhoneRoutes.has(row.route))){
+        for(const row of routes){
           // A fresh tab gives the synthetic question an empty conversation while
           // retaining the same authenticated browser and native page code.
           const probePage=mode.state&&rendererContextProbes.has(row.route)?await openPage():null;
@@ -382,15 +412,15 @@ try{
             if(!outcome.passed)console.log(JSON.stringify({route:row.route,auth:outcome.auth,device,failureStage:outcome.failureStage,finalPath:outcome.finalPath}));
           }finally{await probePage?.close();}
         }
-        if(device==='desktop'&&mode.state&&selected.some(row=>row.families.includes('student-club-attendance')))
+        if(device==='desktop'&&mode.state&&!mode.manager&&selected.some(row=>row.families.includes('student-club-attendance')))
           await checkClubReturnTargets(page,origin,'/school-affairs/services/40-1/my-attendance',['page=2','page=1000'],
             ['page=0','page=1001','page=02','page=2&page=3','page=2&user_id=foreign','page=2#unexpected']);
-        if(device==='desktop'&&mode.state&&selected.some(row=>row.families.includes('student-club-equipment'))){
+        if(device==='desktop'&&mode.state&&!mode.manager&&selected.some(row=>row.families.includes('student-club-equipment'))){
           const edit='edit='+ids.course;
           await checkClubReturnTargets(page,origin,clubEquipmentNewPath,[edit],
             ['edit=invalid','edit=','edit=%2Foutside',edit+'&'+edit,edit+'&other=1',edit+'?other=1',edit+'#unexpected']);
         }
-        if(mode.state)for(const route of ['/school-affairs','/dtm'].filter(path=>selected.some(row=>row.route===path)))
+        if(mode.state&&!mode.manager)for(const route of ['/school-affairs','/dtm'].filter(path=>selected.some(row=>row.route===path)))
           await checkAccountMenu(page,origin,route,device);
       }finally{await context.close();}
     }
@@ -400,8 +430,10 @@ try{
   await server?.close();
   await rm(cache,{recursive:true,force:true});
   await mkdir(join(root,'artifacts/assistant-renderer'),{recursive:true,mode:0o700});
-  const expectedComparisons=2*(selected.length+selected.filter(row=>contextualPhoneRoutes.has(row.route)).length);
-  const summary={inventoryRoutes:cases.length,selectedRoutes:selected.length,comparisons:outcomes.length,expectedComparisons,
+  const phoneRoutes=selected.filter(row=>contextualPhoneRoutes.has(row.route));
+  const managerComparisons=[...selected,...phoneRoutes].filter(row=>rendererClubExpectation(row.route)?.review).length;
+  const expectedComparisons=2*(selected.length+phoneRoutes.length)+managerComparisons;
+  const summary={inventoryRoutes:cases.length,selectedRoutes:selected.length,comparisons:outcomes.length,expectedComparisons,managerComparisons,
     matrixComplete:outcomes.length===expectedComparisons,
     passed:outcomes.filter(row=>row.passed).length,failures:outcomes.filter(row=>!row.passed).length,
     fixtureUnavailable:outcomes.filter(row=>row.nativeData==='fixture-unavailable').length,
@@ -414,9 +446,17 @@ try{
     facilityOwnReadbackChecks:outcomes.filter(row=>row.repairView?.startsWith('owned-')).length,
     facilityOwnReadbackPassed:outcomes.filter(row=>row.repairView?.startsWith('owned-')&&row.repairViewVerified&&row.passed).length,
     facilityStudentDenialChecks:outcomes.filter(row=>row.repairView==='student-denied').length,
-    facilityStudentDenialPassed:outcomes.filter(row=>row.nativeData==='synthetic-denial-verified').length,
+    facilityStudentDenialPassed:outcomes.filter(row=>row.repairView==='student-denied'&&row.nativeData==='synthetic-denial-verified').length,
     facilityContextChecks:outcomes.filter(row=>row.assistantContext==='facility-repair').length,
     facilityContextPassed:outcomes.filter(row=>row.assistantContext==='facility-repair'&&row.assistantPageContextPassed).length,
+    clubReadbackChecks:outcomes.filter(row=>row.clubView==='signed-in-records').length,
+    clubReadbackPassed:outcomes.filter(row=>row.clubView==='signed-in-records'&&row.clubViewVerified).length,
+    clubStudentDenialChecks:outcomes.filter(row=>row.clubView==='student-denied').length,
+    clubStudentDenialPassed:outcomes.filter(row=>row.clubView==='student-denied'&&row.nativeData==='synthetic-denial-verified').length,
+    clubManagerReviewChecks:outcomes.filter(row=>row.clubView==='manager-review').length,
+    clubManagerReviewPassed:outcomes.filter(row=>row.clubView==='manager-review'&&row.clubViewVerified).length,
+    clubContextChecks:outcomes.filter(row=>row.assistantContext==='student-clubs').length,
+    clubContextPassed:outcomes.filter(row=>row.assistantContext==='student-clubs'&&row.assistantPageContextPassed).length,
     returnPathChecks:returnPathChecks.length,failedReturnPathChecks:returnPathChecks.filter(row=>!row.passed).length,
     accountMenuChecks:accountMenuChecks.length,failedAccountMenuChecks:accountMenuChecks.filter(row=>!row.passed).length};
   await writeFile(artifact,JSON.stringify({version:1,scope:'local Chromium renderer and synthetic authentication only',inventoryHash:hash,sourceRevision,workingTreeDirty,
