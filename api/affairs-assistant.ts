@@ -301,8 +301,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }
     const selection=metadataQuestion?selectElearningMetadata(question,route):selectElearningCatalogPage(question,route);
     if(!selection){
-      const boundary=metadataQuestion?elearningMetadataBoundary:elearningCatalogBoundary;
-      stream.send(200,boundary(question,null,true));
+      const reply=metadataQuestion?elearningMetadataBoundary(question,null,true):elearningCatalogBoundary(question,null,true);
+      stream.send(200,reply);
       return;
     }
     const onProgress=(step:VerificationProgress)=>stream.progress(step.kind,step.label,step.detail,step.status);
@@ -358,7 +358,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(400,{error:'For private account questions, remove the image and ask using text. Images are not stored as account records.'});
       return;
     }
-    if(assignmentList.reason){stream.send(200,dtmAssignmentListBoundary(assignmentList,question,true));return;}
+    if(!('mode' in assignmentList)){stream.send(200,dtmAssignmentListBoundary(assignmentList,question,true));return;}
     try{
       const result=await answerDtmAssignmentList({account,selection:assignmentList,question,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
