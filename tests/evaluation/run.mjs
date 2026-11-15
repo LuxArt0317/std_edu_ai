@@ -23,6 +23,7 @@ import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCat
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
 import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,gradeClubAttendanceCase} from './club-attendance-cases.mjs';
+import {serviceNoteRunnerCases,serviceNoteRunnerOracle,isServiceNoteCase,serviceNoteSetupRequired,serviceNoteSetupSummary,gradeLiveServiceNoteCase} from './service-note-runner.mjs';
 import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
@@ -114,7 +115,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
-    :[...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
+    :[...serviceNoteRunnerCases(),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
       ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
@@ -317,6 +318,10 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     assessment.venueSetup=venueSetup;
     integrity.push({id:'run.nativeVenueFixtureUnbound',detail:'Venue request cases require independent venue and companion fixtures and caller-bound request observations.'});
   }
+  const noteSetup=serviceNoteSetupSummary(cases);
+  if(noteSetup.registered)assessment.serviceNoteSetup=noteSetup;
+  if(noteSetup.unboundCaseIds.length)integrity.push({id:'run.serviceNoteFixtureUnbound',
+    detail:'Service-note companion and source-failure cases retain their independent fixture requirements.'});
   if(inventory.clientDispatch?.questions.length){
     const missing=inventory.clientDispatch.questions.map(item=>item.id);
     assessment.clientDispatch={total:missing.length,executed:0,passed:0,missing};
@@ -440,7 +445,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(!selected.length)throw new Error('No cases match.');
   // Do not pass an unmounted native case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
-  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row)&&!accountStatusSetupRequired(row));
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row)&&!accountStatusSetupRequired(row)&&!serviceNoteSetupRequired(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -462,6 +467,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(internshipSetup.registered)report.internshipSetup=internshipSetup;
   const venueSetup=venueSetupSummary(selected);
   if(venueSetup.registered)report.venueSetup=venueSetup;
+  const noteSetup=serviceNoteSetupSummary(selected);
+  if(noteSetup.registered)report.serviceNoteSetup=noteSetup;
   if(opt.mode==='inventory'){
     report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:feeOnly?'subset':'full'});
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
@@ -496,6 +503,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         if(fixtureCases.some(row=>row.fixtureKey!=='anonymous'&&isClubAttendanceCase(row))
           &&(adapter.clubAttendanceFixtureVersion!==1||typeof adapter.afterCase!=='function'))
           throw new Error('Club attendance requires the bound disposable fixture and both-owner readback adapter.');
+        if(fixtureCases.some(row=>isServiceNoteCase(row)&&row.fixtureKey!=='anonymous')
+          &&(adapter.serviceNoteFixtureVersion!==1||typeof adapter.afterCase!=='function'))
+          throw new Error('Service notes require the exact two-caller fixture adapter and after-request verification.');
         const previewReadbackFetch=opt.previewAuth?async(input,init={})=>{
           if((init.method??'GET')!=='GET')throw new Error('Protected fixture transport is read-only.');
           return fetchImpl(input,init);
@@ -518,7 +528,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
       const feeOnly=opt.caseFamily==='fee-remission';
-      const nativeClub=isClubAttendanceCase(testCase);
+      const nativeClub=isClubAttendanceCase(testCase),serviceNotes=isServiceNoteCase(testCase);
+      const liveExecution=testCase.executionContract==='live-native'?'live-native':'live-model';
       if(controller.signal.aborted)break;
       const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
       try{
@@ -529,6 +540,11 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         assertElearningCatalogCaseReady(testCase);
         assertNativeVenueCaseReady(testCase);
         assertAccountStatusCaseReady(testCase);
+        if(serviceNotes){
+          serviceNoteRunnerOracle(testCase);
+          if(serviceNoteSetupRequired(testCase))throw new Error(testCase.setupReason);
+          if(opt.mode!=='live')throw new Error('Service-note acceptance requires independent hosted endpoint and fixture observations.');
+        }
         if(nativeClub){
           clubAttendanceOracle(testCase);
           if(opt.mode!=='live')throw new Error('Club attendance uses the actual native assistant route; draft or retrieval mode cannot execute it.');
@@ -562,7 +578,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           const requestId=response.headers.get('X-Assistant-Request-Id');
           const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
           envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),
-            execution:nativeClub?'live-native':'live-model',fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
+            execution:liveExecution,fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
         }else{
@@ -578,7 +594,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(nativeClub||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase))?'not-run':opt.mode==='live'?(nativeClub?'live-native':'live-model'):'deterministic';
+        const execution=phase==='setup'&&(nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
@@ -599,6 +615,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           try{
             await adapter.afterCase(feeOnly?structuredClone(testCase):testCase,envelope,{signal:controller.signal,...(feeOnly?{fixtureMode,fixtureFamily:feeRemissionLiveFamilyForCase(testCase)}:{})});
             if(feeOnly)assertFeeRemissionReadback(envelope);
+            if(serviceNotes&&(!envelope.fixtureReadback?.serviceNotes?.twoOwnersVerified
+              ||envelope.fixtureReadback.serviceNotes.caseId!==testCase.id))throw new Error('Exact service-note readback is missing.');
+
           }
           catch(error){envelope.fixtureIntegrityError=error instanceof Error?error.message:'Fixture readback failed';envelope.fixtureIntegrityFailed=true;envelope.failureKind='infrastructure';}
         }
@@ -608,7 +627,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
+      const result=serviceNotes?gradeLiveServiceNoteCase(testCase,envelope):nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);
@@ -619,8 +638,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(feeSetupFailed)report.runFailure='Fee remission fixture setup failed; no further cases or fixture transitions were attempted.';
       const clubSetupFailed=nativeClub&&opt.mode==='live'&&envelope.failureKind==='setup';
       if(clubSetupFailed)report.runFailure='Club attendance fixture setup failed; the runner stopped before another assistant request.';
+      const noteSetupFailed=serviceNotes&&!serviceNoteSetupRequired(testCase)&&opt.mode==='live'&&envelope.failureKind==='setup';
+      if(noteSetupFailed)report.runFailure='Service-note setup failed before dispatch; the runner stopped before another request.';
       await persist(out,report);
-      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed)break;
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';

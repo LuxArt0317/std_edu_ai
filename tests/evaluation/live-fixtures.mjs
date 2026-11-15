@@ -40,6 +40,8 @@ import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
+import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
+import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
 import {buildClubAttendancePlan,changeClubAttendanceFixture,observeClubAttendanceFixture} from './club-attendance-fixtures.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
@@ -56,6 +58,7 @@ const FEE_FIXTURE_MODE='fee-remission-only';
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
 export const clubAttendanceFixtureVersion=1;
 export const protectedPreviewReadbackVersion=1;
+export const serviceNoteFixtureVersion=1;
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
 let state;
@@ -287,6 +290,10 @@ async function saveLedger(){
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
+      ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
+        caseId:s.serviceNotePlan?.caseId??null,pendingCaseId:s.pendingServiceNotePlan?.caseId??null,
+        transitionPending:Boolean(s.serviceNotePending),
+      }}:{}),
       ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
         previous:dtmReportRecoveryBinding(s.dtmReportPlan),pending:dtmReportRecoveryBinding(s.pendingDtmReportPlan),transitionPending:Boolean(s.dtmReportTransitionPending),
       }}:{}),...(s.elearningPlan||s.elearningTransitionPending?{elearningFixture:{
@@ -372,6 +379,16 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     ||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(origin)))
     fail('fixture-target','Club attendance fixtures require the exact approved project Preview.');
   const clubOnly=clubCases.length===cases.length;
+  const noteCases=cases.filter(row=>row?.fixtureRequirement==='service_notes_disposable'||row?.fixtureRequirement==='service_notes_unbound'
+    ||typeof row?.id==='string'&&row.id.startsWith('account:service-notes-'));
+  for(const testCase of noteCases){
+    serviceNoteRunnerOracle(testCase);
+    if(serviceNoteSetupRequired(testCase))fail('fixture-unsupported','This service-note case has no independent hosted fixture.');
+  }
+  if(noteCases.some(testCase=>testCase.fixtureKey!=='anonymous')&&(!approvedPreviewOrigin||origin!==approvedPreviewOrigin
+    ||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(origin)))
+    fail('fixture-target','Service-note fixtures require the exact approved project Preview.');
+  const noteOnly=noteCases.length===cases.length;
   if(cases.some(nativeVenueSetupRequired))
     fail('fixture-unsupported','Native venue requests require exact caller fixtures and independent request observations.');
   let transcriptCaseIds;
@@ -442,6 +459,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(clubOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['clubAttendance']};
+    }
+    if(noteOnly){
+      state.noteOnly=true;
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['serviceRecords']};
     }
     const foreignId=randomUUID();state.recordIds.add(foreignId);await saveLedger();
     await query(()=>state.sql`insert into public.dtm_courses(id,user_id,code,title,term,role,source_mode)
@@ -1662,6 +1684,32 @@ function ownState(snapshot){
 }
 
 /** Persists golden facts, then proves the application's actual auth/RLS read path. */
+function serviceNoteBinding(s){
+  return {owners:s.users.map(user=>user.id),identities:s.identityRequests,runId:s.runId};
+}
+async function changeServiceNoteFixture(s,next,{recovering=false}={}){
+  if(!s.locked||!s.ledgerOwned||s.closed||(!recovering&&s.serviceNotePending))
+    fail('fixture-lease','The disposable service-note fixture lease or transition is unavailable.');
+  if(!recovering){
+    s.pendingServiceNotePlan=next;
+    s.serviceNotePending=true;
+    for(const row of next?.rows??[])s.recordIds.add(row.id);
+    await saveLedger();
+  }
+  const change={...serviceNoteBinding(s),previous:s.serviceNotePlan,next:s.pendingServiceNotePlan,recovering};
+  await query(()=>feeTransaction(s,()=>changeServiceNoteRows(s.sql,change)),'Could not reconcile the exact disposable service-note rows.');
+  s.serviceNotePlan=recovering?null:next;
+  s.pendingServiceNotePlan=null;
+  s.serviceNotePending=false;
+  await saveLedger();
+}
+async function currentServiceNoteFixture(s,signal){
+  const active=signal||s.signal;
+  await Promise.all(s.users.map(user=>user.renewSession({signal:active})));
+  return query(()=>observeServiceNoteRows({sql:s.sql,plan:s.serviceNotePlan,...serviceNoteBinding(s),
+    users:s.users,publishable:s.publishable,signal:active}),'Could not verify persisted and caller-scoped service notes.');
+}
+
 export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   if(nativeInternshipSetupRequired(testCase))
     fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
@@ -1696,6 +1744,20 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     return anonymous?{}:{token:s.users[0].token};
   }
   if(fixtureMode!==undefined||fixtureFamily!==undefined)fail('fixture-case','Fixture mode changed after preparation.');
+  if(testCase?.fixtureRequirement==='service_notes_disposable'){
+    serviceNoteRunnerOracle(testCase);
+    if(!s.caseIds.has(testCase.id)||testCase.auth==='anonymous')
+      fail('fixture-case','The service-note case is outside its selected disposable binding.');
+    (signal||s.signal)?.throwIfAborted();
+    const plan=buildServiceNotePlan(testCase,s.users.map(user=>user.id));
+    await changeServiceNoteFixture(s,plan);
+    const beforeHash=await currentServiceNoteFixture(s,signal);
+    s.current={caseId:testCase.id,beforeHash,serviceNotes:true};
+    await saveLedger();
+    return {token:s.users[0].token};
+  }
+  if(s.noteOnly||s.serviceNotePending)fail('fixture-state','The service-note fixture cannot serve an unrelated case or unresolved transition.');
+  if(s.serviceNotePlan)await changeServiceNoteFixture(s,null);
   if(testCase?.clubAttendanceOracle!==undefined||testCase?.fixtureRequirement==='club_attendance_disposable'){
     const oracle=clubAttendanceOracle(testCase);
     if(!s.caseIds.has(testCase.id)||oracle.guest||!s.locked||!s.ledgerOwned||s.clubAttendancePending)
@@ -1828,6 +1890,22 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
   const s=ready();if(s.current?.caseId!==testCase.id)fail('fixture-state','afterCase() does not match the prepared case.');
   const current=s.current;
   try{
+    if(current.serviceNotes){
+      serviceNoteRunnerOracle(testCase);
+      const after=await currentServiceNoteFixture(s,signal);
+      if(after!==current.beforeHash)fail('fixture-unapproved-write','The disposable service-note rows changed during the assistant request.');
+      const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
+      const plan=s.serviceNotePlan;
+      if([...plan.owners,...plan.rows.map(row=>row.id),...s.users.map(user=>user.token)].some(marker=>output.includes(marker.toLowerCase()))){
+        envelope.body={error:'Service-note fixture identity isolation failed.'};envelope.events=[];
+        fail('fixture-isolation','The response disclosed a disposable credential or record identifier.');
+      }
+      envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
+      envelope.stateAfterProposal={ownedRecordsDigest:after};
+      envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+        serviceNotes:{caseId:testCase.id,twoOwnersVerified:true,method:'caller RLS and persisted notes'}};
+      return;
+    }
     if(current.clubAttendance){
       const oracle=clubAttendanceOracle(testCase);
       const after=await clubAttendanceObservation(s,oracle,signal||s.signal);
@@ -1974,6 +2052,7 @@ export async function cleanup(){
       await s.feeFixture.lifecycle.cleanup();
       await saveLedger();
     }
+    if(s.serviceNotePlan||s.serviceNotePending)await changeServiceNoteFixture(s,null,{recovering:true});
     if(s.clubAttendancePlan){
       await assertClubAttendanceLease(s);
       await query(()=>feeTransaction(s,()=>changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests,{cleanup:true})),
