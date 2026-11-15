@@ -108,7 +108,7 @@ The School Affairs menu question bank covers the keyword search control and Gene
 
 ### Housing receipts, native Moodle grades and teaching feedback
 
-The housing cases distinguish application receipts at 26-1 from bed assignments at 34-1. They check literal fields, missing or unreadable records, separate tool execution and each native source link. The exact published-period fixture guard still applies.
+The housing cases distinguish application receipts at 26-1 from bed assignments at 34-1. They check literal fields, missing or unreadable records, separate tool execution and each native source link. The bed-only and dormitory-plus-bed cases bind their preserved bed and fee facts to the unique published housing period for the fixture’s academic year and semester. The adapter fingerprints the independently read published inventory before setup, before dispatch and after dispatch, and checks that the second disposable account sees no housing records. Empty bed cases only check empty owned history. An absent target term keeps positive cases in setup. Housing receipt cases retain the exact agreement and application-period guard.
 
 `dtm-native-route-cases.mjs` contains 14 independently authored cases exercised offline through the native reader and formatter, with API tests for the actual dispatch, transport contract and retry. The multi-course fixture is not mounted in the live runner.
 

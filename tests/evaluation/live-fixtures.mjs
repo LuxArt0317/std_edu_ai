@@ -1880,15 +1880,79 @@ export function validateFixtureServiceRecord(row){
   requireSchema(row.reviewStatus==null||['open','in_review','resolved'].includes(row.reviewStatus),'Invalid joined service review state.');
   return true;
 }
+async function readPublishedHousingPeriods(s){
+  const rows=await query(()=>s.sql`select id,term_label,academic_year,semester,published,instructions,agreement_text,source_mode,version,
+    to_char(opens_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as opens_at,
+    to_char(closes_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as closes_at
+    from public.affairs_housing_periods where published=true order by id limit 501`,'Could not read the bounded published housing period inventory.');
+  if(!Array.isArray(rows)||rows.length>500)fail('fixture-unsupported','Published housing period inventory exceeds the bounded fixture size.');
+  return mapHousingRecords(rows,[],[]).periods;
+}
+
+function housingPublishedFingerprint(periods){
+  requireSchema(Array.isArray(periods)&&periods.length<=500,'Invalid published housing period inventory.');
+  const unique=new Set(),terms=new Set();
+  for(const period of periods){
+    const term=period?.academicYear+'-'+period?.semester;
+    requireSchema(period&&Object.keys(period).length===PERIOD_FIELDS.housing.length+1&&Object.hasOwn(period,'id')
+      &&PERIOD_FIELDS.housing.every(key=>Object.hasOwn(period,key))&&UUID.test(period.id)&&!unique.has(period.id)&&!terms.has(term)
+      &&integer(period.academicYear,1,300)&&[1,2].includes(period.semester)&&validText(period.termLabel,80)
+      &&validStamp(period.opensAt)&&validStamp(period.closesAt)&&Date.parse(period.opensAt)<Date.parse(period.closesAt)
+      &&period.published===true&&typeof period.instructions==='string'&&period.instructions.length<=2000
+      &&validText(period.agreementText,4000)&&period.sourceMode==='local_demo'&&integer(period.version,1,2147483647),
+    'Invalid or ambiguous published housing period row.');
+    unique.add(period.id);terms.add(term);
+  }
+  return hash([...periods].sort((a,b)=>a.id.localeCompare(b.id)));
+}
+
+/** Bind the synthetic bed cells to a real period with the same academic term.
+ * The period's dates, agreement and ID are independently observed, not seeded. */
+export async function bindPublishedHousingBedFixture(snapshot,{shared,read,...options}){
+  const housing=snapshot.housing;
+  requireSchema(Array.isArray(housing?.assignments)&&housing.assignments.length<=1&&Array.isArray(housing.periods),
+    'The scoped housing bed fixture requires an exact assignment or empty history.');
+  const periods=await read();
+  const sha256=housingPublishedFingerprint(periods);
+  const [assignment]=housing.assignments;
+  let scopedPeriods=[],sharedPeriods=[],term={academicYear:null,semester:null};
+  if(assignment){
+    const stored=housing.periods.find(period=>period.id===assignment.periodId);
+    requireSchema(stored&&assignment.academicYear===stored.academicYear&&assignment.semester===stored.semester,
+      'The housing bed fixture term is not bound to its original oracle.');
+    const candidates=periods.filter(period=>period.academicYear===stored.academicYear&&period.semester===stored.semester);
+    if(candidates.length!==1)fail('fixture-unsupported',`No unique published housing period is available for academic year ${stored.academicYear} semester ${stored.semester}.`);
+    const [period]=candidates;
+    scopedPeriods=[{...period,id:stored.id}];sharedPeriods=[period];
+    term={academicYear:period.academicYear,semester:period.semester};
+  }else requireSchema(housing.periods.length===0&&housing.applications?.length===0,'The scoped empty housing fixture must have no saved records.');
+  const scoped={...snapshot,housing:{periods:scopedPeriods,applications:[],assignments:housing.assignments}};
+  const result=await planNativeFixture(scoped,{...options,shared:{...shared,housing:{periods:sharedPeriods}}});
+  result.expected.housing.periods=structuredClone(periods);
+  result.housingBedPeriodBinding={...term,sha256};
+  return result;
+}
+
+export async function verifyPublishedHousingBedBinding(binding,{read}){
+  if(housingPublishedFingerprint(await read())!==binding.sha256)
+    fail('fixture-mapping','Published housing periods changed after the independent bed fixture binding.');
+  return binding;
+}
+
 async function readNativeBindings(snapshot,testCase){
   const s=state,publishedSample=testCase.fixtureKey==='published-sample:records'||testCase.fixtureKey==='facility-repairs:compound';
   const required=new Set(testCase.expected?.requiredTools||[]),domains=[...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS.filter(domain=>required.has(domain)||domain==='housing'&&required.has('housingApplications')||domain==='courses'&&publishedSample)],shared={};
-  for(const domain of ['scholarship','housing'].filter(domain=>domains.includes(domain))){
+  const bedOnly=/^(?:account:(?:housing-bed|housing-costs|empty-housing|dormitory-conduct-mixed-housing)|service:34-1:(?:record|empty))$/u.test(testCase.id??'')
+    &&required.has('housing')&&!required.has('housingApplications');
+  if(bedOnly&&!s.previewGate)fail('fixture-target','The bounded housing bed fixture requires a pinned Preview.');
+  for(const domain of ['scholarship','housing'].filter(domain=>domains.includes(domain)&&!(bedOnly&&domain==='housing'))){
     const values=await query(()=>s.sql`select * from ${s.sql('public.'+periodTables[domain])} where published=true order by id limit 501`,'Could not read published fixture period bindings.');
     if(values.length>500)fail('fixture-unsupported','Published period bindings exceed the bounded fixture inventory.');
     const normalized=values.map(row=>({...row,opens_at:timestamp(row.opens_at),closes_at:timestamp(row.closes_at)}));
     shared[domain]=domain==='scholarship'?mapScholarshipRecords(normalized,[]):mapHousingRecords(normalized,[],[]);
   }
+  if(bedOnly)return bindPublishedHousingBedFixture(snapshot,{shared,domains,userId:s.users[0].id,
+    studentId:s.users[0].studentId,otherUserId:s.users[1].id,read:()=>readPublishedHousingPeriods(s)});
   if(publishedSample){
     const read=await readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not read the complete published sample initializer union.')});
     return planPublishedSampleFixture(snapshot,{userId:s.users[0].id,studentId:s.users[0].studentId,otherUserId:s.users[1].id,now:s.now,read,domains,shared});
@@ -1969,6 +2033,8 @@ async function persistSnapshot(snapshot,rows,testCase,nativePlan,supplementalPla
   await query(async()=>{
     const tx=s.sql;await tx.unsafe('begin');
     try{
+    if(nativePlan.housingBedPeriodBinding)
+      await verifyPublishedHousingBedBinding(nativePlan.housingBedPeriodBinding,{read:()=>readPublishedHousingPeriods(s)});
     if(s.dtmReportPlan)await changeDtmReportFixtureRows(tx,s.dtmReportPlan,'remove');
     // Deletes are scoped only to the freshly created fixture account. Global
     // sample courses, university captures, notices and real people are untouched.
@@ -2244,6 +2310,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   }
   const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
   if(!catalogOnly){verifyReadback(actual,expected,testCase);verifyNativeFixtureReadback(actual,nativePlan);}
+  if(nativePlan?.housingBedPeriodBinding)await verifyHousingBedOwnerIsolation(s,nativePlan.housingBedPeriodBinding,signal);
   const publishedSample=nativePlan?.publishedSampleBinding?await verifyPublishedSampleFixtureBinding(nativePlan,{now:s.now,
     read:()=>readPublishedSampleInitializerRows(s.sql,{runQuery:task=>query(task,'Could not recheck the published sample initializer union.')})}):null;
   const supplementalDomains=Object.keys(SUPPLEMENTAL_TABLES).filter(key=>s.supplementalTables.has(SUPPLEMENTAL_TABLES[key]));
@@ -2266,10 +2333,18 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
   }
   if(s.applicationFetch)s.transcriptFixture={blocked:true,nextIndex:transcript?.nextIndex??0,beforeHash,publishedSamplePlan:nativePlan};
   s.current={caseId:testCase.id,beforeHash,supplementalDomains,catalogBinding,
+    ...(nativePlan?.housingBedPeriodBinding?{housingBedPeriodBinding:nativePlan.housingBedPeriodBinding}:{}),
     ...(publishedSample?{publishedSamplePlan:nativePlan}:{})};
   await saveLedger();
   await s.users[0].renewSession?.({signal:signal||s.signal});
   return {token:s.users[0].token};
+}
+
+async function verifyHousingBedOwnerIsolation(s,binding,signal){
+  await verifyPublishedHousingBedBinding(binding,{read:()=>readPublishedHousingPeriods(s)});
+  const other=await readSnapshot(s.users[1],{signal:signal||s.signal});
+  assertFactEqual(other.housing?.assignments,[],'other disposable caller’s housing bed history');
+  assertFactEqual(other.housing?.applications,[],'other disposable caller’s housing applications');
 }
 
 async function currentFacilityRepairFixture(s,signal){
@@ -2404,6 +2479,7 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
       return;
     }
     const actual=await readSnapshot(s.users[0],{signal:signal||s.signal});
+    if(current.housingBedPeriodBinding)await verifyHousingBedOwnerIsolation(s,current.housingBedPeriodBinding,signal);
     let publishedSample=null;
     if(current.publishedSamplePlan){
       verifyNativeFixtureReadback(actual,current.publishedSamplePlan);
@@ -2423,8 +2499,9 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
     const afterHash=hash({snapshot:ownState(actual),supplemental,catalog,...(publishedSample?{publishedSample}:{}),...(aid?{aid}:{}),...(dtmReport?{dtmReport}:{}),...(elearning?{elearning}:{}),...(facilityRepairs?{facilityRepairs}:{}),...(outline?{outline}:{}),...(dormitory?{dormitory}:{})});
     envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
     envelope.stateAfterProposal={ownedRecordsDigest:afterHash};
-    envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true};
     if(afterHash!==current.beforeHash)fail('fixture-unapproved-write','Generating an answer or proposal changed the fixture records before confirmation.');
+    envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+      ...(current.housingBedPeriodBinding?{publishedHousingBedPeriod:{...current.housingBedPeriodBinding,otherCallerEmpty:true}}:{})};
     if(s.applicationFetch&&envelope.statusCode===200){
       s.transcriptFixture.nextIndex++;
       s.transcriptFixture.blocked=false;

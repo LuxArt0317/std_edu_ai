@@ -109,8 +109,15 @@ export function buildAccountCases({now=DEFAULT_EVAL_NOW,includePlannedFeeRemissi
   add('scholarship-deadline','scholarship','When does my115 Fall Scholarship application period close?',{facts:[fact('close','2026-11-30','date',['deadline','115 Fall Scholarship'])],requiredLinks:[routes.scholarship]});
   add('student-aid-review','studentAid','What are my student aid subsidy and school/ministry review results?',{requiredText:['Approved locally','Pending review'],facts:[fact('subsidy',15000,'number'),fact('school review','Approved locally'),fact('ministry review','Pending review')],requiredLinks:[routes.studentAid]});
   add('student-aid-locked','studentAid','Is my student aid record locked?',{facts:[fact('record','locked')],requiredLinks:[routes.studentAid]});
-  add('housing-bed','housing','Which dormitory bed was assigned to me?',{requiredText:['East Hall','E-305-2'],facts:[fact('bed','E-305-2'),fact('dormitory','East Hall')],requiredLinks:[routes.housing]});
-  add('housing-costs','housing','What are my accommodation fee, deposit and subsidy?',{facts:[fact('accommodation fee',8500,'number'),fact('deposit',1000,'number'),fact('subsidy',2000,'number')],requiredLinks:[routes.housing]});
+  const housingBedPolicy={requiredTools:['housing'],requiredAttemptedTools:['housing'],allowedTools:['housing'],
+    toolTerminalStates:{housing:['complete']},maxDistinctAttemptedTools:1,requireToolExecution:true,forbidPublicResearch:true,
+    localLinksOnly:true,noAction:true,requiredLinks:[routes.housing],
+    requiredSourceBindings:[{sourceId:'account:housing',url:routes.housing}],
+    forbiddenText:['HOUSING-EVAL-001','evaluation.student@example.invalid','FOREIGN PRIVATE SENTINEL']};
+  add('housing-bed','housing','Which dormitory bed was assigned to me?',{...housingBedPolicy,requiredText:['East Hall','E-305-2'],
+    facts:[fact('bed','E-305-2'),fact('dormitory','East Hall')]});
+  add('housing-costs','housing','What are my accommodation fee, deposit and subsidy?',{...housingBedPolicy,
+    facts:[fact('accommodation fee',8500,'number'),fact('deposit',1000,'number'),fact('subsidy',2000,'number')]});
   // Application receipt metadata is an independent owned source, never a bed lookup.
   const receiptPolicy=(tools=['housingApplications'])=>({requiredTools:tools,requiredAttemptedTools:tools,allowedTools:tools,
     toolTerminalStates:Object.fromEntries(tools.map(tool=>[tool,['complete']])),maxDistinctAttemptedTools:tools.length,
