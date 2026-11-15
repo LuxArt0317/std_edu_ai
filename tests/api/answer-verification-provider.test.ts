@@ -77,6 +77,8 @@ test('quota exhaustion stops model retries while a transient rate limit can stil
  assert.deepEqual(exhausted.verification,{status:'unverified',attempts:1,reason:'provider_quota_exhausted'});
  assert.equal(requests,1);
  assert.equal(repairs,0);
+ assert.match(exhausted.answer,/answer checker is temporarily unavailable/u);
+ assert.ok(exhausted.activity?.some(step=>step.label==='Answer checker unavailable'&&step.status==='unavailable'));
  assert.match(JSON.stringify(exhausted.activity),/automatic evidence reviewer is unavailable/u);
  assert.doesNotMatch(JSON.stringify([exhausted,warning.mock.calls.map(call=>call.arguments)]),/RAW PROVIDER TEXT/u);
  requests=0;code='rate_limit_exceeded';type='rate_limit_error';
