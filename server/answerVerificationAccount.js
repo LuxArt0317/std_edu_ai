@@ -5,7 +5,7 @@ import {studentLeaveBasePath,studentLeaveFieldNames} from './studentLeaveEvidenc
 import {isDeepStrictEqual} from 'node:util';
 import {dtmNativeClauseScope,dtmNativeClauseNotice} from './dtmNativeClauseScope.js';
 import {dtmAssignmentLookupContext} from './dtmAssignmentEvidenceIntent.js';
-import {studentConductScope} from './studentConductEvidenceScope.js';
+import {isStudentConductCountQuestion,studentConductScope} from './studentConductEvidenceScope.js';
 import {isServiceNoteNextClass,serviceNoteLookup} from './serviceNoteIntent.js';
 import {answerSavedServiceRecords} from './savedServiceAnswers.js';
 import {isOwnTutorEvaluationTrackingNoteQuestion} from './tutorEvaluationEvidenceIntent.js';
@@ -946,7 +946,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
   const scopedSupplementalTool=pageLookup.readerOnly&&pageLookup.tools.length===1&&pageLookup.tools[0];
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
-  const exactSupplemental=['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool)
+  const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
+  const exactSupplemental=(conductCount||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
       ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
@@ -1269,6 +1270,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     const wanted=['account-scope',sourceId,...(withScopedBed?['account:housing']:[])];
     if(sources.length!==wanted.length||!wanted.every(id=>sources.some(source=>source.id===id))||supplemental.length!==1
       ||supplemental[0].evidence!==sources.find(source=>source.id===sourceId))return null;
+    if(conductCount&&(!['ok','empty'].includes(supplemental[0].readState)
+      ||JSON.parse(supplemental[0].evidence.content).selection?.projection!=='count'))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
     if(scopedSupplementalTool!=='dormitoryConduct')return answerLinksSupported(rendered.answer,sources)?rendered:null;
     const bed=withScopedBed?housingAnswer(sources):null;
@@ -1412,6 +1415,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         const supported=renderExactSupplemental(context.evidence);
         if(!supported||context.candidate.proposedAction||!Object.keys(supported).every(key=>isDeepStrictEqual(context.candidate[key],supported[key])))
           return {ok:false,reason:'evidence_unavailable'};
+        if(conductCount){
+          const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          emit({kind:'student-conduct-count-check',label:zh?'已核對獎懲紀錄筆數':'Verified your saved conduct record count',
+            detail:zh?'核對本人帳戶內的紀錄總筆數。':'Matched the displayed total to the exact count of your saved report rows.',status:'complete'});
+          return {ok:true};
+        }
         if(context.attempt>1){
           // Recovery compares the full rendering of refreshed typed evidence.
           // A model rewrite can collapse distinct rows or invent unsupported fields.

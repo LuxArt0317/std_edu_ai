@@ -57,16 +57,23 @@ async function jsonWithin(response,signal,maximum){
   try{for(;;){const chunk=await within(()=>reader.read(),signal);if(chunk.done)break;bytes+=chunk.value.byteLength;if(bytes>maximum)throw malformed();value+=decoder.decode(chunk.value,{stream:true});}return JSON.parse(value+decoder.decode());}
   catch(error){void reader.cancel().catch(()=>{});throw error instanceof StudentConductError?error:malformed();}finally{reader.releaseLock();}
 }
-async function request(account,name,{query={},body}={}){
+async function request(account,name,{query={},body,exactCount=false}={}){
   const remaining=Math.floor(account.requestDeadline-Date.now());if(remaining<=0)throw new StudentConductError('Conduct request timed out. Retry the same operation.');
   const url=new URL(account.url.replace(/\/$/,'')+'/rest/v1/'+(body?'rpc/':'')+name),signal=AbortSignal.timeout(Math.min(budgetMs,remaining));
   for(const [key,value] of Object.entries(query))url.searchParams.set(key,String(value));
   let response;
-  try{response=await within(()=>fetch(url,{method:body?'POST':'GET',redirect:'error',headers:{apikey:account.key,Authorization:'Bearer '+account.token,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal}),signal);}
+  try{response=await within(()=>fetch(url,{method:body?'POST':'GET',redirect:'error',headers:{apikey:account.key,Authorization:'Bearer '+account.token,
+    ...(body?{'Content-Type':'application/json'}:{}),...(exactCount?{Prefer:'count=exact'}:{})},...(body?{body:JSON.stringify(body)}:{}),signal}),signal);}
   catch{throw new StudentConductError('Local conduct records are temporarily unavailable. Retry the same operation.');}
   if(!response.ok){void response.body?.cancel().catch(()=>{});const status=[400,401,403,409].includes(response.status)?response.status:[413,422].includes(response.status)?400:503;
     throw new StudentConductError(status===401?'Sign in to School Affairs again.':status===403?'This conduct operation is not available to your account.':status===409?'This conduct record changed. Refresh before saving.':status===400?'Check the approved conduct fields and account record limit.':'Local conduct records are temporarily unavailable. Retry the same operation.',status);}
-  return jsonWithin(response,signal,body?4096:4*1024*1024);
+  const value=await jsonWithin(response,signal,body||exactCount?4096:4*1024*1024);
+  if(!exactCount)return value;
+  const range=/^(\*|0-0)\/(0|[1-9]\d*)$/u.exec(response.headers.get('Content-Range')??'');
+  const count=Number(range?.[2]);
+  if(![200,206].includes(response.status)||!integer(count,0,studentConductMaxRecords)
+    ||range[1]!==(count===0?'*':'0-0')||!Array.isArray(value)||value.length!==Math.min(1,count))throw malformed();
+  return {count,rows:value};
 }
 async function requireAdmin(account){
   const access=await request(account,'affairs_student_conduct_access',{body:{}});
@@ -93,6 +100,16 @@ async function readRows(account,ownerId){
 }
 /** Personal reads always constrain the caller, including when the caller is an administrator. */
 export async function loadStudentConduct(account){account=boundedAccount(account);return readRows(account,account.user.id);}
+/** Count the current caller's saved report rows in one exact read. Only a
+ * minimal sample is used to confirm ownership; no conduct cells are fetched. */
+export async function loadStudentConductCount(account){
+  account=boundedAccount(account);
+  const owner=account.user.id;
+  const {count,rows}=await request(account,studentConductReadSource.table,{exactCount:true,
+    query:{select:'id,user_id',order:studentConductReadSource.order,limit:1,deleted_at:'is.null',user_id:'eq.'+owner}});
+  if(rows.some(row=>!exact(row,['id','user_id'])||!uuid(row.id)||row.user_id!==owner))throw malformed();
+  return {count};
+}
 /** Explicit trusted-admin read of one account, never an automatic personal-page fallback. */
 export async function loadStudentConductAdmin(account,options){
   if(!exact(options,['userId'])||!uuid(options.userId))throw new StudentConductError('Select one student account for conduct administration.',400);

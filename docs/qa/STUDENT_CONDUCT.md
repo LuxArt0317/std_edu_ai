@@ -14,6 +14,8 @@ Migration `20261112200000_student_conduct.sql` is applied after an exact-version
 
 ## Verified locally
 
+The School Affairs assistant can answer an exact count of your saved conduct report rows. It uses one caller-scoped exact-count request, selecting only an ID and owner for the consistency check. The chat exposes the count and the 38-1 record link. A failed or inconsistent read is retried under the same owner scope and can never become a saved zero. The count covers undeleted saved rows. It does not sum merit or demerit quantities or apply an academic-term or void-status filter. Run `node --test tests/evaluation/student-conduct-count.test.mjs` for the actual-handler evaluator with controlled data transport.
+
 - Source desktop geometry at1280x720 matches within0.75 CSS pixels; the remaining name-input offset is0.516px and other compared values differ by at most0.032px.
 - Six synthetic rendered groups pass: twelve headers/literal cells, disabled document actions,320/390 containment and keyboard table scrolling, identity and record retry, safe errors and foreign-account rejection. No external or API calls occurred; no serious/critical axe findings. This is not full pixel or WCAG certification.
 - Eighteen focused host/workspace tests pass, including collapse/reopen draft preservation, actual selected-account routing, session removal, late-response rejection and uncertain-save replay.

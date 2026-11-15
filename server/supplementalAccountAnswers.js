@@ -15,6 +15,7 @@ import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvalua
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
 import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence} from './teachingFeedbackEvidenceIntent.js';
 import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
+import {studentConductMaxRecords} from './studentConduct.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
 const definitions={
   'account:internshipRecords':{title:['Saved internship records','已儲存實習紀錄'],path:internshipEvidencePath},
@@ -670,6 +671,14 @@ function parse(envelope){
     const rows=id==='account:studentConduct'?payload.records:payload.record===null?[]:[payload.record];
     if(!Array.isArray(rows)||rows.length!==payload.counts.included||rows.some(row=>!object(row)||row.sourceMode!=='local_demo')
       ||envelope.readState!=='ok'&&rows.length)invalid();
+    if(id==='account:studentConduct'&&payload.selection?.projection==='count'){
+      const {available,matching,included,omitted}=payload.counts,unavailable=envelope.readState==='unavailable';
+      if(payload.selection.scope!=='all_owned_saved_rows'||payload.selection.currentTermDesignated!==false
+        ||!Array.isArray(payload.selection.identityFields)||payload.selection.identityFields.length||rows.length||included!==0
+        ||payload.complete===unavailable||payload.excerpted!==false||matching!==available
+        ||(unavailable?available!==null||omitted!==null:!integer(available)||available>studentConductMaxRecords||omitted!==0
+          ||envelope.readState!==(available?'ok':'empty')))invalid();
+    }
   }else if(payload.officialUniversityData!==false||!Array.isArray(payload.records)||payload.records.length>5||!Array.isArray(payload.unavailable)||!object(payload.selection)||!Array.isArray(payload.selection.choices)||!object(payload.counts)||typeof payload.complete!=='boolean')invalid();
   return {envelope,evidence,id,payload};
 }
@@ -1536,6 +1545,10 @@ function sectionFor(parsed,question,zh){
   }
   if(id==='account:studentConduct'||id==='account:studentLoan'){
     const conduct=id==='account:studentConduct';
+    if(conduct&&p.selection?.projection==='count'){
+      item(t('Saved conduct record count','已儲存獎懲紀錄筆數'),p.counts.matching);
+      return section;
+    }
     section.lead.push(conduct
       ?t('These are saved local_demo conduct records. Only the stored fields are shown.','以下為 local_demo 站內獎懲紀錄，僅顯示已儲存欄位。')
       :t('These are saved local_demo loan fields. Approval, disbursement and payment require separate evidence.','以下為 local_demo 站內貸款欄位。核准、撥款和付款須另有證據。'));

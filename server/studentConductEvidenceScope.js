@@ -14,6 +14,16 @@ const independent=/\b(?:tuition|fees?|balance|salary|payroll|loan|scholarship|ne
 const field=/^(?:(?:and|also|then|please|show|list|read|check|include|tell me|what is|what are|what about|how many|not|without|excluding|exclude|omit|do not (?:show|include)|don['’]t (?:show|include))\s+)*(?:(?:my|the|its|their|saved|recorded|student|academic|full|current|previous|last|this)\s+)*(?:name|number|id|reason|quantity|code|void status|status|date|year|semester|term|rows?|records?|details?|history)(?:\b|$)|^(?:還有|还有|以及|顯示|显示|列出|不要(?:顯示|显示)?|不顯示|不显示|不含|排除)?(?:我的|學生|学生|已存)?(?:姓名|學號|学号|事由|數量|数量|代碼|代码|狀態|状态|日期|學年|学年|學期|学期|紀錄|记录)/iu;
 const split=/[;；。!?！？\n]|\.(?=\s|$)|[,，]\s*(?=(?:show|list|read|check|tell|what|which|when|how|where|do not|don['’]t|never)\b)|\s+(?:and|plus|also|but|then)\s+(?=(?:my|show|list|read|check|tell|include|what|which|when|how|where|do not|don['’]t|never|not|without|excluding|tuition|fees?|balance|salary|next class|classes|courses?|timetable|assignments?|grades?|attendance|leave|wifi|library|housing|dormitory|counseling|certificate|health|repair|rental|insurance|student conduct)\b)|(?<!\bdo)\s+(?=(?:without|excluding|not(?!\s+only))\s+)|\s+(?:together\s+)?with\s+(?=my\s+(?:student|dormitory)\s+conduct)|以及|還有|还有|並且|但是|(?=排除|不含|不要)/iu;
 const bounded=value=>typeof value==='string'&&value.length<=4000&&!/[\p{Cc}\p{Cs}]/u.test(value.replace(/[\r\n\t]/gu,''))?value.normalize('NFKC').trim():'';
+// This matches a whole row-count question. Period filters and quantities are
+// separate fields in the report and do not mean its total row count.
+const savedRows='(?:saved )?(?:(?:student |personal )?conduct |disciplinary )?(?:records|rows|entries)';
+const countRows=new RegExp('^(?:(?:please )?how many (?:of my |my )?'+savedRows+
+  '(?: do i have| are (?:saved|recorded)(?: (?:in|on|under|for) my account)?| are there(?: (?:in|on|under|for) my account)?)?'+
+  '|(?:(?:please )?count|what is the (?:total )?number of|what is the count of) (?:my |the )?'+savedRows+')$','iu');
+export function isStudentConductCountQuestion(question){
+  const value=bounded(question).replace(/[?.!。！？]+$/u,'').trim();
+  return countRows.test(value)||/^(?:請問|请问)?(?:(?:我的|我有|我|本人)?(?:已儲存|已保存)?(?:學生個人|学生个人|學生|学生|個人|个人)?(?:獎懲|奖惩|操行)(?:紀錄|記錄|记录|資料|资料)?(?:共有|總共有|总共有|有|是)?(?:幾筆|几笔|多少筆|多少笔)(?:紀錄|記錄|记录)?|(?:我有|我的|本人有)(?:幾筆|几笔|多少筆|多少笔)(?:已儲存|已保存)?(?:學生個人|学生个人|學生|学生|個人|个人)?(?:獎懲|奖惩|操行)(?:紀錄|記錄|记录)?)$/u.test(value);
+}
 const parts=value=>{
   const clauses=value.split(split).map(part=>part.trim()).filter(Boolean),result=[];let denied=false;
   for(const clause of clauses){
@@ -47,6 +57,7 @@ function latestUser(history){
   return '';
 }
 function foreignSubject(value){
+  if(isStudentConductCountQuestion(value))return false;
   const text=value.replace(/\b(?:what|when|where|how|who|it|that|there|here|which)['’]s\b/giu,'');
   if(/\b(?:another|other) (?:student|person|user|account)|\bmy (?:friend|classmate|roommate|sister|brother|mother|father|parent|colleague)\b|\bmy student(?!\s+(?:conduct|name|number|id|rewards?|discipline)\b)\b|\b(?:their|his|her)\s+(?:(?:saved|recorded|student)\s+)*(?:conduct|disciplinary|merit|demerit|reward|punishment|records?|history)|\b(?!student\b|school\b|university\b)[\p{L}][\p{L}\p{N}_’-]*['’]s\b|別人|他人|其他(?:學生|学生)|(?:他|她|他們|她們)的/iu.test(text))return true;
   if(/\b(?:does|did|has|have|is|was|can)\s+(?!(?:i|my|the|a|this|that|it|there|student|conduct|any|no|each)\b)[\p{L}][\p{L}\p{N}_’-]*(?:\s+[\p{L}][\p{L}\p{N}_’-]*)?\s+(?:have|has|receive|received|get|got|save|saved|own|access|a|any|merits?|demerits?)\b/iu.test(text))return true;
@@ -80,7 +91,9 @@ export function studentConductScope(question,route='',history=[]){
     if(negative.test(clause)&&!field.test(clause)){positive.length=0;result.excluded=true;continue;}
     if(foreignSubject(clause)){result.foreign=true;continue;}
     if(navigation.test(clause)){result.navigation=true;continue;}
-    if(own.test(clause)||ask.test(clause)||/^student conduct$/iu.test(clause)){positive.push(clause);result.excluded=false;}else rest.push(clause);
+    if(own.test(clause)||ask.test(clause)||isStudentConductCountQuestion(clause)||/^student conduct$/iu.test(clause)){
+      positive.push(clause);result.excluded=false;
+    }else rest.push(clause);
   }
   if(result.foreign)return {...result,reason:'foreign_request',otherQuestion:rest.join('. '),from:'question'};
   // Preserve identity exclusions and selected native fields attached to a real
@@ -91,7 +104,7 @@ export function studentConductScope(question,route='',history=[]){
     return {...result,selected:true,question:positive.join('. '),otherQuestion:remaining.join('. '),from:'question'};
   }
   if(anchored)return {...result,otherQuestion:rest.join('. '),from:'question'};
-  if(independent.test(current)||tracking.test(current)||!follow.test(current))return result;
+  if(independent.test(current)||tracking.test(current)||!follow.test(current)&&!isStudentConductCountQuestion(current))return result;
   const previous=latestUser(history);
   if(previous){
     const prior=studentConductScope(previous,'',[]);

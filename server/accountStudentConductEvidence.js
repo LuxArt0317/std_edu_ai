@@ -1,5 +1,5 @@
-import {studentConductScope} from './studentConductEvidenceScope.js';
-import {loadStudentConduct,studentConductPath,studentConductMaxRecords,validateStudentConductPayload} from './studentConduct.js';
+import {isStudentConductCountQuestion,studentConductScope} from './studentConductEvidenceScope.js';
+import {loadStudentConduct,loadStudentConductCount,studentConductPath,studentConductMaxRecords,validateStudentConductPayload} from './studentConduct.js';
 
 // Caller-owned evidence reader. No administrator reader or mutation is used.
 export const studentConductEvidenceMaxBytes=16000;
@@ -71,9 +71,9 @@ function failureReason(error){
     return value('evidenceDeadline')===true?'deadline_exceeded':value('status')===401?'unauthorized':value('status')===403?'forbidden':value('status')===409?'record_changed':'read_failed';
   }catch{return 'read_failed';}
 }
-function envelope(readState,reason,fields,details={}){
+function envelope(readState,reason,fields,details={},countOnly=false){
   const payload={collection:'studentConduct',sourceMode:'local_demo',readState,checkedAt:new Date().toISOString(),
-    selection:{scope:'all_owned_saved_rows',currentTermDesignated:false,identityFields:[...fields]},
+    selection:{scope:'all_owned_saved_rows',currentTermDesignated:false,identityFields:[...fields],...(countOnly?{projection:'count'}:{})},
     counts:{available:null,matching:null,included:0,omitted:null},complete:false,excerpted:false,records:[],
     capabilities:{literalConductRows:true,officialSync:false,detailDocument:false,verifiedFile:false,write:false},rules,...details};
   if(reason)payload.unavailableReason=reason;
@@ -94,22 +94,29 @@ function boundedResult(rows,fields){
 /** The default loader applies the same deadline to GET/body reads. The outer
  * deadline also bounds injected loaders; neither a failure nor omission is empty. */
 export async function readStudentConductEvidence(account,options={},dependencies={}){
-  let timer,fields=[];
-  const reply=(state,reason)=>envelope(state,reason,fields);
+  let timer,fields=[],countOnly=false;
+  const reply=(state,reason)=>envelope(state,reason,fields,{},countOnly);
   try{
-    if(!dataObject(options)||!dataObject(dependencies)||dependencies.load!==undefined&&typeof dependencies.load!=='function')return reply('unavailable','invalid_context');
+    if(!dataObject(options)||!dataObject(dependencies)||dependencies.load!==undefined&&typeof dependencies.load!=='function'
+      ||dependencies.loadCount!==undefined&&typeof dependencies.loadCount!=='function')return reply('unavailable','invalid_context');
     const readAccount=captureAccount(account,undefined);if(!readAccount)return reply('unavailable','unauthorized');
     const scope=studentConductScope(options.question,options.route,options.history);
     if(!scope.selected)return reply('unavailable',scope.foreign?'foreign_request':'unrelated_question');
+    countOnly=isStudentConductCountQuestion(scope.question);
     for(const deadline of [options.deadline,account.requestDeadline])if(deadline!==undefined&&!Number.isFinite(deadline))return reply('unavailable','invalid_deadline');
     const deadline=Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+budgetMs);readAccount.requestDeadline=deadline;
     if(deadline<=Date.now())return reply('unavailable','deadline_exceeded');
-    fields=requestedIdentity(scope.question);
-    const load=dependencies.load??loadStudentConduct,userId=readAccount.user.id;
+    if(!countOnly)fields=requestedIdentity(scope.question);
+    const load=countOnly?dependencies.loadCount??loadStudentConductCount:dependencies.load??loadStudentConduct;
     const value=await Promise.race([Promise.resolve().then(()=>{if(Date.now()>=deadline)throw {evidenceDeadline:true};return load(readAccount);}),
       new Promise((_,reject)=>{timer=setTimeout(()=>reject({evidenceDeadline:true}),Math.max(1,deadline-Date.now()));})]);
     if(Date.now()>=deadline)return reply('unavailable','deadline_exceeded');
-    const rows=validateRecords(value,userId);if(!rows)return reply('unavailable','invalid_records');
+    if(countOnly){
+      const count=value?.count;
+      if(!exact(value,['count'])||!Number.isSafeInteger(count)||count<0||count>studentConductMaxRecords)return reply('unavailable','invalid_records');
+      return envelope(count?'ok':'empty',null,fields,{counts:{available:count,matching:count,included:0,omitted:0},complete:true},true);
+    }
+    const rows=validateRecords(value,readAccount.user.id);if(!rows)return reply('unavailable','invalid_records');
     const result=boundedResult(rows,fields);
     return Date.now()>=deadline?reply('unavailable','deadline_exceeded'):result;
   }catch(error){return reply('unavailable',failureReason(error));}finally{clearTimeout(timer);}
