@@ -1,3 +1,5 @@
+import {findOfficialLibraryServiceLeads} from './publicLibrarySources.js';
+import {questionKind} from './schoolWebSearch.js';
 import {clearancePaths,clearanceQuestion} from './graduationClearanceContract.js';
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
 import {earlyGraduationPath} from './earlyGraduationContract.js';
@@ -255,6 +257,28 @@ export function answerCampusNavigation(question) {
     suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},
     activity:[{kind:'directory',label:'Checked the campus service directory',detail:entry.title[i],status:'complete'}],
   };
+}
+
+// Join precisely supported public companions. A loose directory keyword is
+// insufficient to declare that a separate lookup has already been answered.
+export function campusDirectoryResearch(question) {
+  const kind = questionKind(question);
+  if (kind.personal || kind.irrelevant || /@|\b(?:s[0-9]{6,}|(?:account|student) (?:id|number)|passport|password|authorization|submit|cancel)\b|學號|護照|密碼|送出|取消/iu.test(question)) return null;
+  const clauses = question.split(/(?:[?？]+\s*(?:(?:and|also)\s+|另外|還有)?|[,，]\s*(?:and |also |另外|還有|以及|同時)|\s+(?:and|also)\s+(?=(?:what|where|how|when|is|does|can)\b))/iu)
+    .map(part => part.trim()).filter(Boolean);
+  if (clauses.length !== 2) return null;
+  const index = clauses.findIndex(part => findOfficialLibraryServiceLeads(part).length > 0);
+  if (index < 0 || findOfficialLibraryServiceLeads(clauses[1 - index]).length > 0) return null;
+  const directoryClause = clauses[1 - index];
+  const directory = answerCampusNavigation(directoryClause);
+  const citation = directory?.citations[0].chunkId;
+  const registrarContact = citation === 'campus-navigation:registrar'
+    && /\b(?:phone|telephone|contact number|email|e-mail|address|website|link)\b|電話|聯絡|信箱|地址|連結/iu.test(directoryClause)
+    && !/\b(?:hours|open|close|deadline)\b|時間|開放|截止/iu.test(directoryClause);
+  const wifiSetup = citation === 'campus-navigation:wifi'
+    && /\b(?:where|link|setup|settings|connect)\b|如何|怎麼|在哪|教學|連結|設定|連線/iu.test(directoryClause)
+    && !/\b(?:password|status|outage)\b|故障|斷線/iu.test(directoryClause);
+  return registrarContact || wifiSetup ? { directory, question: clauses[index], directoryFirst: index === 1 } : null;
 }
 
 function markdownLink(title, url) { return '[' + title + '](' + url + ')'; }

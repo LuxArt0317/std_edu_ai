@@ -168,6 +168,81 @@ for (const scenario of ['guest English','guest Chinese','signed-in follow-up'] a
   assert.ok(events.some(step=>step.kind==='library-primary-source'&&step.status==='complete'));
 });
 
+for (const signedIn of [false,true]) test(`a registrar phone question does not hide the independently grounded library hours (${signedIn?'signed in':'guest'})`,async t=>{
+  environment(t);
+  const regular='Library reading areas are open 08:30–19:00 Monday through Thursday.';
+  const hoursQuote='Reading areas: Monday to Thursday, 08:30–19:00.';
+  const auth='controlled-public-lookup';
+  const wifi='https://help.ecc.stu.edu.tw/wireless-setting/';
+  let reads=0;
+  mockProvider(t,wire=>{
+    const name=wire.text.format.name,packet=JSON.parse(wire.input[0].content[0].text);
+    assert.match(packet.question,/library opening hours/iu);
+    assert.doesNotMatch(packet.question,/registrar|PRIVATE_/iu);
+    if(name==='compose_grounded_answer')return provider({status:'answered',answer:regular,sourceIds:[packet.evidence[0].id]});
+    assert.equal(name,'answer_evidence_review');
+    return provider({supported:true,answersQuestion:true,missingRequestedDetails:[],claims:[
+      {claim:regular,supported:true,evidenceId:packet.evidence[0].id,quotes:[hoursQuote],jsonPaths:[]},
+    ]});
+  });
+  const research=createResearchAssistantHandler({readSources:(citations,deadline,deps)=>readVerificationSources(citations,deadline,{
+    ...deps,acquire:async url=>{
+      assert.equal(url,hours);reads++;
+      return html(url,`<main><p>${hoursQuote}</p></main>`);
+    },
+  })});
+  const handler=signedIn?createAffairsAssistantHandler({publicResearch:research,verifyToken:async token=>{
+    assert.equal(token,auth);
+    return {user:{id:'PRIVATE_USER_ID'},token:auth,key:'PRIVATE_ACCOUNT_KEY',url:'https://synthetic.supabase.co'};
+  },loadSnapshot:async()=>assert.fail('Public questions must not read account records')}):research;
+  const authorization=signedIn?'Bearer '+auth:undefined;
+  const history=[{role:'assistant',content:'PRIVATE_ANSWER'}];
+  const {result,events}=await request(handler,"What is the STU registrar's phone number, and what are the library opening hours?",history,authorization);
+  assert.match(result.answer,/615 8000[\s\S]+08:30–19:00/u);
+  assert.equal(result.verification?.status,'verified');
+  assert.equal(result.citations[0].chunkId,'campus-navigation:registrar');
+  assert.equal(result.citations[1].url,hours);
+  assert.ok(events.some(step=>step.kind==='directory'&&step.status==='complete'));
+  const reversed=await request(handler,'What are the library opening hours? Also, where can I find the campus Wi-Fi setup guide?',history,authorization);
+  assert.match(reversed.result.answer,/08:30–19:00[\s\S]+wireless-setting/u);
+  assert.equal(reversed.result.verification?.status,'verified');
+  assert.equal(reversed.result.citations[0].url,hours);
+  assert.ok(reversed.result.answer.includes(wifi));
+  assert.equal(reads,2);
+});
+
+test('a failed library lookup preserves the separately verified registrar result and its link',async t=>{
+  environment(t);
+  mockProvider(t,wire=>{
+    assert.equal(wire.text.format.name,'stu_web_answer');
+    assert.doesNotMatch(wire.input,/registrar|PRIVATE_/iu);
+    return empty();
+  });
+  const handler=createResearchAssistantHandler({readSources:async()=>[]});
+  const {result,events}=await request(handler,"What is the STU registrar's phone number, and what are the library opening hours?");
+  assert.match(result.answer,/615 8000/u);
+  assert.match(result.answer,/could not verify the library details/u);
+  assert.ok(result.answer.includes(`[STU Library opening hours](${hours})`));
+  assert.equal(result.status,'handoff');
+  assert.notEqual(result.verification?.status,'verified');
+  assert.deepEqual(result.citations.map((citation:{chunkId:string})=>citation.chunkId),['campus-navigation:registrar']);
+  assert.ok(events.some(step=>step.kind==='library-primary-source'&&step.status==='unavailable'));
+  assert.ok(result.activity.some((step:Activity)=>step.kind==='directory'&&step.status==='complete'));
+});
+
+test('a library inquiry alongside a private grade request cannot be sent to public research',async t=>{
+  environment(t);
+  let providerCalls=0,sourceReads=0;
+  mockProvider(t,()=>{providerCalls++;return empty();});
+  const question='What are my Moodle grades, and what are the library opening hours?';
+  const research=createResearchAssistantHandler({readSources:async()=>{sourceReads++;return [];}});
+  const {result}=await request(research,question);
+  assert.equal(result.status,'handoff');
+  assert.equal(providerCalls,0);
+  assert.equal(sourceReads,0);
+  assert.ok(!result.citations.some((citation:{url:string})=>citation.url===hours));
+});
+
 test('unreadable library hours keep the official library domain and link for fallback',async t=>{
   environment(t);
   const searches:any[]=[];

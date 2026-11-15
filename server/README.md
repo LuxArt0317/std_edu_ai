@@ -48,6 +48,8 @@ Shared server-only retrieval, authorization and validation helpers for `api/`. `
 
 `publicServiceFollowup.js` resolves text-only contact follow-ups about named campus offices. It recognizes the latest user question against a fixed bilingual service list and constructs a new question from the selected service and contact field. The signed-in handler forwards the constructed question with an empty history and root route.
 
+Explicit two-part public requests can combine a supported registrar contact or Wi-Fi setup directory entry with a separate library inquiry. Only the library clause goes to research. The directory answer keeps its citation when the library source or verifier is unavailable.
+
 `schoolWebSearch.js` classifies both singular and plural personal class questions before public search. Nexus answers those questions from the caller's verified account context; anonymous research hands them to School Affairs sign-in.
 
 `affairsWorkspace.js` reads DTM and service records through the verified caller's token and RLS. `dtmAnswer.js` produces account-specific links, filters unfinished work and uses the meeting foreign key to find assignments for a missed class. `schoolAffairsDirectory.js` gives public navigation links with verified campus sources.
