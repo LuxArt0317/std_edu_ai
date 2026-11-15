@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Check a named tuition instalment against its selected saved charge and keep that scope if verification needs a fresh read. Recognize common tuition-and-fees balance wording. [#100]
+
 - Answer public library questions alongside a registrar contact or Wi-Fi setup request. Keep the verified directory details when library research cannot verify the second part. [#100]
 
 - Verify standalone tutor evaluation questions directly against the saved submission status, requested fields and questionnaire link. Preserve saved-record attribution and an exact answer when no submission exists. [#100]
