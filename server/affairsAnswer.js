@@ -226,44 +226,113 @@ function composeSchoolScheduleAnswer(intent, snapshot) {
   return {answer:lines.join('\n'),title:chinese ? '校務課表' : 'School Affairs timetable',url:schoolSubjectRecordsPath};
 }
 
-function composeAccountOverview(intent,snapshot){
-  const zh=/[\u3400-\u9fff]/u.test(intent.contextQuestion),t=(en,zhText)=>zh?zhText:en;
-  const {overview,profile,student}=snapshot;
+const overviewSources=['profile','courses','dtm','assignments','charges','tasks','requests'];
+const overviewText=(value,max)=>typeof value==='string'&&value.length<=max&&!/[\p{Cc}\p{Cs}]/u.test(value);
+const overviewFound=value=>value===true||value===false||value===null;
+const overviewTotal=value=>Number.isSafeInteger(value)&&value>=0;
+function validOverviewState(state){
+  if(!state||!overviewTotal(state.included))return false;
+  if(state.readState==='unavailable'||state.readState==='partial')return state.complete===false&&overviewText(state.reason,80)
+    &&state.reason.length>0&&(state.readState==='partial'||state.total===null&&state.included===0);
+  return ['ok','empty'].includes(state.readState)&&state.complete===true&&state.reason===null;
+}
+
+/** Build the overview from the exact bounded fields that mediate the model audit. */
+export function composeAccountOverviewEvidence(question,evidence){
+  const sections=new Map();
+  for(const source of evidence){
+    if(source.id==='account-scope')continue;
+    const key=source.id.slice(8);
+    if(source.id!=='account:'+key||!overviewSources.includes(key)||sections.has(key))return null;
+    let data;
+    try{data=JSON.parse(source.content);}catch{return null;}
+    if(data?.collection!==key||typeof data.checkedAt!=='string'||!Number.isFinite(Date.parse(data.checkedAt))||!validOverviewState(data.overview))return null;
+    sections.set(key,data);
+  }
+  if(sections.size!==overviewSources.length||new Set([...sections.values()].map(data=>data.checkedAt)).size!==1)return null;
+  const overview=Object.fromEntries([...sections].map(([key,data])=>[key,data.overview]));
+  const profileFields=sections.get('profile').records;
+  const {profile,student,profileRecordFound,studentRecordFound}=profileFields??{};
+  if(!profile||!overviewFound(profileRecordFound)||!overviewFound(studentRecordFound)
+    ||(profileRecordFound===true?!overviewText(profile.displayName,600):Object.keys(profile).length!==0)
+    ||(studentRecordFound===true?!(Number.isInteger(student?.yearLevel)&&student.yearLevel>=1&&student.yearLevel<=8
+      &&overviewText(student.program,600)&&['sample','verified'].includes(student.sourceMode)&&['sample','verified'].includes(student.programSourceMode)):student!==null))return null;
+  const missing=[profileRecordFound,studentRecordFound].filter(value=>value===null).length;
+  const profileState=missing===2?'unavailable':missing===1?'partial':profileRecordFound||studentRecordFound?'ok':'empty';
+  if(overview.profile.readState!==profileState||overview.profile.total!==null||overview.profile.included!==0)return null;
+
+  const courses=sections.get('courses'),dtm=sections.get('dtm');
+  for(const [key,data,modes] of [['courses',courses,['sample','verified']],['dtm',dtm,['sample','personal']]]){
+    const state=overview[key],rows=data.records;
+    if(!Array.isArray(rows)||rows.length>state.included||key==='dtm'&&rows.length!==state.included
+      ||!rows.every(row=>overviewText(row?.code,80)&&overviewText(row.title,600)&&overviewText(row.term,200)&&modes.includes(row.sourceMode)))return null;
+    if(state.readState!=='unavailable'&&(!overviewTotal(state.total)||state.included>state.total
+      ||(state.readState==='partial'?state.total===state.included:state.total!==state.included||(state.total===0)!==(state.readState==='empty'))))return null;
+  }
+  if(courses.calendar?.scope!=='current_enrolled_term'||courses.calendar.included!==courses.records.length
+    ||courses.calendar.complete!==overview.courses.complete||courses.calendar.timeZone!=='Asia/Taipei')return null;
+  for(const key of overviewSources.slice(3)){
+    const state=overview[key];
+    if(sections.get(key).records!==undefined||state.included!==0||state.readState==='partial'
+      ||state.readState!=='unavailable'&&(!overviewTotal(state.total)||(state.total===0)!==(state.readState==='empty')))return null;
+  }
+  if(Object.values(overview).every(state=>state.readState==='unavailable'))return null;
+  return formatAccountOverview(question,{overview,profile,student,profileRecordFound,studentRecordFound,
+    current:courses.records,dtm:dtm.records}).answer;
+}
+
+function formatAccountOverview(question,{overview,profile,student,profileRecordFound,studentRecordFound,current,dtm}){
+  const zh=/[\u3400-\u9fff]/u.test(question),t=(en,zhText)=>zh?zhText:en;
   const rows=[t('Your saved stu.best records','你的 stu.best 帳戶紀錄')];
   const sample=mode=>['sample','local_demo'].includes(mode)?t(' (sample)','（範例）'):'';
   if(hasLiteral(profile.displayName))rows.push(t('Account name: ','帳戶名稱：')+inlineRecord(profile.displayName)+'.');
   if(student){
     rows.push(t('Program: ','學程：')+inlineRecord(student.program)+sample(student.programSourceMode??student.sourceMode)+'. '
       +t('Year level: ','年級：')+inlineRecord(student.yearLevel)+sample(student.sourceMode)+'.');
-  }else rows.push(snapshot.studentRecordFound===false
+  }else rows.push(studentRecordFound===false
     ?t('No School Affairs student record is linked to this account.','此帳戶沒有連結校務學生紀錄。')
     :t('I couldn’t check your saved program or year level.','無法查詢已儲存的學程或年級。'));
-  if(snapshot.profileRecordFound===null)rows.push(t('I couldn’t check your saved account name.','無法查詢已儲存的帳戶名稱。'));
-  const labels=(list,limit)=>list.slice(0,limit).map(row=>inlineRecord(row.code)+' '+inlineRecord(row.title)
-    +' ('+inlineRecord(row.term)+(row.sourceMode==='sample'?t(', sample','，示範'):'')+')').join('; ');
-  const current=studyCalendar(snapshot.courses,snapshot.checkedAt).current;
+  if(profileRecordFound===null)rows.push(t('I couldn’t check your saved account name.','無法查詢已儲存的帳戶名稱。'));
+  const labels=(list,limit)=>{
+    const values=[];
+    let length=0;
+    for(const row of list.slice(0,limit)){
+      const label=inlineRecord(row.code)+' '+inlineRecord(row.title)+' ('+inlineRecord(row.term)
+        +(row.sourceMode==='sample'?t(', sample','，示範'):'')+')';
+      if(length+label.length>2200)break;
+      values.push(label);length+=label.length+2;
+    }
+    return {text:values.join('; '),count:values.length};
+  };
+  const currentLabels=labels(current,12);
   const classSummary=overview.courses.readState==='unavailable'
-    ?t('I couldn’t check the saved timetable.','無法查詢已儲存的課表。')
-    :current.length?labels(current,12):overview.courses.readState==='partial'
+    ?overview.courses.reason==='student_unlinked'?t('No student record is linked for checking subjects.','沒有連結可查詢科目的學生紀錄。')
+      :t('I couldn’t check the saved timetable.','無法查詢已儲存的課表。')
+    :currentLabels.text|| (overview.courses.readState==='partial'
       ?t('The excerpt contains no current subjects. The omitted records are unknown.','此節錄中沒有本學期科目，略去的紀錄仍未知。')
-      :t('No current subjects appear in the retrieved timetable.','查到的課表中沒有本學期修課。');
+      :t('No current subjects appear in the retrieved timetable.','查到的課表中沒有本學期修課。'));
   rows.push(t('Current School Affairs subjects: ','本學期校務科目：')+classSummary);
-  if(overview.courses.readState==='partial'||current.length>12)
+  if(overview.courses.readState==='partial'||current.length>currentLabels.count)
     rows.push(t('The timetable shown here is an excerpt.','此處的課表為節錄。'));
-  const dtm=snapshot.dtm.courses;
+  const dtmLabels=labels(dtm,8);
   const moodle=overview.dtm.readState==='unavailable'
     ?t('I couldn’t check your DTM courses.','無法查詢你的數位教材課程。')
-    :dtm.length?labels(dtm,8):t('No courses in the retrieved list.','查到的清單中沒有課程。');
+    :dtmLabels.text||t('No courses in the retrieved list.','查到的清單中沒有課程。');
   rows.push(t('Saved DTM courses: ','已儲存的數位教材課程：')+moodle);
-  if(overview.dtm.readState!=='unavailable'&&(overview.dtm.readState==='partial'||dtm.length>8))
-    rows.push(t(`Showing ${Math.min(dtm.length,8)} of ${overview.dtm.total} saved DTM courses.`,`已顯示 ${overview.dtm.total} 門數位教材課程中的 ${Math.min(dtm.length,8)} 門。`));
+  if(overview.dtm.readState!=='unavailable'&&(overview.dtm.readState==='partial'||dtm.length>dtmLabels.count))
+    rows.push(t(`Showing ${dtmLabels.count} of ${overview.dtm.total} saved DTM courses.`,`已顯示 ${overview.dtm.total} 門數位教材課程中的 ${dtmLabels.count} 門。`));
   const counts=[['assignments',t('assignment tracker records','作業追蹤紀錄')],['charges',t('charge items','費用項目')],
     ['tasks',t('saved tasks','待辦事項')],['requests',t('service requests','服務申請')]];
   rows.push(counts.map(([key,label])=>overview[key].total===null
-    ?t(`${label}: count unavailable`,`${label}：無法查詢筆數`)
+    ?overview[key].reason==='student_unlinked'?t(`${label}: no linked student record`,`${label}：學生紀錄未連結`)
+      :t(`${label}: count unavailable`,`${label}：無法查詢筆數`)
     :t(`${overview[key].total} ${label}`,`${overview[key].total} 筆${label}`)).join(zh?'、':', ')+'.');
   rows.push(t(`[Open School Affairs subjects](${schoolSubjectRecordsPath}) · [Open DTM](/dtm)`,`[查看校務科目](${schoolSubjectRecordsPath}) · [開啟數位教材網](/dtm)`));
   return {answer:rows.join('\n\n'),title:t('My stu.best records','我的 stu.best 紀錄'),url:schoolSubjectRecordsPath};
+}
+
+function composeAccountOverview(intent,snapshot){
+  return formatAccountOverview(intent.contextQuestion,{...snapshot,current:studyCalendar(snapshot.courses,snapshot.checkedAt).current,dtm:snapshot.dtm.courses});
 }
 
 function composeCoreRecordAnswer(intent,snapshot) {

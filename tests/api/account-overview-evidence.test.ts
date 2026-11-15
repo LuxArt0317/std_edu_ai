@@ -164,7 +164,7 @@ test('overview route uses exact counts and verifies the requested parts after a 
   process.env.OPENAI_API_KEY='OVERVIEW_LOCAL_TEST_ONLY';
   try{
     for(const kind of ['direct','refresh','unavailable','omitted']){
-      let reads=0,reviews=0,repairs=0;
+      let reads=0,reviews=0;
       const errors:unknown[]=[];
       const io=transport(request=>{
         if(request.url.pathname.endsWith('/affairs_tasks')&&kind==='unavailable')return new Response(null,{status:503});
@@ -194,7 +194,7 @@ test('overview route uses exact counts and verifies the requested parts after a 
         const claim=(key:string,path:string,claim:string,supported=true)=>({claim,evidenceId:'account:'+key,jsonPaths:[path],quotes:[],supported});
         if(stage==='answer_evidence_review'){
           reviews++;
-          const supported=reviews>1||!['refresh','omitted'].includes(kind);
+          const supported=kind!=='refresh';
           const fields=[
             claim('profile','/records/student/program','Your saved program is Information Studies.',supported),
             claim('profile','/records/student/yearLevel','Your saved year level is 3.',supported),
@@ -205,14 +205,10 @@ test('overview route uses exact counts and verifies the requested parts after a 
             claim('tasks',kind==='unavailable'?'/unavailableReason':'/overview/total',kind==='unavailable'?'Saved task count unavailable.':'You have 2 saved tasks.',supported),
             claim('requests','/overview/total','You have '+data.requests.overview.total+' saved requests.',supported),
           ];
-          if(kind==='omitted'&&reviews===2)fields.pop();
+          if(kind==='omitted')fields.pop();
           return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported,answersQuestion:supported,claims:fields})}]}]});
         }
-        assert.equal(stage,'correct_grounded_answer');
-        repairs++;
-        const answer=kind==='omitted'?'Saved sample program Information Studies, year 3, DB301 and DTM301. 3 tracker items, 2 fee items and 2 tasks.':
-          'Saved sample program Information Studies, year 3, DB301 and DTM301. 3 tracker items, 2 fee items, 2 tasks and 2 service requests.';
-        return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',answer,sourceIds:ids.slice(1)})}]}]});
+        assert.fail('Only the first independent review may call the model for this scoped overview.');
       };
       globalThis.fetch=(...args)=>mock(...args).catch(error=>{errors.push(error);throw error;});
       const blocked=async()=>assert.fail('Overview must not call the broad snapshot or public research.');
@@ -221,15 +217,67 @@ test('overview route uses exact counts and verifies the requested parts after a 
       const reply={setHeader(){},status(code:number){assert.equal(code,200);return reply;},json(value:unknown){result=value;}};
       await handler({method:'POST',headers:{authorization:'Bearer '+account().token},body:{route:'/dtm',question}},reply);
       assert.deepEqual(errors,[]);
-      assert.equal(result.verification.status,kind==='omitted'?'unverified':'verified');
+      assert.equal(result.verification.status,'verified');
       const refreshed=kind==='omitted'||kind==='refresh';
-      assert.equal(reads,refreshed?2:1);assert.equal(reviews,reads);assert.equal(repairs,refreshed?1:0);
+      assert.equal(reads,refreshed?2:1);assert.equal(reviews,1);
+      assert.equal(result.verification.attempts,reads);
+      assert.equal(result.activity.some((step:{kind:string})=>step.kind==='account-overview-evidence-check'),refreshed);
       assert.equal(io.seen.filter(row=>row.method==='HEAD').length,4*reads);
       if(kind==='unavailable')assert.match(result.answer,/saved tasks: count unavailable/u);
       if(kind==='refresh')assert.match(result.answer,/2 service requests/u);
+      if(kind==='omitted')assert.match(result.answer,/1 service requests/u);
       assert.equal(result.proposedAction,undefined);
       assert.ok(result.views.every((view:{id:string})=>['courses','dtm'].includes(view.id)),JSON.stringify(result.views));
       assert.deepEqual(result.views.find((view:{id:string})=>view.id==='dtm')?.columns,['Course','Term','Data']);
+    }
+  }finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
+});
+
+test('overview retry reports unlinked, empty, or excerpted states and withholds an entirely failed refresh',async()=>{
+  const original=globalThis.fetch,key=process.env.OPENAI_API_KEY,question='what do you know about my records';
+  process.env.OPENAI_API_KEY='OVERVIEW_LOCAL_TEST_ONLY';
+  try{
+    for(const kind of ['unlinked','empty','excerpt','failed']){
+      let reads=0,reviews=0;
+      const io=transport(({url})=>{
+        if(reads!==2)return undefined;
+        if(kind==='failed')return new Response(null,{status:503});
+        if(kind==='unlinked'&&url.pathname.endsWith('/affairs_students'))return json([]);
+        if(kind==='empty'&&url.pathname.endsWith('/affairs_tasks'))return new Response(null,{headers:{'content-range':'*/0'}});
+        if(kind==='excerpt'&&url.pathname.endsWith('/dtm_courses'))
+          return json(Array.from({length:200},(_,index)=>({...dtmCourse(index+100),title:'界'.repeat(300)})),201);
+      });
+      globalThis.fetch=async(input,init)=>{
+        const url=new URL(String(input));
+        if(url.origin===account().url){
+          if(url.pathname.endsWith('/affairs_students')&&url.searchParams.get('select')?.includes('program:'))reads++;
+          return io.fetchImpl(input,init);
+        }
+        reviews++;
+        assert.equal(JSON.parse(String(init?.body)).text.format.name,'answer_evidence_review');
+        return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:false,answersQuestion:false,claims:[]})}]}]});
+      };
+      const blocked=async()=>assert.fail('Overview must not read the broader workspace or public sources.');
+      const handler=createAffairsAssistantHandler({verifyToken:async()=>account(),loadSnapshot:blocked,publicResearch:blocked});
+      let result:any;
+      const reply={setHeader(){},status(code:number){assert.equal(code,200);return reply;},json(value:unknown){result=value;}};
+      await handler({method:'POST',headers:{authorization:'Bearer '+account().token},body:{route:'/dtm',question}},reply);
+      assert.equal(reads,2);assert.equal(reviews,1);
+      assert.equal(result.verification.attempts,2);
+      assert.equal(result.verification.status,kind==='failed'?'unverified':'verified');
+      if(kind==='unlinked'){
+        assert.match(result.answer,/No School Affairs student record is linked/);
+        assert.match(result.answer,/charge items: no linked student record/);
+        assert.match(result.answer,/DTM301/);
+        assert.doesNotMatch(result.answer,/Information Studies|0 charge items/);
+      }
+      if(kind==='empty')assert.match(result.answer,/0 saved tasks/);
+      if(kind==='excerpt')assert.match(result.answer,/Showing (?:[1-8]) of 201 saved DTM courses/);
+      if(kind==='failed'){
+        assert.doesNotMatch(result.answer,/Information Studies|DTM301|saved tasks/);
+        assert.deepEqual(result.citations,[]);
+        assert.deepEqual(result.views,[]);
+      }
     }
   }finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
 });

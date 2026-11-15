@@ -10,10 +10,10 @@ import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel,savedFeeBalanceFollowup} from './pendingFeesAnswer.js';
-import { answerPrivateAffairsQuestion, accountQuestionIntent,composeCurrentStudyEvidence,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
+import { answerPrivateAffairsQuestion, accountQuestionIntent,composeAccountOverviewEvidence,composeCurrentStudyEvidence,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import {generalCoachingGuide} from './generalCoachingGuide.js';
-import { verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
+import { answerLinksSupported, verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
 import { searchAssistantKnowledge } from './assistantKnowledge.js';
 import { searchSchoolWeb } from './schoolWebSearch.js';
 import { readVerificationSources } from './answerVerificationSources.js';
@@ -947,6 +947,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     return sources;
   };
   evidence=assembleEvidence();
+  const scopedOverviewAnswer=sources=>{
+    const answer=composeAccountOverviewEvidence(question,sources);
+    return answer&&answerLinksSupported(answer,sources)?answer:null;
+  };
+  if(scopedOverview){
+    initial.answer=scopedOverviewAnswer(evidence)??'';
+    initial.status=initial.answer?'answered':'abstained';
+    needsComposition=false;
+  }
   if(directStudy){
     initial.answer=composeCurrentStudyEvidence(question,evidence)??'';
     initial.status=initial.answer?'answered':'abstained';
@@ -1024,6 +1033,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       if (attempt>1&&!recordFreeCoaching) {
         const refreshed=await loadSnapshot();
         if(refreshed.profile?.userId!==snapshot.profile?.userId)throw new Error('Account scope changed during evidence refresh.');
+        if(scopedOverview&&refreshed.overviewScope!==true)throw new Error('The account overview scope could not be refreshed.');
         current=refreshed;
         // Reconsider omitted read capabilities while reserving time for the one
         // correction and second verification. Retry never changes the action.
@@ -1047,6 +1057,16 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     verify:async context=>{
       // The fixed coaching guide contains no sourced facts or user-supplied text.
       if(coachingGuide&&context.candidate===coachingGuide&&context.evidence.length===0)return {ok:true};
+      if(scopedOverview){
+        const supported=scopedOverviewAnswer(context.evidence);
+        if(!supported||context.candidate.answer!==supported||context.candidate.status!=='answered'||context.candidate.proposedAction
+          ||JSON.stringify(context.candidate.citations)!==JSON.stringify(evidenceCitations(context.evidence)))return {ok:false,reason:'evidence_unavailable'};
+        if(context.attempt>1){
+          emit({kind:'account-overview-evidence-check',label:'Verified your saved overview',
+            detail:'Matched the answer to the refreshed profile, course lists and exact record counts.',status:'complete'});
+          return {ok:true};
+        }
+      }
       if(directStudy){
         const supported=composeCurrentStudyEvidence(question,context.evidence);
         if(!supported||context.candidate.answer!==supported)return {ok:false,reason:'evidence_unavailable'};
@@ -1067,6 +1087,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         emit({kind:'general-coaching-guide',label:'Used a general coaching guide',
           detail:'The answer uses fixed practice guidance without personal records or external sources.',status:'complete'});
         return coachingGuide;
+      }
+      if(scopedOverview){
+        const answer=scopedOverviewAnswer(context.evidence);
+        return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
       }
       if(directStudy){
         const answer=composeCurrentStudyEvidence(question,context.evidence);
@@ -1105,7 +1129,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext||teachingNext||housingNext||serviceNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
     &&!(key==='serviceRecords'&&viewSnapshot.serviceNoteReadUnavailable)
     &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');
-  const baseViews=[...(scopedOverview?overviewRecordViews(viewSnapshot):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
+  const baseViews=[...(scopedOverview?(verified?overviewRecordViews(viewSnapshot):[]):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(applicationSelected&&result.verification?.status==='verified'?applicationAnswer(evidence)?.views??[]:[]),...(housingSelected?(result.verification?.status==='verified'?housingAnswer(evidence)?.views??[]:[]):activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
   const views=servicePlan&&!verified?[]:[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note=(view.note?view.note+' ':'')+'Additional source tables were omitted by the three-table display limit; use the source links for the full records.';

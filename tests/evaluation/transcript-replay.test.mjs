@@ -124,9 +124,11 @@ test('independent helpfulness artifacts bind the actual evolving history and can
   assert.throws(()=>gradeTranscriptReplay(p,run.session,{reviews:[{binding:{caseId:'unknown'}}]}),{code:'invalid_reviews'});
 });
 
-for(const rejectedCoaching of [false,true])
-test(rejectedCoaching?'exact four-turn conversation uses safe interview practice after the model draft is rejected'
-  :'current authenticated endpoint processes the saved four-turn conversation with only intercepted model and data transports',async()=>{
+for(const scenario of ['baseline','coaching-rejected','overview-rejected'])
+test(scenario==='overview-rejected'?'exact four-turn conversation recovers the overview after independent review rejects it'
+  :scenario==='coaching-rejected'?'exact four-turn conversation uses safe interview practice after the model draft is rejected'
+    :'current authenticated endpoint processes the saved four-turn conversation with only intercepted model and data transports',async()=>{
+  const rejectedCoaching=scenario==='coaching-rejected',rejectedOverview=scenario==='overview-rejected';
   const p=plan(),store=memoryStore(),saved=transcriptReplayFixture(p),origin='https://xiftudmvxphxcjtmfmib.supabase.co';
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='synthetic-transcript-model';
   const transport=[],reviewEvidence=[],providerHistory=[];let active=0,workspaceReads=0;
@@ -192,6 +194,9 @@ test(rejectedCoaching?'exact four-turn conversation uses safe interview practice
       if(active===3)response=rejectedCoaching
         ?{supported:false,answersQuestion:true,parts:[{id:1,kind:'factual',accepted:false,claims:[]}]}
         :{supported:true,answersQuestion:true,parts:payload.answerParts.map((part,index)=>({id:part.id,kind:['suggestion','template','clarification'][index],accepted:true,claims:[]}))};
+      else if(active===0&&rejectedOverview)response={supported:false,answersQuestion:false,claims:[
+        {claim:'Overview review did not verify the four independently saved counts.',supported:false,evidenceId:'account:tasks',jsonPaths:[],quotes:[]},
+      ]};
       else response={supported:true,answersQuestion:true,claims:active===0?[
         {claim:'The saved account name is Evaluation Student.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/profile/displayName'],quotes:[]},
         {claim:'The saved program is Sample General Studies and year level is 3.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/student/program','/records/student/yearLevel'],quotes:[]},
@@ -223,10 +228,18 @@ test(rejectedCoaching?'exact four-turn conversation uses safe interview practice
       assert.deepEqual(source.overview,{readState:'ok',total,included:0,complete:true,reason:null});assert.equal(Object.hasOwn(source,'records'),false);
     }
     assert.doesNotMatch(first.content,/amountDue|amountPaid|Collect reading list|Library access request|B-tree|evaluation\.student@|EVAL-115-001/u);
-    const firstReads=transport.filter(row=>row.turn===0);assert.equal(firstReads.length,9);assert.equal(firstReads.filter(row=>row.method==='HEAD').length,4);
+    const firstReads=transport.filter(row=>row.turn===0);assert.equal(firstReads.length,rejectedOverview?18:9);assert.equal(firstReads.filter(row=>row.method==='HEAD').length,rejectedOverview?8:4);
     assert.doesNotMatch(firstReads.map(row=>row.query.select).join('\n'),/\*|email|student_number|full_name|notes|details|grades|materials|attendance|amount_due|amount_paid|role/u);
     assert.equal(providerHistory.some(row=>row.turn===0),false);
     assert.match(run.session.results[0].envelope.body.answer,/3 assignment tracker records, 2 charge items, 2 saved tasks, 1 service requests/u);
+    const firstBody=run.session.results[0].envelope.body;
+    assert.equal(firstBody.verification.attempts,rejectedOverview?2:1);
+    if(rejectedOverview){
+      assert.equal(reviewEvidence.filter(row=>row.turn===0).length,1);
+      assert.deepEqual(firstReads.slice(0,9),firstReads.slice(9));
+      assert.ok(firstBody.activity.some(step=>step.kind==='account-overview-evidence-check'&&step.status==='complete'));
+      assert.deepEqual(firstBody.citations.map(citation=>citation.chunkId),first.ids);
+    }
     assert.deepEqual(run.report.results[0].failures.map(row=>row.id),['guidance.independentReview']);assert.equal(run.report.results[0].independentReview.status,'pending');
     assert.deepEqual(reviewEvidence.find(row=>row.turn===1).ids,['account-scope','account:profile','account:courses']);
     assert.deepEqual(reviewEvidence.find(row=>row.turn===2).ids,['account-scope','account:charges']);assert.deepEqual(reviewEvidence.find(row=>row.turn===3).ids,[]);
