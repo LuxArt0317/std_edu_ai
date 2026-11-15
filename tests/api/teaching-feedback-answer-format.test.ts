@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {micromark} from 'micromark';
 import {readTeachingFeedbackEvidence,unavailableTeachingFeedbackEvidence} from '../../server/accountTeachingFeedbackEvidence.js';
-import {formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
+import {formatExactTeachingFeedbackAnswer,formatSupplementalAccountAnswers} from '../../server/supplementalAccountAnswers.js';
+import {exactTeachingFeedbackRead,teachingFeedbackLookupContext} from '../../server/teachingFeedbackEvidenceIntent.js';
 
 type Evidence=Awaited<ReturnType<typeof readTeachingFeedbackEvidence>>;
 const id=(n:number)=>'75000000-0000-4000-8000-'+String(n).padStart(12,'0');
@@ -64,4 +65,25 @@ test('unavailable and empty teaching feedback have distinct student-facing text'
     userId:id(1),courses:[],feedback:[],surveys:[],terms:[],results:[],
   })});
   assert.match(formatter([empty]).answer,/No saved records were found/u);
+});
+
+test('exact teaching answers preserve a selected saved comment and decline mismatched scopes or display excerpts',async()=>{
+  const route='/school-affairs/services/7-6',question='What exact comment did I save in immediate teaching feedback for course code NET201?';
+  const selection=exactTeachingFeedbackRead(teachingFeedbackLookupContext(question,route));
+  assert.ok(selection);
+  const read=(amount:number)=>readTeachingFeedbackEvidence(account,{views:['immediate'],commentRequested:true,course:{code:'NET201'}},{read:async()=>({
+    userId:id(1),courses:[nativeCourse],surveys:[],feedback:Array.from({length:amount},(_,index)=>({...feedback,id:id(100+index)})),terms:[],results:[],
+  })});
+  const result=await read(1);
+  const answer=formatExactTeachingFeedbackAnswer(result,question,selection);
+  assert.ok(answer);
+  assert.match(answer.answer,/NET201 Networks Lab/u);
+  assert.match(answer.answer,/Please explain the rubric/u);
+  assert.doesNotMatch(micromark(answer.answer),/href="https:\/\/invalid\.example"/u);
+  assert.deepEqual(answer.views[0].rows.map(row=>row[1]),['NET201 Networks Lab']);
+  assert.equal(formatExactTeachingFeedbackAnswer(result,question,{...selection,course:{code:'OTHER'}}),null);
+  assert.equal(formatExactTeachingFeedbackAnswer(result,question,{...selection,commentRequested:false}),null);
+  assert.equal(formatExactTeachingFeedbackAnswer(await read(13),question,selection),null);
+  assert.equal(formatExactTeachingFeedbackAnswer(await source(true),question,selection),null);
+  assert.equal(formatExactTeachingFeedbackAnswer(unavailableTeachingFeedbackEvidence('read_failed'),question,selection),null);
 });

@@ -75,7 +75,7 @@ export function openTeachingObservation({body,identity,correlationId},env=proces
     ||declaredDigest!==requestDigest(scope.origin,request))return null;
 
   const attempts=[],modelOperations=[];
-  let invalid=false;
+  let invalid=false,nativeChecked=false;
   return Object.freeze({
     async observe(read){
       const attempt={reads:[],projectionDigest:null};
@@ -89,13 +89,19 @@ export function openTeachingObservation({body,identity,correlationId},env=proces
       return result;
     },
     modelCompleted(operation){
-      if(!operations.includes(operation)||modelOperations.length>=maxAnswerVerificationChecks*2)invalid=true;
+      if(nativeChecked||!operations.includes(operation)||modelOperations.length>=maxAnswerVerificationChecks*2)invalid=true;
       else modelOperations.push(operation);
     },
+    nativeCheckCompleted(){
+      if(nativeChecked||modelOperations.length||attempts.length!==1||attempts[0].reads.length!==1
+        ||!sha.test(attempts[0].projectionDigest))invalid=true;
+      else nativeChecked=true;
+    },
     finish(body,expectsRead){
-      if(invalid||expectsRead!==Boolean(attempts.length)||!expectsRead&&modelOperations.length
+      if(invalid||expectsRead!==Boolean(attempts.length)||!expectsRead&&(modelOperations.length||nativeChecked)
         ||attempts.some(row=>!sha.test(row.projectionDigest)))return null;
-      return seal('response',{binding,correlationId,attempts,modelOperations,
+      const verificationMethod=nativeChecked?'native-exact':expectsRead?'model':'none';
+      return seal('response',{binding,correlationId,attempts,modelOperations,verificationMethod,
         responseDigest:teachingObservationDigest({statusCode:200,body})},key);
     },
   });
@@ -103,7 +109,7 @@ export function openTeachingObservation({body,identity,correlationId},env=proces
 
 export function verifyTeachingObservation({receipt,binding,correlationId,body},key){
   const observed=unseal('response',receipt,key);
-  if(!exact(observed,['binding','correlationId','attempts','modelOperations','responseDigest'])
+  if(!exact(observed,['binding','correlationId','attempts','modelOperations','verificationMethod','responseDigest'])
     ||!exact(observed.binding,bindingKeys)||bindingKeys.some(name=>observed.binding[name]!==binding?.[name])
     ||!uuid.test(correlationId)||observed.correlationId!==correlationId
     ||observed.responseDigest!==teachingObservationDigest({statusCode:200,body})
@@ -112,6 +118,11 @@ export function verifyTeachingObservation({receipt,binding,correlationId,body},k
       ||!Array.isArray(row.reads)||row.reads.length>2||new Set(row.reads.map(read=>read?.view)).size!==row.reads.length
       ||row.reads.some(read=>!exact(read,['view','digest'])||!views.includes(read.view)||!sha.test(read.digest)))
     ||!Array.isArray(observed.modelOperations)||observed.modelOperations.length>maxAnswerVerificationChecks*2
-    ||observed.modelOperations.some(operation=>!operations.includes(operation)))return null;
+    ||observed.modelOperations.some(operation=>!operations.includes(operation))
+    ||!['native-exact','model','none'].includes(observed.verificationMethod)
+    ||observed.verificationMethod==='none'&&(observed.attempts.length!==0||observed.modelOperations.length!==0)
+    ||observed.verificationMethod==='model'&&observed.attempts.length===0
+    ||observed.verificationMethod==='native-exact'&&(observed.modelOperations.length!==0||observed.attempts.length!==1
+      ||observed.attempts[0].reads.length!==1))return null;
   return observed;
 }

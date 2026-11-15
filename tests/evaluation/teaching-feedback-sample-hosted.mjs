@@ -125,22 +125,26 @@ export async function requestTeachingSampleCase({testCase,plan,origin,sourceRevi
   else correlations.add(correlationId);
   const reviews=observation?.modelOperations.filter(name=>name==='answer_evidence_review').length??0;
   const checks=body.verification?.attempts;
+  const nativeChecks=activity.filter(step=>step.kind==='teaching-feedback-evidence-check'&&step.status==='complete');
+  const method=observation?.verificationMethod??null;
+  const native=method==='native-exact'&&checks===1&&nativeChecks.length===1&&reviews===0&&observation.attempts.length===1;
+  const model=method==='model'&&nativeChecks.length===0&&Number.isInteger(checks)&&checks>=1
+    &&checks<=maxAnswerVerificationChecks&&observation.attempts.length===Math.min(checks,2)&&reviews===checks;
   if(expected){
     if(!observation?.attempts.length||observation.attempts.some(attempt=>!isDeepStrictEqual(attempt,expected)))
       failures.push('teaching.native_read_or_projection');
-    if(body.verification?.status!=='verified'||!Number.isInteger(checks)||checks<1||checks>maxAnswerVerificationChecks
-      ||observation?.attempts.length!==Math.min(checks,2)||reviews!==checks)failures.push('teaching.review_evidence');
+    if(body.verification?.status!=='verified'||!native&&!model)failures.push('teaching.review_evidence');
     if(accountReads.some(event=>!/^account-read:teachingFeedback:[12]$/u.test(event.kind)||!['running','complete'].includes(event.status))
       ||!Array.from({length:observation?.attempts.length??0},(_,index)=>index+1).every(attempt=>
         accountReads.some(event=>event.kind==='account-read:teachingFeedback:'+attempt&&event.status==='complete'))
       ||accountCitations.some(item=>item.chunkId!==sourceId))failures.push('teaching.wrong_tool_scope');
-  }else if(observation?.attempts.length||observation?.modelOperations.length||accountReads.length||accountCitations.length)
+  }else if(method!=='none'||observation?.attempts.length||observation?.modelOperations.length||nativeChecks.length||accountReads.length||accountCitations.length)
     failures.push('teaching.hidden_reads');
-  const execution=expected?reviews?'live-model':'unverified':'live-native';
+  const execution=native||!expected&&method==='none'?'live-native':model?'live-model':'unverified';
   const outcome=gradeCase(testCase,{statusCode:response.status,execution,fixtureKey:testCase.fixtureKey,body,events:activity});
   failures.push(...outcome.failures.map(item=>item.id));
   return {caseId:testCase.id,passed:failures.length===0,execution,failures,
-    attempts:observation?.attempts.length??null,completedEvidenceReviews:observation?reviews:null,
+    attempts:observation?.attempts.length??null,verificationMethod:method,completedEvidenceReviews:observation?reviews:null,
     ...(observation?{responseDigest:observation.responseDigest,receiptDigest:teachingObservationDigest(receipt),
       correlationId,readDigests:observation.attempts.flatMap(attempt=>attempt.reads.map(read=>read.digest)),
       projectionDigests:observation.attempts.map(attempt=>attempt.projectionDigest)}:{})};

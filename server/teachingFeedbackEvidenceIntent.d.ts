@@ -12,6 +12,7 @@ export type TeachingEvidenceSelection={
 export type TeachingEvidenceContext={readonly selection:TeachingEvidenceSelection|null;readonly question:string;readonly otherQuestion:string;readonly foreign:boolean;readonly excluded:boolean;readonly navigation:readonly TeachingEvidenceView[]};
 export function teachingFeedbackLookupContext(question:unknown,route?:unknown,history?:unknown):TeachingEvidenceContext;
 export function selectTeachingFeedbackEvidence(question:unknown,route?:unknown,history?:unknown):TeachingEvidenceSelection|null;
+export function exactTeachingFeedbackRead(context:TeachingEvidenceContext):TeachingEvidenceSelection|null;
 export function isTeachingFeedbackEvidenceQuestion(question:unknown,route?:unknown,history?:unknown):boolean;
 export function teachingFeedbackNavigation(question:unknown):string|null;
 export function isTeachingFeedbackScopeQuestion(question:unknown,route?:unknown,history?:unknown):boolean;

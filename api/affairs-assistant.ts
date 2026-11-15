@@ -915,9 +915,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     };
     const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n'):excludedNoteFeeLabel?noteQuestion:question;
     const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
+      allowNativeTeachingVerification:graphQuestion===question,
       loadSnapshot:()=>loadSelectedSnapshot(false),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
-      ...(teachingObservation?{onProviderCompleted:teachingObservation.modelCompleted}:{}),
+      ...(teachingObservation?{onProviderCompleted:teachingObservation.modelCompleted,onNativeTeachingVerified:teachingObservation.nativeCheckCompleted}:{}),
     });
     stream.progress('answer',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
       answer.verification?.status==='verified'?'The answer passed the account evidence checks.':'An unverified draft was withheld.',

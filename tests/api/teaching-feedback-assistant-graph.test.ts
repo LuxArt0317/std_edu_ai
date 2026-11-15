@@ -35,7 +35,7 @@ const enrollment={id:id(7),student_id:id(5),status:'enrolled',source_mode:'sampl
 const fee={id:id(10),student_id:id(5),label:'QA Tuition',amount_due:28000,amount_paid:5000,currency:'TWD',source_mode:'sample'};
 const ranged=(rows:unknown[])=>Response.json(rows,{headers:{'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
 type Source={id:string;url:string;content:string};
-type Options={ids:string[];unavailable?:string;reject?:number;asked?:RegExp;reviewOmitsImmediate?:boolean;eligibleCap?:boolean;omitCoverage?:boolean};
+type Options={ids:string[];unavailable?:string;reject?:number;asked?:RegExp;reviewOmitsImmediate?:boolean;eligibleCap?:boolean;omitCoverage?:boolean;excerptedDisplay?:boolean};
 async function offline(options:Options,exercise:()=>Promise<void>){
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY,errors:unknown[]=[],transport:string[]=[];
   process.env.OPENAI_API_KEY='TEACHING_OFFLINE_MODEL';
@@ -57,8 +57,9 @@ async function offline(options:Options,exercise:()=>Promise<void>){
           status:attempt===1?'submitted':'reviewed',comment:'Saved explanation '+attempt,
           submittedAt:'2026-10-04T09:00:00Z',reviewedAt:attempt===1?null:'2026-10-05T09:00:00Z'};
         const eligible=options.eligibleCap?Array.from({length:200},(_,index)=>({...course,id:id(100+index),code:'EL'+(index+1),course:'Eligible Lab '+(index+1)})):[course];
+        const feedbackRows=options.excerptedDisplay?Array.from({length:13},(_,index)=>({...feedback,id:id(500+index)})):[feedback];
         return Response.json({userId:id(1),surveys:p_scope==='survey'?[survey]:[],courses:p_scope==='immediate'?eligible:[],
-          feedback:p_scope==='immediate'&&!options.eligibleCap?[feedback]:[],terms:[],results:[]});
+          feedback:p_scope==='immediate'&&!options.eligibleCap?feedbackRows:[],terms:[],results:[]});
       }
       assert.equal(init?.method,'GET');
       if(name==='affairs_students'){
@@ -174,10 +175,11 @@ test('both guest and authenticated navigation and access checks avoid private or
   }finally{globalThis.fetch=original;}
 });
 
-test('comment requests use one view and reread once before completing or withholding the answer',async()=>{
+test('an excerpted comment display stays on model review with one scoped reread before completion or abstention',async()=>{
   for(const reject of [0,1,2,3]){
-    const transport=await offline({ids:['account:teachingFeedback'],reject,asked:/Database Design/u},async()=>{
+    const transport=await offline({ids:['account:teachingFeedback'],reject,asked:/Database Design/u,excerptedDisplay:true},async()=>{
       const result=await ask(immediateQuestion);
+      assert.ok(!result.activity.some((step:{kind:string})=>step.kind==='teaching-feedback-evidence-check'));
       assert.equal(result.verification.status,reject===3?'unverified':'verified');
       if(reject!==3)assert.match(result.answer,new RegExp('Saved explanation '+(reject?2:1),'u'));
       else assert.doesNotMatch(result.answer,/Saved explanation/u);
@@ -189,6 +191,16 @@ test('comment requests use one view and reread once before completing or withhol
       ...(reject>1?['correct_grounded_answer','answer_evidence_review']:[]),
     ]);
   }
+});
+
+test('a failed standalone reader stays on the existing verification path without an absence or native claim',async()=>{
+  const transport=await offline({ids:['account:teachingFeedback'],unavailable:'immediate'},async()=>{
+    const reply=await ask(immediateQuestion,immediatePath);
+    assert.match(reply.answer,/Immediate teaching feedback could not be read/u);
+    assert.doesNotMatch(reply.answer,/No saved/u);
+    assert.ok(!reply.activity.some((step:{kind:string})=>step.kind==='teaching-feedback-evidence-check'));
+  });
+  assert.deepEqual(transport,['immediate','answer_evidence_review']);
 });
 
 test('teaching plus current courses and year keeps independent sources and partial answers',async()=>{

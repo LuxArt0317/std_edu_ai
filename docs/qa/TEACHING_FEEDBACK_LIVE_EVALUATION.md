@@ -73,7 +73,11 @@ node tests/evaluation/run-teaching-sample-preview.mjs <protected-preview-origin>
 
 The application signs request-bound raw DTO and selected evidence commitments.
 The operator checks those commitments against the saved history of the two
-isolated account profiles, verification events and completed model reviews.
+isolated account profiles and verification events. A complete standalone
+reply can use a single signed check of the exact text, table and citation.
+Model-reviewed replies retain their separate completed-review evidence.
+Compound requests, reader failures and excerpted evidence stay with the
+existing verification graph.
 Its private report stores verdicts and hashes. Cleanup verifies the exact fixture identity and
 row removals and preserves the protected owner. A passing sample report covers
 saved local history, empty reads and restricted actions. Published survey

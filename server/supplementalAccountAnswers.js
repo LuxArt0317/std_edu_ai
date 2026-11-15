@@ -699,6 +699,21 @@ function literalRecordText(value){
   return `${fence} ${text} ${fence}`;
 }
 
+export function formatExactTeachingFeedbackAnswer(result,question,selected){
+  if(result?.evidence?.id!=='account:teachingFeedback'||selected?.views.length!==1
+    ||result.reason!==null||!['ok','empty'].includes(result.readState))return null;
+  const {payload}=parse(result),actual=payload.selection,course=selected.course??null;
+  if(!payload.complete||!actual||actual.views.length!==1||actual.views[0]!==selected.views[0]
+    ||actual.commentRequested!==selected.commentRequested||(actual.course===null)!==(course===null)
+    ||course&&(!exact(actual.course,Object.keys(course))||Object.entries(course).some(([field,value])=>actual.course[field]!==value)))return null;
+  const formatted=formatSupplementalAccountAnswers([result],{question});
+  // Typed record completeness does not guarantee every selected field fit into
+  // the student-facing text and table. Keep those cases in the existing graph.
+  if(formatted.status!=='answered'||!formatted.complete||formatted.formatting.limited)return null;
+  const {status,answer,citations,views}=formatted;
+  return {status,answer,citations,views};
+}
+
 export function formatExactDtmGradeAvailability(result,question){
   if(result?.evidence?.id!=='account:dtmGradeReport')return null;
   return exactDtmGradeAvailability(parse(result),question);

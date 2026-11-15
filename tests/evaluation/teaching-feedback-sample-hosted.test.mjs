@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
-import {createTeachingProbe,teachingObservationHeader,verifyTeachingObservation} from '../../server/teachingFeedbackObservation.js';
+import {createTeachingProbe,openTeachingObservation,teachingObservationHeader,verifyTeachingObservation} from '../../server/teachingFeedbackObservation.js';
 import {buildTeachingSampleFixture,expectedTeachingSampleDto} from './teaching-feedback-sample-fixture.mjs';
 import {requestTeachingSampleCase,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
 
@@ -89,7 +89,10 @@ test('every additional sample prompt uses the actual protected assistant handler
       sent=[];
       const result=await requestTeachingSampleCase({testCase,plan,origin,sourceRevision,runId,token:tokens[testCase.owner],key,
         fetchImpl,readResponse,privateMarkers:[owners.A.id,owners.B.id,...Object.values(tokens)],correlations});
-      assert.deepEqual(sent,[...testCase.views,...(testCase.views.length?['review']:[])],testCase.id);
+      assert.deepEqual(sent,testCase.views,testCase.id);
+      assert.equal(result.execution,'live-native',testCase.id);
+      assert.equal(result.verificationMethod,testCase.views.length?'native-exact':'none',testCase.id);
+      assert.equal(result.completedEvidenceReviews,0,testCase.id);
       if(!result.passed)failures.push({id:testCase.id,failures:result.failures});
       assert.ok(result.receiptDigest);
     }
@@ -123,12 +126,41 @@ test('every additional sample prompt uses the actual protected assistant handler
     const accepted=await fetchImpl(endpoint,post(probe.body));
     const body=await accepted.json();
     const receipt=accepted.headers.get(teachingObservationHeader),correlationId=accepted.headers.get('x-assistant-request-id');
-    assert.ok(verifyTeachingObservation({receipt,binding:probe.binding,correlationId,body},key));
+    assert.equal(verifyTeachingObservation({receipt,binding:probe.binding,correlationId,body},key)?.verificationMethod,'native-exact');
     assert.equal(verifyTeachingObservation({receipt,binding:probe.binding,correlationId,body:{...body,answer:'changed'}},key),null);
+
+    const frozenPrompts=[
+      'Show my immediate teaching feedback status, but do not show my comment.',
+      'Show my immediate teaching feedback status, but do  not show my comment.',
+      'When was my immediate teaching feedback submitted and reviewed? Use saved ISO timestamps.',
+    ];
+    for(const question of frozenPrompts){
+      const input={...request,question};
+      const exact=createTeachingProbe({ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision},input,key);
+      sent=[];
+      const response=await fetchImpl(endpoint,post(exact.body));
+      const answer=await response.json();
+      const proof=verifyTeachingObservation({receipt:response.headers.get(teachingObservationHeader),binding:exact.binding,
+        correlationId:response.headers.get('x-assistant-request-id'),body:answer},key);
+      assert.equal(proof?.verificationMethod,'native-exact',question);
+      assert.deepEqual(sent,['immediate']);
+      assert.match(answer.answer,/SAMP101[\s\S]+SAMP102/u);
+      assert.doesNotMatch(answer.answer,/Sample evaluation note/u);
+    }
   }finally{
     globalThis.fetch=original;
     for(const [name,value] of Object.entries(previous)){
       if(value===undefined)delete process.env[name];else process.env[name]=value;
     }
   }
+});
+
+test('a completion marker without a native DTO and selected projection cannot create a signed native receipt',()=>{
+  const [testCase]=teachingSampleCases(),request=requestFor(testCase),env=metadata();
+  const probe=createTeachingProbe({ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision},request,key);
+  const observation=openTeachingObservation({body:probe.body,identity:{...owners.A,runMarker:runId},correlationId:randomUUID()},env);
+  assert.ok(observation);
+  observation.nativeCheckCompleted();
+  assert.equal(observation.finish({verification:{status:'verified',attempts:1},
+    activity:[{kind:'teaching-feedback-evidence-check',status:'complete'}]},true),null);
 });

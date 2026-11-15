@@ -32,7 +32,7 @@ import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './acc
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatExactDtmGradeAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
+import {formatExactDtmGradeAnswer,formatExactTeachingFeedbackAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
@@ -45,7 +45,7 @@ import {unavailableHousingBedEvidence} from './accountHousingBedEvidence.js';
 import {housingApplicationLookupContext} from './housingApplicationEvidenceIntent.js';
 import {formatHousingApplicationAnswer} from './housingApplicationAnswer.js';
 import {unavailableHousingApplicationEvidence} from './accountHousingApplicationEvidence.js';
-import {teachingFeedbackImmediateFields,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
+import {exactTeachingFeedbackRead,teachingFeedbackImmediateFields,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
 import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {isStudentAidRecordQuestion} from './studentAidRecords.js';
 export {supplementalAccountTools,requiredSupplementalTools} from './accountSupplementalLookup.js';
@@ -872,7 +872,7 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   return {...result,answer:unavailable+'\n\n['+title+']('+urls.charges+')',views:[],grounding:grounding(true),activity:[...observed.values()]};
 }
 
-export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified,onNativeInternshipVerified}) {
+export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified,onNativeInternshipVerified,onNativeTeachingVerified,allowNativeTeachingVerification=true}) {
   if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&isOwnFeeBalanceQuestion(question)&&!leavePlan&&!internshipPlan)
     return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
@@ -974,6 +974,41 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     readSupplemental(snapshot,1),
   ]);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
+  const exactTeaching=allowNativeTeachingVerification&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='teachingFeedback'
+    ?exactTeachingFeedbackRead(teaching):null;
+  if(exactTeaching){
+    let results=firstSupplemental;
+    const render=()=>{
+      if(results.length!==1)return null;
+      try{
+        const answer=formatExactTeachingFeedbackAnswer(results[0],question,exactTeaching);
+        return answer&&answerLinksSupported(answer.answer,[results[0].evidence])?answer:null;
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+    };
+    const initial=render();
+    if(initial){
+      const checked=await runAnswerVerification({question,deadline,initialAnswer:initial,onProgress:emit,
+        async loadEvidence({attempt}){
+          if(attempt>1)results=await readSupplemental(snapshot,attempt);
+          return results.map(result=>result.evidence);
+        },
+        verify({candidate,evidence}){
+          const expected=evidence.length===1&&evidence[0]===results[0]?.evidence?render():null;
+          if(!expected||!isDeepStrictEqual(candidate,expected))return {ok:false,reason:'evidence_unavailable'};
+          const zh=supplementalAnswerLanguage(question)==='zh-TW';
+          emit({kind:'teaching-feedback-evidence-check',label:zh?'已核對教學意見紀錄':'Verified your saved teaching feedback',
+            detail:zh?'已將回答、表格及連結對照這次讀取的紀錄。':'Matched the answer, table and link to the saved fields from this lookup.',status:'complete'});
+          return {ok:true};
+        },
+        repair:async()=>render()??{status:'abstained',answer:'',citations:[],views:[]},
+      });
+      const verified=checked.verification?.status==='verified';
+      if(verified)onNativeTeachingVerified?.();
+      return {...checked,views:checked.views??[],suggestedQuestions:[],
+        grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!verified},
+        activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+    }
+  }
   if(!dtmCompound&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='dtmGradeReport'
     &&isNativeDtmGradeOnlyQuestion(question,fullRoute,history)){
     let results=firstSupplemental;

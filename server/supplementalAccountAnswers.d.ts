@@ -19,6 +19,7 @@ import type {CertificateEvidenceResult} from './accountCertificateEvidence.js';
 import type {SubmissionEvidenceResult} from './accountSubmissionEvidence.js';
 import type {TuitionEvidenceResult} from './accountTuitionEvidence.js';
 import type {TeachingFeedbackEvidenceResult} from './accountTeachingFeedbackEvidence.js';
+import type {TeachingEvidenceSelection} from './teachingFeedbackEvidenceIntent.js';
 
 export type SupplementalEvidenceResult=InternshipEvidenceResult|StudentLeaveEvidenceResult|DtmAssignmentEvidenceResult|TutorEvaluationEvidenceResult|ClearanceEvidenceResult|CounselingEvidenceResult|HealthExaminationEvidenceResult|FeeRemissionEvidenceResult|CatalogEvidenceResult|CertificateEvidenceResult|SubmissionEvidenceResult|TuitionEvidenceResult|StudentConductEvidenceResult|StudentLoanEvidenceResult|AidPaymentsEvidenceResult|DtmGradeReportEvidenceResult|ElearningEvidenceResult|FacilityRepairEvidenceResult|DormitoryConductEvidenceResult|ElearningOutlineEvidenceResult|TeachingFeedbackEvidenceResult;
 export type SupplementalRecordView={id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string};
@@ -35,6 +36,8 @@ export function supplementalAnswerLanguage(question:string):'en'|'zh-TW';
 export function formatExactDtmGradeAvailability(result:DtmGradeReportEvidenceResult,question:string):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatExactDtmGradeAnswer(result:DtmGradeReportEvidenceResult,question:string):
+  Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
+export function formatExactTeachingFeedbackAnswer(result:TeachingFeedbackEvidenceResult,question:string,selection:TeachingEvidenceSelection):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatRequestedAidPaymentDetails(result:AidPaymentsEvidenceResult,question:string,
   selection:{views:readonly ('salary'|'claims')[];pages:Partial<Record<'salary'|'claims',number>>;reason:string|null}):

@@ -5,10 +5,12 @@ const immediate=/\b(?:(?:immediate|real[- ]time)\s+)?teaching\s+feedback\b|即�
 const weakImmediate=/\bcourse\s+feedback\b/iu;
 const dtm=/\b(?:moodle|dtm|quiz|assignment|homework|gradebook)\b|作業|測驗|數位教材|教材網/iu;
 const tracker=/\b(?:tracking|tracker|service|personal|private)\s+(?:saved\s+)?notes?\b|\b(?:private|personal)\b[^.!?]{0,60}\bnotes?\b|追蹤(?:備註|筆記|紀錄)|追踪(?:备注|笔记|记录)|私人筆記/iu;
-const negative=/^(?:(?:please|also|then|but)\s+)*(?:do not|don['’]t|never|not(?!\s+only)|without|exclude|excluding|except|skip)\b|^(?:請|请)?(?:不要|別|不顯示|不显示|排除|不含)/iu;
+const negative=/^(?:(?:please|also|then|but)\s+)*(?:do\s+not|don['’]t|never|not(?!\s+only)|without|exclude|excluding|except|skip)\b|^(?:請|请)?(?:不要|別|不顯示|不显示|排除|不含)/iu;
 const comment=/\b(?:comments?|remarks?|written (?:feedback|response)|what (?:did|have) i (?:write|written)|comment text)\b|評語|留言|評論|寫了什麼|写了什么|(?:已儲存|已保存|填寫|填了)的?(?:意見|意见)|意見內容/iu;
 const unsupported=/\b(?:ratings?|scores?|averages?|aggregate|anonymous answers?|survey answers?|questionnaire answers?|original (?:answers?|responses?)|official|receipt|pdf|download|teacher (?:name|email)|student (?:name|number|identity)|who (?:wrote|submitted)|other students)\b|評分|分數|平均|匿名(?:答案|填答|回覆)|原始(?:答案|填答)|官方|收據|下載|教師姓名|學生姓名|學號/iu;
 const supported=/\b(?:status|state|completed|completion|submission|reviewed|review|when|open|closes?|closed|scheduled|window|period|remaining|unfinished|pending|available|have i|did i|has my|records?|history)\b|狀態|状态|填答狀態|已填答|未填答|完成|已送出|送出時間|檢閱|開放|關閉|截止|紀錄|記錄|什么时候|何時/iu;
+const unscopedOutcome=/\b(?:teacher|instructor)\s+(?:has\s+)?(?:read|see|saw|says?|received|replied|changed)\b|\b(?:mean|means|imply|implies|who reviewed|prove|guarantee|deliver(?:y|ed)|resolv(?:e|ed|ution)|list only|latest|most recent|(?:since|before|after)\s+\d|this (?:week|month|semester|term)|last (?:week|month|semester|term))\b|\b\d{4}-\d{2}-\d{2}\b|(?:老師|教師).{0,8}(?:看過|閱讀|收到|回覆|改善)|送達|最新|最近|本(?:週|月|學期)|上(?:週|月|學期)/iu;
+const isoFormat=/^(?:use|show|in)\s+(?:the\s+)?(?:saved\s+)?ISO\s+(?:format|timestamps?)$/iu;
 // Survey responses are anonymous content, not the caller's completion metadata.
 // A source adjective between "anonymous" and "responses" must not authorize a
 // metadata read; nor should generic response "status/history" wording do so.
@@ -29,7 +31,7 @@ function masked(value){
   return result.join('');
 }
 function parts(value){
-  const hidden=masked(value),pattern=/[;；。?!？！\n]|\.(?=\s|$)|[,，]\s*(?=(?:show|list|read|check|tell|what|when|which|how|do not|don['’]t|never|not|without|excluding|then|also|my)\b)|\s+(?:and|also|plus|but|alongside)\s+(?=(?:show|list|read|check|tell|what|when|which|how|did|has|is|was|can|do not|don['’]t|never|not|without|excluding|then|my|the (?:status|teaching|immediate|course)|immediate|teaching|course|submit|cancel|change|delete|mark|download)\b)|\s+(?=(?:not(?!\s+only)|without|excluding|except)\b)|以及|還有|並且|但是|(?=排除|不含)/giu;
+  const hidden=masked(value),pattern=/[;；。?!？！\n]|\.(?=\s|$)|[,，]\s*(?=(?:show|list|read|check|tell|what|when|which|how|do\s+not|don['’]t|never|not|without|excluding|then|also|my)\b)|\s+(?:and|also|plus|but|alongside)\s+(?=(?:show|list|read|check|tell|what|when|which|how|did|has|is|was|can|do\s+not|don['’]t|never|not|without|excluding|then|my|the (?:status|teaching|immediate|course)|immediate|teaching|course|submit|cancel|change|delete|mark|download)\b)|\s+(?=(?:without|excluding|except)\b)|(?<!\bdo)(?<!\s)\s+(?=not(?!\s+only)\b)|以及|還有|並且|但是|(?=排除|不含)/giu;
   const result=[];let start=0;
   for(const match of hidden.matchAll(pattern)){const part=value.slice(start,match.index).trim();if(part)result.push(part);start=match.index+match[0].length;}
   const tail=value.slice(start).trim();if(tail)result.push(tail);return result;
@@ -130,7 +132,9 @@ export function teachingFeedbackLookupContext(question,route='',history=[]){
     const eligibleField=eligibility.test(masked(unnegated));
     if(eligibleField&&!lastViews.length&&current.slice(index+1).some(value=>views(value).includes('immediate')&&!negative.test(value))){pending.push(part);continue;}
     const eligibleContext=eligibleField&&(lastViews.includes('immediate')||contextView==='immediate');
-    const dependent=isTeachingFeedbackFieldClause(part)||courseField||eligibleContext||isNegative&&isTeachingFeedbackFieldClause(unnegated);
+    const dependent=isTeachingFeedbackFieldClause(part)||courseField||eligibleContext
+      ||isoFormat.test(part)&&/\b(?:when|opens?|closes?|timestamps?|submitted|reviewed)\b/iu.test(nativeParts.at(-1)?.part??'')
+      ||isNegative&&isTeachingFeedbackFieldClause(unnegated);
     if(dependent&&(lastViews.length||contextView)&&!independent.test(part)){
       const inherited=lastViews.length?lastViews:[contextView];
       if(!lastViews.length)from=priorViews.length?'history':'route';
@@ -162,6 +166,12 @@ export function teachingFeedbackLookupContext(question,route='',history=[]){
     navigation:Object.freeze([...guides].filter(view=>!states.has(view)))});
 }
 export function selectTeachingFeedbackEvidence(question,route='',history=[]){return teachingFeedbackLookupContext(question,route,history).selection;}
+export function exactTeachingFeedbackRead(context){
+  const selection=context.selection;
+  return selection?.views.length===1&&!selection.reason&&!selection.unavailableDetails&&!context.otherQuestion
+    &&!context.excluded&&!context.foreign&&!context.navigation.length&&!unscopedOutcome.test(masked(selection.question))
+      ?selection:null;
+}
 export function isTeachingFeedbackEvidenceQuestion(question,route='',history=[]){return selectTeachingFeedbackEvidence(question,route,history)!==null;}
 export function teachingFeedbackNavigation(question){
   const context=teachingFeedbackLookupContext(question);
