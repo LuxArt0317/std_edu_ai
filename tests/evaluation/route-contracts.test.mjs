@@ -253,9 +253,10 @@ test('route coverage retains only unresolved semantic cases after adding public 
   newIds.push(...identityCases.map(row=>row.id),'anonymous-records-accountIdentity');
   newIds.push(...clubCases.map(row=>row.id),'anonymous-records-clubAttendance','anonymous-records-clubEquipment');
   const institutionalIds=['public-institution-founding-mission','public-institution-motto'];
-  newIds.push(...institutionalIds);
+  const publishedCoachingIds=['account:published-sample-current-courses-plus-interview-draft'];
+  newIds.push(...institutionalIds,...publishedCoachingIds);
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds])
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds,publishedCoachingIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   const alreadyCoveredServiceViews=new Set(['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id',
     '/school-affairs/services/29-1/appointments','/school-affairs/services/37-1/salary']);

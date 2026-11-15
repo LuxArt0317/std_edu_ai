@@ -1044,5 +1044,17 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the fourth-check regression and the reloaded browser activity. Pin three public smoke requests to protected `fe340f3`.
 - [x] Retry one classified temporary acquisition failure. Verify the third-check recovery and bounded-stop cases. Pin three public smoke requests to protected `85133e4`.
 - [x] Run the eight local certificate cases and the local Moodle timing and confirmed tracker packets against migrated PostgreSQL.
-- [ ] Run the certificate receipt, assignment timing and confirmed tracker packets on a protected exact release. Evaluate the original fixed assignment cases inside their expected dates.
+- [x] Run the certificate receipt, portable assignment timing and confirmed tracker packets on protected `ebc5092` with exact fixture disposal.
+- [ ] Evaluate the four original fixed assignment cases inside their expected Taipei windows.
 - [ ] Complete broader signed-in service replay and production release acceptance.
+
+
+### Cumulative signed-in and targeted course routing [Issue #100]
+
+- [x] Replay all four original saved-chat turns in sequence. Validate the two independent reviews and persistence of versions 1–4.
+- [x] Verify all 265 browser inventory routes and the specific Group Insurance saved-note and sign-in return.
+- [x] Keep the original course/coaching DB301 case and its setup result. Bind a separate published-sample case and scope current-course plus coaching retrieval.
+- [x] Mount 13 original Teaching Feedback questions without shared catalog changes. Exercise all original local cases and both independent empty histories.
+- [ ] Replay the original Teaching Feedback subset and published coaching on the next exact protected release.
+- [x] Verify the three original Counseling and tuition compounds against migrated local PostgreSQL and actual handlers.
+- [ ] Mount and verify a combined protected Counseling and tuition lease with exact joint journal cleanup.
