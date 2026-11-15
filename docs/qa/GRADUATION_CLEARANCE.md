@@ -15,6 +15,8 @@ The university's flowchart documents an explicit decision to proceed after readi
 - `node --experimental-strip-types tests/integration/graduation-clearance-http.mjs --verify-client` exercises real Supabase sessions, exact fixture cleanup, and bilingual assistant status. Set `EXPECTED_RELEASE_REVISION` for the production handlers.
 - `node tests/integration/graduation-clearance-ui.mjs` exercises compiled navigation, acknowledgement, retry, administrator edits, saved status on reload, responsive rendering and the guest return. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for the deployed bundle. The browser uses intercepted data, while the HTTP and rollback suites exercise persistence.
 
+The assistant checks standalone status and note answers against the selected native records in LangGraph. A transient read failure triggers a refresh of the same authorized lookup. Explicit requests to submit, approve or open the manager queue receive a scoped refusal before the reader queries records.
+
 ## Protected status evaluation
 
 Run from the exact clean revision deployed to the approved protected Preview. Supply the reviewed newest and earlier existing term IDs. The runner checks their order, full shared-row fingerprint, and absence of configured periods for the selected terms before creating disposable callers.

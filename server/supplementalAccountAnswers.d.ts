@@ -1,3 +1,4 @@
+import type {exactClearanceVerification} from './clearanceEvidenceIntent.js';
 import type {InternshipEvidenceResult} from './internshipEvidenceContract.js';
 import type {StudentLeaveEvidenceResult} from './accountStudentLeaveEvidence.js';
 import type {DtmAssignmentEvidenceResult} from './accountDtmAssignmentEvidence.js';
@@ -36,6 +37,8 @@ export function supplementalAnswerLanguage(question:string):'en'|'zh-TW';
 export function formatExactDtmGradeAvailability(result:DtmGradeReportEvidenceResult,question:string):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatExactDtmGradeAnswer(result:DtmGradeReportEvidenceResult,question:string):
+  Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
+export function formatExactClearanceAnswer(result:ClearanceEvidenceResult,question:string,scope:NonNullable<ReturnType<typeof exactClearanceVerification>>):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;
 export function formatExactTeachingFeedbackAnswer(result:TeachingFeedbackEvidenceResult,question:string,selection:TeachingEvidenceSelection):
   Pick<SupplementalAnswerCandidate,'status'|'answer'|'citations'|'views'>|null;

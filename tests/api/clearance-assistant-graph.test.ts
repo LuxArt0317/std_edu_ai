@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
+import {readClearanceEvidence} from '../../server/accountClearanceEvidence.js';
 
 const route='/school-affairs/services/16-1';
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -23,7 +24,7 @@ async function ask(prompt:string,serve=handler){
   assert.equal(result.status,200,JSON.stringify(result.body));
   return result.body;
 }
-type Fixture={clearance?:'ok'|'failed';timetable?:'ok'|'failed'|'unlinked'|'empty';reject?:number};
+type Fixture={clearance?:'ok'|'failed'|'retry'|'denied';timetable?:'ok'|'failed'|'unlinked'|'empty';reject?:number;nativeVerification?:boolean};
 async function fakeTransport(options:Fixture,run:()=>Promise<void>){
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   const stages:string[]=[],errors:unknown[]=[];
@@ -32,6 +33,7 @@ async function fakeTransport(options:Fixture,run:()=>Promise<void>){
   const fetchFixture:typeof fetch=async(input,init)=>{
     const url=new URL(String(input));
     if(url.hostname==='api.openai.com'){
+      assert.equal(options.nativeVerification,undefined,'An exact clearance or refusal must not call the provider');
       const request=JSON.parse(String(init?.body)),stage=request.text.format.name;
       const data=JSON.parse(request.input[0].content[0].text);
       const expected=['account-scope',...(options.timetable?['account:courses']:[]),...(options.clearance?['account:graduationClearance']:[])];
@@ -102,7 +104,8 @@ async function fakeTransport(options:Fixture,run:()=>Promise<void>){
       assert.equal(init?.method,'POST');
       assert.deepEqual(JSON.parse(String(init?.body)),{p_view:'student',p_student:null,p_term:null});
       clearanceReads++;
-      if(options.clearance==='failed')return new Response(null,{status:503});
+      if(options.clearance==='denied')return new Response(null,{status:403});
+      if(options.clearance==='failed'||options.clearance==='retry'&&clearanceReads===1)return new Response(null,{status:503});
       return Response.json({userId:id(1),targetId:id(1),terms:[],periods:[],applications:[
         {id:id(2),termId:id(3),term:'Local Fall',track:'undergraduate',submittedAt:'2026-11-01T12:00:00+08:00',reviews:[
           {office:'cashier',status:'action_required',note:'Bring receipt '+clearanceReads,reviewedAt:'2026-11-02T12:00:00+08:00',version:1},
@@ -144,11 +147,11 @@ async function fakeTransport(options:Fixture,run:()=>Promise<void>){
     try{await run();}
     catch(error){if(errors.length)throw new AggregateError(errors,'Unexpected fixture requests');throw error;}
     assert.deepEqual(errors,[]);
-    const attempts=options.reject?2:1;
+    const attempts=options.reject||options.nativeVerification&&['failed','retry'].includes(options.clearance??'')?2:1;
     assert.equal(clearanceReads,options.clearance?attempts:0);
     assert.equal(studentReads,options.timetable?attempts:0);
     assert.equal(enrollmentReads,options.timetable&&options.timetable!=='unlinked'?attempts:0);
-    assert.deepEqual(stages,['answer_evidence_review',
+    assert.deepEqual(stages,options.nativeVerification?[]:['answer_evidence_review',
       ...(options.reject?['correct_grounded_answer','answer_evidence_review']:[]),
       ...((options.reject??0)>1?['correct_grounded_answer','answer_evidence_review']:[]),
     ]);
@@ -160,7 +163,7 @@ async function fakeTransport(options:Fixture,run:()=>Promise<void>){
 }
 
 test('reads the requested office note alone or with the next class in both orders',async()=>{
-  await fakeTransport({clearance:'ok'},async()=>{
+  await fakeTransport({clearance:'ok',nativeVerification:true},async()=>{
     const result=await ask(noteQuestion);
     assert.equal(result.verification.status,'verified');assert.match(result.answer,/Bring receipt 1/u);
   });
@@ -171,6 +174,62 @@ test('reads the requested office note alone or with the next class in both order
     assert.match(result.answer,/10:00–11:00 \(Taipei time\)/u);
     assert.doesNotMatch(JSON.stringify(result.views),/UNRELATED_LATER_COURSE|OTHER_OFFICE_PRIVATE/u);
     assert.equal(result.answer.indexOf('Bring receipt 1')<result.answer.indexOf('QA1 Campus Seminar'),prompt===clearanceFirst);
+  });
+});
+
+test('standalone clearance retries a transient read and never labels a failed or denied read empty',async()=>{
+  await fakeTransport({clearance:'retry',nativeVerification:true},async()=>{
+    const result=await ask(noteQuestion);
+    assert.deepEqual(result.verification,{status:'verified',attempts:2});
+    assert.match(result.answer,/Bring receipt 2/u);
+    assert.ok(result.activity.some((step:{kind:string;status:string})=>step.kind==='graduation-clearance-evidence-check'&&step.status==='complete'));
+  });
+  for(const outcome of ['failed','denied'] as const){
+    await fakeTransport({clearance:outcome,nativeVerification:true},async()=>{
+      const result=await ask(noteQuestion);
+      assert.equal(result.status,'abstained');
+      assert.equal(result.verification.status,'unverified');
+      assert.equal(result.verification.attempts,outcome==='failed'?2:1);
+      assert.match(result.answer,/couldn’t verify your saved clearance records/u);
+      assert.doesNotMatch(result.answer,/no submitted clearance|Bring receipt|0 applications/iu);
+      assert.deepEqual(result.citations,[]);
+      assert.deepEqual(result.views,[]);
+    });
+  }
+});
+
+test('a valid reader result for a different office cannot answer or reach a provider',async()=>{
+  const mismatched=createAffairsAssistantHandler({
+    verifyToken:async()=>account,
+    loadSnapshot:async()=>assert.fail('Unexpected broad snapshot'),
+    publicResearch:async()=>assert.fail('Unexpected public lookup'),
+    readers:{graduationClearance:(caller,options)=>readClearanceEvidence(caller,
+      {...options,question:'Show the Library notes in my graduation clearance application.'})},
+  });
+  await fakeTransport({clearance:'ok',nativeVerification:true},async()=>{
+    const result=await ask(noteQuestion,mismatched);
+    assert.equal(result.status,'abstained');
+    assert.equal(result.verification.status,'unverified');
+    assert.doesNotMatch(JSON.stringify(result),/OTHER_OFFICE_PRIVATE|Bring receipt/iu);
+    assert.deepEqual(result.citations,[]);
+    assert.deepEqual(result.views,[]);
+  });
+});
+
+test('standalone clearance refuses writes and manager access without a data read or model call',async()=>{
+  await fakeTransport({nativeVerification:true},async()=>{
+    for(const [question,expected] of [
+      ['Submit my graduation clearance application.',/No action was performed/u],
+      ['Show my graduation clearance status, then approve it.',/No action was performed/u],
+      ['Show my graduation clearance manager queue.',/cannot access clearance manager queues/u],
+    ] as const){
+      const result=await ask(question);
+      assert.equal(result.status,'handoff');
+      assert.match(result.answer,expected);
+      assert.equal(result.proposedAction,undefined);
+      assert.deepEqual(result.citations,[]);
+      assert.deepEqual(result.views,[]);
+    }
   });
 });
 

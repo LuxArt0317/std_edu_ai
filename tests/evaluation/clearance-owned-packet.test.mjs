@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import read from '../../api/affairs-data.ts';
+import {readClearanceEvidence} from '../../server/accountClearanceEvidence.js';
 import change from '../../api/affairs-action.ts';
 import manage from '../../api/affairs-manage.ts';
 import {buildClearanceApplicationCases,clearanceApplicationCaseManifest,clearanceApplicationFixtureForCase,
@@ -44,9 +45,15 @@ export async function exerciseClearanceOwnedPacket(t,database){
     process.env[name]=value;
     t.after(()=>{if(before===undefined)delete process.env[name];else process.env[name]=before;});
   }
+  const requests=[],errors=[],projections=[],model=[];
   const assistant=createAffairsAssistantHandler({loadSnapshot:async()=>assert.fail('Unexpected broad snapshot'),
-    publicResearch:async()=>assert.fail('Unexpected public lookup')});
-  const requests=[],errors=[],model=[];
+    publicResearch:async()=>assert.fail('Unexpected public lookup'),
+    readers:{async graduationClearance(account,options){
+      const projected=await readClearanceEvidence(account,options);
+      projections.push(structuredClone(projected));
+      return projected;
+    }},
+  });
   const realNow=Date.now.bind(Date);
   let requestClock=realNow()+4_000_000;
   t.mock.method(Date,'now',()=>Math.max(realNow(),requestClock));
@@ -100,7 +107,7 @@ export async function exerciseClearanceOwnedPacket(t,database){
     ['write-submit','A',paths.apply],['write-approve','A',paths.status],['manager-boundary','A',paths.status],['anonymous',null,paths.status],
   ]){
     await readback();
-    const row=frozen(suffix),before=requests.length,modelBefore=model.length;
+    const row=frozen(suffix),before=requests.length,projectionBefore=projections.length,modelBefore=model.length;
     requestClock+=65_000;
     const reply=await invoke(assistant,side,{body:{question:row.question,route,history:row.history??[],stream:false,consentedResearchUse:false}});
     assert.equal(reply.statusCode,row.expected.expectedStatusCode??200,suffix);
@@ -117,13 +124,16 @@ export async function exerciseClearanceOwnedPacket(t,database){
     for(const binding of row.expected.requiredSourceBindings)
       assert.ok(sources.some(source=>source.sourceId===binding.sourceId&&source.url===binding.url),suffix);
     if(row.nativeExpectation.calls){
-      const audited=model[modelBefore];
-      assert.ok(audited,suffix);
+      const projected=projections[projectionBefore];
+      assert.ok(projected,suffix);
       assert.deepEqual(reply.body.verification,{status:'verified',attempts:1},suffix);
-      const {selected,clearance}=audited;
+      if(row.nativeExpectation.periodsSelected&&row.nativeExpectation.periodsReturned>0)assert.equal(model.length-modelBefore,1,suffix);
+      else {
+        assert.equal(model.length,modelBefore,suffix);
+        assert.ok(reply.body.activity.some(row=>row.kind==='graduation-clearance-evidence-check'&&row.status==='complete'),suffix);
+      }
       const graded=gradeClearanceApplicationCase(row,{...reply,execution:'deterministic',fixtureKey:row.fixtureKey},{
-        observation:{readCalls:privateCalls.length,queries:[nativeQuery],writes:[],storage:[],
-          result:{readState:clearance.readState,reason:clearance.reason??null,evidence:selected}},
+        observation:{readCalls:privateCalls.length,queries:[nativeQuery],writes:[],storage:[],result:projected},
       });
       assert.deepEqual(graded.failures.map(c=>c.id),[],suffix);
     }

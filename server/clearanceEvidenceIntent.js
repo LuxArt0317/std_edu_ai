@@ -69,6 +69,30 @@ export function selectClearanceEvidence(question,route='',history=[]){
 }
 export function isClearanceEvidenceQuestion(question,route='',history=[]){return selectClearanceEvidence(question,route,history)!==null;}
 
+const exactReadWords=new Set(('a all an and any application applications are assigned at blank by can cashier career check clearance '
+  +'comment comments department did display do each every for found give graduation have help i in include is it library '
+  +'list may me my no note notes office offices of open opening own period periods please read record recorded records remark '
+  +'remarks review reviewed reviews saved separately show status statuses submission submitted tell the time times to '
+  +'view was what when window windows with without you academic affairs advisor thesis international housing alumni '
+  +'exclude excluding except not also plus').split(' '));
+const exactChineseRead=/^(?:(?:請|请|麻煩|麻烦|幫我|帮我|可以|能否|顯示|显示|查看|查詢|查询|列出|檢查|检查|想知道|我(?:本人|自己)?的?|本人|自己))*?(?:畢業離校|毕业离校|離校(?:申請|审查|審核|紀錄)|离校(?:申请|审核|记录))(?:(?:申請|申请|記錄|紀錄|记录|存檔|已儲存|已保存|有沒有|有哪些|的|與|和|及|暨|各|所有|全部|單位|单位|審核|审核|狀態|状态|進度|进度|備註|备注|說明|说明|日期|時間|时间|是否|期間|期间|是什麼|是什么|出納組|出纳组|圖書館|图书馆|教務處|教务处|系所|指導教授|指导教授|論文|论文|請|请|顯示|显示|列出|不含|排除|不需要|。|？|！|、|，|\s))*$/u;
+
+export function exactClearanceVerification(question,route,history){
+  const selection=selectClearanceEvidence(question,route,history);
+  if(selection?.from!=='question'||selection.documentsRequested)return null;
+  if(selection.reason==='restricted_view')return {selection,refusal:'restricted_view'};
+  if(selection.reason)return null;
+  if(selection.operation)return {selection,refusal:'unsupported_operation'};
+  if(selection.applicationsRequested&&selection.periodsRequested)return null;
+  // Named terms, a relative date, a quoted selector or an extra request need
+  // their own resolution before a full-collection answer could answer them.
+  const value=text(question).replace(/\bwhat['’]s\b/giu,'what is').replace(/([a-z])['’]s\b/giu,'$1');
+  const explicitEnglish=/^(?:please\s+)?(?:(?:show|list|view|read|check|display|tell|give|what|when|do i have|can you|may i)\b)/iu.test(value);
+  const eligible=exactChineseRead.test(value)||explicitEnglish&&/^[a-z\s,.!?;'-]+$/iu.test(value)
+    &&(value.toLowerCase().match(/[a-z]+/gu)??[]).every(word=>exactReadWords.has(word));
+  return eligible?{selection,refusal:null}:null;
+}
+
 export function isClearanceFieldClause(value){return Boolean(text(value))&&!other.test(value)&&!negative.test(value)&&continuation(value);}
 
 export function clearanceNavigationView(question){

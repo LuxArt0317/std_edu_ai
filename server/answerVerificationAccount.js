@@ -9,7 +9,7 @@ import {isStudentConductCountQuestion,studentConductScope} from './studentConduc
 import {isServiceNoteNextClass,serviceNoteLookup} from './serviceNoteIntent.js';
 import {answerSavedServiceRecords} from './savedServiceAnswers.js';
 import {isOwnTutorEvaluationTrackingNoteQuestion,selectTutorEvaluationEvidence} from './tutorEvaluationEvidenceIntent.js';
-import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
+import {clearanceTimetableQuestion,exactClearanceVerification} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
 import {selectFeeRemissionEvidence} from './feeRemissionEvidenceIntent.js';
@@ -34,7 +34,7 @@ import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './acc
 import {selectedEvidenceLinks} from './accountEvidenceLinks.js';
 import {boundedPublicPageEvidence,isPublicPageQuestion,loadPublicPageContext,normalizePublicPageRoute,publicPageCandidate} from './publicPageContext.js';
 import {supplementalAccountTools,requiredSupplementalTools,facilityRepairLookupContext,nativePageLookupContext,withoutExcludedNativePageClause,catalogReadPlanSchema,validateCatalogReadPlan,readSupplementalLookups} from './accountSupplementalLookup.js';
-import {formatExactDtmGradeAnswer,formatExactTeachingFeedbackAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
+import {formatExactClearanceAnswer,formatExactDtmGradeAnswer,formatExactTeachingFeedbackAnswer,formatRequestedAidPaymentDetails,formatSupplementalAccountAnswers,supplementalAnswerLanguage,supplementalAnswerLimits} from './supplementalAccountAnswers.js';
 import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {asksAboutOfficialRecords} from './accountAnswerLanguage.js';
 import {aidPaymentsLookupContext,isAidPaymentsEvidenceQuestion} from './aidPaymentsEvidenceIntent.js';
@@ -1001,6 +1001,52 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ?activeTools.length===2&&activeTools.includes('housing')
       :pairedChargeLabel!==null?!remissionDisposition&&activeTools.length===2&&activeTools.includes('charges'):activeTools.length===1);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
+  const exactClearance=scopedClearance&&!plan.publicTopics.length&&!publicPageRoute&&!resolvedUserQuestion
+    &&activeTools.length===1&&activeTools[0]==='graduationClearance'
+    ?exactClearanceVerification(question,fullRoute,history):null;
+  if(exactClearance&&firstSupplemental.length===1){
+    let current=firstSupplemental[0];
+    const render=()=>{
+      try{
+        const candidate=formatExactClearanceAnswer(current,question,exactClearance);
+        return candidate&&answerLinksSupported(candidate.answer,[current.evidence])?candidate:null;
+      }catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
+    };
+    const initial=render(),failed=current.readState==='unavailable';
+    const wrongSelection=!failed&&!isDeepStrictEqual(JSON.parse(current.evidence.content).selection,exactClearance.selection);
+    if(initial||failed||wrongSelection){
+      const fallback={status:'abstained',answer:'',citations:[],views:[]};
+      const zh=supplementalAnswerLanguage(question)==='zh-TW';
+      const checked=await runAnswerVerification({question,deadline,initialAnswer:initial??fallback,onProgress:emit,
+        async loadEvidence({attempt}){
+          if(attempt>1){
+            const refreshed=await readSupplemental(snapshot,attempt);
+            current=refreshed.length===1?refreshed[0]:null;
+          }
+          return current?[current.evidence]:[];
+        },
+        verify({candidate,evidence}){
+          const expected=current&&evidence.length===1&&evidence[0]===current.evidence?render():null;
+          if(!expected||!isDeepStrictEqual(candidate,expected)){
+            const retry=!exactClearance.refusal&&['read_failed','deadline_exceeded'].includes(current?.reason);
+            return {ok:false,reason:retry?'evidence_unavailable':'source_exhausted'};
+          }
+          emit({kind:'graduation-clearance-evidence-check',
+            label:exactClearance.refusal?(zh?'已核對離校查詢權限':'Checked clearance access'):(zh?'已核對畢業離校紀錄':'Verified your saved clearance records'),
+            detail:exactClearance.refusal?(zh?'已核對此要求的權限限制，未執行任何操作。':'Checked the request boundary without performing an action.')
+              :(zh?'已將回答、表格及連結對照此次讀取的本人紀錄。':'Matched the answer, table and link to the selected records.'),status:'complete'});
+          return {ok:true};
+        },
+        repair:async()=>current?render()??fallback:fallback,
+      });
+      const verified=checked.verification?.status==='verified';
+      return {...checked,views:checked.views??[],suggestedQuestions:[],
+        ...(verified?{}:{answer:zh?'這次無法讀取並核對已儲存的離校紀錄。請稍後再試。'
+          :'I couldn’t verify your saved clearance records from this lookup. Please try again.'}),
+        grounding:{source:'account',webSearched:false,checkedAt:snapshot.checkedAt,degraded:!verified},
+        activity:[...new Map(observed.map(step=>[step.kind,step])).values()]};
+    }
+  }
   const exactTeaching=allowNativeTeachingVerification&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='teachingFeedback'
     ?exactTeachingFeedbackRead(teaching):null;
   if(exactTeaching){

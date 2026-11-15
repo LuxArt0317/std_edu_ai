@@ -51,6 +51,7 @@
 - Extend protected learning support evaluation to verify submission drafts, one confirmed row and receipt, safe replay, and exact cleanup with two disposable callers. [#100]
 - Keep combined graduation-clearance status and window questions within the caller’s clearance records. Exercise both routes and deny chat approval and manager access in two-caller evaluation. [#100]
 - Add a protected graduation-clearance status and notes evaluation using disposable callers and two reviewed existing terms. [#100]
+- Verify exact graduation-clearance status and note answers from saved rows without a model call. Retry a transient read and refuse chat writes and manager access before querying records. [#100]
 
 - Add a signed zero-read check for 14 Student Leave navigation and access questions while preserving the separate 18-case owned-record evaluation. [#100]
 
