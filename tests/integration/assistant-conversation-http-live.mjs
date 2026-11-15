@@ -3,11 +3,14 @@
 import {newConversationId} from '../../src/services/assistantConversationId.js';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
 import {isDeepStrictEqual} from 'node:util';
-import {readFile,readdir,mkdir,open,rename,rm,writeFile} from 'node:fs/promises';
+import {readFile,readdir,mkdir,open,rename,rm,writeFile,lstat,realpath} from 'node:fs/promises';
 import {readNativeHttpResponse} from './helpers/native-http-response.mjs';
+import {createPinnedDeploymentVerifier} from '../evaluation/pinned-deployment.mjs';
+import {conversationDeleteProbeTitles,createTrustedPreviewFetch,isEvaluationPreviewOrigin} from '../evaluation/vercel-preview-transport.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
 const PROJECT='xiftudmvxphxcjtmfmib',ORIGIN='https://stu.best';
@@ -19,6 +22,18 @@ export function validateConversationTarget({origin,revision,cwd=process.cwd()}={
   assert.match(revision||'',/^[a-f0-9]{40}$/,'An exact reviewed production revision is required.');
   assert.equal(resolve(cwd),resolve(ROOT),'Run from the exact client checkout.');
   return {origin,revision};
+}
+export function validatePreviewConversationDeleteTarget({origin,approvedPreviewOrigin,revision,cwd=process.cwd()}={}){
+  assert.ok(isEvaluationPreviewOrigin(origin)&&origin===approvedPreviewOrigin,'The exact protected Preview origin requires explicit approval.');
+  assert.match(revision||'',/^[a-f0-9]{40}$/,'An exact reviewed Preview revision is required.');
+  assert.equal(resolve(cwd),resolve(ROOT),'Run from the exact client checkout.');
+  return {origin,approvedPreviewOrigin,revision};
+}
+function assertExactPreviewCheckout(revision){
+  const git=(...args)=>execFileSync('git',args,{cwd:ROOT,encoding:'utf8',timeout:10000,stdio:['ignore','pipe','pipe']}).trim();
+  assert.equal(git('rev-parse','HEAD'),revision);
+  assert.equal(git('status','--porcelain'),'');
+  assert.ok(['https://github.com/LuxArt0317/std_edu_ai.git','git@github.com:LuxArt0317/std_edu_ai.git'].includes(git('remote','get-url','origin')));
 }
 export function conversationFixture(id,label='HTTP fixture'){
   assert.match(id,UUID);assert.ok(typeof label==='string'&&label.length<=40);
@@ -42,6 +57,54 @@ export function conversationExpectedVersion(userId,payload,messages,before){
 }
 export async function assertConversationDeleteIsolation(read,remove){
   const before=await read();await remove();assert.deepEqual(await read(),before,'Cross-account delete must leave the original read projection untouched.');
+}
+function markerFor(userId,id){
+  const uuidMilliseconds=Number.parseInt(id.replaceAll('-','').slice(0,12),16);
+  return {user_id:userId,conversation_id:id,expires_ms:String(uuidMilliseconds+86400000)};
+}
+export function expectedPreviewDeleteState(before,userId,id){
+  const markers=before.markers.filter(marker=>marker.user_id!==userId);
+  markers.push(markerFor(userId,id));
+  markers.sort((left,right)=>left.user_id.localeCompare(right.user_id));
+  return {rows:before.rows.filter(row=>row.user_id!==userId),markers};
+}
+/** Evaluate the two serialization orderings with exact HTTP and independent PG checks. */
+export async function runProtectedConversationDeleteChecks({owner,other,saved,pending,expectedMessages,request,inspect}){
+  const empty={rows:[],markers:[]};
+  assert.notEqual(owner.id,other.id);
+  for(const fixture of [saved,pending])assert.deepEqual(await inspect(fixture.id),empty);
+
+  const savedBody=await request(owner,{method:'POST',body:saved});
+  const ownerState={rows:[{id:saved.id,user_id:owner.id,title:saved.title,messages:expectedMessages,version:1}],markers:[]};
+  const saveOperation={payload:saved,expectedMessages,expectedVersion:1};
+  assert.ok(conversationResponseMatches(saveOperation,{status:200,body:savedBody}));
+  assert.deepEqual(await inspect(saved.id),ownerState);
+  const missing={error:'Conversation not found.'};
+  assert.deepEqual(await request(other,{id:saved.id,status:404}),missing);
+  assert.deepEqual(await request(other,{method:'POST',body:saved,status:403}),{error:'This conversation is unavailable for your account.'});
+  assert.deepEqual(await inspect(saved.id),ownerState);
+
+  await assertConversationDeleteIsolation(async()=>{
+    const body=await request(owner,{id:saved.id});
+    assert.ok(conversationResponseMatches(saveOperation,{status:200,body}));
+    return body;
+  },async()=>{
+    assert.deepEqual(await request(other,{method:'DELETE',id:saved.id}),{deleted:true});
+  });
+  const afterOther=expectedPreviewDeleteState(ownerState,other.id,saved.id);
+  assert.deepEqual(await inspect(saved.id),afterOther);
+
+  const deniedSave={error:'This conversation changed in another tab. Reload it before editing.'};
+  for(const [fixture,before] of [[saved,afterOther],[pending,empty]]){
+    assert.deepEqual(await request(owner,{method:'DELETE',id:fixture.id}),{deleted:true});
+    const deleted=expectedPreviewDeleteState(before,owner.id,fixture.id);
+    assert.deepEqual(await inspect(fixture.id),deleted);
+    assert.deepEqual(await request(owner,{id:fixture.id,status:404}),missing);
+    assert.deepEqual(await request(owner,{method:'POST',body:fixture,status:409}),deniedSave);
+    assert.deepEqual(await inspect(fixture.id),deleted);
+  }
+  assert.deepEqual(await request(owner,{method:'DELETE',id:pending.id}),{deleted:true});
+  assert.deepEqual(await inspect(pending.id),expectedPreviewDeleteState(empty,owner.id,pending.id));
 }
 export function reconcileConversationWrite(operation,rows){
   assert.equal(rows.length,1,'Uncertain save has no unique durable row; retain recovery ledger.');
@@ -96,9 +159,22 @@ export async function boundedConversationDiagnostic(work,timeoutMs=3000){
 }
 
 export async function main(){
-  assert.equal(process.argv.length,2,'Configuration uses explicit origin/revision environment variables.');
-  const target=validateConversationTarget({origin:process.env.ASSISTANT_ORIGIN,revision:process.env.EXPECTED_RELEASE_REVISION});
+  const previewDelete=process.argv.length===3&&process.argv[2]==='--preview-delete';
+  assert.ok(previewDelete||process.argv.length===2,'Use explicit origin/revision environment variables.');
+  const requestedTarget={origin:process.env.ASSISTANT_ORIGIN,revision:process.env.EXPECTED_RELEASE_REVISION};
+  const target=previewDelete?validatePreviewConversationDeleteTarget({
+    ...requestedTarget,approvedPreviewOrigin:process.env.APPROVED_PREVIEW_ORIGIN,
+  }):validateConversationTarget(requestedTarget);
+  const probeFixtures=previewDelete?Object.values(conversationDeleteProbeTitles).map(title=>conversationFixture(newConversationId(),title)):null;
+  if(previewDelete)assertExactPreviewCheckout(target.revision);
+  const fetchTarget=previewDelete?createTrustedPreviewFetch({
+    origin:target.origin,token:process.env.VERCEL_OIDC_TOKEN,conversationDeleteFixtures:probeFixtures,
+  }):fetch;
+  const previewPin=previewDelete?createPinnedDeploymentVerifier({
+    origin:target.origin,approvedPreviewOrigin:target.approvedPreviewOrigin,expectedRevision:target.revision,fetchImpl:fetchTarget,
+  }):null;
   const manifest=async()=>{
+    if(previewPin){await previewPin.pin();return;}
     const response=await fetch(ORIGIN+'/release.json',{redirect:'error',cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(10000)});
     const value=await readNativeHttpResponse(response);assert.equal(value.status,200);assert.equal(value.body.revision,target.revision);
     assert.equal(value.body.environment,'production');assert.equal(value.body.source,'vercel-git');
@@ -120,6 +196,10 @@ export async function main(){
   process.umask(0o077);
   const runId=randomUUID(),directory=resolve(ROOT,'artifacts/assistant-conversation-http'),ledgerPath=directory+'/active-fixtures-'+runId+'.json';
   await mkdir(directory,{recursive:true,mode:0o700});
+  if(previewDelete){
+    const folder=await lstat(directory);
+    assert.ok(folder.isDirectory()&&folder.uid===process.getuid()&&(folder.mode&0o777)===0o700&&await realpath(directory)===directory);
+  }
   const pool=postgres(connection,{max:1,connect_timeout:10,idle_timeout:5,max_lifetime:0,onnotice:()=>{},
     connection:{application_name:'stu-conversation-http-acceptance',statement_timeout:15000,lock_timeout:3000},
     ssl:{rejectUnauthorized:true,ca:await readFile(resolve(ROOT,'supabase/certs/prod-ca-2021.crt'),'utf8')}});
@@ -127,14 +207,23 @@ export async function main(){
   const projectFetch=(input,init={})=>{assert.equal(new URL(typeof input==='string'||input instanceof URL?input:input.url).origin,projectOrigin);
     return fetch(input,{...init,redirect:'error',signal:AbortSignal.timeout(15000)});};
   const admin=createClient(projectOrigin,serviceKey,{auth,global:{fetch:projectFetch}});
-  const users=[],operations=[],sessions=new Map(),reservedConversations=new Map(),checks=[],browserErrors=[],activeBrowserWrites=new Set();
+  const users=[],operations=[],deletions=[],sessions=new Map(),reservedConversations=new Map(),checks=[],browserErrors=[],activeBrowserWrites=new Set();
   let sql,locked=false,ledgerOwned=false,browser,activePage,ownerId,ownerBefore,phase='preflight',failure=null,cleanupVerified=false,passed=false;
   const browserResponses=[];
   let httpRequests=0,browserRequests=0,modelRequests=0,officialRequests=0,ledgerQueue=Promise.resolve();
   const ledger=()=>ledgerQueue=ledgerQueue.then(async()=>{
     assert.ok(ledgerOwned);const temp=ledgerPath+'.tmp',handle=await open(temp,'wx',0o600);
-    try{await handle.writeFile(JSON.stringify({runId,origin:ORIGIN,revision:target.revision,phase,users,operations},null,2));await handle.sync();}finally{await handle.close();}
+    try{
+      await handle.writeFile(JSON.stringify({runId,origin:target.origin,revision:target.revision,phase,users,operations,
+        ...(previewDelete?{deletions}:{}),
+      },null,2));
+      await handle.sync();
+    }finally{await handle.close();}
     await rename(temp,ledgerPath);
+    if(previewDelete){
+      const folder=await open(directory,'r');
+      try{await folder.sync();}finally{await folder.close();}
+    }
   });
   const fingerprint=async()=>JSON.stringify(await sql`select u.id,md5((to_jsonb(u)-array['last_sign_in_at','updated_at'])::text) as auth_hash,
     md5(to_jsonb(p)::text) as profile_hash,
@@ -170,22 +259,63 @@ export async function main(){
     else if([400,401,403,409].includes(response.status)&&typeof response.body?.error==='string')op.state='rejected';
     else op.state='uncertain';await ledger();
   };
+  const inspectProbe=async id=>{
+    const reserved=reservedConversations.get(id);
+    assert.ok(previewDelete&&reserved,'Only generated Preview fixture IDs may be inspected.');
+    const rows=await sql`select id,user_id,title,messages,version from public.affairs_conversations where id=${id}`;
+    const markers=await sql`select user_id,conversation_id,(extract(epoch from expires_at)*1000)::bigint::text as expires_ms
+      from private.affairs_conversation_delete_markers where conversation_id=${id} order by user_id`;
+    assert.ok(rows.every(row=>row.user_id===reserved.userId&&row.title===reserved.payload.title)
+      &&markers.every(marker=>users.some(user=>user.id===marker.user_id)),'Unexpected owner or state at the reserved probe ID.');
+    return {rows,markers};
+  };
   const request=async(user,{method='GET',id,body,status=200}={})=>{
+    const ticket=previewPin?await previewPin.beforeRequest():null;
     let op;if(method==='POST')op=await recordWrite(user,body);
+    let deletion;
+    if(previewDelete&&method==='DELETE'){
+      assert.ok(users.includes(user)&&reservedConversations.has(id));
+      deletion={userId:user.id,conversationId:id,expected:expectedPreviewDeleteState(await inspectProbe(id),user.id,id),state:'pending',sentAt:Date.now()};
+      deletions.push(deletion);await ledger();
+    }
     let response;httpRequests++;
-    try{response=await readNativeHttpResponse(await fetch(ORIGIN+'/api/affairs-conversations'+(id?'?id='+id:''),{
+    try{response=await readNativeHttpResponse(await fetchTarget(target.origin+'/api/affairs-conversations'+(id?'?id='+id:''),{
       method,redirect:'error',cache:'no-store',credentials:'omit',signal:AbortSignal.timeout(20000),
-      headers:{...(user?{Authorization:'Bearer '+sessions.get(user.id).access_token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));}
-    catch{if(op){op.state='uncertain';await ledger();}throw new Error('Conversation request failed.');}
-    if(op)await finishWrite(op,response);assert.equal(response.status,status,'Unexpected deployed conversation status.');return response.body;
+      headers:{...(user?{Authorization:'Bearer '+sessions.get(user.id).access_token}:{}),...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})}));
+      if(ticket)await previewPin.afterRequest(ticket);
+    }catch{
+      if(op)op.state='uncertain';
+      if(deletion)deletion.state='uncertain';
+      if(op||deletion)await ledger();
+      throw new Error('Conversation request failed.');
+    }
+    if(op)await finishWrite(op,response);
+    assert.equal(response.status,status,'Unexpected deployed conversation status.');
+    if(deletion){
+      assert.deepEqual(response.body,{deleted:true});
+      assert.deepEqual(await inspectProbe(deletion.conversationId),deletion.expected);
+      deletion.state='deleted';await ledger();
+    }
+    return response.body;
   };
   try{
     sql=await pool.reserve();assert.equal((await sql`select pg_try_advisory_lock(23101314,115100) as held`)[0].held,true);locked=true;
     assert.ok((await sql`select version from supabase_migrations.schema_migrations where version='20261112190000'`).length,'190000 must be applied by release owner first.');
+    if(previewDelete)assert.ok((await sql`select version from supabase_migrations.schema_migrations where version='20261115230000'`).length,'The protected conversation migration is required.');
     await assertConversationRecoveryClear([directory,resolve(ROOT,'artifacts/assistant-evaluation')]);
     const owners=await sql`select id from auth.users where lower(email)=lower(${deployment.supabase.ownerEmail})`;assert.equal(owners.length,1);ownerId=owners[0].id;ownerBefore=await fingerprint();
     const file=await open(ledgerPath,'wx',0o600);ledgerOwned=true;await file.close();await ledger();
+    if(previewPin){assertExactPreviewCheckout(target.revision);await previewPin.assertCurrent();}
     phase='actual JWT identities';const first=await createUser(),second=await createUser();
+    if(previewPin){
+      phase='protected HTTP deletion and late saves';
+      const [saved,pending]=probeFixtures;
+      for(const payload of probeFixtures)reservedConversations.set(payload.id,{userId:first.id,payload});
+      await runProtectedConversationDeleteChecks({owner:first,other:second,saved,pending,request,inspect:inspectProbe,
+        expectedMessages:sanitizeStoredConversation(saved.messages)});
+      checks.push('Protected Preview UUIDv7: exact owner save; cross-account GET, POST and DELETE isolation; exact deletion marker; late first-save and stale replay rejected; delete replay idempotent');
+      assertExactPreviewCheckout(target.revision);await previewPin.finish();passed=true;return;
+    }
     phase='deployed HTTP save and isolation';
     const primary=conversationFixture(newConversationId(),'HTTP durable activity'),secondary=conversationFixture(newConversationId(),'Other account private activity');
     reservedConversations.set(primary.id,{userId:first.id,payload:primary});reservedConversations.set(secondary.id,{userId:second.id,payload:secondary});
@@ -329,6 +459,10 @@ export async function main(){
           // exact durable row proves the known write; otherwise preserve fixtures.
           reconcileConversationWrite(op,await sql`select id,user_id,title,messages,version from public.affairs_conversations where id=${op.payload.id}`);op.state='reconciled';
         }
+        for(const deletion of deletions.filter(item=>item.state!=='deleted')){
+          assert.deepEqual(await inspectProbe(deletion.conversationId),deletion.expected,'An uncertain deletion requires its exact durable marker and row state.');
+          deletion.state='reconciled';
+        }
         await ledger();
         assert.equal(await fingerprint(),ownerBefore,'Protected owner changed.');
         for(const user of [...users].reverse().filter(item=>item.id)){
@@ -337,6 +471,12 @@ export async function main(){
         }
         const ids=users.flatMap(user=>user.id?[user.id]:[]);
         if(ids.length)assert.equal((await sql`select id from auth.users where id in ${sql(ids)} union all select id from public.affairs_conversations where user_id in ${sql(ids)} union all select user_id from public.affairs_profiles where user_id in ${sql(ids)}`).length,0);
+        if(previewDelete&&ids.length){
+          const reservedIds=probeFixtures.map(fixture=>fixture.id);
+          assert.equal((await sql`select id from public.affairs_conversations where id in ${sql(reservedIds)}
+            union all select user_id from private.affairs_conversation_delete_markers where user_id in ${sql(ids)} or conversation_id in ${sql(reservedIds)}
+            union all select user_id from private.affairs_conversation_creation_floors where user_id in ${sql(ids)}`).length,0);
+        }
         assert.equal(await fingerprint(),ownerBefore,'Protected owner changed after cleanup.');cleanupVerified=true;
       }else cleanupVerified=users.length===0;
     }catch{failure=failure||{phase:'cleanup',type:'unresolved'};cleanupVerified=false;}
@@ -347,8 +487,10 @@ export async function main(){
       try{await pool.end({timeout:5});}catch{cleanupVerified=false;}
     }
     if(cleanupVerified&&ledgerOwned)try{await rm(ledgerPath);}catch{cleanupVerified=false;}
-    const report={runId,origin:ORIGIN,revision:target.revision,status:passed&&cleanupVerified?'passed':'failed',checks,failure,cleanupVerified,
-      httpRequests,browserRequests,modelRequests,officialRequests,modelAcceptance:false,browserErrors,browserResponses};
+    const report={runId,origin:target.origin,revision:target.revision,status:passed&&cleanupVerified?'passed':'failed',checks,failure,cleanupVerified,
+      httpRequests,browserRequests,modelRequests,officialRequests,modelAcceptance:false,browserErrors,browserResponses,
+      ...(previewPin?{probe:'uuidv7-conversation-delete',deployment:previewPin.status()}:{}),
+    };
     await writeFile(directory+'/report-'+runId+'.json',JSON.stringify(report,null,2),{mode:0o600});
     console.log(JSON.stringify(report));if(report.status!=='passed')process.exitCode=1;
   }

@@ -105,6 +105,12 @@ The audit also identified narrower gaps that must not disappear from the coverag
 
 The deployed persistence harness `tests/integration/assistant-conversation-http-live.mjs` requires the exact production revision and applied migration `20261112190000`. It uses two disposable real-JWT accounts, actual HTTP writes/reads, cache-empty browser restoration, 40 expandable observable steps, an 8,000-UTF-16-unit answer, replay/stale protection, cross-account isolation and real local-scope sign-out. Its answer text is an explicitly synthetic persistence fixture, and its report always states `modelAcceptance:false`. Passing this harness cannot substitute for model/SSE or whole-site browser acceptance.
 
+The same operator harness has a separate `--preview-delete` mode for the UUIDv7 conversation protocol. Use a clean checkout at the deployed revision, the exact immutable URL in both `ASSISTANT_ORIGIN` and `APPROVED_PREVIEW_ORIGIN`, the SHA in `EXPECTED_RELEASE_REVISION`, and the existing Development OIDC and client fixture environment. The mode requires migration `20261115230000` and runs thirteen pinned conversation requests. It verifies foreign read and write denial, preserves the owner row after an unrelated caller's deletion receipt, checks the exact account marker and expiry, and rejects stale saves after both save-first and delete-first orderings. The private ledger captures mutations before sending them. A final SQL check confirms removal of the fixture identities, rows, markers, and creation floors.
+
+```sh
+node tests/integration/assistant-conversation-http-live.mjs --preview-delete
+```
+
 ## Evaluation method
 
 The design follows task-specific datasets, explicit criteria, tool-selection checks and repeated evaluation described in [OpenAI's evaluation guidance](https://developers.openai.com/api/docs/guides/evaluation-best-practices). It runs in this repository instead of depending on a hosted evaluation product. Independent facts and executable checks are primary; optional semantic review cannot turn missing test execution or unsupported capabilities into a pass. Human relevance review remains useful for nuanced answers and must be recorded honestly when performed.

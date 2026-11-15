@@ -11,6 +11,10 @@ const team='v1-d286';
 const project='std_edu_ai';
 
 export const isEvaluationPreviewOrigin=value=>typeof value==='string'&&previewOrigin.test(value);
+export const conversationDeleteProbeTitles=Object.freeze({
+  saved:'Preview saved deletion fixture',
+  pending:'Preview pending deletion fixture',
+});
 
 function fail(message){throw new Error('Protected Preview transport: '+message+'.');}
 
@@ -37,9 +41,23 @@ function matchesConversation(body,conversationId){
 
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
+  const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
+  if(deleteProbe){
+    if(conversationId!==undefined||!Array.isArray(conversationDeleteFixtures)||conversationDeleteFixtures.length!==2)
+      fail('invalid conversation deletion probe');
+    const titles=Object.values(conversationDeleteProbeTitles);
+    for(const [index,fixture] of conversationDeleteFixtures.entries()){
+      if(!isConversationId(fixture?.id)||fixture.id[14]!=='7'||fixture.title!==titles[index]||fixture.version!==0
+        ||Object.keys(fixture).sort().join(',')!=='id,messages,title,version'||!Array.isArray(fixture.messages)||fixture.messages.length!==2)
+        fail('invalid conversation deletion probe fixture');
+      const body=JSON.stringify(fixture),query='?id='+fixture.id;
+      if(deleteQueries.has(query)||Buffer.byteLength(body)>190000)fail('invalid conversation deletion probe fixture');
+      deleteQueries.add(query);deleteBodies.add(body);
+    }
+  }
   const {nbf,exp}=developmentClaims(token);
   const assertCurrentToken=()=>{
     const seconds=Math.floor(now()/1000);
@@ -66,7 +84,10 @@ export function createTrustedPreviewFetch({origin,token,conversationId,fetchImpl
       &&Buffer.byteLength(init.body)<=60000;
     const conversation=conversationId&&caller&&url.pathname==='/api/affairs-conversations'
       &&(get&&url.search==='?id='+conversationId||post&&matchesConversation(init.body,conversationId));
-    if(!manifest&&!readback&&!assistant&&!conversation)fail('unapproved request operation');
+    const remove=method==='DELETE'&&init.body===undefined&&!headers.has('content-type');
+    const probeConversation=deleteProbe&&caller&&url.pathname==='/api/affairs-conversations'
+      &&((get||remove)&&deleteQueries.has(url.search)||post&&deleteBodies.has(init.body));
+    if(!manifest&&!(deleteProbe?probeConversation:readback||assistant||conversation))fail('unapproved request operation');
     headers.set(trustedHeader,token);
     let response;
     try{response=await fetchImpl(url,{method,headers,body:init.body,signal:init.signal,redirect:'error',credentials:'omit',cache:'no-store'});}

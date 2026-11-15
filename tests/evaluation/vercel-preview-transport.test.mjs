@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {createTrustedPreviewFetch} from './vercel-preview-transport.mjs';
+import {conversationDeleteProbeTitles,createTrustedPreviewFetch} from './vercel-preview-transport.mjs';
 import {main,options} from './run.mjs';
 
 const origin='https://stdedu-abcdef123-v1-d286.vercel.app';
@@ -82,6 +82,37 @@ test('transcript mode permits only the runner’s selected saved conversation',a
     [origin+'/api/affairs-data?scope=student-conduct',get],[origin+'/api/research-assistant',post]])
     await assert.rejects(fetch(url,init),/unapproved request operation/u);
   assert.equal(sent.length,2);
+});
+
+test('deletion probe admits only the two fixed UUIDv7 payloads and exact authenticated conversation requests',async()=>{
+  const endpoint=origin+'/api/affairs-conversations';
+  const [saved,pending]=['019acdef-1212-7010-8010-123456789012','019acdef-1212-7010-8010-123456789013'];
+  const fixtures=Object.values(conversationDeleteProbeTitles).map((title,index)=>({
+    id:[saved,pending][index],title,version:0,messages:[{role:'user',content:'one'},{role:'assistant',content:'two'}],
+  }));
+  const sent=[];
+  const base={origin,token:tokenAt(time),now:()=>time*1000,fetchImpl:async(url,init)=>{
+    sent.push([url.href,init.method,init.headers.get('authorization')]);return Response.json({});
+  }};
+  for(const conversationDeleteFixtures of [[fixtures[0]],fixtures.map(row=>({...row,id:saved})),fixtures.map(row=>({...row,version:1})),
+    fixtures.map(row=>({...row,id:row.id.replace('-7010-','-4010-')}))])
+    assert.throws(()=>createTrustedPreviewFetch({...base,conversationDeleteFixtures}),/invalid conversation deletion probe/u);
+  assert.throws(()=>createTrustedPreviewFetch({...base,conversationId:saved,conversationDeleteFixtures:fixtures}),/invalid conversation deletion probe/u);
+  const relay=createTrustedPreviewFetch({...base,conversationDeleteFixtures:fixtures});
+  const get={headers:{Authorization:caller}},remove={...get,method:'DELETE'};
+  const save={...post,body:JSON.stringify(fixtures[0])};
+  await relay(origin+'/release.json');
+  await relay(endpoint,save);
+  await relay(endpoint+'?id='+saved,get);
+  await relay(endpoint+'?id='+pending,remove);
+  for(const [url,init] of [
+    [endpoint+'?id='+saved,{}],[endpoint+'?id='+saved+'&extra=1',remove],[endpoint,remove],
+    [endpoint+'?id=019acdef-1212-7010-8010-123456789014',remove],
+    [endpoint+'?id='+saved,{...remove,body:''}],[endpoint+'?id='+saved,{...remove,headers:{...get.headers,'Content-Type':'application/json'}}],
+    [endpoint,{...save,body:JSON.stringify({...fixtures[0],version:1})}],[endpoint,get],
+    [origin+'/api/affairs-data',get],[origin+'/api/affairs-assistant',post],[origin+'/api/research-assistant',post],
+  ])await assert.rejects(relay(url,init),/unapproved request operation/u);
+  assert.deepEqual(sent,[[origin+'/release.json','GET',null],[endpoint,'POST',caller],[endpoint+'?id='+saved,'GET',caller],[endpoint+'?id='+pending,'DELETE',caller]]);
 });
 
 test('the runner pins before fixtures and keeps their readbacks on the same approved transport',async()=>{
