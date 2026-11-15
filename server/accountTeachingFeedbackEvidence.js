@@ -142,13 +142,14 @@ export async function readTeachingFeedbackEvidence(account,options={},dependenci
   const deadline=Math.min(options.deadline??Infinity,account.requestDeadline??Infinity,Date.now()+teachingFeedbackEvidenceLimits.deadlineMs);
   const captured=Object.freeze({url:account.url,key:account.key,token:account.token,user:Object.freeze({id:account.user.id}),requestDeadline:deadline});
   const read=dependencies.read??readTeachingFeedback,results=[];
+  let deadlineReached=false;
   for(const view of selection.views){
-    if(Date.now()>=deadline){results.push(failed(view,'deadline_exceeded'));continue;}
+    if(deadlineReached||Date.now()>=deadline){results.push(failed(view,'deadline_exceeded'));continue;}
     let timer;const timedOut=Symbol('deadline');
     try{
       const query=Object.freeze({scope:'teaching-feedback',view});
       const value=await Promise.race([Promise.resolve().then(()=>Date.now()>=deadline?timedOut:read(captured,query)),new Promise(resolve=>{timer=setTimeout(()=>resolve(timedOut),Math.max(1,deadline-Date.now()));})]);
-      if(value===timedOut||Date.now()>=deadline){results.push(failed(view,'deadline_exceeded'));continue;}
+      if(value===timedOut||Date.now()>=deadline){deadlineReached=true;results.push(failed(view,'deadline_exceeded'));continue;}
       results.push(rawProjection(value,captured.user.id,view,selection)??failed(view,'invalid_records'));
     }catch(error){results.push(failed(view,error?.status===401||error?.status===403?'access_denied':'read_failed'));}finally{clearTimeout(timer);}
   }

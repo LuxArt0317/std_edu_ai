@@ -153,10 +153,19 @@ test('captured caller, transport, selections and shared deadline cannot be repla
   assert.doesNotMatch(out.evidence.content,/PRIVATE_HISTORY_COMMENT|FOREIGN_|PRIVATE_REPLACEMENT/u);
 });
 
-test('shared deadline bounds a stalled read, prevents second native call, and denied/error text is private',async()=>{
+test('shared deadline bounds a stalled read, prevents second native call, and denied/error text is private',async t=>{
   let calls=0;
   const read:Read=async()=>{calls++;return new Promise(()=>{});};
-  const out=await load(account,{views:['survey','immediate'],deadline:Date.now()+30},{read});
+  const started=Date.now();
+  const fakeClock=t.mock.method(Date,'now',()=>started);
+  t.mock.timers.enable({apis:['setTimeout']});
+  const pending=load(account,{views:['survey','immediate'],deadline:started+30},{read});
+  await Promise.resolve();
+  // Model a timer that fires just before wall-clock time rolls forward.
+  t.mock.timers.tick(30);
+  const out=await pending;
+  t.mock.timers.reset();
+  fakeClock.mock.restore();
   assert.equal(out.readState,'unavailable');assert.equal(out.reason,'deadline_exceeded');assert.equal(calls,1);
   assert.deepEqual(content(out).views.map((view:{reason:string})=>view.reason),['deadline_exceeded','deadline_exceeded']);
   assert.equal((await load({...account,requestDeadline:Date.now()-1},{views:['survey'],deadline:Date.now()+10000},{read})).reason,'deadline_exceeded');assert.equal(calls,1);
