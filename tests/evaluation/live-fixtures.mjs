@@ -39,6 +39,11 @@ import {createTranscriptConversationFixture} from './transcript-conversation-fix
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {createStudentLeaveDatabaseFixture} from './student-leave-database-fixture.mjs';
+import {openStudentLeaveFixtureJournal} from './student-leave-fixture-journal.mjs';
+import {studentLeaveJournalBinding} from './student-leave-fixture-lifecycle.mjs';
+import {buildStudentLeaveFixturePlan,leaveFixtureFamilies,studentLeaveFixtureManifest} from './student-leave-fixture-plan.mjs';
+import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
@@ -288,6 +293,7 @@ async function saveLedger(){
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
+      ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
@@ -363,7 +369,11 @@ async function createFixtureUser(index){
 /** No mutation occurs until this explicit lifecycle entry point is invoked. */
 export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||!cases.length||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  const leaveDataOnly=fixtureMode===runStudentLeaveDataPreflight;
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
   if(cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||row?.fixtureRequirement==='legacy_dtm_assignment_list_rebind'||typeof row?.id==='string'
     &&(row.id.startsWith('account:dtm-native-route-')||row.id.startsWith('account:dtm-assignment-native-')||row.id.startsWith('account:dtm-assignment-list-'))))
     fail('fixture-unsupported','Native DTM route cases require the isolated fixture and observation adapter.');
@@ -378,7 +388,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(clubCases.some(testCase=>testCase.fixtureKey!=='anonymous')&&(!approvedPreviewOrigin||origin!==approvedPreviewOrigin
     ||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(origin)))
     fail('fixture-target','Club attendance fixtures require the exact approved project Preview.');
-  const clubOnly=clubCases.length===cases.length;
+  const clubOnly=cases.length>0&&clubCases.length===cases.length;
   const noteCases=cases.filter(row=>row?.fixtureRequirement==='service_notes_disposable'||row?.fixtureRequirement==='service_notes_unbound'
     ||typeof row?.id==='string'&&row.id.startsWith('account:service-notes-'));
   for(const testCase of noteCases){
@@ -388,7 +398,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(noteCases.some(testCase=>testCase.fixtureKey!=='anonymous')&&(!approvedPreviewOrigin||origin!==approvedPreviewOrigin
     ||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(origin)))
     fail('fixture-target','Service-note fixtures require the exact approved project Preview.');
-  const noteOnly=noteCases.length===cases.length;
+  const noteOnly=cases.length>0&&noteCases.length===cases.length;
   if(cases.some(nativeVenueSetupRequired))
     fail('fixture-unsupported','Native venue requests require exact caller fixtures and independent request observations.');
   let transcriptCaseIds;
@@ -397,7 +407,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(fixtureMode!==undefined||caseFamily!==undefined){
+  if(!leaveDataOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -416,11 +426,15 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(previewReadbackFetch!==undefined&&(typeof previewReadbackFetch!=='function'||applicationFetch!==undefined
     ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin||target.origin===config.vercel.productionUrl))
     fail('fixture-target','Protected fixture readbacks require the exact approved Preview.');
+  let previewGate;
   if(approvedPreviewOrigin!==undefined){
     if(target.origin!==approvedPreviewOrigin||target.origin===config.vercel.productionUrl)
       fail('fixture-target','Preview approval must match the exact non-production origin.');
     const pinFetch=scopedApplicationFetch??previewReadbackFetch;
-    try{await createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal,...(pinFetch?{fetchImpl:pinFetch}:{})}).pin();}
+    try{
+      previewGate=createPinnedDeploymentVerifier({origin:target.origin,approvedPreviewOrigin,expectedRevision:expectedReleaseRevision,signal,...(pinFetch?{fetchImpl:pinFetch}:{})});
+      await previewGate.pin();
+    }
     catch{fail('fixture-target','The approved Preview could not prove the exact release before fixture setup.');}
   }
   const env=deploymentEnvironment(); // Secrets are resolved only at explicit prepare().
@@ -451,6 +465,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     await reserveLedger();
     await saveLedger();
     await createFixtureUser(0);await createFixtureUser(1);
+    if(leaveDataOnly){
+      await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate);
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['leaveRecords']};
+    }
     if(fixtureMode!==undefined&&fixtureMode===FEE_FIXTURE_MODE){
       await prepareFeeFixture(state);
       state.prepared=true;
@@ -479,6 +498,56 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
     if(error instanceof LiveFixtureError)throw error;fail('fixture-prepare','Fixture preparation failed'+diagnostic(error)+'.');
   }
+}
+
+async function prepareStudentLeaveDataFixture(s,sourceRevision,previewGate){
+  const [first,second]=s.identityRequests;
+  const owner=request=>({id:request.id,email:request.email,runMarker:request.runId});
+  const binding={runId:s.runId,projectRef:PROJECT,origin:s.origin,sourceRevision,owners:{A:owner(first),B:owner(second)},
+    suiteHash:hash({kind:'student-leave-data-preflight',manifest:studentLeaveFixtureManifest})};
+  const lifecycle=createStudentLeaveDatabaseFixture({binding,sql:s.sql,publishableKey:s.publishable,
+    journal:await openStudentLeaveFixtureJournal({directory:PRIVATE_DIR,binding:studentLeaveJournalBinding(binding)}),
+    async assertLease(){await assertRecordedFixtureLease(s,'Student Leave');return true;},
+    async assertCurrentRelease(){await previewGate.assertCurrent();return true;},
+    async assertProtectedOwner(){assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));return true;},
+    async getCaller(id,{signal}){
+      const user=s.users.find(candidate=>candidate.id===id);
+      if(!user||s.closing)fail('fixture-case','Student Leave data preflight requires its exact disposable caller.');
+      await user.renewSession({signal});return {id:user.id,token:user.token};
+    },fetchImpl:s.boundedFetch});
+  s.studentLeaveData={binding,lifecycle,previewGate};
+  await saveLedger();
+}
+
+/** Prepare and independently verify the disposable data for the registered
+ * leave fixture families. This dispatches no assistant/model requests. */
+export async function runStudentLeaveDataPreflight({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||typeof sourceRevision!=='string'||!/^[a-f0-9]{40}$/u.test(sourceRevision))
+    fail('fixture-config','Student Leave data preflight requires an exact protected Preview and source revision.');
+  const {sourceIdentity}=await import('./run.mjs');
+  const identity=await sourceIdentity();
+  if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Student Leave data preflight requires the exact clean deployed source.');
+  const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
+  const runId=randomUUID();
+  await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+    signal,fixtureMode:runStudentLeaveDataPreflight,previewReadbackFetch});
+  const {binding,lifecycle,previewGate}=state.studentLeaveData;
+  const families=[];
+  let cleanupProof;
+  try{
+    for(const family of leaveFixtureFamilies){
+      const firstProof=await lifecycle.transition(buildStudentLeaveFixturePlan({binding,family}));
+      const secondProof=await lifecycle.verifyUnchanged();
+      assert.deepEqual(secondProof,firstProof);
+      families.push({family,rowDigest:firstProof.rowDigest,ownerAndCrossedReads:firstProof.ownerAndCrossedReads+secondProof.ownerAndCrossedReads});
+    }
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','The Student Leave data preflight source changed during verification.');
+    await previewGate.finish();
+  }finally{cleanupProof=await cleanup();}
+  return {runId,sourceRevision,origin,families,deployment:previewGate.status(),cleanup:cleanupProof,
+    modelRequests:0,requestObservationsMounted:false,liveAcceptance:false};
 }
 
 async function feeTransaction(s,work){
@@ -883,15 +952,15 @@ async function readBoundedFixtureResponse(response,url,maxBytes,expectedStatus=2
   return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)));
 }
 
-async function assertClubAttendanceLease(s){
-  if(state!==s||!s.ledgerOwned||!s.locked||s.closed)fail('fixture-lease','Club attendance requires the recorded disposable database lease.');
+async function assertRecordedFixtureLease(s,label='Club attendance'){
+  if(state!==s||!s.ledgerOwned||!s.locked||s.closed)fail('fixture-lease',label+' requires the recorded disposable database lease.');
   const locks=await s.sql`select 1 from pg_locks where locktype='advisory' and pid=pg_backend_pid()
     and classid=23101314 and objid=115100 and objsubid=2 and granted`;
-  if(locks.length!==1)fail('fixture-lease','Club attendance could not verify its reserved database connection.');
+  if(locks.length!==1)fail('fixture-lease',label+' could not verify its reserved database connection.');
 }
 
 async function clubAttendanceObservation(s,oracle,signal){
-  await assertClubAttendanceLease(s);
+  await assertRecordedFixtureLease(s);
   return query(()=>observeClubAttendanceFixture({sql:s.sql,plan:s.clubAttendancePlan,identities:s.identityRequests,
     users:s.users,origin:s.origin,page:oracle.page,signal,read:async(url,token,active)=>{
       const response=await (s.previewReadbackFetch??fetch)(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
@@ -1763,7 +1832,7 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     if(!s.caseIds.has(testCase.id)||oracle.guest||!s.locked||!s.ledgerOwned||s.clubAttendancePending)
       fail('fixture-case','The club attendance case is outside its selected disposable owner binding.');
     const active=signal||s.signal;active?.throwIfAborted();
-    await assertClubAttendanceLease(s);
+    await assertRecordedFixtureLease(s);
     if(!s.clubAttendancePlan){
       s.clubAttendancePlan=buildClubAttendancePlan({runId:s.runId,owners:s.users.map(user=>user.id)});
       s.clubAttendancePending=true;
@@ -2052,9 +2121,13 @@ export async function cleanup(){
       await s.feeFixture.lifecycle.cleanup();
       await saveLedger();
     }
+    if(s.studentLeaveData){
+      s.studentLeaveDataCleanup=await s.studentLeaveData.lifecycle.cleanup();
+      await saveLedger();
+    }
     if(s.serviceNotePlan||s.serviceNotePending)await changeServiceNoteFixture(s,null,{recovering:true});
     if(s.clubAttendancePlan){
-      await assertClubAttendanceLease(s);
+      await assertRecordedFixtureLease(s);
       await query(()=>feeTransaction(s,()=>changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests,{cleanup:true})),
         'Could not reconcile the exact disposable club attendance rows; the cleanup ledger is retained.');
       s.clubAttendancePlan=null;s.clubAttendancePending=false;
@@ -2184,5 +2257,6 @@ export async function cleanup(){
   }
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
   return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged,
+    ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }
