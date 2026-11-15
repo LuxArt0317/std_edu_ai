@@ -116,11 +116,17 @@ function assignmentSelection(account,snapshot,{question,route,history,assignment
 }
 
 class ReadFailure extends Error{constructor(code){super(code);this.code=code;}}
-async function readWorkspace(account,id,deadline,fetchImpl){
+async function readWorkspace(account,id,deadline,fetchImpl,onDeadline){
   const remaining=Math.floor(deadline-Date.now());
-  if(remaining<=0)throw new ReadFailure('deadline_exceeded');
+  if(remaining<=0){onDeadline();throw new ReadFailure('deadline_exceeded');}
   const controller=new AbortController();let timer,reader,response;
-  const expired=new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(new ReadFailure('deadline_exceeded'));},remaining);});
+  const expired=new Promise((_,reject)=>{
+    timer=setTimeout(()=>{
+      onDeadline();
+      controller.abort();
+      reject(new ReadFailure('deadline_exceeded'));
+    },remaining);
+  });
   try{
     const run=async()=>{
       response=await fetchImpl(endpoint,{method:'POST',redirect:'error',credentials:'omit',cache:'no-store',
@@ -189,10 +195,14 @@ export async function readSubmissionEvidence(account,options,dependencies={}){
   const selection=assignmentSelection(caller,options.snapshot,options);
   const candidates=selection.ambiguous?[]:selection.selected.slice(0,maxAssignments),outcomes=new Array(candidates.length);
   const fetchImpl=dependencies.fetchImpl||fetch;
-  let index=0;
+  let index=0,deadlineReached=false;
+  const markDeadlineReached=()=>{deadlineReached=true;};
   async function worker(){
     for(;;){const slot=index++;if(slot>=candidates.length)return;const row=candidates[slot];
-      try{outcomes[slot]={record:projectWorkspace(await readWorkspace(caller,row.assignment.id,deadline,fetchImpl),row,caller.user.id)};}
+      try{
+        if(deadlineReached)throw new ReadFailure('deadline_exceeded');
+        outcomes[slot]={record:projectWorkspace(await readWorkspace(caller,row.assignment.id,deadline,fetchImpl,markDeadlineReached),row,caller.user.id)};
+      }
       catch(error){outcomes[slot]={unavailable:{assignmentTitle:row.assignment.title,courseTitle:row.course.title,url:detailUrl(row),reason:error instanceof ReadFailure?error.code:'invalid_metadata'}};}
     }
   }

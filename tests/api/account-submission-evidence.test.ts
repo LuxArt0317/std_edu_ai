@@ -293,6 +293,26 @@ test('past and stalled deadlines do not retry or start further provider requests
   assert.equal(stalled.reason,'deadline_exceeded');assert.ok(Date.now()-start<1000);assert.equal(signal?.aborted,true);assert.equal(calls,1);
 });
 
+test('a submission timeout stops both workers from starting queued assignment reads',async t=>{
+  const started=Date.now();
+  t.mock.method(Date,'now',()=>started);
+  t.mock.timers.enable({apis:['setTimeout']});
+  const snap=snapshot();
+  snap.assignments.push(assignment(21,10,'Second response'),assignment(22,10,'Third response'));
+  const calls:string[]=[];
+  const pending=readSubmissionEvidence(account,{snapshot:snap,deadline:started+30},{fetchImpl:async(_url,init)=>{
+    calls.push(JSON.parse(String(init?.body)).p_assignment_id);
+    return new Promise<Response>(()=>{});
+  }});
+  assert.deepEqual(calls,[assignmentId,id(21)]);
+  t.mock.timers.tick(30);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.deepEqual(calls,[assignmentId,id(21)]);
+  const result=await pending;
+  assert.equal(result.reason,'deadline_exceeded');
+  assert.deepEqual(payload(result).unavailable.map(row=>row.reason),Array(3).fill('deadline_exceeded'));
+});
+
 test('the inherited account deadline is honored before transport and wins over a later option deadline',async()=>{
   let calls=0;
   const fetchImpl:typeof fetch=async()=>{calls++;return json(workspace());};
