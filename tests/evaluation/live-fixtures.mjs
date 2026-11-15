@@ -36,6 +36,9 @@ import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionL
 import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
+import {isDeepStrictEqual} from 'node:util';
+import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamily,
+  dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -65,9 +68,10 @@ const SUPPLEMENTAL_TABLES=Object.freeze({enrollmentCertificate:'affairs_enrollme
 const SUPPORTED_TOOLS=new Set(['profile','charges','tasks','requests','serviceRecords','dtm','assignments','aidPayments','dtmGradeReport','elearningEnrollments','elearningOutline','facilityRepairs','dormitoryConduct','housingApplications',...PRIVATE_NATIVE_DOMAINS,...CONDITIONAL_NATIVE_DOMAINS,...Object.keys(SUPPLEMENTAL_SCOPES)]);
 const FOREIGN_MARKER='FOREIGN PRIVATE SENTINEL';
 const FEE_FIXTURE_MODE='fee-remission-only';
-export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
+export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE,dtmAssignmentListFixtureMode]);
 export const clubAttendanceFixtureVersion=1;
 export const protectedPreviewReadbackVersion=1;
+export const dtmAssignmentListFixtureVersion=1;
 export const elearningMetadataFixtureVersion=1;
 export const elearningCatalogFixtureVersion=1;
 export const serviceNoteFixtureVersion=1;
@@ -383,7 +387,15 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
-  if(cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||row?.fixtureRequirement==='legacy_dtm_assignment_list_rebind'||typeof row?.id==='string'
+  const assignmentListOnly=fixtureMode===dtmAssignmentListFixtureMode;
+  if(assignmentListOnly){
+    if(caseFamily!==dtmAssignmentListFamily||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+      ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
+      fail('fixture-target','Moodle assignment-list fixtures require the exact protected Preview and isolated case packet.');
+    assertDtmAssignmentListLiveCases(cases);
+  }else if(cases.some(row=>row?.fixtureRequirement===dtmAssignmentListRequirement))
+    fail('fixture-unsupported','Moodle assignment-list fixtures must use their isolated case packet.');
+  if(!assignmentListOnly&&cases.some(row=>row?.fixtureRequirement==='offline_dtm_native_fixture'||row?.fixtureRequirement==='legacy_dtm_assignment_list_rebind'||typeof row?.id==='string'
     &&(row.id.startsWith('account:dtm-native-route-')||row.id.startsWith('account:dtm-assignment-native-')||row.id.startsWith('account:dtm-assignment-list-'))))
     fail('fixture-unsupported','Native DTM route cases require the isolated fixture and observation adapter.');
   if(cases.some(row=>row?.fixtureRequirement==='offline_native_teaching_feedback'||typeof row?.id==='string'&&row.id.startsWith('account:teaching-native-')))
@@ -422,7 +434,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -489,6 +501,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       await prepareFeeFixture(state);
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['feeRemission','charges']};
+    }
+    if(assignmentListOnly){
+      await prepareDtmAssignmentListFixture(state,cases);
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmAssignmentList']};
     }
     if(elearningPublishedReadbackOnly){
       state.prepared=true;
@@ -1013,6 +1030,38 @@ async function assertRecordedFixtureLease(s,label='Club attendance'){
   const locks=await s.sql`select 1 from pg_locks where locktype='advisory' and pid=pg_backend_pid()
     and classid=23101314 and objid=115100 and objsubid=2 and granted`;
   if(locks.length!==1)fail('fixture-lease',label+' could not verify its reserved database connection.');
+}
+
+async function prepareDtmAssignmentListFixture(s,cases){
+  await assertRecordedFixtureLease(s,'Moodle assignment list');
+  await s.previewGate.assertCurrent();
+  const plan=buildDtmAssignmentListFixture(s.users);
+  const occupied=await query(()=>s.sql`select id from public.dtm_courses where id in ${s.sql(plan.recordIds)}
+    union all select id from public.affairs_assignments where id in ${s.sql(plan.recordIds)}`,
+    'Could not check the reserved Moodle assignment-list IDs.');
+  if(occupied.length)fail('fixture-state','A reserved Moodle assignment-list ID already exists.');
+  s.dtmAssignmentListPlan=plan;
+  s.dtmAssignmentListCases=new Map(structuredClone(cases).map(testCase=>[testCase.id,testCase]));
+  for(const id of plan.recordIds)s.recordIds.add(id);
+  await saveLedger();
+  await query(()=>feeTransaction(s,async()=>{
+    const users=await s.sql`select id,user_id from public.affairs_students where id in ${s.sql(s.users.map(user=>user.studentId))}`;
+    if(users.length!==2||s.users.some(user=>!users.some(row=>row.id===user.studentId&&row.user_id===user.id)))
+      fail('fixture-state','The Moodle course students are outside the disposable owner binding.');
+    await s.sql`insert into public.dtm_courses ${s.sql(plan.courses.map(row=>({
+      ...row,title:row.code+' disposable course',term:'Moodle evaluation',role:'student',
+    })))}`;
+    await s.sql`insert into public.affairs_assignments ${s.sql(plan.assignments)}`;
+  }),'Could not save the isolated Moodle assignment list.');
+}
+
+async function dtmAssignmentListObservation(s,signal){
+  await assertRecordedFixtureLease(s,'Moodle assignment list');
+  await s.previewGate.assertCurrent();
+  const active=signal||s.signal;
+  await Promise.all(s.users.map(user=>user.renewSession({signal:active})));
+  return readDtmAssignmentListFixture(s.dtmAssignmentListPlan,s.users,{publishable:s.publishable,
+    fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:active});
 }
 
 async function clubAttendanceObservation(s,oracle,signal){
@@ -1875,6 +1924,14 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     try{await saveLedger();}catch(error){s.current=null;throw error;}
     return anonymous?{}:{token:s.users[0].token};
   }
+  if(s.dtmAssignmentListPlan){
+    if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==dtmAssignmentListFamily
+      ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
+      fail('fixture-case','The Moodle assignment-list case is outside its isolated fixture.');
+    const before=await dtmAssignmentListObservation(s,signal);
+    s.current={caseId:testCase.id,dtmAssignmentList:before};
+    return {token:s.users[0].token};
+  }
   if(fixtureMode!==undefined||fixtureFamily!==undefined)fail('fixture-case','Fixture mode changed after preparation.');
   if(isElearningPublishedReadbackCase(testCase)){
     assertElearningCatalogCaseReady(testCase);
@@ -2039,6 +2096,25 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
   const s=ready();if(s.current?.caseId!==testCase.id)fail('fixture-state','afterCase() does not match the prepared case.');
   const current=s.current;
   try{
+    if(current.dtmAssignmentList){
+      if(fixtureMode!==dtmAssignmentListFixtureMode||fixtureFamily!==dtmAssignmentListFamily
+        ||!isDeepStrictEqual(testCase,s.dtmAssignmentListCases.get(testCase.id)))
+        fail('fixture-case','The Moodle assignment-list case changed after dispatch.');
+      const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
+      const other=s.users[1];
+      const plan=s.dtmAssignmentListPlan;
+      const foreignIds=[...plan.courses.filter(row=>row.user_id===other.id),
+        ...plan.assignments.filter(row=>row.student_id===other.studentId)].map(row=>row.id);
+      const identityMarkers=s.users.flatMap(user=>[user.id,user.studentId,user.token]).concat(s.identityRequests.map(request=>request.email));
+      if([...foreignIds,...identityMarkers].some(marker=>marker&&output.includes(marker.toLowerCase()))){
+        envelope.body={error:'Moodle assignment-list fixture isolation failed.'};envelope.events=[];
+        fail('fixture-isolation','The response disclosed a disposable caller identity, credential or foreign record.');
+      }
+      const after=await dtmAssignmentListObservation(s,signal);
+      envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+        dtmAssignmentList:bindDtmAssignmentListReadback(testCase,envelope,{before:current.dtmAssignmentList,after})};
+      return;
+    }
     if(current.elearningPublishedReadback){
       assertElearningCatalogCaseReady(testCase);
       const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
@@ -2330,6 +2406,13 @@ export async function cleanup(){
           :s.sql`select id from ${s.sql('public.'+table)} where user_id in ${s.sql(ids)} limit 1`,'Could not verify native fixture cleanup.');
         if(native.length)fail('fixture-cleanup','Native fixture-owned rows remain; the private cleanup ledger is retained.');
       }
+    }
+    if(s.dtmAssignmentListPlan){
+      const ids=s.dtmAssignmentListPlan.recordIds;
+      const remaining=await query(()=>s.sql`select id from public.dtm_courses where id in ${s.sql(ids)}
+        union all select id from public.affairs_assignments where id in ${s.sql(ids)}`,
+        'Could not verify exact Moodle assignment-list cleanup.');
+      if(remaining.length)fail('fixture-cleanup','Reserved Moodle assignment-list rows remain.');
     }
     if(s.transcriptConversation)s.transcriptConversationCleanup=await s.transcriptConversation.verifyAbsent();
     // A timed-out create with no row yet may still commit later. Keep the

@@ -1,4 +1,5 @@
 import {dtmAssignmentListCases,isNativeDtmAssignmentListCase} from './dtm-assignment-list-cases.mjs';
+import {dtmAssignmentListRequirement} from './dtm-assignment-list-live.mjs';
 import {buildDtmMaterialCases,dtmMaterialCasePrefix} from './dtm-material-cases.mjs';
 import {buildDtmNativeRouteCases} from './dtm-native-route-cases.mjs';
 import {dtmAssignmentCases,dtmAssignmentFixture} from './dtm-assignment-native-cases.mjs';
@@ -25,6 +26,7 @@ export function nativeDtmRunnerCases(){
 }
 
 export function nativeDtmSetupRequired(testCase){
+  if(testCase?.fixtureRequirement===dtmAssignmentListRequirement)return false;
   return isNativeDtmAssignmentListCase(testCase)||testCase?.fixtureRequirement===requirement||typeof testCase?.id==='string'
     &&(testCase.id.startsWith(assignmentPrefix)||testCase.id.startsWith(gradePrefix)||testCase.id.startsWith(dtmMaterialCasePrefix));
 }

@@ -23,6 +23,8 @@ import {markLegacyDtmAssignmentListFixture} from './dtm-assignment-list-cases.mj
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
 import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,elearningCatalogSetupSummary,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import {metadataDispatchObservation as assistantDispatchObservation} from './elearning-metadata-live.mjs';
+import {assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamily,dtmAssignmentListFixtureMode,
+  dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase,verifiedDtmAssignmentListReadback} from './dtm-assignment-list-live.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
 import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,gradeClubAttendanceCase} from './club-attendance-cases.mjs';
@@ -45,10 +47,16 @@ export function options(args){
   }
   if(!['inventory','retrieval','draft','live','review'].includes(result.mode))throw new Error('Mode must be inventory, retrieval, draft, live or review.');
   if(result.caseFamily!==undefined){
-    if(result.caseFamily!=='fee-remission')throw new Error('Unknown case family.');
-    if(!['inventory','live'].includes(result.mode)||result.only||result.domain||result.maxCases!==Infinity)throw new Error('Fee remission runs require the complete isolated family in inventory or live mode; case filters are not permitted.');
-    if(result.mode==='live'&&!result.fixtureModule)throw new Error('Fee remission live runs require an explicit isolated fixture adapter.');
-    if(result.mode==='live'&&(!result.approvedPreviewOrigin||result.origin!==result.approvedPreviewOrigin||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(result.origin)))throw new Error('Fee remission live runs require an explicitly approved exact project Preview origin.');
+    const supported=['fee-remission',dtmAssignmentListFamily];
+    if(!supported.includes(result.caseFamily))throw new Error('Unknown case family.');
+    const label=result.caseFamily===dtmAssignmentListFamily?'Moodle assignment-list':'Fee remission';
+    if(!['inventory','live'].includes(result.mode)||result.only||result.domain||result.maxCases!==Infinity)throw new Error(label+' runs require the complete isolated family in inventory or live mode; case filters are not permitted.');
+    if(result.mode==='live'&&!result.fixtureModule)throw new Error(label+' live runs require an explicit isolated fixture adapter.');
+    const projectPreview=result.caseFamily===dtmAssignmentListFamily?isEvaluationPreviewOrigin(result.origin)
+      :/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(result.origin);
+    if(result.mode==='live'&&(!result.approvedPreviewOrigin||result.origin!==result.approvedPreviewOrigin||!projectPreview))throw new Error(label+' live runs require an explicitly approved exact project Preview origin.');
+    if(result.mode==='live'&&result.caseFamily===dtmAssignmentListFamily&&result.previewAuth!=='oidc')
+      throw new Error('Moodle assignment-list live runs require protected Preview OIDC.');
   }
   if(result.mode==='review'){
     if(!result.reviewReport||!result.guidanceReviews||!result.reviewer||!result.out)throw new Error('Review requires the saved report, independent reviews, reviewer identity and a separate output path.');
@@ -114,10 +122,10 @@ export function validateFeeRemissionRunnerCases(cases){
   return true;
 }
 export async function evaluationSuite(now,{caseFamily}={}){
-  if(caseFamily!==undefined&&caseFamily!=='fee-remission')throw new Error('Unknown case family.');
+  if(caseFamily!==undefined&&!['fee-remission',dtmAssignmentListFamily].includes(caseFamily))throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():caseFamily===dtmAssignmentListFamily?dtmAssignmentListLiveCases()
     :[...serviceNoteRunnerCases({now}),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
       ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...learningEntryCases(),...campusEntryCases(),...buildPublicCases(inventory)];
@@ -450,9 +458,15 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   const opt=options(args),identity=await identify();
   if(opt.mode==='review'&&Object.keys(dependencies).length)throw new Error('Saved live reports cannot be reviewed with injected dependencies.');
   if(opt.mode==='review')return reviewSavedReport(opt,identity);
-  const feeOnly=opt.caseFamily==='fee-remission',fixtureMode=feeOnly?'fee-remission-only':undefined;
+  const feeOnly=opt.caseFamily==='fee-remission',assignmentListOnly=opt.caseFamily===dtmAssignmentListFamily;
+  const fixtureMode=feeOnly?'fee-remission-only':assignmentListOnly?dtmAssignmentListFixtureMode:undefined;
+  const isolatedFixture=fixtureMode?{fixtureMode,caseFamily:opt.caseFamily}:{};
   const suite=await buildSuite(opt.now,{caseFamily:opt.caseFamily}),runId=randomUUID();
   if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
+  if(assignmentListOnly){
+    assertDtmAssignmentListLiveCases(suite.cases);
+    if(suite.suiteHash!==hash(suite.cases))throw new Error('Moodle assignment-list suite hash does not match the frozen cases.');
+  }
   let selected=suite.cases.filter(row=>(!opt.only||row.id.startsWith(opt.only))&&(!opt.domain||row.domain===opt.domain)).slice(0,opt.maxCases);
   if(!selected.length)throw new Error('No cases match.');
   // Do not pass an unmounted native case into the legacy adapter: prepare
@@ -467,7 +481,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     browserAcceptance=JSON.parse(contents);
   }
   const report={version:1,runId,mode:opt.mode,startedAt:new Date().toISOString(),evaluationTime:opt.now,...identity,suiteHash:suite.suiteHash,inventoryHash:suite.inventory.hash,
-    injectedDependencies:Object.keys(dependencies).length>0,...(feeOnly?{caseFamily:opt.caseFamily,fixtureMode}:{}),
+    injectedDependencies:Object.keys(dependencies).length>0,...isolatedFixture,
     ...(opt.previewAuth?{previewAccess:'vercel-development-oidc'}:{}),
     pacing:{minimumRequestStartIntervalMs:opt.intervalMs,automaticRequestRetries:0},
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
@@ -482,7 +496,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   const noteSetup=serviceNoteSetupSummary(selected);
   if(noteSetup.registered)report.serviceNoteSetup=noteSetup;
   if(opt.mode==='inventory'){
-    report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:feeOnly?'subset':'full'});
+    report.cases=suite.cases;report.assessment=assessRun({...report,sourceUnchanged:true},{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,requestedSuite:opt.caseFamily?'subset':'full'});
     await persist(out,report);log(JSON.stringify({mode:opt.mode,cases:suite.cases.length,services:suite.inventory.services.length,tools:suite.inventory.tools.length,publicPages:suite.inventory.publicPages.length,report:relative(root,out),releaseReady:false}));return report;
   }
   const controller=new AbortController();const interrupt=()=>controller.abort();process.once('SIGINT',interrupt);process.once('SIGTERM',interrupt);
@@ -528,12 +542,14 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         if(fixtureCases.some(isElearningCatalogReadbackCase)
           &&(adapter.elearningCatalogFixtureVersion!==1||typeof adapter.afterCase!=='function'))
           throw new Error('Digital Academy course catalog requires paired disposable caller readbacks.');
+        if(assignmentListOnly&&(adapter.dtmAssignmentListFixtureVersion!==1||!adapter.fixtureModes?.includes(fixtureMode)||typeof adapter.afterCase!=='function'))
+          throw new Error('Moodle assignment-list evaluation requires paired disposable caller readbacks.');
         const previewReadbackFetch=opt.previewAuth?async(input,init={})=>{
           if((init.method??'GET')!=='GET')throw new Error('Protected fixture transport is read-only.');
           return fetchImpl(input,init);
         }:undefined;
         await adapter.prepare({runId,cases:feeOnly?structuredClone(fixtureCases):fixtureCases,now:opt.now,origin:opt.origin,signal:controller.signal,
-          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...(feeOnly?{fixtureMode,caseFamily:opt.caseFamily}:{}),
+          approvedPreviewOrigin:opt.approvedPreviewOrigin,expectedReleaseRevision:identity.sourceRevision,...isolatedFixture,
           ...(previewReadbackFetch?{previewReadbackFetch}:{})});
         if(report.bindingPending&&typeof adapter.bindCatalogCases==='function'){
           const bound=validateCatalogCaseBinding(selected,await adapter.bindCatalogCases(structuredClone(selected),{signal:controller.signal}));
@@ -555,7 +571,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       const publishedAcademyReadback=nativeMetadata||nativeCatalog;
       const liveExecution=testCase.executionContract==='live-native'?'live-native':'live-model';
       if(controller.signal.aborted)break;
-      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket,academyDispatch;
+      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket,academyDispatch,assignmentListDispatch;
       try{
         assertTeachingFeedbackCaseReady(testCase);
         assertNativeDtmCaseReady(testCase);
@@ -583,7 +599,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
             // aliases can change between cases even when local source is fixed.
             await deploymentGate.assertCurrent();report.deploymentPin=deploymentGate.status();
           }
-          const fixtureContext={signal:controller.signal,...(feeOnly?{fixtureMode,fixtureFamily:feeRemissionLiveFamilyForCase(testCase)}:{})};
+          const fixtureContext={signal:controller.signal,...(fixtureMode?{fixtureMode,
+            fixtureFamily:feeOnly?feeRemissionLiveFamilyForCase(testCase):opt.caseFamily}:{})};
           const context=!feeOnly&&testCase.fixtureKey==='anonymous'?{}:await adapter.forCase(feeOnly?structuredClone(testCase):testCase,fixtureContext);
           fixtureReady=feeOnly||testCase.fixtureKey!=='anonymous';
           if(!context||typeof context!=='object')throw new Error('Live fixture did not supply a valid request context.');
@@ -601,6 +618,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
             }
             pacingWaitMs=waited;executed=true;
             if(publishedAcademyReadback)academyDispatch=assistantDispatchObservation(endpoint,requestBody);
+            if(assignmentListOnly)assignmentListDispatch=dtmAssignmentListDispatch(endpoint,requestBody);
             return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
               body:requestBody,signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});
           },controller.signal,async()=>{
@@ -611,7 +629,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
           envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),
             execution:liveExecution,fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision,
-            ...(academyDispatch?{[nativeMetadata?'metadataDispatch':'catalogDispatch']:academyDispatch}:{})};
+            ...(academyDispatch?{[nativeMetadata?'metadataDispatch':'catalogDispatch']:academyDispatch}:{}),...(assignmentListDispatch?{assignmentListDispatch}:{})};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
         }else{
@@ -627,7 +645,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(publishedAcademyReadback||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
+        const execution=phase==='setup'&&(assignmentListOnly||publishedAcademyReadback||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
@@ -646,8 +664,11 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         }
         if(fixtureReady&&adapter?.afterCase){
           try{
-            await adapter.afterCase(feeOnly?structuredClone(testCase):testCase,envelope,{signal:controller.signal,...(feeOnly?{fixtureMode,fixtureFamily:feeRemissionLiveFamilyForCase(testCase)}:{})});
+            await adapter.afterCase(feeOnly?structuredClone(testCase):testCase,envelope,{signal:controller.signal,
+              ...(fixtureMode?{fixtureMode,fixtureFamily:feeOnly?feeRemissionLiveFamilyForCase(testCase):opt.caseFamily}:{})});
             if(feeOnly)assertFeeRemissionReadback(envelope);
+            if(assignmentListOnly&&!verifiedDtmAssignmentListReadback(testCase,envelope))
+              throw new Error('The pinned Moodle assignment-list readback is missing or changed.');
             if(serviceNotes&&(!envelope.fixtureReadback?.serviceNotes?.twoOwnersVerified
               ||envelope.fixtureReadback.serviceNotes.caseId!==testCase.id))throw new Error('Exact service-note readback is missing.');
 
@@ -660,7 +681,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       envelope.executed=executed;
       const guidanceReviewBinding=testCase.expected.guidanceRubric&&/^[a-f0-9]{40}$/.test(envelope.sourceRevision||'')&&/^[a-f0-9]{64}$/.test(report.suiteHash||'')?buildGuidanceReviewBinding({runId:report.runId,finalSuiteHash:report.suiteHash,sourceRevision:envelope.sourceRevision,testCase,envelope}):null;
       const independentReview=guidanceReviewBinding?validateGuidanceReview({testCase,envelope,binding:guidanceReviewBinding,artifact:undefined}):undefined;
-      const result=serviceNotes?gradeLiveServiceNoteCase(testCase,envelope):nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
+      const result=assignmentListOnly?gradeDtmAssignmentListLiveCase(testCase,envelope):serviceNotes?gradeLiveServiceNoteCase(testCase,envelope):nativeClub?gradeClubAttendanceCase(testCase,envelope):testCase.catalogOracle||testCase.metadataOracle?gradeElearningCatalogCase(testCase,envelope,{independentReview}):gradeEvaluationCase(testCase,envelope,{independentReview});
       for(const [flag,id] of [['deploymentIntegrityFailed','run.deploymentDrift'],['fixtureIntegrityFailed','run.fixtureReadbackFailed']])if(envelope[flag]){
         const check={id,passed:false,detail:'The original response is retained but its execution integrity was not verified.'};
         result.passed=false;result.checks.push(check);result.failures.push(check);
@@ -675,8 +696,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(noteSetupFailed)report.runFailure='Service-note setup failed before dispatch; the runner stopped before another request.';
       const academySetupFailed=publishedAcademyReadback&&opt.mode==='live'&&envelope.failureKind==='setup';
       if(academySetupFailed)report.runFailure='Digital Academy setup failed before dispatch; the runner stopped before another request.';
+      const assignmentListSetupFailed=assignmentListOnly&&opt.mode==='live'&&envelope.failureKind==='setup';
+      if(assignmentListSetupFailed)report.runFailure='Moodle assignment-list fixture setup failed before dispatch.';
       await persist(out,report);
-      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed||academySetupFailed)break;
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed||academySetupFailed||assignmentListSetupFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';
@@ -692,7 +715,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     report.finishedAt=new Date().toISOString();
     const finalIdentity=await identify();
     report.sourceUnchanged=finalIdentity.sourceRevision===identity.sourceRevision&&finalIdentity.workingTreeHash===identity.workingTreeHash;
-    report.assessment=assessRun(report,{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:feeOnly?'subset':selected.length===suite.cases.length?'full':'subset'});
+    report.assessment=assessRun(report,{cases:suite.cases,inventory:suite.inventory,sourceRevision:identity.sourceRevision,browserAcceptance,requestedSuite:opt.caseFamily?'subset':selected.length===suite.cases.length?'full':'subset'});
     await persist(out,report);
   }
   log(JSON.stringify({report:relative(root,out),...report.assessment.totals,releaseReady:report.assessment.releaseReady,cleanup:report.cleanup.complete}));

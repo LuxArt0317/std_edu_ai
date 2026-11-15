@@ -119,6 +119,17 @@ The School Affairs directory adds 22 bilingual catalog cases and an explicit bro
 
 `dtm-assignment-list-handler.test.mjs` grades all 25 list cases through the actual endpoint using synthetic callers and controlled row requests. It checks the selected course, global personal/sample fallback, Taipei dates, exact counts, tracker states, access, retry and distinct submission and grade capabilities. Four original cases retain their earlier oracles and wait for updated fixture binding.
 
+The isolated `dtm-assignment-list` family mounts nine of those cases on a protected Preview. It checks all assignments from a course and from the signed-in account, one fixed Taipei due date, open/completed/graded/submitted filters, titles only, and the exact count. The fixture records two independent signed-in owner projections before and after each assistant request. It also checks that the pinned request emitted the selected Moodle read and completed verification, and that cleanup removed the reserved courses and assignments. Relative-date, unavailable and legacy cases keep their existing evaluation coverage.
+
+```sh
+node tests/evaluation/run.mjs --mode live --case-family dtm-assignment-list \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" --preview-auth oidc \
+  --fixture-module tests/evaluation/live-fixtures.mjs \
+  --out artifacts/assistant-evaluation/dtm-assignment-list-live.json
+```
+
+Use the exact deployed commit, project credentials and Vercel Development OIDC identity. This command evaluates the nine selected cases and records the cleanup result.
+
 The registered action cases check exact proposed payloads, relevant named reads and review text. `confirmed-assistant-action.test.ts` runs the real handlers with controlled authentication and database transport. The compiled browser check `tests/integration/assistant-confirmed-action-ui.mjs` verifies confirmation, receipt mismatch handling and reuse of the same operation ID. Run it against the local compiled preview. Hosted writes require separate acceptance.
 
 Conversation cleanup binds the serialized message array as text and casts it to JSONB in PostgreSQL before the exact row comparison. The fixture retains its deletion witness when automatic cleanup fails. Record any verified manual recovery separately from the original hosted report.

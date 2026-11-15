@@ -310,7 +310,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
     if(kind==='changed')testCase.question+=' Changed after the fingerprint.';
     let setupCalls=0,modelCalls=0,pinChecks=0;
     const execute=vm.runInNewContext('(async()=>{'+source.slice(from,to)+'})',{
-      selected:[testCase],report,opt:{mode:'live',origin:'https://synthetic.invalid'},controller:new AbortController(),assertCatalogCaseBound,
+      selected:[testCase],report,opt:{mode:'live',origin:'https://synthetic.invalid'},fixtureMode:undefined,assignmentListOnly:false,controller:new AbortController(),assertCatalogCaseBound,
       adapter:{forCase:async()=>{setupCalls++;return {token:'synthetic-token'};},afterCase:async()=>{}},
       pace:async(start,_signal,beforeStart)=>{await beforeStart();return start(0);},fetchImpl:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},

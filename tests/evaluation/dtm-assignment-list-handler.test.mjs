@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {randomUUID} from 'node:crypto';
+import {bindDtmAssignmentListReadback,dtmAssignmentListDispatch,dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase} from './dtm-assignment-list-live.mjs';
+import {readReply} from './run.mjs';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import research from '../../api/research-assistant.ts';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
@@ -11,12 +14,16 @@ const token='OFFLINE_DTM_ASSIGNMENT_TOKEN';
 const status={all:undefined,open:'eq.open',done:'in.(submitted,graded)',submitted:'eq.submitted',graded:'eq.graded'};
 const mockResult=async(handler,body,{authenticated=true}={})=>{
   const saved={statusCode:200,body:null};
-  const response={setHeader(){},status(value){saved.statusCode=value;return response;},json(body){saved.body=body;}};
+  const headers=new Headers(),chunks=[];
+  const response={setHeader(name,value){headers.set(name,value);},status(value){saved.statusCode=value;return response;},json(body){saved.body=body;}};
+  if(body.stream)Object.assign(response,{write(chunk){chunks.push(chunk);},end(){}});
   await handler({method:'POST',headers:authenticated?{authorization:'Bearer '+token}:{},body},response);
+  if(body.stream)return {statusCode:saved.statusCode,...await readReply(new Response(chunks.join(''),{headers})),
+    correlationId:headers.get('X-Assistant-Request-Id')};
   return saved;
 };
 
-async function exercise(item,{tamper=null}={}){
+async function exercise(item,{tamper=null,stream=false}={}){
   const oracle=item.observation;
   const {courses,records,identity:{caller,asOf}}=dtmAssignmentListFixture(item);
   const calls=[],failures=[];
@@ -88,9 +95,9 @@ async function exercise(item,{tamper=null}={}){
       loadSnapshot:async()=>assert.fail('The private list must never load a broad workspace snapshot.'),
       publicResearch:async()=>assert.fail('The private list must not use public search.'),
       answerAccount:async()=>assert.fail('The deterministic list was sent to the general model planner.')});
-    const response=await mockResult(auth?handler:research,{question:item.question,route:item.route},{authenticated:auth});
+    const response=await mockResult(auth?handler:research,{question:item.question,route:item.route,...(stream?{stream:true}:{})},{authenticated:auth});
     assert.deepEqual(failures,[],item.id);
-    return {envelope:{...response,events:[],execution:'recorded',fixtureKey:item.fixtureKey},calls};
+    return {envelope:{...response,events:response.events||[],execution:'recorded',fixtureKey:item.fixtureKey},calls};
   }finally{globalThis.fetch=original;}
 }
 const bank=dtmAssignmentListCases(),rowFor=suffix=>bank.find(row=>row.id.endsWith('-'+suffix));
@@ -161,4 +168,28 @@ test('native list cases and unchanged legacy oracles reject live setup before pr
       origin:'https://stu.best',applicationFetch:async()=>assert.fail('No application request during blocked setup.')}),
     {code:'fixture-unsupported'});
   }
+});
+
+
+test('real assistant stream matches the protected Preview request observation for the mounted packet',async t=>{
+  const observed=[{count:8,sha256:'a'.repeat(64)},{count:2,sha256:'b'.repeat(64)}];
+  const revision=randomUUID().replaceAll('-','')+'b'.repeat(8);
+  for(const item of dtmAssignmentListLiveCases())await t.test(item.id,async()=>{
+    const source=bank.find(row=>row.id===item.id);
+    const {envelope}=await exercise(source,{stream:true});
+    Object.assign(envelope,{execution:'live-native',fixtureKey:item.fixtureKey,sourceRevision:revision,
+      deploymentCheck:{verified:true,requestIndex:1,sourceRevision:revision},
+      assignmentListDispatch:dtmAssignmentListDispatch('/api/affairs-assistant',JSON.stringify({
+        question:item.question,history:[],route:item.route,stream:true,consentedResearchUse:false,
+      })),
+    });
+    assert.doesNotThrow(()=>bindDtmAssignmentListReadback(item,envelope,{before:observed,after:observed}));
+    const result=gradeDtmAssignmentListLiveCase(item,envelope);
+    assert.equal(result.passed,true,JSON.stringify(result.failures));
+    const extra='\n[Invalid record](/dtm/course/'+source.observation.courseId+'/assignment/aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa)';
+    if(source.observation.courseId){
+      const wrong={...envelope,body:{...envelope.body,answer:envelope.body.answer+extra}};
+      assert.ok(gradeDtmAssignmentListLiveCase(item,wrong).failures.some(row=>row.id==='dtm-assignment-list.exact-links'));
+    }
+  });
 });
