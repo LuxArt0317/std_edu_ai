@@ -31,7 +31,9 @@ function masked(value){
   return result.join('');
 }
 function parts(value){
-  const hidden=masked(value),pattern=/[;；。?!？！\n]|\.(?=\s|$)|[,，]\s*(?=(?:show|list|read|check|tell|what|when|which|how|do\s+not|don['’]t|never|not|without|excluding|then|also|my)\b)|\s+(?:and|also|plus|but|alongside)\s+(?=(?:show|list|read|check|tell|what|when|which|how|did|has|is|was|can|do\s+not|don['’]t|never|not|without|excluding|then|my|the (?:status|teaching|immediate|course)|immediate|teaching|course|submit|cancel|change|delete|mark|download)\b)|\s+(?=(?:without|excluding|except)\b)|(?<!\bdo)(?<!\s)\s+(?=not(?!\s+only)\b)|以及|還有|並且|但是|(?=排除|不含)/giu;
+  // A completed/incomplete contrast is one field request, not an exclusion.
+  const hidden=masked(value).replace(/\band\s+which\s+are\s+not(?:\s+completed)?(?=\s*(?:[.!?]|$))/giu,
+    phrase=>' '.repeat(phrase.length)),pattern=/[;；。?!？！\n]|\.(?=\s|$)|[,，]\s*(?=(?:show|list|read|check|tell|what|when|which|how|do\s+not|don['’]t|never|not|without|excluding|then|also|my)\b)|\s+(?:and|also|plus|but|alongside)\s+(?=(?:show|list|read|check|tell|what|when|which|how|did|has|is|was|can|do\s+not|don['’]t|never|not|without|excluding|then|my|the (?:status|teaching|immediate|course)|immediate|teaching|course|submit|cancel|change|delete|mark|download)\b)|\s+(?=(?:without|excluding|except)\b)|(?<!\bdo)(?<!\s)\s+(?=not(?!\s+only)\b)|以及|還有|並且|但是|(?=排除|不含)/giu;
   const result=[];let start=0;
   for(const match of hidden.matchAll(pattern)){const part=value.slice(start,match.index).trim();if(part)result.push(part);start=match.index+match[0].length;}
   const tail=value.slice(start).trim();if(tail)result.push(tail);return result;
@@ -166,10 +168,25 @@ export function teachingFeedbackLookupContext(question,route='',history=[]){
     navigation:Object.freeze([...guides].filter(view=>!states.has(view)))});
 }
 export function selectTeachingFeedbackEvidence(question,route='',history=[]){return teachingFeedbackLookupContext(question,route,history).selection;}
+export function teachingFeedbackSurveyPresentation(question){
+  const text=clean(question).replace(/[.!?。！？]+$/u,'').replace(/\s+/gu,' ');
+  if(!survey.test(text)||operation.test(text)||unsupported.test(masked(text)))return null;
+  const compare=/^does completing ([a-z]+[a-z0-9._-]*[0-9][a-z0-9._-]*) in my midterm teaching (?:evaluation|survey|questionnaire) also mean my final (?:teaching )?(?:evaluation|survey|questionnaire) is complete$/iu.exec(text);
+  if(compare&&compare[1].length<=80)return {kind:'comparison',code:compare[1]};
+  const phases=[...(/\bmidterm\b|期中/iu.test(text)?['midterm']:[]),...(/\bfinal\b|期末/iu.test(text)?['final']:[])];
+  if(phases.length===1&&/\bopening and closing dates?\b|開放.{0,8}截止/iu.test(text)
+    &&!/\b(?:status|state|complet\w*|responses?)\b|狀態|完成|填答/iu.test(text))return {kind:'dates',phases};
+  if(phases.length===1&&/\bwhich courses are completed and which are not(?: completed)?\b/iu.test(text)
+    &&!/\b(?:dates?|window|state|status)\b|日期|開放|截止/iu.test(text))return {kind:'completion',phases};
+  if(/\bsurvey windows are available\b|\b(?:window|opening) (?:state|status)\b|開放狀態/iu.test(text)
+    &&!/(?:\b(?:dates?|complet\w*|responses?|ratings?)\b|完成|填答|日期|時間)/iu.test(text))return {kind:'state',phases};
+  return null;
+}
 export function exactTeachingFeedbackRead(context){
   const selection=context.selection;
+  const comparison=selection?.views[0]==='survey'&&teachingFeedbackSurveyPresentation(selection.question)?.kind==='comparison';
   return selection?.views.length===1&&!selection.reason&&!selection.unavailableDetails&&!context.otherQuestion
-    &&!context.excluded&&!context.foreign&&!context.navigation.length&&!unscopedOutcome.test(masked(selection.question))
+    &&!context.excluded&&!context.foreign&&!context.navigation.length&&(comparison||!unscopedOutcome.test(masked(selection.question)))
       ?selection:null;
 }
 export function isTeachingFeedbackEvidenceQuestion(question,route='',history=[]){return selectTeachingFeedbackEvidence(question,route,history)!==null;}

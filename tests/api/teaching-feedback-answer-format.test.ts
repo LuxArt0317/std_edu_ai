@@ -87,3 +87,24 @@ test('exact teaching answers preserve a selected saved comment and decline misma
   assert.equal(formatExactTeachingFeedbackAnswer(await source(true),question,selection),null);
   assert.equal(formatExactTeachingFeedbackAnswer(unavailableTeachingFeedbackEvidence('read_failed'),question,selection),null);
 });
+
+test('phase comparison requires a unique native term and section identity',async()=>{
+  const question='Does completing NET201 in my midterm teaching evaluation also mean my final evaluation is complete?';
+  const selection=exactTeachingFeedbackRead(teachingFeedbackLookupContext(question,'/school-affairs/services/7-5'));
+  assert.ok(selection);
+  for(const sharedTerm of [true,false]){
+    const result=await readTeachingFeedbackEvidence(account,{views:['survey']},{read:async()=>({
+      userId:id(1),courses:[],feedback:[],terms:[],results:[],surveys:[survey,{
+        ...structuredClone(survey),id:id(6),termId:sharedTerm?survey.termId:id(7),phase:'final',courses:[{...nativeCourse,completed:false}],
+      }],
+    })});
+    assert.equal(result.surveyIdentityUnambiguous,sharedTerm);
+    const answer=formatExactTeachingFeedbackAnswer(result,question,selection);
+    if(sharedTerm)assert.match(answer?.answer??'',/Final — NET201 completion: not completed/u);
+    else assert.equal(answer,null);
+  }
+  for(const inference of ['Does reviewed in my immediate teaching feedback prove my teacher read it?',
+    'Does completing NET201 in my midterm teaching evaluation mean my teacher changed the lesson?']){
+    assert.equal(exactTeachingFeedbackRead(teachingFeedbackLookupContext(inference,'/school-affairs/services/7-5')),null);
+  }
+});

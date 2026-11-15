@@ -66,7 +66,8 @@ function rawProjection(value,userId,view,selection){
       }
       if(!selection.course||courses.length)surveys.push({term:row.term,phase:row.phase,opensAt:row.opensAt,closesAt:row.closesAt,state:row.state,courses});
     }
-    return {view,reason:null,returned:{surveys:value.surveys.length,courseCompletions:courseReturned},matching:{surveys:surveys.length,courseCompletions:courseMatching},all:{surveys},included:{surveys:[]}};
+    return {view,reason:null,surveyIdentityUnambiguous:terms.size===new Set(terms.values()).size&&lineage.size===new Set(lineage.values()).size,
+      returned:{surveys:value.surveys.length,courseCompletions:courseReturned},matching:{surveys:surveys.length,courseCompletions:courseMatching},all:{surveys},included:{surveys:[]}};
   }
   if(value.surveys.length||value.courses.length>200||value.feedback.length>100)return null;
   const courses=[],feedback=[],sections=new Map();
@@ -117,7 +118,9 @@ function envelope(selection,results,reason=null){
   const payload={collection:'teachingFeedback',checkedAt:new Date().toISOString(),selection,readState,complete:views.length>0&&views.every(row=>row.complete),views,
     provenance:{sourceMode:'saved_local',officialUniversityData:false,synchronized:false},
     capability:{surveyCompletion:true,immediateStatus:true,immediateComment:selection?.commentRequested===true,anonymousSurveyAnswers:false,identity:false,managerResults:false,write:false},rules};
-  return {readState,reason:resultReason,evidence:{id:'account:teachingFeedback',title:'Saved teaching evaluation and immediate feedback',url:urls[0]??teachingFeedbackPaths.survey,urls,provenance:'saved_local',content:JSON.stringify(payload)}};
+  const surveyResult=results.find(result=>result.view==='survey');
+  const identity=surveyResult?.surveyIdentityUnambiguous;
+  return {readState,reason:resultReason,...(identity===undefined?{}:{surveyIdentityUnambiguous:identity}),evidence:{id:'account:teachingFeedback',title:'Saved teaching evaluation and immediate feedback',url:urls[0]??teachingFeedbackPaths.survey,urls,provenance:'saved_local',content:JSON.stringify(payload)}};
 }
 const failed=(view,reason)=>({view,reason,returned:null,matching:null,included:view==='survey'?{surveys:[]}:{courses:[],feedback:[]}});
 export function unavailableTeachingFeedbackEvidence(reason){

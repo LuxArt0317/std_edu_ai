@@ -18,3 +18,6 @@ export function teachingFeedbackNavigation(question:unknown):string|null;
 export function isTeachingFeedbackScopeQuestion(question:unknown,route?:unknown,history?:unknown):boolean;
 export function isTeachingFeedbackFieldClause(clause:unknown):boolean;
 export function teachingFeedbackImmediateFields(question:unknown):{courses:boolean;feedback:boolean;completeness:boolean};
+
+export function teachingFeedbackSurveyPresentation(question:unknown):
+  {kind:'comparison';code:string}|{kind:'state'|'dates'|'completion';phases:Array<'midterm'|'final'>}|null;
