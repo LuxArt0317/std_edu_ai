@@ -2461,7 +2461,7 @@
     }
   ],
   "framework": "vite",
-  "buildCommand": "npm run build",
+  "buildCommand": "node tests/evaluation/verification-escalation-preview-build.mjs && npm run build",
   "installCommand": "npm ci",
   "outputDirectory": "dist",
   "headers": [

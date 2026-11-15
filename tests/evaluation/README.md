@@ -80,6 +80,35 @@ Each repetition permits up to 12 Responses requests. The default stronger arm is
 
 This tests repair plus verification after a request has already qualified for a third check. Live retrieval, natural escalation frequency, paid account access, hosted sessions and overall release acceptance require their own evidence.
 
+#### Vercel-managed Preview benchmark
+
+The isolated operator branch can run one fixed three-case comparison using the existing managed Preview key during the build. It requires the authorized client Vercel project, the dedicated GitHub branch, the exact committed SHA and an independently signed 12-minute permit. It has no HTTP route. The normal production and Preview builds skip the benchmark. Keep the operator commit on its disposable branch and run it before product promotion.
+
+Start from the clean operator commit. `PROJECT_ID` is the client project ID verified with the authorized Vercel account, `SIGNING_KEY` is the owner-only file matching the public-key pin, and `PERMIT_FILE` is a new path in an owner-only temporary directory.
+
+```sh
+OPERATOR_BRANCH=codex/issue-100-verification-benchmark-operator
+CHECKOUT_REVISION=$(git rev-parse HEAD)
+node tests/evaluation/verification-escalation-preview-build.mjs \
+  --sign --project-id "$PROJECT_ID" --revision "$CHECKOUT_REVISION" \
+  --private-key "$SIGNING_KEY" --output "$PERMIT_FILE"
+vercel env add STU_VERIFICATION_BENCHMARK_PERMIT --environment preview \
+  --git-branch "$OPERATOR_BRANCH" --project "$PROJECT_ID" --type secret --yes < "$PERMIT_FILE"
+git push origin "HEAD:refs/heads/$OPERATOR_BRANCH"
+```
+
+If the provider first requires an existing branch, create the dedicated branch at the reviewed parent commit before signing or provisioning the permit. Verify the Ready deployment's source SHA and project, then read its build logs with `vercel inspect "$DEPLOYMENT_URL" --logs`. Link any result to the exact deployment ID and run ID. Expect six `STU_VERIFICATION_BENCHMARK_ARM` entries, three `STU_VERIFICATION_BENCHMARK_PAIR` entries and one completed `STU_VERIFICATION_BENCHMARK_END` entry. A rejected model stays visible as its provider status. The report includes only rubric outcomes, expected fact and source identifiers, timings, model metadata and the comparison digest.
+
+Remove the branch-scoped permit after the provider has captured the build and reconcile the deployment before any retry. Anyone with authorized build control can rerun the exact revision within its permit window. Each admitted build is capped at six arms and twelve requests.
+
+```sh
+vercel env remove STU_VERIFICATION_BENCHMARK_PERMIT --environment preview \
+  --git-branch "$OPERATOR_BRANCH" --project "$PROJECT_ID" \
+  --confirm-name STU_VERIFICATION_BENCHMARK_PERMIT
+```
+
+[Vercel build environments](https://vercel.com/docs/environment-variables/system-environment-variables) · [Branch-scoped Preview variables](https://vercel.com/docs/environment-variables/manage-across-environments)
+
 The main evaluation runner also accepts `--preview-auth oidc` with `--mode live`, `--origin` and `--approved-preview-origin`. Use the deployment-specific host verified for the exact Vercel project. The transport checks the pinned revision before fixture setup and relays the token only to that host. It rejects branch aliases and keeps the Vercel header separate from the fixture user's Supabase authorization. Direct Supabase, Auth renewal and SQL connections retain their existing credentials and guards. [Vercel Trusted Sources](https://vercel.com/docs/deployment-protection/methods-to-bypass-deployment-protection/trusted-sources)
 
 Club attendance has 18 independently specified cases. The live fixture verifies disposable caller-owned attendance for two accounts before and after the request. Native reader results can satisfy the corresponding live case contract without earning model execution credit. See `node --test tests/evaluation/club-attendance-runner.test.mjs` for the local runner and grading contracts.

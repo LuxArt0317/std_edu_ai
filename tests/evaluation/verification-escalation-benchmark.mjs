@@ -10,7 +10,7 @@ import { readVerificationSources } from '../../server/answerVerificationSources.
 import { gradeCase } from './grading.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const budgetMs = 32_000;
+export const budgetMs = 32_000;
 const baseline = 'gpt-5.6-terra';
 const strongerModels = ['gpt-6.1-sol', 'gpt-5.6-sol'];
 const operationNames = ['correct_grounded_answer', 'answer_evidence_review'];
