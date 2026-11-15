@@ -84,8 +84,9 @@ export function selectChargePaymentHistory(question,route='',history=[],now=Date
   const q=question.normalize('NFKC').trim().toLowerCase();
   const pathname=typeof route==='string'?route.split(/[?#]/u,1)[0]:'';
   const privateRoute=pathname===chargePaymentHistoryPath||pathname==='/school-affairs/services/39-1';
-  const aidTopic=/\b(?:salary|aid|scholarship|payroll)\b|薪資|薪资|獎學金|奖学金/u.test(q);
-  const topic=tuition.test(q)||!aidTopic&&(chargeTopic.test(q)||privateRoute);
+  const otherPaymentTopic=/\b(?:salary|aid|scholarship|payroll|rent|shopping|groceries)\b|薪資|薪资|獎學金|奖学金|房租/u.test(q);
+  const datedOwnPayment=/\b(?:(?:how much|when) did i (?:last )?pay|(?:what|which) payments? did i make|my (?:last|latest|recent) payment)\b|我.{0,16}(?:繳了多少|缴了多少|最近一筆付款)/u.test(q);
+  const topic=tuition.test(q)||!otherPaymentTopic&&(chargeTopic.test(q)||privateRoute||datedOwnPayment);
   const followup=/^(?:(?:and|also|what about|how about|show me|for|in)\s+)*\s*(?:today|yesterday|(?:this|last|previous|next) month|(?:上|下|本)(?:個|个)?月|(?:民國|民国)?\s*\d{1,4}(?:[-年]\d{1,2})?[-月日\d]*|(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[\p{L}.]*(?: +\d{4})?)[?.!？。]*$/u.test(q);
   const prior=followup&&history.findLast(item=>item?.role==='user')?.content;
   const antecedent=typeof prior==='string'?prior.normalize('NFKC').toLowerCase():'';

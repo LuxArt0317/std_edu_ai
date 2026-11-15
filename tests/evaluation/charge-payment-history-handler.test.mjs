@@ -163,3 +163,11 @@ test('latest paid event uses the first recorded payment and identifies its saved
   assert.match(item.body.answer,/A reversal is also saved for this entry/u);
   assert.doesNotMatch(item.body.answer,/8888|Recorded payments:/u);
 });
+
+test('a dated personal payment question on the homepage can read school charge history without a tuition tag',async()=>{
+  const item=await exercise('How much did I pay in September 2026?',[dto([displayRows[1],row(2)])]);
+  assert.deepEqual(item.calls,[expectedSeptember]);
+  assert.match(item.body.answer,/Recorded payments: TWD 8,889\.08/u);
+  assert.doesNotMatch(item.body.answer,/tuition-tagged/u);
+  assert.equal(selectChargePaymentHistory('How much did I pay for groceries last month?'),null);
+});
