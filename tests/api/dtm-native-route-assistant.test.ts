@@ -146,6 +146,7 @@ test('the exact protected item, follow-up and total cases retain every existing 
   assert.equal(cases.length,wanted.length);
   for(const row of cases){
     const plan=fixture.plans[row.fixtureKey],course=plan.courseBindings.A,report=plan.expectedByOwner[owner];
+    assert.ok(report.report);
     const native=dtmNativeRouteFixture();
     native.report=report;
     native.overview.courses=[{id:course.id,userId:owner,title:course.title,code:course.code,term:course.term,gradeText:report.report.total?.gradeText??null}];
