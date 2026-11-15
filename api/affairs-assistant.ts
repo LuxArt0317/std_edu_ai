@@ -606,8 +606,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),
       });
       if(answer.proposedAction||Array.isArray(answer.views)&&answer.views.length)throw new Error('Unexpected private output from coaching.');
-      stream.progress('guidance',answer.verification?.status==='verified'?'Answer ready':'Verification incomplete',
-        answer.verification?.status==='verified'?'The guidance passed the independent checks.':'The unchecked draft was withheld.',answer.verification?.status==='verified'?'complete':'unavailable');
+      const usedGuide=answer.activity?.some(step=>step.kind==='general-coaching-guide'&&step.status==='complete');
+      const checked=answer.verification?.status==='verified';
+      stream.progress('guidance',checked?'Answer ready':'Verification incomplete',
+        usedGuide?'The reply uses general practice guidance.':checked?'The guidance passed the independent checks.':'The unchecked draft was withheld.',checked?'complete':'unavailable');
       stream.send(200,withLocalGuidance(answer));
     }catch{stream.send(503,{error:'The guidance could not be checked. Please try again.'});}
     return;

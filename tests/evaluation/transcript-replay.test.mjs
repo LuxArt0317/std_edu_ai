@@ -124,7 +124,9 @@ test('independent helpfulness artifacts bind the actual evolving history and can
   assert.throws(()=>gradeTranscriptReplay(p,run.session,{reviews:[{binding:{caseId:'unknown'}}]}),{code:'invalid_reviews'});
 });
 
-test('current authenticated endpoint processes the saved four-turn conversation with only intercepted model and data transports',async()=>{
+for(const rejectedCoaching of [false,true])
+test(rejectedCoaching?'exact four-turn conversation uses safe interview practice after the model draft is rejected'
+  :'current authenticated endpoint processes the saved four-turn conversation with only intercepted model and data transports',async()=>{
   const p=plan(),store=memoryStore(),saved=transcriptReplayFixture(p),origin='https://xiftudmvxphxcjtmfmib.supabase.co';
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='synthetic-transcript-model';
   const transport=[],reviewEvidence=[],providerHistory=[];let active=0,workspaceReads=0;
@@ -182,10 +184,14 @@ test('current authenticated endpoint processes the saved four-turn conversation 
     let response;
     if(operation==='account_lookup_plan')response={tools:[],publicTopics:[],catalogQuery:null,action:null};
     else if(operation==='compose_grounded_answer'){
-      providerHistory.push({turn:active,history:payload.history});response={status:'answered',answer:answers[active],sourceIds:active===3?[]:['account:profile','account:courses','account:dtm']};
+      providerHistory.push({turn:active,history:payload.history});response={status:'answered',
+        answer:rejectedCoaching&&active===3?'I led a production engineering team and earned a degree in software engineering.':answers[active],
+        sourceIds:active===3?[]:['account:profile','account:courses','account:dtm']};
     }else{
       assert.equal(operation,'answer_evidence_review');reviewEvidence.push({turn:active,ids:payload.evidence.map(row=>row.id),sources:clone(payload.evidence),content:JSON.stringify(payload.evidence)});
-      if(active===3)response={supported:true,answersQuestion:true,parts:payload.answerParts.map((part,index)=>({id:part.id,kind:['suggestion','template','clarification'][index],accepted:true,claims:[]}))};
+      if(active===3)response=rejectedCoaching
+        ?{supported:false,answersQuestion:true,parts:[{id:1,kind:'factual',accepted:false,claims:[]}]}
+        :{supported:true,answersQuestion:true,parts:payload.answerParts.map((part,index)=>({id:part.id,kind:['suggestion','template','clarification'][index],accepted:true,claims:[]}))};
       else response={supported:true,answersQuestion:true,claims:active===0?[
         {claim:'The saved account name is Evaluation Student.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/profile/displayName'],quotes:[]},
         {claim:'The saved program is Sample General Studies and year level is 3.',supported:true,evidenceId:'account:profile',jsonPaths:['/records/student/program','/records/student/yearLevel'],quotes:[]},
@@ -201,7 +207,9 @@ test('current authenticated endpoint processes the saved four-turn conversation 
   };
   try{
     const run=await replayTranscriptOffline(p,{store,dispatch:async({testCase})=>{
-      active=Number(testCase.turnId.slice(5))-1;let statusCode=200,body;const response={setHeader(){},status(code){statusCode=code;return response;},json(value){body=value;}};
+      active=Number(testCase.turnId.slice(5))-1;
+      if(active===3)assert.equal(testCase.history.length,6,'The assistant still receives the evolving conversation.');
+      let statusCode=200,body;const response={setHeader(){},status(code){statusCode=code;return response;},json(value){body=value;}};
       await handler({method:'POST',headers:{authorization:'Bearer synthetic-token'},body:{question:testCase.question,route:testCase.route,history:testCase.history}},response);
       return {statusCode,body,events:body?.activity??[],sourceRevision:p.sourceRevision,fixtureKey:testCase.fixtureKey,execution:'deterministic'};
     }});
@@ -219,8 +227,26 @@ test('current authenticated endpoint processes the saved four-turn conversation 
     assert.deepEqual(run.report.results[0].failures.map(row=>row.id),['guidance.independentReview']);assert.equal(run.report.results[0].independentReview.status,'pending');
     assert.deepEqual(reviewEvidence.find(row=>row.turn===1).ids,['account-scope','account:profile','account:courses']);
     assert.deepEqual(reviewEvidence.find(row=>row.turn===2).ids,['account-scope','account:charges']);assert.deepEqual(reviewEvidence.find(row=>row.turn===3).ids,[]);
-    assert.equal(providerHistory.find(row=>row.turn===3).history.length,6);assert.equal(transport.some(row=>row.turn===3),false);
+    assert.deepEqual(providerHistory.find(row=>row.turn===3).history,[],'Explicit interview coaching needs no previous account replies at the model provider.');assert.equal(transport.some(row=>row.turn===3),false);
     assert.equal(run.report.results[1].passed,true);assert.equal(run.report.results[2].passed,true);assert.equal(run.report.results[3].independentReview.status,'pending');
+    const coaching=run.session.results[3].envelope.body;
+    assert.equal(coaching.grounding.source,'general-guidance');
+    assert.equal(coaching.grounding.webSearched,false);
+    assert.deepEqual(coaching.citations,[]);
+    assert.deepEqual(coaching.views,[]);
+    assert.equal(coaching.proposedAction,undefined);
+    assert.equal(reviewEvidence.filter(row=>row.turn===3).length,1);
+    if(rejectedCoaching){
+      assert.equal(coaching.verification.attempts,2);
+      assert.match(coaching.answer,/real software example/);
+      assert.match(coaching.answer,/\[your actual contribution\]/);
+      assert.match(coaching.answer,/What is one project/);
+      assert.doesNotMatch(coaching.answer,/led a production engineering team|Sample General Studies|SAMP101|23,000/);
+      assert.ok(coaching.activity.some(step=>step.kind==='general-coaching-guide'&&step.status==='complete'));
+    }else{
+      assert.equal(coaching.answer,answers[3]);
+      assert.equal(coaching.verification.attempts,1);
+    }
     assert.equal(run.report.releaseReady,false);
   }finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
 });
