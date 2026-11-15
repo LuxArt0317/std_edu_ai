@@ -999,3 +999,39 @@ test('verified public detail can advance through four checks and survives stalle
     }
   }
 });
+
+test('a truncated managed reviewer can verify the answer with an independently read public notice', async () => {
+  const attempt = managedHarness('verified-web');
+  const controlledFetch = globalThis.fetch;
+  const reviews: Array<{ effort: string; url: string }> = [];
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith('/v1/responses')) {
+      const request = JSON.parse(String(init?.body));
+      if (request.text.format.name === 'answer_evidence_review') {
+        const { evidence } = JSON.parse(request.input[0].content[0].text);
+        reviews.push({ effort: request.reasoning.effort, url: evidence[0].url });
+        if (evidence[0].id === managedExcerpt.chunk_id) {
+          return Response.json({ status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' } });
+        }
+      }
+    }
+    return controlledFetch(input, init);
+  };
+
+  const progress: Progress[] = [];
+  const answer = await invoke({ question: knowledgeQuestion }, attempt.run, 'knowledge-review-output-limit', progress);
+  assert.deepEqual(reviews, [
+    { effort: 'low', url: officialDirectory }, { effort: 'low', url: officialDirectory },
+    { effort: 'medium', url: officialNotice },
+  ]);
+  assert.deepEqual(attempt.reads, [[officialNotice]]);
+  assert.deepEqual(progress.filter(step => /^verification-\d$/u.test(step.kind) && step.status !== 'running')
+    .map(({ kind,status }) => [kind,status]), [
+    ['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','complete'],
+  ]);
+  assert.deepEqual(answer.verification, { status: 'verified', attempts: 3 });
+  assert.match(answer.answer, /opens at 10:30 a\.m\./u);
+  assert.doesNotMatch(answer.answer, /supposedly/u);
+  assert.deepEqual(answer.citations.map(({ url }: { url: string }) => url), [officialNotice]);
+  assert.equal(progress.some(step => step.kind === 'verification-stop'), false);
+});

@@ -1052,7 +1052,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const previousChecks = priorActivity.filter(step => /^verification-[0-9]+$/u.test(step.kind)
                 && step.status !== 'running').length;
             if (earlierReview) {
-                if (input.images.length || !previousChecks || !needsPublicEvidence(earlierReview.verification?.reason))
+                const reason = earlierReview.verification?.reason;
+                const canSwitchSource = needsPublicEvidence(reason) || reason === 'verification_output_limit';
+                if (input.images.length || !previousChecks || !canSwitchSource)
                     return false;
                 if (deadline - Date.now() < (recoveringEmptySearch ? 16_000 : 24_000)) {
                     publicStop = verificationStopActivity(verificationQuestion, 'time_budget');
