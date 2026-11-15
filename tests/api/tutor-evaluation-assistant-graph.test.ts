@@ -121,7 +121,10 @@ async function offline(fixture:Fixture,exercise:()=>Promise<void>){
     const attempts=fixture.reject?2:1;
     assert.equal(tutorReads,fixture.tutor&&fixture.tutor!=='write'?attempts:0);
     assert.equal(feeReads,fixture.fee?attempts:0);
-    assert.deepEqual(stages,attempts===1?['answer_evidence_review']:['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+    assert.deepEqual(stages,['answer_evidence_review',
+      ...(fixture.reject?['correct_grounded_answer','answer_evidence_review']:[]),
+      ...((fixture.reject??0)>1?['correct_grounded_answer','answer_evidence_review']:[]),
+    ]);
   }finally{
     globalThis.fetch=original;
     if(key===undefined)delete process.env.OPENAI_API_KEY;
@@ -159,9 +162,9 @@ test('answers both fee/questionnaire orders and refreshes each source when its f
     const result=await ask(question);
     assert.equal(result.verification.status,'verified');assert.match(result.answer,/23,000/u);assert.match(result.answer,/saved in stu.best/u);
   });
-  for(const reject of [1,2])await offline({tutor:'status',fee:'ok',reject},async()=>{
+  for(const reject of [1,3])await offline({tutor:'status',fee:'ok',reject},async()=>{
     const result=await ask(combined[0]);
-    assert.equal(result.verification.attempts,2);
+    assert.equal(result.verification.attempts,reject===1?2:3);
     assert.doesNotMatch(result.answer,/23,000|16:15:37/u);
     if(reject===1){assert.equal(result.verification.status,'verified');assert.match(result.answer,/22,000/u);assert.match(result.answer,/16:15:38/u);}
     else{assert.equal(result.verification.status,'unverified');assert.doesNotMatch(result.answer,/22,000|16:15:38/u);}

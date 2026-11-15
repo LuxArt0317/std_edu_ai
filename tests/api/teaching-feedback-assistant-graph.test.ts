@@ -174,17 +174,20 @@ test('both guest and authenticated navigation and access checks avoid private or
   }finally{globalThis.fetch=original;}
 });
 
-test('comment requests open the requested view only, reread once, and withhold a second rejected draft',async()=>{
-  for(const reject of [0,1,2]){
+test('comment requests use one view and reread once before completing or withholding the answer',async()=>{
+  for(const reject of [0,1,2,3]){
     const transport=await offline({ids:['account:teachingFeedback'],reject,asked:/Database Design/u},async()=>{
       const result=await ask(immediateQuestion);
-      assert.equal(result.verification.status,reject===2?'unverified':'verified');
-      if(reject!==2)assert.match(result.answer,new RegExp('Saved explanation '+(reject+1),'u'));
+      assert.equal(result.verification.status,reject===3?'unverified':'verified');
+      if(reject!==3)assert.match(result.answer,new RegExp('Saved explanation '+(reject?2:1),'u'));
       else assert.doesNotMatch(result.answer,/Saved explanation/u);
       assert.equal(result.proposedAction,undefined);
       assert.ok(result.views.every((view:{rows:unknown})=>!JSON.stringify(view.rows).includes('Saved explanation')));
     });
-    assert.deepEqual(transport,reject?['immediate','answer_evidence_review','immediate','correct_grounded_answer','answer_evidence_review']:['immediate','answer_evidence_review']);
+    assert.deepEqual(transport,['immediate','answer_evidence_review',
+      ...(reject?['immediate','correct_grounded_answer','answer_evidence_review']:[]),
+      ...(reject>1?['correct_grounded_answer','answer_evidence_review']:[]),
+    ]);
   }
 });
 
@@ -237,11 +240,12 @@ test('a survey reference cannot cover an independently requested immediate-feedb
   const transport=await offline({ids:['account:teachingFeedback'],reviewOmitsImmediate:true},async()=>{
     const result=await ask(surveyQuestion+' Show my immediate teaching feedback status.');
     assert.equal(result.verification.status,'unverified');
-    assert.equal(result.verification.attempts,2);
+    assert.equal(result.verification.attempts,3);
     assert.doesNotMatch(result.answer,/DB701|Saved status/u);
   });
   assert.deepEqual(transport,[
     'survey','immediate','answer_evidence_review','survey','immediate','correct_grounded_answer','answer_evidence_review',
+    'correct_grounded_answer','answer_evidence_review',
   ]);
 });
 
@@ -258,7 +262,8 @@ test('eligibility lists and completeness use eligible rows, not unrelated saved-
       assert.doesNotMatch(result.answer,/No saved immediate feedback matched/u);
       assert.ok(result.views[0].rows.some((row:string[])=>row.at(-1)==='eligible'));
     });
-    assert.deepEqual(transport,omitCoverage?['immediate','answer_evidence_review','immediate','correct_grounded_answer','answer_evidence_review']
+    assert.deepEqual(transport,omitCoverage?['immediate','answer_evidence_review','immediate','correct_grounded_answer','answer_evidence_review',
+      'correct_grounded_answer','answer_evidence_review']
       :['immediate','answer_evidence_review']);
   }
 });

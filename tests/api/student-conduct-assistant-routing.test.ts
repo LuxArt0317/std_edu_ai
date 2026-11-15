@@ -63,7 +63,7 @@ async function withFakeModel(exercise:()=>Promise<void>,{empty=false,reject=0}={
   globalThis.fetch=(...args)=>mock(...args).catch(error=>{errors.push(error);throw error;});
   try{
     try{await exercise();}catch(error){if(errors.length)throw new AggregateError(errors,'Unexpected source calls');throw error;}
-    assert.deepEqual(errors,[]);assert.equal(reads,reject?2:1);assert.equal(checks,reject?2:1);assert.equal(repairs,reject?1:0);
+    assert.deepEqual(errors,[]);assert.equal(reads,reject?2:1);assert.equal(checks,Math.min(reject+1,3));assert.equal(repairs,Math.min(reject,2));
   }finally{globalThis.fetch=original;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
 }
 
@@ -79,7 +79,7 @@ test('caller-only conduct plan, exact fee and next-class dependencies, and indep
   assert.match(comparison.questions.studentConduct??'',/student conduct/u);assert.doesNotMatch(comparison.questions.studentConduct??'',/dormitory/u);
 });
 
-test('actual reader and graph preserve literal fields, distinguish empty, reread rejected answers and withhold a second rejection',async()=>{
+test('actual reader and graph preserve literal fields, distinguish empty, refresh records and withhold unverified answers',async()=>{
   await withFakeModel(async()=>{
     const result=await ask(saved);assert.equal(result.verification.status,'verified');
     assert.match(result.answer,/Saved reason ordinal 1/u);assert.match(result.answer,/QA-0/u);
@@ -88,8 +88,8 @@ test('actual reader and graph preserve literal fields, distinguish empty, reread
   await withFakeModel(async()=>{
     const result=await ask(saved);assert.equal(result.verification.status,'verified');assert.match(result.answer,/No matching local record/u);
   },{empty:true});
-  for(const reject of [1,2])await withFakeModel(async()=>{
-    const result=await ask(saved);assert.equal(result.verification.attempts,2);assert.doesNotMatch(result.answer,/ordinal 1/u);
+  for(const reject of [1,3])await withFakeModel(async()=>{
+    const result=await ask(saved);assert.equal(result.verification.attempts,reject===1?2:3);assert.doesNotMatch(result.answer,/ordinal 1/u);
     if(reject===1){assert.equal(result.verification.status,'verified');assert.match(result.answer,/ordinal 2/u);}
     else {assert.equal(result.verification.status,'unverified');assert.doesNotMatch(result.answer,/ordinal 2/u);}
   },{reject});

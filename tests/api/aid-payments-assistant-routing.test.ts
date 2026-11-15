@@ -83,7 +83,7 @@ test('native page reads follow the caller token through verification, reread and
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY='AID_TEST_MODEL';
   try{
-    for(const reject of [0,1,2]){
+    for(const reject of [0,1,2,3]){
       const sequence:string[]=[],failures:unknown[]=[];
       let reads=0,checks=0;
       async function mock(input:RequestInfo|URL,init?:RequestInit){
@@ -118,9 +118,9 @@ test('native page reads follow the caller token through verification, reread and
       const answer=await ask('Show page 2 of my student salary.');
       assert.deepEqual(failures,[]);
       assert.equal(reads,reject?2:1,JSON.stringify(sequence));
-      assert.equal(checks,reject?2:1,JSON.stringify(sequence));
-      assert.equal(answer.verification.status,reject===2?'unverified':'verified');
-      if(reject===2)assert.doesNotMatch(answer.answer,/Synthetic period/u);
+      assert.equal(checks,Math.min(reject+1,3),JSON.stringify(sequence));
+      assert.equal(answer.verification.status,reject===3?'unverified':'verified');
+      if(reject===3)assert.doesNotMatch(answer.answer,/Synthetic period/u);
       else{
         assert.match(answer.answer,new RegExp('Synthetic period '+reads,'u'));
         assert.ok(answer.citations.some((item:{url:string})=>item.url===path+'?page=2'));

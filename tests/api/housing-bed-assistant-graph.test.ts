@@ -216,14 +216,16 @@ test('a positive companion survives a separate explicit source exclusion',async(
   }
 });
 
-test('the review must reference the requested deposit and withholds a twice unsupported draft',async()=>{
+test('the review must reference the requested deposit across all three checks',async()=>{
   const result=await offline({tools:['housing'],fields:['deposit'],omitReference:'deposit'},async()=>{
     const body=await ask('How much is my dormitory deposit?');
     assert.equal(body.verification.status,'unverified');
     assert.doesNotMatch(body.answer,/BED-|Test Hall/u);
     assert.equal(body.views.some((view:{id:string})=>view.id==='housing'),false);
   });
-  assert.equal(result.reviews,2);
+  assert.equal(result.reviews,3);
+  assert.equal(result.calls.filter(call=>call==='affairs_housing_assignments').length,2);
+  assert.equal(result.calls.filter(call=>call==='affairs_housing_periods').length,2);
 });
 
 test('zero charged deposit, a null subsidy, and an unconfirmed payment stay separate',async()=>{

@@ -148,7 +148,10 @@ async function fakeTransport(options:Fixture,run:()=>Promise<void>){
     assert.equal(clearanceReads,options.clearance?attempts:0);
     assert.equal(studentReads,options.timetable?attempts:0);
     assert.equal(enrollmentReads,options.timetable&&options.timetable!=='unlinked'?attempts:0);
-    assert.deepEqual(stages,attempts===1?['answer_evidence_review']:['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+    assert.deepEqual(stages,['answer_evidence_review',
+      ...(options.reject?['correct_grounded_answer','answer_evidence_review']:[]),
+      ...((options.reject??0)>1?['correct_grounded_answer','answer_evidence_review']:[]),
+    ]);
   }finally{
     globalThis.fetch=original;
     if(key===undefined)delete process.env.OPENAI_API_KEY;
@@ -171,10 +174,10 @@ test('reads the requested office note alone or with the next class in both order
   });
 });
 
-test('refreshes both sources on rejection, then withholds a second rejected draft',async()=>{
-  for(const reject of [1,2])await fakeTransport({clearance:'ok',timetable:'ok',reject},async()=>{
+test('refreshes both sources once and withholds an answer rejected three times',async()=>{
+  for(const reject of [1,3])await fakeTransport({clearance:'ok',timetable:'ok',reject},async()=>{
     const result=await ask(clearanceFirst);
-    assert.equal(result.verification.attempts,2);
+    assert.equal(result.verification.attempts,reject===1?2:3);
     assert.doesNotMatch(result.answer,/Bring receipt 1|QA1 Campus Seminar/u);
     if(reject===1){
       assert.equal(result.verification.status,'verified');

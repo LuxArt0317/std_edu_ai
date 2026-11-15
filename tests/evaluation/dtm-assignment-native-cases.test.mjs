@@ -189,7 +189,8 @@ test('compound verification rejects a grade citation supported only by provenanc
   const result=await handlerCase({...row,question:'Show my assignment due date and show all my saved Moodle course grades.'},
     {grades:true,omitGradeReference:true});
   assert.equal(result.response.body.verification.status,'unverified');
-  assert.equal(result.response.body.verification.attempts,2);
+  assert.equal(result.response.body.verification.attempts,3);
+  assert.equal(result.calls.filter(call=>call.path==='/rest/v1/rpc/dtm_grade_report_overview').length,2);
   assert.doesNotMatch(result.response.body.answer,/87\.00/u);
   assert.deepEqual(result.response.body.views,[]);
   assert.equal(result.broad+result.publicReads,0);
