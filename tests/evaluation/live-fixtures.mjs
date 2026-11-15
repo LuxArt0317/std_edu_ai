@@ -98,6 +98,9 @@ import {studentLeaveJournalBinding} from './student-leave-fixture-lifecycle.mjs'
 import {buildStudentLeaveFixturePlan,leaveFixtureFamilies,studentLeaveFixtureManifest} from './student-leave-fixture-plan.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {checkConfirmedTaskRoundTrip,readConfirmedTaskRows} from './confirmed-task-preview.mjs';
+import {ConfirmedAssignmentTrackerAssertion,assertConfirmedAssignmentTrackerSchema,checkConfirmedAssignmentTrackerRoundTrip,confirmedAssignmentTrackerContract,confirmedAssignmentTrackerDigest,
+  confirmedAssignmentTrackerMode,confirmedAssignmentTrackerPlan,deleteConfirmedAssignmentTrackerRows,observeConfirmedAssignmentTrackerCallers,
+  readConfirmedAssignmentTrackerRows,seedConfirmedAssignmentTrackerRows,verifyConfirmedAssignmentTrackerAbsent} from './confirmed-assignment-tracker-preview.mjs';
 import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuitionLedgerPreviewState,readTuitionLedgerAccountScopes,readTuitionLedgerPreviewState,
   seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerHistoryPath,tuitionLedgerPlan,tuitionLedgerPreviewDates,
   TuitionLedgerPreviewAssertion} from './tuition-ledger-preview.mjs';
@@ -360,6 +363,7 @@ async function saveLedger(){
     handle=await open(tmp,s.ledgerTempOwned?'w':'wx',0o600);s.ledgerTempOwned=true;
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
+      ...(s.assignmentTrackerPlan?{confirmedAssignmentTrackerFixture:s.assignmentTrackerPlan,confirmedAssignmentTrackerJournal:s.assignmentTrackerJournal}:{}),
       ...(s.taskActionJournal?{confirmedTaskJournal:s.taskActionJournal}:{}),
       ...(s.tuitionLedgerPlan?{tuitionLedgerFixture:s.tuitionLedgerPlan}:{}),
       ...(s.dtmTimingPlan?{dtmSubmissionTimingFixture:s.dtmTimingPlan}:{}),
@@ -453,7 +457,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.studentLeaveGradePair||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.studentLeaveGradePair||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly||s.assignmentTrackerOnly)return user;
   if(s.fixtureMode===dtmAssignmentListFixtureMode){
     await s.previewGate.assertCurrent();
     user.studentId=await initializeDtmAssignmentListStudent(user,{publishable:s.publishable,fetchImpl:s.boundedFetch,
@@ -473,6 +477,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     fail('fixture-config','Moodle grade pairing requires the dedicated Student Leave fixture mode.');
   const counselingOnly=caseFamily==='counseling-appointments';
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
+  const assignmentTrackerOnly=fixtureMode===confirmedAssignmentTrackerMode;
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
   const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
   const dtmMaterialPreviewOnly=fixtureMode===dtmMaterialPreviewMode;
@@ -489,10 +494,13 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const certificateAwardPreviewOnly=fixtureMode===certificateAwardPreviewMode;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!assignmentTrackerOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
+  if(assignmentTrackerOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Confirmed assignment tracker checks require the exact protected Preview and isolated disposable owners.');
   if(tuitionLedgerOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Tuition ledger checks require the exact protected Preview and isolated disposable owners.');
@@ -610,7 +618,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!assignmentTrackerOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmMaterialPreviewOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!clearanceStatusPreviewOnly&&!academicGradesPreviewOnly&&!dtmStudyPreviewOnly&&!teachingSampleOnly&&!venueProtectedOnly&&!certificateAwardPreviewOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -653,7 +661,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
   state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,studentLeaveGradePair,internshipNativeOnly,
-    facilityRepairCancellationOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,dtmStudyPreviewOnly,teachingSampleOnly,venueProtectedOnly,certificateAwardPreviewOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
+    facilityRepairCancellationOnly,clearanceStatusPreviewOnly,academicGradesPreviewOnly,dtmStudyPreviewOnly,teachingSampleOnly,venueProtectedOnly,certificateAwardPreviewOnly,assignmentTrackerOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
     admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -688,11 +696,21 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.certificateAwardCatalogDigest=await query(()=>readCertificateAwardPreviewCatalog(state.sql),
         'The existing certificate migration, authenticated RPC and catalog are required before fixture account creation.');
     }
+    if(assignmentTrackerOnly){
+      await previewGate.assertCurrent();
+      try{await assertConfirmedAssignmentTrackerSchema(state.sql);}
+      catch{fail('fixture-schema','The reviewed action and Moodle file and grade scopes are required before fixture identities are created.');}
+    }
     state.protectedOwnerEmail=config.supabase.ownerEmail;
     state.protectedOwnerBefore=await readProtectedOwnerFingerprint(state.sql,state.protectedOwnerEmail);
     await reserveLedger();
     await saveLedger();
     await createFixtureUser(0);await createFixtureUser(1);
+    if(assignmentTrackerOnly){
+      state.assignmentTrackerJournal=[];
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['personalAssignmentTracker']};
+    }
     if(taskActionOnly){
       state.taskActionJournal=[];
       state.prepared=true;
@@ -828,6 +846,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(venueProtectedOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Venue fixture preparation failed.');
       reason.venueCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(assignmentTrackerOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Confirmed assignment tracker preparation failed.');
+      reason.assignmentTrackerCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     if(certificateAwardPreviewOnly){
@@ -1230,6 +1253,28 @@ export async function runTeachingSamplePreview({origin,sourceRevision,previewTok
   return report();
 }
 
+async function confirmedPreviewRequest(s,{side,path,body,stage,origin,signal,label,previewReadbackFetch,journal,payloadDigest,actionFetch}){
+  await assertRecordedFixtureLease(s,label);
+  const user=s.users[side==='A'?0:1];
+  await user.renewSession?.({signal});
+  const ticket=await s.previewGate.beforeRequest();
+  try{
+    const target=new URL(path,origin);
+    const transport=stage===undefined?previewReadbackFetch:actionFetch(user,body);
+    let intent;
+    if(stage!==undefined){
+      intent={stage,userId:user.id,requestId:body.requestId,kind:body.kind,payloadDigest:payloadDigest(body.payload),status:'pending'};
+      journal.push(intent);
+      await saveLedger();
+    }
+    const response=await transport(target,{method:'POST',signal:signals(signal,25000),
+      headers:{Authorization:'Bearer '+user.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(intent){intent.status=response.status;await saveLedger();}
+    const value=await readBoundedFixtureResponse(response,target,48000,response.status);
+    return {status:response.status,body:value,...(stage===undefined?{correlationId:response.headers.get('x-assistant-request-id')}:{})};
+  }finally{await s.previewGate.afterRequest(ticket);}
+}
+
 export async function runConfirmedTaskPreview({origin,sourceRevision,previewToken,signal}={}){
   if(!isEvaluationPreviewOrigin(origin)||!(/^[a-f0-9]{40}$/u.test(sourceRevision??'')))
     fail('fixture-config','Confirmed task checks require an exact protected Preview and source revision.');
@@ -1247,28 +1292,10 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
     const owners=s.users.map(user=>user.id);
     if(owners.length!==2||owners.some(id=>!s.identityRequests.some(row=>row.id===id&&row.runId===runId&&row.state==='created')))
       fail('fixture-state','Confirmed task owners do not match the disposable identity ledger.');
-    async function request(side,path,body,stage){
-      await assertRecordedFixtureLease(s,'Confirmed task');
-      const user=s.users[side==='A'?0:1];
-      await user.renewSession?.({signal});
-      const ticket=await previewGate.beforeRequest();
-      const taskWrite=stage!==undefined;
-      const target=new URL(path,origin);
-      let journal;
-      if(taskWrite){
-        journal={stage,userId:user.id,requestId:body.requestId,kind:body.kind,payloadDigest:hash(body.payload),status:'pending'};
-        s.taskActionJournal.push(journal);
-        await saveLedger();
-      }
-      const transport=taskWrite?createTrustedPreviewFetch({origin,token:previewToken,confirmedTaskCommand:{callerToken:user.token,body}})
-        :previewReadbackFetch;
-      const response=await transport(target,{method:'POST',signal:signals(signal,25000),
-        headers:{Authorization:'Bearer '+user.token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-      if(journal){journal.status=response.status;await saveLedger();}
-      const value=await readBoundedFixtureResponse(response,target,48000,response.status);
-      await previewGate.afterRequest(ticket);
-      return {status:response.status,body:value,...(!taskWrite?{correlationId:response.headers.get('x-assistant-request-id')}:{})};
-    }
+    const request=(side,path,body,stage)=>confirmedPreviewRequest(s,{
+      side,path,body,stage,origin,signal,label:'Confirmed task',previewReadbackFetch,journal:s.taskActionJournal,payloadDigest:hash,
+      actionFetch:(user,command)=>createTrustedPreviewFetch({origin,token:previewToken,confirmedTaskCommand:{callerToken:user.token,body:command}}),
+    });
     result=await checkConfirmedTaskRoundTrip({owners,title:'QA assistant task '+runId.replaceAll('-','').slice(0,12),
       read:async()=>{
         await assertRecordedFixtureLease(s,'Confirmed task readback');
@@ -1283,6 +1310,95 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
     await previewGate.finish();
   }finally{cleanupProof=await cleanup();}
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
+}
+
+export async function runConfirmedAssignmentTrackerPreview({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
+    fail('fixture-config','Confirmed assignment tracker checks require an exact protected Preview and source revision.');
+  const runId=randomUUID();
+  let previewGate,prepared=false,finished=false,result,failure,phase='preflight';
+  let cleanupProof={verified:false,status:'not-started'};
+  const report=()=>({version:1,runId,sourceRevision,origin,terminal:true,execution:'live-native',contract:confirmedAssignmentTrackerContract,result:result??null,
+    deployment:previewGate?.status()??null,cleanup:cleanupProof,...(failure?{failure}:{}),
+    modelAcceptance:false,browserDispatchAcceptance:false,
+    liveAcceptance:finished&&!failure&&result?.passed===true&&cleanupProof.verified&&cleanupProof.protectedOwnerUnchanged
+      &&cleanupProof.assignmentTrackerCleanup===true});
+  try{
+    const {sourceIdentity}=await import('./run.mjs');
+    const initial=await sourceIdentity();
+    if(initial.dirty||initial.sourceRevision!==sourceRevision)
+      fail('fixture-target','Confirmed assignment tracker checks require the exact clean deployed source.');
+    const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:confirmedAssignmentTrackerMode,previewReadbackFetch});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    const assertScoped=async()=>{
+      await assertRecordedFixtureLease(s,'Confirmed assignment tracker');
+      await previewGate.assertCurrent();
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+    };
+    phase='seed';
+    await assertScoped();
+    if(s.users.length!==2)fail('fixture-isolation','Confirmed assignment tracker requires two disposable callers.');
+    const owners={},students={};
+    for(const [index,user] of s.users.entries()){
+      const role=index===0?'A':'B';
+      const matches=s.identityRequests.filter(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
+      if(matches.length!==1||user.id===s.protectedOwnerBefore.id)
+        fail('fixture-isolation','Confirmed assignment tracker caller is outside the reserved lease.');
+      owners[role]={id:user.id,email:matches[0].email,runMarker:runId};
+      await assertScoped();
+      await user.renewSession({signal});
+      students[role]=await initializeDtmAssignmentListStudent(user,{publishable:s.publishable,fetchImpl:s.boundedFetch,
+        readResponse:readBoundedFixtureResponse,signal:signals(signal)});
+    }
+    await assertScoped();
+    const plan=confirmedAssignmentTrackerPlan(runId,owners,students);
+    s.assignmentTrackerPlan=plan;
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedConfirmedAssignmentTrackerRows(s.sql,plan)),'Could not stage exact disposable tracker rows.');
+    const allowedTargets=[plan.targets.own,plan.targets.sample,plan.targets.graded];
+    const request=(side,path,body,stage)=>confirmedPreviewRequest(s,{
+      side,path,body,stage,origin,signal,label:'Confirmed assignment tracker',previewReadbackFetch,journal:s.assignmentTrackerJournal,
+      payloadDigest:confirmedAssignmentTrackerDigest,
+      actionFetch(user,command){
+        const assignmentId=command.payload.id;
+        if(!allowedTargets.includes(assignmentId))fail('fixture-isolation','Confirmed assignment tracker target is outside the reserved fixtures.');
+        return createTrustedPreviewFetch({origin,token:previewToken,confirmedAssignmentTrackerCommand:{callerToken:user.token,assignmentId,body:command}});
+      },
+    });
+    phase='verification';
+    result=await checkConfirmedAssignmentTrackerRoundTrip({plan,
+      read:async()=>{
+        await assertScoped();
+        const state=await query(()=>readConfirmedAssignmentTrackerRows(s.sql,plan),'Could not read independent disposable tracker state.');
+        for(const user of s.users)await user.renewSession({signal});
+        const callers=await observeConfirmedAssignmentTrackerCallers(plan,s.users,state,{origin:s.url,publishable:s.publishable,
+          fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal)});
+        return {state,callers};
+      },
+      propose:(side,question)=>request(side,'/api/affairs-assistant',{question,route:confirmedAssignmentTrackerContract.route,stream:false,consentedResearchUse:false}),
+      submit:(side,body,stage)=>request(side,'/api/affairs-action',body,stage),
+    });
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==initial.workingTreeHash)
+      fail('fixture-target','Confirmed assignment tracker source changed during verification.');
+    await previewGate.finish();
+    finished=true;
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.assignmentTrackerCleanupProof)cleanupProof=error.assignmentTrackerCleanupProof;
+    failure=error instanceof ConfirmedAssignmentTrackerAssertion
+      ?{phase,code:'assertion',step:error.step}
+      :{phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{
+    if(prepared)cleanupProof=await captureFixtureCleanup();
+    await onCheckpoint?.(report());
+  }
+  return report();
 }
 
 async function captureFixtureCleanup(){
@@ -4330,6 +4446,12 @@ export async function cleanup(){
       await query(()=>feeTransaction(s,()=>deleteVenueProtectedFixture(s.sql,s.venueProtectedPlan)),
         'Could not remove the exact disposable venue rows.');
     }
+    if(s.assignmentTrackerPlan){
+      await assertRecordedFixtureLease(s,'Confirmed assignment tracker cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>feeTransaction(s,()=>deleteConfirmedAssignmentTrackerRows(s.sql,s.assignmentTrackerPlan,s.assignmentTrackerJournal)),
+        'Could not remove the exact disposable tracker rows, audit and receipt.');
+    }
     if(s.certificateAwardPreviewPlan){
       await assertRecordedFixtureLease(s,'Certificate award fixture cleanup');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
@@ -4519,6 +4641,10 @@ export async function cleanup(){
       await query(()=>verifyVenueProtectedFixtureAbsent(s.sql,s.venueProtectedPlan),'Could not prove exact venue cleanup.');
       s.venueProtectedCleanup=true;
     }
+    if(s.assignmentTrackerPlan){
+      await query(()=>verifyConfirmedAssignmentTrackerAbsent(s.sql,s.assignmentTrackerPlan),'Could not prove exact tracker and caller cleanup.');
+      s.assignmentTrackerCleanup=true;
+    }
     if(s.certificateAwardPreviewPlan){
       s.certificateAwardCatalogUnchanged=await query(()=>verifyCertificateAwardPreviewAbsent(s.sql,s.certificateAwardPreviewPlan),
         'Could not prove exact certificate award cleanup.');
@@ -4612,6 +4738,7 @@ export async function cleanup(){
   }
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
   return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged,
+    ...(s.assignmentTrackerCleanup?{assignmentTrackerCleanup:true}:{}),
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
     ...(s.tuitionLedgerCleanup?{tuitionLedgerCleanup:true}:{}),
     ...(s.dtmTimingCleanup?{dtmTimingCleanup:true}:{}),
