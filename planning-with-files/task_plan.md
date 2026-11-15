@@ -822,8 +822,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Recheck whether requiring precise missing details without echoing unsupported values improves the paired result. Both models still failed the missing-quota rubric; the protected live question correctly identified the missing quota and date.
 - [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
 - [x] Exercise all 79 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
-- [ ] Re-run the 79 mounted note questions on the protected combined Preview after removing model rewrites, binding exact links and verifying the four timetable and charge companions.
-- [ ] Run the 18 Student Leave cases on the protected combined Preview with signed actual reader and provider completion receipts.
+- [x] Verify the 75 mounted note-only and access cases on protected `9e43792`.
+- [ ] Verify the four timetable and charge companions on protected `3f706aa`.
+- [x] Run the 18 Student Leave cases on protected `9e43792` with signed reader and provider receipts. Eight answers passed and ten exposed formatting or verification failures.
+- [ ] Verify all 18 Student Leave cases on the exact-field recovery Preview with signed reader and deterministic verification receipts.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
