@@ -5,7 +5,7 @@ import {clubStudentQuestion,clubStudentScope} from '../../server/clubStudentCont
 import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
-import {venueRequestSelection} from '../../server/venueRequestIntent.js';
+import {venueRequestPlan} from '../../server/venueRequestIntent.js';
 
 const dispatchPath='src/services/schoolAffairsAssistant.ts';
 const apiPath='api/affairs-data.ts';
@@ -62,7 +62,7 @@ export function probeNativePredicate(id,question,route=''){
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
-    case 'venue-requests':{const selection=venueRequestSelection(question,route);return selection?selection.reason??'mine':null;}
+    case 'venue-requests':{const plan=venueRequestPlan(question,route);return plan?plan.selection.reason??(plan.feeQuestion?'mine-and-fees':'mine'):null;}
     default:throw new Error('Unknown native client predicate.');
   }
 }

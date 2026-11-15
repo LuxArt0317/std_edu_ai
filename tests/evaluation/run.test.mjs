@@ -1,3 +1,4 @@
+import {venueRunnerCases,assertNativeVenueCaseReady,nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {assertNativeDtmCaseReady,nativeDtmRunnerCases,nativeDtmSetupRequired} from './dtm-native-runner.mjs';
 import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
 import {assertNativeInternshipCaseReady,internshipRunnerCases,nativeInternshipSetupRequired} from './internship-native-runner.mjs';
@@ -312,6 +313,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
       URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,assertNativeDtmCaseReady,assertNativeStudentLeaveCaseReady,assertNativeInternshipCaseReady,
       nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,gradeElearningCatalogCase,
+      assertNativeVenueCaseReady,nativeVenueSetupRequired,
       persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);
@@ -376,6 +378,8 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_native_internship'),internshipRunnerCases());
   assert.equal(suite.cases.filter(nativeInternshipSetupRequired).length,34);
   assert.deepEqual(suite.cases.filter(elearningCatalogSetupRequired),elearningCatalogRunnerCases());
+  assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_native_venue_requests'),venueRunnerCases());
+  assert.equal(suite.cases.filter(nativeVenueSetupRequired).length,12);
 
   assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['courseCatalog','elearningCatalog','elearningMetadata','dtmAssignmentList','dtmMaterials','leaveRecords','venueRequests','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
@@ -397,6 +401,9 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.equal(assessment.elearningCatalogSetup.registered,25);
   assert.equal(assessment.elearningCatalogSetup.metadataCaseIds.length,6);
   assert.equal(assessment.elearningCatalogSetup.liveEligible,0);
+  assert.equal(assessment.venueSetup.registered,12);
+  assert.equal(assessment.venueSetup.liveEligible,0);
+  assert.ok(assessment.releaseBlockers.includes('run.nativeVenueFixtureUnbound'));
   assert.ok(assessment.releaseBlockers.includes('run.elearningCatalogFixtureUnbound'));
   assert.ok(assessment.releaseBlockers.includes('client_dispatch_acceptance_missing'));
 

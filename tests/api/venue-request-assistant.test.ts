@@ -8,12 +8,14 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import * as intent from '../../server/venueRequestIntent.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
+import {venueFixture,venueRunnerCases} from '../evaluation/venue-native-runner.mjs';
+import {gradeCase} from '../evaluation/grading.mjs';
 
 const base='/school-affairs/services/44-1';
 const accepted='https://xiftudmvxphxcjtmfmib.supabase.co';
 const token='OFFLINE_VENUE_CALLER',key='OFFLINE_VENUE_PUBLISHABLE';
 const foreign='bb100000-0000-4000-8000-000000000001';
-const record='ad100000-2026-4000-8000-000000000002';
+const record=venueFixture.requestId;
 const columns=['id','user_id','venue','booking_date','period','status','created_at'];
 const dates={first:'2026-11-23',second:'2026-11-28'};
 let run=0;
@@ -29,16 +31,20 @@ async function dispatch(handler:any,body:object,headers:Record<string,string>={A
 }
 const fixture=(owner:string,values={})=>({id:record,user_id:owner,venue:'T0308',booking_date:dates.first,period:'2',status:'approved',
   created_at:'2026-11-15T07:00:00.000123+00:00',...values});
-function transport(t:TestContext,delivery:Delivery){
+function transport(t:TestContext,delivery:Delivery,fees?:Delivery){
   const owner='ac100000-0000-4000-8000-'+String(++run).padStart(12,'0'),requests:URL[]=[];
-  const scopes:string[]=[];
+  const scopes:string[]=[],feeReads:URL[]=[];
   t.mock.method(globalThis,'fetch',async (value:URL,init:RequestInit)=>{
     assert.equal(value.origin,accepted);
-    assert.equal(value.pathname,'/rest/v1/affairs_venue_requests');
     assert.equal(init.method,'GET');
     assert.equal(init.redirect,'error');
     assert.equal(new Headers(init.headers).get('authorization'),'Bearer '+token);
     assert.equal(new Headers(init.headers).get('apikey'),key);
+    if(fees&&['/rest/v1/affairs_students','/rest/v1/affairs_charges'].includes(value.pathname)){
+      feeReads.push(value);
+      return fees(value,feeReads.length,owner);
+    }
+    assert.equal(value.pathname,'/rest/v1/affairs_venue_requests');
     assert.equal(new Headers(init.headers).get('prefer'),'count=exact');
     assert.equal(value.searchParams.get('select'),columns.join(','));
     assert.equal(value.searchParams.get('user_id'),'eq.'+owner);
@@ -54,7 +60,7 @@ function transport(t:TestContext,delivery:Delivery){
     publicResearch:reject('public research'),
     answerAccount:reject('general account model'),
   });
-  return {owner,requests,scopes,ask:(question:string,options={})=>dispatch(handler,{question,route:base,...options})};
+  return {owner,requests,feeReads,scopes,ask:(question:string,options={})=>dispatch(handler,{question,route:base,...options})};
 }
 
 test('existing venue metadata is verified without public availability, broad reads or model calls',async t=>{
@@ -190,7 +196,8 @@ test('foreign, excluded, mutation, private detail, mixed and tampered route prom
     ['Show my venue requests and cancel one.',{},'clarification','No venue action'],
     ['Show my venue requests. Cancel it.',{},'clarification','No venue action'],
     ['Show my venue request review notes.',{},'clarification','review notes'],
-    ['Show my venue request status and my tuition balance.',{},'clarification','separately'],
+    ['Show my venue request status and my next class.',{},'clarification','separately'],
+    ['Show my venue requests and pay my tuition.',{},'clarification','separately'],
     ['Show my venue request status.',{route:base+'?user_id='+foreign},'clarification','one exact'],
     ['Show my venue request from 2026-90-23.',{},'clarification','one exact'],
     ['Show my venue request for 2026/11/23.',{},'clarification','one exact'],
@@ -222,6 +229,10 @@ test('traditional Chinese date and status scopes use Taipei and guests get a loc
   assert.equal(guest.body.status,'handoff');
   assert.equal(guest.body.citations[0].url,'/school-affairs/login?next='+encodeURIComponent(base));
   assert.equal(guest.body.views,undefined);
+  const pair=await dispatch(createResearchAssistantHandler(),{question:'Show my venue request status and my tuition balance.',route:'/'},{'x-forwarded-for':'192.0.2.43'});
+  assert.deepEqual(pair.body.citations.map(item=>item.url),[base,'/school-affairs/services/39-1']
+    .map(path=>'/school-affairs/login?next='+encodeURIComponent(path)));
+  assert.equal(pair.body.views,undefined);
 });
 
 test('the compiled browser client sends exact venue context through the verified account endpoint',async()=>{
@@ -247,4 +258,106 @@ test('the compiled browser client sends exact venue context through the verified
   sessionOwner=foreign;
   await assert.rejects(()=>exports.askSchoolAffairsAssistant(currentOwner,question,history,undefined,[],base),/account changed/u);
   assert.equal(calls.length,1);
+});
+
+const feeRoute='/school-affairs/services/39-1';
+const student='ae100000-0000-4000-8000-000000000001';
+const charge='ae100000-0000-4000-8000-000000000002';
+function feeFixture(url:URL,_attempt:number,owner:string){
+  if(url.pathname.endsWith('/affairs_students')){
+    assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
+    assert.equal(url.searchParams.get('select'),'id,user_id');
+    return Response.json([{id:student,user_id:owner}]);
+  }
+  assert.equal(url.searchParams.get('student_id'),'eq.'+student);
+  return Response.json([{id:charge,student_id:student,label:'Sample tuition charge',amount_due:venueFixture.amountDue,amount_paid:venueFixture.amountPaid,
+    currency:'TWD',source_mode:'sample',occurrence_on:'2026-10-01',contact_unit:'UNREQUESTED FEE CONTACT',payment_unit:'UNREQUESTED PAYMENT OFFICE'}]);
+}
+const bank=Object.fromEntries(venueRunnerCases().map(row=>[row.id.replace('account:venue-native-',''),row]));
+const venueFirst=bank['count-and-fees'].question,feeFirst=bank['fees-and-record'].question;
+function assertOracle(id:string,response:ResponseCapture){
+  const outcome=gradeCase(bank[id],{...response,fixtureKey:bank[id].fixtureKey,events:[],execution:'deterministic'});
+  assert.ok(outcome.passed,JSON.stringify(outcome.failures));
+}
+const venueRows:Delivery=(_url,_attempt,owner)=>Response.json([fixture(owner)],{headers:allowedHeaders(1,1)});
+
+test('independent venue and tuition sources preserve the facts and citations in both clause orders',async t=>{
+  const h=transport(t,venueRows,feeFixture);
+  for(const [question,firstCitation] of [[venueFirst,base],[feeFirst,feeRoute]]){
+    const response=await h.ask(question),{body}=response;
+    assertOracle(question===venueFirst?'count-and-fees':'fees-and-record',response);
+    assert.deepEqual(body.verification,{status:'verified',attempts:1});
+    assert.deepEqual(body.citations.map(item=>item.url),[firstCitation,firstCitation===base?feeRoute:base]);
+    assert.match(body.answer,/Remaining balance .*23,000/u);
+    assert.match(body.answer,/Saved amount due .*30,000/u);
+    assert.match(body.answer,/Saved amount paid .*7,000/u);
+    if(question===venueFirst)assert.match(body.answer,/Matching saved venue requests: 1\./u);
+    else assert.match(body.answer,/Saved local status: Approved/u);
+    assert.equal(body.proposedAction,undefined);
+    assert.equal(body.grounding.webSearched,false);
+    assert.doesNotMatch(JSON.stringify(body),/UNREQUESTED FEE CONTACT|UNREQUESTED PAYMENT OFFICE/u);
+  }
+  assert.equal(h.requests[0].searchParams.get('status'),'eq.approved');
+  assert.equal(h.requests[0].searchParams.get('and'),'(booking_date.gte.2026-11-23,booking_date.lte.2026-11-23)');
+  assert.equal(h.requests[1].searchParams.get('id'),'eq.'+record);
+  assert.equal(h.feeReads.length,4);
+  assert.deepEqual(h.scopes,[]);
+});
+
+test('fee failure retries fees only while the verified venue section stays visible',async t=>{
+  const h=transport(t,venueRows,()=>new Response(null,{status:503}));
+  const response=await h.ask(venueFirst),{body}=response;
+  assertOracle('fees-unavailable',response);
+  assert.equal(body.status,'answered');
+  assert.match(body.answer,/Matching saved venue requests: 1\./u);
+  assert.match(body.answer,/couldn’t verify your saved fee balance/u);
+  assert.doesNotMatch(body.answer,/zero|no saved charge|23,000/u);
+  assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'fees_evidence_unavailable'});
+  assert.deepEqual(body.citations.map(item=>item.url),[base]);
+  assert.equal(body.grounding.degraded,true);
+  assert.equal(h.requests.length,1);
+  assert.equal(h.feeReads.length,2);
+  assert.equal(h.feeReads[0].href,h.feeReads[1].href);
+});
+
+test('venue failure retries the same venue scope and preserves the independent fee fact',async t=>{
+  const h=transport(t,(_url,_attempt,owner)=>Response.json([fixture(owner,{user_id:foreign})],{headers:allowedHeaders(1,1)}),feeFixture);
+  const response=await h.ask(feeFirst),{body}=response;
+  assertOracle('venue-unavailable',response);
+  assert.equal(body.status,'answered');
+  assert.match(body.answer,/Remaining balance .*23,000/u);
+  assert.match(body.answer,/couldn’t verify your saved venue requests/u);
+  assert.doesNotMatch(body.answer,/No saved venue requests match|Approved/u);
+  assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'venue_evidence_unavailable'});
+  assert.deepEqual(body.citations.map(item=>item.url),[feeRoute]);
+  assert.equal(h.requests.length,2);
+  assert.equal(h.requests[0].href,h.requests[1].href);
+  assert.equal(h.feeReads.length,2);
+});
+
+test('fee source recovery makes a full answer, and no linked fee student is never a zero balance',async t=>{
+  let studentReads=0;
+  const h=transport(t,venueRows,(url,attempt,owner)=>url.pathname.endsWith('/affairs_students')&&++studentReads===1
+    ?new Response(null,{status:503}):studentReads>=3?Response.json([]):feeFixture(url,attempt,owner));
+  const recovered=await h.ask(venueFirst);
+  assert.deepEqual(recovered.body.verification,{status:'verified',attempts:2});
+  assert.match(recovered.body.answer,/Remaining balance .*23,000/u);
+  const unlinked=await h.ask(venueFirst);
+  assert.deepEqual(unlinked.body.verification,{status:'verified',attempts:1});
+  assert.match(unlinked.body.answer,/No linked local student record/u);
+  assert.match(unlinked.body.answer,/balance is unknown/u);
+  assert.equal(h.requests.length,2);
+  assert.equal(h.feeReads.length,4);
+});
+
+test('failure of both paired sources never becomes a blank booking list or zero tuition',async t=>{
+  const unavailable=()=>new Response(null,{status:503});
+  const h=transport(t,unavailable,unavailable);
+  const {body}=await h.ask(feeFirst);
+  assert.equal(body.status,'abstained');
+  assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'evidence_unavailable'});
+  assert.doesNotMatch(body.answer,/No saved venue|zero|NT\$|23,000/u);
+  assert.deepEqual(body.citations,[]);
+  assert.equal(h.requests.length,2);
+  assert.equal(h.feeReads.length,2);
 });

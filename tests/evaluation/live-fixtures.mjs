@@ -36,6 +36,7 @@ import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionL
 import {createFeeRemissionFixtureLifecycle} from './fee-remission-fixture-lifecycle.mjs';
 import {readRows as readFeeRows,deleteRows as deleteFeeRows,insertRows as insertFeeRows} from './fee-remission-fixture-sql.mjs';
 import {createTranscriptConversationFixture} from './transcript-conversation-fixture.mjs';
+import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 
@@ -360,6 +361,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
   if(cases.some(nativeInternshipSetupRequired))
     fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
+  if(cases.some(nativeVenueSetupRequired))
+    fail('fixture-unsupported','Native venue requests require exact caller fixtures and independent request observations.');
   let transcriptCaseIds;
   if(applicationFetch!==undefined){
     if(typeof applicationFetch!=='function'||cases.length!==transcriptFixtureCases.length||fixtureMode!==undefined||caseFamily!==undefined
@@ -1646,6 +1649,10 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
   if(nativeStudentLeaveSetupRequired(testCase))
     fail('fixture-unsupported','Native Student Leave requires an isolated fixture and trusted request observations.');
+  if(testCase?.venueOracle||testCase?.fixtureRequirement==='offline_native_venue_requests'||testCase?.fixtureRequirement==='legacy_venue_request_rebind'
+    ||/^(?:account:venue-native-|service:44-1:(?:record|empty|action-boundary)$)/u.test(testCase?.id??'')
+    ||typeof testCase?.fixtureKey==='string'&&testCase.fixtureKey.startsWith('offline:venue-requests:'))
+    fail('fixture-unsupported','Native venue requests require exact caller fixtures and independent request observations.');
   const s=ready();if(s.current)fail('fixture-state','afterCase() must complete before selecting another fixture.');
   const transcript=s.applicationFetch?s.transcriptFixture??null:null;
   if(s.applicationFetch){

@@ -59,7 +59,7 @@ test('native questions require the fields the reader actually supplies and discl
   assert.equal(service('venue-requests'),undefined);
   assert.equal(question('client:venue-requests:record').endpoint,'/api/affairs-assistant');
   assert.equal(question('client:venue-requests:record').staticProbe.predicate,'mine');
-  assert.equal(question('client:venue-requests:multipart').staticProbe.predicate,'mixed');
+  assert.equal(question('client:venue-requests:multipart').staticProbe.predicate,'mine-and-fees');
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/accountVenueRequestAnswer.js'));
   assert.deepEqual(inventory.verifiedDispatch.find(row=>row.id==='student-leave').serviceKeys,['20-1','33-1']);
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/studentLeaveEvidenceIntent.js'));

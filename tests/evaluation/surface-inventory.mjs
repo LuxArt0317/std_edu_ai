@@ -50,6 +50,7 @@ export async function discoverSurfaces() {
     signedIn('school-affairs',['/school-affairs','/school-affairs/records','/school-affairs/notifications','/school-affairs/bookmarks','/school-affairs/search']),
     signedIn('school-menus',menus.flatMap(group=>group.views.map(([view])=>`/school-affairs/menu/${group.id}/${view}`))),
     signedIn('school-services',[...new Set(schoolServiceEntries.map(row=>row.localUrl).filter(route=>route.startsWith('/school-affairs/services/')))]),
+    signedIn('venue-requests',['/school-affairs/services/44-1']),
     signedIn('student-leave',['/school-affairs/services/leave','/school-affairs/services/leave/index','/school-affairs/services/leave/history','/school-affairs/services/leave/archive','/school-affairs/services/leave/periods','/school-affairs/services/leave/edit/:id']),
     signedIn('internship',['/school-affairs/services/internship',...internshipViews.map(([view])=>'/school-affairs/services/internship/'+view)]),
     signedIn('course-catalog',['/school-affairs/services/12-4','/school-affairs/services/12-4?course=:id','/school-affairs/services/12-4?syllabus=:id']),
@@ -107,6 +108,7 @@ export async function discoverSurfaces() {
   ];
   const value={version:3,services:schoolServiceEntries.map(({id,title,section,group,kind,localUrl})=>({id,title,section,group,kind,route:localUrl})),
     tools:Object.entries({...accountTools,...supplementalAccountTools,dtmAssignmentList:'Owned Moodle assignment list metadata and local tracker status for the selected view.',dtmMaterials:'Saved Moodle material lists and exact resource metadata for the caller’s course.',
+      venueRequests:'Saved caller-owned venue request status, date, room, period and filtered count; supports a separate scoped fee-balance companion.',
       elearningCatalog:'The verified Digital Academy catalog search or category result page, with local course links.',
       elearningMetadata:'The saved Digital Academy category hierarchy or exact notice title and body.'}).map(([id,description])=>({id,description})),routeFamilies,publicPages,
     coverageLimits:[
