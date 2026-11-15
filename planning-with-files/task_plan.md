@@ -906,4 +906,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Verify the confirmed Counseling cancellation against protected Preview fixture rows and operation receipts.
 - [x] Mount twenty authenticated service boundary cases at 30-1, 30-2, 31-2 and 35-1. Correct the Traditional Chinese possessive routing found by the evaluation.
 - [ ] Replay the four service boundary families on protected Preview.
-- [ ] Evaluate the public case where a second partial reply verifies additional details and another distinct official source is still available.
+- [x] Continue a verified partial reply when exact missing-detail coverage improves and another distinct source is available. Recover actionable rejected drafts within the same cap and keep the best verified reply on terminal failure.
+- [x] Exercise four observed checks, a third-draft rejection followed by verified recovery, a duplicate source, a lost detail, reviewer outage, time, and persisted activity through the actual public endpoint with controlled providers.
+- [ ] Replay public questions on the exact protected candidate and independently grade the outcomes.
