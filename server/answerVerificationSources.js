@@ -3,6 +3,7 @@ import captures from '../src/features/public/mirror/pages.json' with {type:'json
 import { acquireHttpsSource, detectAndExtractSource } from './knowledgeAcquisition.js';
 import { safeWebSource } from './schoolWebSearch.js';
 import { isSchoolSignInDestination, officialSchoolLeadUrl } from './publicSchoolSourceLeads.js';
+import { isOfficialLibraryLead } from './publicLibrarySources.js';
 
 const accessRequired = Symbol('school sign-in required');
 function stopAtSignIn(destination) {
@@ -14,6 +15,12 @@ function isSchoolLoginDocument(acquired, url) {
   // Moodle can serve the login template in place of the requested original URL.
   return /<body\b[^>]*\b(?:id|class)\s*=\s*(['"])[^'"]*\b(?:page-login-index|pagelayout-login)\b[^'"]*\1/iu.test(head)
     && /<input\b[^>]*\btype\s*=\s*(['"])password\1/iu.test(head);
+}
+
+function isLibraryChallenge(bytes,mimeType,url){
+  if(!isOfficialLibraryLead(url)||!/^text\/html(?:;|$)/iu.test(mimeType))return false;
+  const head=new TextDecoder().decode(bytes.subarray(0,65536));
+  return /<title(?:\s[^>]*)?>\s*(?:human verification|verify (?:that )?you are human|人機驗證)\s*<\/title>/iu.test(head);
 }
 
 const canonical=value=>{const url=safeWebSource(value);return url?url.replace(/\/$/,''):null;};
@@ -28,6 +35,7 @@ async function capturedSource(url,deadline,dependencies) {
   if(!response.ok)throw new Error('Public capture unavailable');
   const bytes=new Uint8Array(await response.arrayBuffer());
   if(bytes.length>4_000_000||createHash('sha256').update(bytes).digest('hex')!==capture.checksum)throw new Error('Public capture checksum mismatch');
+  if(isLibraryChallenge(bytes,'text/html',capture.source))throw new Error('Public capture contains a browser verification screen');
   const extracted=await detectAndExtractSource(bytes,'text/html',capture.source);
   return {capturedOn:capture.capturedOn,content:JSON.stringify({provenance:'Previously captured public school page; not a live source.',capturedOn:capture.capturedOn,originalSource:capture.source,content:extracted.sections.map(section=>section.content).join('\n').slice(0,14000)}),urls:[capture.route]};
 }
@@ -43,6 +51,7 @@ export async function readVerificationSources(citations, deadline, dependencies=
       const acquired=await (dependencies.acquire||acquireHttpsSource)(url,{timeoutMs:Math.min(5000,deadline-Date.now()),onRedirect:stopAtSignIn});
       stopAtSignIn(acquired.finalUrl);
       if(isSchoolLoginDocument(acquired,url))throw accessRequired;
+      if(isLibraryChallenge(acquired.bytes,acquired.mimeType,url))throw new Error('Public source requires browser verification');
       const extracted=await detectAndExtractSource(acquired.bytes,acquired.mimeType,acquired.finalUrl);
       const content=extracted.sections.map(section=>section.content).join('\n').slice(0,16000);
       if(!content.trim())throw new Error('Source has no readable content');

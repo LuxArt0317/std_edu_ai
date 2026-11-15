@@ -86,6 +86,7 @@ import { runAnswerVerification, unverifiedAnswer, verificationStopActivity } fro
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
 import { createPublicSchoolSourceLeads } from "./publicSchoolSourceLeads.js";
+import {findOfficialLibraryServiceLeads, libraryAnswerLanguage, libraryAnswerMatchesLanguage} from './publicLibrarySources.js';
 import { boundedPublicPageEvidence, institutionalPublicCapture, isPublicPageQuestion, isPublicPageSummaryQuestion, loadPublicPageContext, normalizePublicPageRoute, publicPageCandidate } from "./publicPageContext.js";
 export function detectEvidenceConflict(retrieved) {
     const authoritative = retrieved.filter((item) => ["primary_official", "delegated_official"].includes(item.authority_level) && Boolean(item.document_logical_key && item.document_checksum));
@@ -808,7 +809,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
         }
         const publicGuidanceHistory = publicStudyGuidance ? input.history.filter(item => item.role === 'user' && questionKind(item.content).school && !personalPublicQuestion(item.content) && !questionKind(item.content).irrelevant) : input.history;
         const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
-        const chinese = /[\u3400-\u9fff]/.test(input.question);
+        const libraryRequest = !personalQuestion && !kind.personal && !kind.irrelevant && !input.images.length && !pageQuestion
+            && findOfficialLibraryServiceLeads(input.question).length > 0;
+        const libraryLanguage = libraryRequest ? libraryAnswerLanguage(input.question) : undefined;
+        const chinese = libraryLanguage ? libraryLanguage === 'zh-Hant' : /[\u3400-\u9fff]/.test(input.question);
+        const localizedLibrary = libraryLanguage ? { publicResponseLanguage: libraryLanguage } : {};
+        const librarySearch = libraryRequest ? { libraryScope: true, responseLanguage: libraryLanguage } : {};
         if (!input.images.length && !kind.irrelevant && !personalQuestion) {
             const firstSelection = firstSelectionQuestion(input.question,input.route);
             if (firstSelection) {
@@ -889,6 +895,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const needsPublicEvidence = reason => ['unsupported_claims', 'evidence_unavailable', 'no_supported_answer', 'verified_partial'].includes(reason)
             || (reason === 'snapshot_provenance_missing' && kind.fresh);
         const verifyPublicAnswer = context => {
+            if (libraryLanguage && context.candidate.status === 'answered' && !libraryAnswerMatchesLanguage(context.candidate.answer, libraryLanguage))
+                return Promise.resolve({ ok: false, reason: 'unsupported_claims', feedback: [
+                    libraryLanguage === 'en' ? 'Write the explanation in English, keeping any original source titles only in citations.'
+                        : 'Write the explanation in Traditional Chinese, keeping any original source titles only in citations.',
+                ] });
             // A source-free generic plan cannot satisfy an explicit request for
             // school resources, even if a reviewer accepts its suggestions.
             if (publicStudyGuidance && !hasCitedPublicResource(context.candidate, context.evidence))
@@ -896,9 +907,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return verifyEvidenceAnswer(publicStudyGuidance ? { ...context, responseIntent: 'mixed' } : context);
         };
         const repairPublicAnswer = context => repairEvidenceAnswer(publicStudyGuidance
-            ? { ...context, responseIntent: 'mixed', feedback: [...(context.feedback || []), publicStudyGuidanceInstructions] }
-            : context);
-        const language = inferKnowledgeLanguage(input.question);
+            ? { ...context, ...localizedLibrary, responseIntent: 'mixed', feedback: [...(context.feedback || []), publicStudyGuidanceInstructions] }
+            : { ...context, ...localizedLibrary });
+        const language = libraryLanguage || inferKnowledgeLanguage(input.question);
         const model = process.env.OPENAI_PUBLIC_MODEL ||
             process.env.OPENAI_MODEL ||
             "gpt-5.6-terra";
@@ -992,8 +1003,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
             item.role === 'user' && !personalPublicQuestion(item.content)));
         const sourceLeads = publicQuestion && !personalQuestion && !input.images.length ? createPublicSchoolSourceLeads(input.question) : null;
         const indexedSources = (sourceLeads?.indexed || []).map(lead => ({ chunkId: lead.id, url: lead.url,
-            title: chinese ? lead.titleZh : lead.titleEn, sourceName: 'STU Digital Teaching Materials' }));
-        const hasKnownNoticeLink = indexedSources.length > 0;
+            title: chinese ? lead.titleZh : lead.titleEn,
+            sourceName: lead.kind === 'library-service' ? 'STU Library' : 'STU Digital Teaching Materials' }));
+        const librarySources = libraryRequest ? indexedSources.filter(source => source.sourceName === 'STU Library') : [];
+        const hasKnownNoticeLink = indexedSources.some(source => source.sourceName === 'STU Digital Teaching Materials');
         async function readPublicSources(citations, until) {
             const evidence = await readSources(citations, until, {
                 onAccessRequired: lead => sourceLeads?.recordAccessRequired(lead),
@@ -1019,7 +1032,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 await indexedRead;
                 const generic = reply.status === 'abstained' && reply.verification?.status === 'unverified' && !reply.citations?.length
                     && reply.answer === unverifiedAnswer(input.question, reply, [], 0).answer;
-                const annotated = sourceLeads.append(generic ? { ...reply, answer: '' } : reply);
+                const libraryFallback = librarySources.length && !reply.citations?.length && reply.status !== 'answered';
+                const annotated = sourceLeads.append(libraryFallback ? { ...reply, status: 'abstained', citations: [],
+                    answer: chinese ? '這次無法核實您詢問的圖書館資訊。' : 'I could not verify the library details you asked about.' }
+                    : generic ? { ...reply, answer: '' } : reply);
                 if (annotated.step) {
                     verificationProgress(annotated.step);
                     reply = annotated.reply;
@@ -1046,6 +1062,23 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     detail: 'The managed excerpts did not verify the requested detail.', status: 'complete' };
                 verificationProgress(knowledgeWebSwitch);
             }
+            if (librarySources.length && !earlierReview && !captureActivity.some(step => step.kind === 'library-primary-source')) {
+                const read = await indexedRead;
+                const exact = librarySources.filter(citation => read.some(source => source.id === citation.chunkId && validEvidence([source])));
+                const direct = { kind: 'library-primary-source',
+                    label: chinese ? '核對圖書館原始頁面' : 'Checked the library’s own pages',
+                    detail: exact.length
+                        ? (chinese ? '讀取可取得的圖書館服務頁面內容。' : 'Read available library service page contents.')
+                        : (chinese ? '無法讀取圖書館頁面以核實詳情。' : 'Could not read the library pages to verify the requested details.'),
+                    status: exact.length ? 'complete' : 'unavailable' };
+                captureActivity.push(direct);
+                verificationProgress(direct);
+                if (exact.length && await verifyPublicSources({ status: 'answered', answer: '', citations: exact, suggestedQuestions: [],
+                    grounding: { source: 'web', webSearched: false, officialOnly: true, checkedAt: new Date().toISOString(),
+                        retrieverVersion: 'school-web@1', responseMs: Date.now() - started },
+                    activity: [...captureActivity, ...priorActivity] },
+                { composeFromSources: true, leads: librarySources })) return true;
+            }
             let searchStep = recoveringEmptySearch ? 'web-after-empty' : 'web';
             function reportSearch(label, detail, status) {
                 const step = { kind: searchStep, label, detail, status };
@@ -1058,8 +1091,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 'The first search found no lead. Looking for a specific open notice or policy.', 'running');
             else reportSearch('Searching school sources', 'Checking official school pages and related public sources.', 'running');
             let web = await searchSchoolWeb(publicQuestion, recoveringEmptySearch
-                ? { deadline: Math.min(deadline - 12_500, Date.now() + 6_000), followUp: true, deeperDiscovery: true }
-                : { deadline: Math.min(deadline - 19_000, Date.now() + 22_000) }).catch(() => null);
+                ? { deadline: Math.min(deadline - 12_500, Date.now() + 6_000), followUp: true, deeperDiscovery: true, ...librarySearch }
+                : { deadline: Math.min(deadline - 19_000, Date.now() + 22_000), ...librarySearch }).catch(() => null);
             if (!web) {
                 webAttempted = true;
                 publicStop = verificationStopActivity(verificationQuestion, 'reviewer_unavailable');
@@ -1202,6 +1235,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     candidate: { ...candidate, citations: [...checkedSources.values()] }, evidence, deadline: composeUntil,
                     deeperReview: previousChecks === maxAnswerVerificationChecks - 1,
                     hasKnownNoticeLink,
+                    ...localizedLibrary,
                     ...(publicStudyGuidance ? { responseIntent: 'mixed', feedback: [publicStudyGuidanceInstructions] } : {}),
                 }).catch(() => null);
                 if (composed?.status !== 'answered') {
@@ -1250,9 +1284,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                         progress({ ...step, detail: 'Looking for the missing detail on official school pages.', status: 'running' });
                         // Review feedback, draft text and private records never enter web search.
                         const followUp = await searchSchoolWeb(followUpQuestion, {
-                            deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: extended,
+                            deadline: searchUntil, followUp: true, deeperDiscovery: deeper, alternateDiscovery: extended, ...librarySearch,
                         }).catch(() => null);
-                        if (capture && followUp?.attempted) webAttempted = true;
+                        if ((capture || librarySources.length) && followUp?.attempted) webAttempted = true;
                         const discovered = followUp?.discoveredSources || [];
                         for (const lead of discovered) pendingLeads.set(canonicalUrl(lead.url), lead);
                         fresh = newEvidence(await checkNewSources(discovered, Math.min(until - 8_500, Date.now() + 4_000), 2));
@@ -1290,8 +1324,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     candidate: { ...context.candidate, citations: context.evidence.map(source => checkedSources.get(source.id)).filter(Boolean) } }),
             });
             checked.activity = [...candidate.activity, ...steps.values()];
+            if ((capture || librarySources.length) && webAttempted) checked.grounding.webSearched = true;
             if (capture && webAttempted) {
-                checked.grounding.webSearched = true;
                 if (checked.citations.length && !checked.citations.some(citation => citation.chunkId === capture.evidence.id)) {
                     checked.grounding.source = 'web';
                     delete checked.grounding.capturedOn;
@@ -1363,7 +1397,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             let answer;
             const conflict = detectEvidenceConflict(retrieved);
-            if (!personalQuestion && (!retrieved.length || kind.fresh || conflict) && await tryWebAnswer())
+            if (!personalQuestion && (!retrieved.length || kind.fresh || conflict || librarySources.length) && await tryWebAnswer())
                 return;
             if (personalQuestion) {
                 answer = { status: "handoff", answer: language === 'zh-Hant' || language === 'mixed' ? '個人課程、課表與成績需要在 /school-affairs/login 使用 Google 登入，再查詢已授權連結至您帳號的資料。Google 登入不會自動連接校方正式學籍；知識庫管理登入與學生身分分開。我可以先協助查詢公開資訊。' : 'Sign in with Google at /school-affairs/login to ask about authorized records linked to your School Affairs account. Google sign-in does not automatically connect official university courses, grades or schedules. Knowledge-manager sign-in is separate. I can help with public school information meanwhile.', citations: [], suggestedQuestions: [] };

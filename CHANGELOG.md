@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Check the university library’s own FAQ and reservation pages for visitor access, discussion rooms and off-campus databases. Keep unread pages as clickable links and answer in the requested language. [#100]
+
 - Let public verification follow a fresh source after an improved partial answer or an actionable rejected draft. Preserve the best verified answer when evidence, time or review capacity runs out. Save the observed checks in chat. [#100]
 
 - Let signed-in students review and confirm cancellation of a saved facilities repair report that is still submitted. Refresh the report after the verified receipt. [#100]

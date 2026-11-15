@@ -408,3 +408,12 @@ Ask “Cancel my counseling appointment” while signed in to School Affairs. Th
 `node --experimental-strip-types --test tests/api/counseling-cancellation-assistant.test.ts` covers caller ownership, date and status selection, ambiguous and foreign requests, the signed-out handoff, and the confirmed native request. The local browser scenario in `tests/integration/assistant-confirmed-action-ui.mjs` checks the confirmation, mismatched receipt, same-ID retry and verified status text. All nine requests passed on exact protected Preview `2427eee`. The evaluator checked paired owner readbacks, the confirmed receipt, stale and crossed denials, replay, unchanged protected owner, and fixture cleanup.
 
 The localized public-page check accepts only exact saved-date markers in English or Traditional Chinese. A known relevant school notice can be linked separately from verified evidence. The answer can explain that its contents are unavailable without asking the reader to supply the link again.
+
+
+### Public library service sources
+
+The controlled endpoint regression checks visitor entry, discussion room bookings and off-campus databases against the library FAQ and space-reservation pages. Generic discovery gives the library domain first priority. The tests cover English and Traditional Chinese, an English correction after a wrong-language draft, HTTP 405, a browser verification page with misleading body text and a private request that cannot trigger public search. Unread page links stay outside the citations and cannot establish current eligibility, group size or reservation duration.
+
+```sh
+node --test tests/api/public-library-sources.test.ts
+```

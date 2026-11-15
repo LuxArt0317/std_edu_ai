@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {announcements,observedAt} from '../src/features/public/dtm/noticeCatalog.js';
 import {safeWebSource} from './schoolWebSearch.js';
+import {findOfficialLibraryServiceLeads,libraryAnswerLanguage} from './publicLibrarySources.js';
 
 const schoolHost=host=>host==='stu.edu.tw'||host.endsWith('.stu.edu.tw');
 const loginPath=/(?:^|\/)(?:(?:wp-)?login|signin|asp(?:net)?login|asploginstu|sso|cas\/login)(?:[/.]|$)|^\/auth\/realms\/[^/]+\/(?:protocol\/(?:saml|openid-connect\/auth)|login-actions)(?:\/|$)/iu;
@@ -59,9 +60,10 @@ export function findOfficialDtmNoticeLeads(question){
 
 /** Keep navigation leads beside the verified answer, outside citations and evidence. */
 export function createPublicSchoolSourceLeads(question){
-  const indexed=new Map(findOfficialDtmNoticeLeads(question).map(lead=>[lead.url,lead]));
+  const library=findOfficialLibraryServiceLeads(question);
+  const indexed=new Map([...library,...findOfficialDtmNoticeLeads(question)].map(lead=>[lead.url,lead]));
   const blocked=new Set(),readable=new Set(),dynamic=new Map(),query=terms(question);
-  const sameLanguage=/\p{Script=Han}/u.test(question);
+  const sameLanguage=library.length?libraryAnswerLanguage(question)==='zh-Hant':/\p{Script=Han}/u.test(question);
   return {
     indexed:[...indexed.values()],
     isBlocked(url){
@@ -86,15 +88,21 @@ export function createPublicSchoolSourceLeads(question){
       const selected=[...indexed.values(),...dynamic.values()].filter(lead=>!readable.has(lead.url)&&!cited.has(lead.url)).slice(0,2);
       if(!selected.length)return {reply,step:null};
       const anyBlocked=selected.some(lead=>blocked.has(lead.url));
+      const hasLibrary=selected.some(lead=>lead.kind==='library-service');
       const title=sameLanguage?'校方相關連結':'Official source links';
       const rows=selected.map(lead=>{
         const name=(sameLanguage?lead.titleZh:lead.titleEn)??(sameLanguage?'開啟校方來源':'Open the school source');
         const url=lead.url.replace(/[()<>\\]/gu,char=>'%'+char.charCodeAt(0).toString(16).toUpperCase());
-        const state=blocked.has(lead.url)?(sameLanguage?'需校方登入，公告內容尚未核實。':'School sign-in is required. I could not verify the notice contents.')
+        const state=lead.kind==='library-service'?(
+          blocked.has(lead.url)?(sameLanguage?'需校方登入，頁面內容尚未核實。':'School sign-in is required. I could not verify the page contents.')
+            :(sameLanguage?'目前無法讀取這個頁面以核實詳情。':'I could not read this page to verify the details.')
+        ):blocked.has(lead.url)?(sameLanguage?'需校方登入，公告內容尚未核實。':'School sign-in is required. I could not verify the notice contents.')
           :(sameLanguage?'公告索引列出此連結，公告內容尚未核實。':'The school’s notice index lists this link. I could not verify the notice contents.');
         return `- [${name}](${url}) · ${state}`;
       });
-      const step={kind:'school-source-lead',label:title,status:'complete',detail:anyBlocked
+      const step={kind:'school-source-lead',label:title,status:'complete',detail:hasLibrary
+        ?(sameLanguage?'保留相關圖書館頁面連結供查閱。':'Kept the relevant library pages available to open.')
+        :anyBlocked
         ?(sameLanguage?'保留需要校方登入的原始連結。':'Kept the original school link that requires sign-in.')
         :(sameLanguage?'保留校方公告索引的原始連結。':'Kept the original link listed in the school notice index.')};
       return {reply:{...reply,answer:[reply.answer,`**${title}**\n${rows.join('\n')}`].filter(Boolean).join('\n\n'),
