@@ -287,6 +287,10 @@ node tests/evaluation/run-tutor-evaluation-preview.mjs "$PREVIEW_ORIGIN" "$SOURC
 
 Use the authorized Development OIDC identity from the clean checkout of the pinned Preview revision. The operator uses only synthetic database fixtures and calls no submission or file endpoint. Cleanup reconciles the exact disposable questionnaire rows, request keys and linked identities. Its report retains case IDs, results and hashes without raw questionnaire replies. Unsupported semester/history, approval, delivery, identity and receipt requests have no corresponding native source. Separate action, guest/navigation, tuition companion and simulated read failure cases retain their own coverage status. The controlled handler test intercepts transport to verify no form submission or Storage request, while the hosted operator checks the response stream and unchanged saved rows.
 
+### Protected Preview certificate award status
+
+`node tests/evaluation/run-certificate-award-preview.mjs --preflight` lists seven independently bound native HTTP cases. Run the same command with `"$PREVIEW_ORIGIN" "$SOURCE_REVISION"` using the existing fixture lease and Development OIDC. The two disposable callers have different saved records, and one has a newer application that must stay outside the selected answer. Both caller scopes and SQL are checked before and after each request. The owner-only report records grades and cleanup. See [Certificate awards](../../docs/qa/CERTIFICATE_AWARDS.md#protected-selected-status-evaluation) for existing schema requirements and the isolated SQL test.
+
 ### Protected Preview club equipment readback
 
 Use `node tests/evaluation/run-club-equipment-preview.mjs <protected-preview-origin> <source-revision>` from the clean checkout of that Preview. It uses the existing disposable-account lease and `VERCEL_OIDC_TOKEN` used by the other protected Preview operators. The run covers the latest saved status and scheduled return date, the Traditional Chinese record list, filtered count, exact request, second-account visibility, other-owner request ID, foreign-account wording, public sign-in guidance and unauthenticated API denial.
