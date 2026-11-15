@@ -51,6 +51,7 @@ export async function changeCounseling(userId:string,op:'request'|'cancel'|'revi
   if(op==='access'){
     if(result?.userId!==payload.user_id||result.enabled!==payload.enabled)throw new CounselingError(503);
   }else if(!uuid(result?.id)||!Number.isSafeInteger(result.version)||!['requested','scheduled','cancelled','closed'].includes(result.status)||
-    (op!=='request'&&result.id!==payload.id))throw new CounselingError(503);
+    (op!=='request'&&result.id!==payload.id)||op==='cancel'&&(Object.keys(result).length!==3||result.status!=='cancelled'
+      ||!Number.isSafeInteger(payload.expected_version)||result.version!==Number(payload.expected_version)+1))throw new CounselingError(503);
   return result;
 }

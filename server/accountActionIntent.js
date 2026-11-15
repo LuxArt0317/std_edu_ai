@@ -1,3 +1,5 @@
+import {counselingDate} from './counselingContract.js';
+
 // Every proposed change starts with a direct request in the current turn.
 // Saved messages, tool output and model-selected values cannot supply consent.
 const lead = /^(?:(?:please|could you(?: please)?|can you(?: please)?|would you(?: please)?)\s+)+/iu;
@@ -30,6 +32,13 @@ export function parseExplicitAccountAction(question) {
     const target = field(selector?.[1] ?? selector?.[2]);
     return {kind:'cancel_club_equipment',target:target ?? '',pickup:selector?.[3] ?? '',
       ambiguous:!selector || target===null || holdClause.test(suffix.replace(quotedText,'〈text〉'))};
+  }
+  const cancellation = /^(?:(?:cancel my (counsel(?:l)?ing|psychological (?:assessment|test(?:ing)?)) (?:appointment|booking))|(?:幫我)?取消我的(?:心理)?(諮商|測驗)預約)([\s\S]*)$/iu.exec(command);
+  if(cancellation){
+    const suffix=cancellation[3].replace(/(?:\s+now|\s*現在)$/iu,'');
+    const selector=/^(?:(?:\s+(?:for|on)\s+|\s*(?:於|日期[：:]?)\s*)(\d{4}-\d{2}-\d{2})|\s*(?:(?:with\s+)?ID[：:]?\s+|編號[：:]?\s*)([a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}))?$/iu.exec(suffix);
+    return checked({kind:'counseling_cancel',appointmentKind:cancellation[2]==='測驗'||/^psychological/iu.test(cancellation[1]??'')?'assessment':'counseling',
+      date:selector?.[1]??'',id:selector?.[2]?.toLowerCase()??'',ambiguous:!selector||Boolean(selector[1]&&!counselingDate(selector[1]))});
   }
   const ownName = /^(?:(?:change|set|update|rename) (?:my |the )?(?:stu\.best )?(?:display name|nickname)(?: to\s+([\s\S]+))?|call me\s+("[^"\r\n]+"|“[^”\r\n]+”)|(?:幫我)?(?:把)?(?:我的)?(?:顯示名稱|暱稱)(?:改成|改為|設為)([\s\S]*))$/iu.exec(command);
   if (ownName) {

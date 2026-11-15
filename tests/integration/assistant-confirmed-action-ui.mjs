@@ -28,6 +28,16 @@ const cases=[
     error:'無法確認借用紀錄。請重新整理。',
     success:'Cancelled your club equipment request',
   },
+  {
+    question:'Cancel my counseling appointment.',
+    label:'Cancel Counseling · Scheduled date 2026-11-20 · Scheduled',
+    kind:'counseling_cancel',payload:{id:recordId,expected_version:'2'},url:'/school-affairs/services/29-1/appointments',
+    expectedWrite:{kind:'counseling_cancel',payload:{request_id:requestId,id:recordId,expected_version:2}},
+    invalidReceipt:{id:recordId,version:3,status:'closed'},
+    receipt:{id:recordId,version:3,status:'cancelled'},
+    error:'無法處理諮商預約。',
+    success:'Cancelled your appointment',
+  },
 ];
 try{
   for(const scenario of cases){

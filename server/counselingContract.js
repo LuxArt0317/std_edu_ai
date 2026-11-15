@@ -1,4 +1,5 @@
 export const counselingPath='/school-affairs/services/29-1';
+export const counselingAppointmentsPath=counselingPath+'/appointments';
 export const counselingScope='counseling-appointments';
 export const counselingConsentVersion='stu-best-2026-11-14';
 export const counselingStatus={
@@ -6,6 +7,11 @@ export const counselingStatus={
   cancelled:['已取消','Cancelled'],closed:['已結案','Closed'],
 };
 export const counselingKinds={counseling:'心理諮商',assessment:'心理測驗'};
+export function counselingDate(value){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/u.test(value)||value.startsWith('0000'))return false;
+  const parsed=Date.parse(value+'T00:00:00Z');
+  return Number.isFinite(parsed)&&new Date(parsed).toISOString().slice(0,10)===value;
+}
 export function counselingQuestion(question){
   const text=question.normalize('NFKC').trim();
   if(!/\bcounsel(?:ing|ling)\b|\bpsychological (?:assessment|test(?:ing)?)\b|心理(?:諮商|測驗)|諮商/u.test(text.toLowerCase()))return null;

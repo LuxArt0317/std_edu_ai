@@ -1,5 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {readClubEquipmentCancellationContext} from './accountClubEquipmentAnswer.js';
+import {readCounselingCancellationContext} from './accountCounselingEvidence.js';
+import {counselingPath,counselingAppointmentsPath} from './counselingContract.js';
 import {loadOwnAffairsActionContext} from './affairsWorkspace.js';
 import {clubEquipmentPath} from './clubEquipmentIntent.js';
 import {clubUuid} from './clubServicesContract.js';
@@ -26,6 +28,15 @@ export async function answerRequestedAffairsAction({account,question,selection,r
     }
     if(form)equipmentId=edit[0]?.toLowerCase();
   }
+  if(selection.kind==='counseling_cancel'){
+    const page=new URL(route,'https://stu.best');
+    const path=page.pathname.replace(/\/$/u,'');
+    const counselingRoute=path===counselingPath||path.startsWith(counselingPath+'/');
+    if(counselingRoute&&([counselingPath,counselingAppointmentsPath,counselingPath+'/consent'].every(candidate=>candidate!==path)||page.search)){
+      return {...base,status:'clarification',answer:say('Open [My appointments]('+counselingAppointmentsPath+') to cancel a saved appointment.',
+        '請從[我的預約紀錄]('+counselingAppointmentsPath+')選擇要取消的預約。')};
+    }
+  }
   const activity=[];
   const progress=step=>{
     const index=activity.findIndex(item=>item.kind===step.kind);
@@ -41,13 +52,15 @@ export async function answerRequestedAffairsAction({account,question,selection,r
     if(!prepared.action)return {...base,status:'clarification',answer:prepared.clarification};
     const pending=selection.kind==='cancel_club_equipment'
       ?say('Review the club equipment request below. Confirm to cancel it.','請檢查下方的社團器材借用申請，確認後即可取消。')
+      :selection.kind==='counseling_cancel'
+      ?say('Review the saved appointment below. Confirm to cancel it.','請檢查下方已儲存的預約，確認後即可取消。')
       :selection.kind==='set_assignment_status'
       ?say('Confirm to update your stu.best personal tracker. You can submit coursework separately on its assignment page.','確認後會更新你的 stu.best 個人作業追蹤。若要繳交作業，請至作業頁面。')
       :say('Review the proposed change below. I’ll apply it to your stu.best account after you confirm.','請確認下方的變更。確認後才會套用至你的 stu.best 帳戶。');
     return {...base,status:'answered',answer:pending,proposedAction:prepared.action};
   };
   if(selection.ambiguous)return {...base,status:'clarification',answer:prepareAccountAction(question,{}).clarification,activity};
-  const readLabels={profile:'School Affairs account',tasks:'Open task',assignments:'Personal assignment tracker',dtm:'Personal Moodle course',clubEquipment:'Club equipment request'};
+  const readLabels={profile:'School Affairs account',tasks:'Open task',assignments:'Personal assignment tracker',dtm:'Personal Moodle course',clubEquipment:'Club equipment request',counselingAppointments:'Saved appointment'};
   const read=async attempt=>{
     const kind='action-context:'+attempt;
     try{
@@ -65,6 +78,14 @@ export async function answerRequestedAffairsAction({account,question,selection,r
         onRead('clubEquipment','complete');
         if(equipmentId)clubEquipment.rows=clubEquipment.rows.filter(row=>row.id===equipmentId);
         context={clubEquipment};
+      }else if(selection.kind==='counseling_cancel'){
+        onRead('counselingAppointments','running');
+        const counseling=await readCounselingCancellationContext(account,selection,deadline).catch(error=>{
+          onRead('counselingAppointments','unavailable');
+          throw error;
+        });
+        onRead('counselingAppointments','complete');
+        context={counseling};
       }else{
         context=await loadOwnAffairsActionContext(account,selection,{deadline,onRead});
       }

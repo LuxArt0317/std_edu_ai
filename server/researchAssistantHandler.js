@@ -36,7 +36,7 @@ import {aidPaymentsLookupContext,aidPaymentsNavigation} from './aidPaymentsEvide
 import {aidPaymentsCapabilityGuide,aidPaymentsGuide,aidPaymentsUnsupportedAction} from './aidPaymentsGuide.js';
 import {withoutExcludedHealthClause} from './healthExaminationEvidenceIntent.js';
 import {selectCounselingEvidence,withoutExcludedCounselingClause} from './counselingEvidenceIntent.js';
-import {counselingPath,counselingGuide,counselingQuestion} from './counselingContract.js';
+import {counselingPath,counselingAppointmentsPath,counselingGuide,counselingQuestion} from './counselingContract.js';
 import {certificateAwardQuestion} from './certificateAwardsContract.js';
 import {certificateAwardGuide} from './certificateAwards.js';
 import {announcementEmailQuestion} from './announcementEmailContract.js';
@@ -390,7 +390,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
         const action=!input.images.length&&parseExplicitAccountAction(input.question);
         if(action){
             const zh=/[\u3400-\u9fff]/u.test(input.question);
-            const path=action.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
+            const path=action.kind==='counseling_cancel'?counselingAppointmentsPath
+                :action.kind==='set_assignment_status'?'/dtm/assignments':'/school-affairs/records';
             const url='/school-affairs/login?next='+encodeURIComponent(path);
             const title=zh?'登入後確認變更':'Sign in to review a change';
             stream.send(200,{status:'handoff',answer:'['+title+']('+url+')',citations:[{title,url}],suggestedQuestions:[],

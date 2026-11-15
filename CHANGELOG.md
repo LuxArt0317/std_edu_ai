@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Let signed-in students confirm cancellation of one saved counseling or psychological assessment appointment from the campus assistant. Verify the native cancellation receipt before displaying the result. [#100]
+
 - Follow another public school source when a verified reply still leaves part of the question unanswered, and keep the verified facts when the extra search cannot fill the gap. [#100]
 
 - Summarize the services listed on the exact archived page, with its title, link and capture date. [#100]

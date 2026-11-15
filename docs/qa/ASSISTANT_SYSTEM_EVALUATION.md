@@ -398,3 +398,9 @@ Digital Academy metadata migration `20261115110100` passed the exact isolated Po
 The public source reader stops before following a recognized school sign-in redirect. A relevant original school link can appear under **Official source links**. The section provides navigation and keeps the unread notice outside the answer’s citations and verification evidence. A published notice index can still provide its original link after a timeout. The sign-in label requires an observed access gate.
 
 An unauthenticated read of the original OneDrive notice on 2026-11-15 returned HTTP 303 to the school’s DTM login path. The check stopped at that redirect. The public assistant can provide the indexed notice link while the student quota and publication date remain unverified. The local handler regressions cover both a withheld answer and a separately verified partial answer without including the login path or notice text in the reviewer input.
+
+### Confirmed counseling cancellation
+
+Ask “Cancel my counseling appointment” while signed in to School Affairs. The assistant matches one caller-owned eligible appointment and offers a confirmation with its saved status and Taipei calendar date. An exact appointment date can distinguish the target. The native cancellation runs after confirmation. The assistant checks the cancellation receipt and retains the same request ID if the confirmation needs a retry. Booking an appointment uses the existing consent screen.
+
+`node --experimental-strip-types --test tests/api/counseling-cancellation-assistant.test.ts` covers caller ownership, date and status selection, ambiguous and foreign requests, the signed-out handoff, and the confirmed native request. The local browser scenario in `tests/integration/assistant-confirmed-action-ui.mjs` checks the confirmation, mismatched receipt, same-ID retry and verified status text. A protected Preview mutation replay is pending.

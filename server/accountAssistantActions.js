@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {clubEquipmentPath} from './clubEquipmentIntent.js';
+import {counselingAppointmentsPath,counselingKinds,counselingStatus} from './counselingContract.js';
 
 const within = (value,min,max) => typeof value==='string' && [...value].length>=min && [...value].length<=max;
 const same = (left,right) => typeof left==='string' && left.normalize('NFKC').toLowerCase()===right.normalize('NFKC').toLowerCase();
@@ -15,6 +16,9 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
   if(requested.ambiguous&&kind==='cancel_club_equipment')return clarify(
     'Please ask to cancel one club equipment request. You can give its exact club or item name in quotes, or its pickup date (YYYY-MM-DD).',
     '請一次取消一筆社團器材借用申請，可用引號標註社團或器材完整名稱，或提供領取日期（YYYY-MM-DD）。');
+  if(requested.ambiguous&&kind==='counseling_cancel')return clarify(
+    'Please ask to cancel one of your saved appointments. You can give its exact date in YYYY-MM-DD format.',
+    '請一次取消一筆自己的預約，可提供確切日期（YYYY-MM-DD）。');
   if(requested.ambiguous)return clarify('Ask for one change at a time. Quote the exact title or nickname if it contains instructions.',
     '請一次要求一項變更。如果標題或暱稱含有指令文字，請加上引號。');
   const proposal=(label,payload,url='/school-affairs/records')=>Buffer.byteLength(JSON.stringify(payload),'utf8')<=3850
@@ -55,6 +59,23 @@ export function prepareAccountAction(question,snapshot,{requestId=randomUUID()}=
         '這筆申請目前無法取消，可至[我的社團器材借用紀錄]('+clubEquipmentPath+')查看。');
     return proposal(say(`Cancel ${row.club} · Pickup ${row.pickup} · ${row.items[0]}`,`取消 ${row.club} · 領取日期 ${row.pickup} · ${row.items[0]}`),
       {id:row.id,expected_version:String(row.version)},clubEquipmentPath);
+  }
+  if(kind==='counseling_cancel'){
+    const appointments=snapshot.counseling;
+    if(!appointments||appointments.capped)return clarify('Open [My appointments]('+counselingAppointmentsPath+') to select the appointment to cancel.',
+      '請從[我的預約紀錄]('+counselingAppointmentsPath+')選擇要取消的預約。');
+    const matches=appointments.rows.filter(row=>row.kind===requested.appointmentKind&&(!requested.id||row.id===requested.id)
+      &&(!requested.date||row.date===requested.date));
+    if(matches.length!==1)return clarify('I couldn’t identify one eligible appointment. Check the date and current status in [My appointments]('+counselingAppointmentsPath+').',
+      '無法確認一筆符合取消條件的預約。請在[我的預約紀錄]('+counselingAppointmentsPath+')核對日期與狀態。');
+    const row=matches[0];
+    if(!['requested','scheduled'].includes(row.status)||row.version>=1_000_000)
+      return clarify('This appointment is no longer eligible for cancellation. See [My appointments]('+counselingAppointmentsPath+').',
+        '這筆預約目前無法取消。請查看[我的預約紀錄]('+counselingAppointmentsPath+')。');
+    const dateLabel=row.status==='scheduled'?say('Scheduled date','安排日期'):say('Preferred date','希望日期');
+    const title=say(row.kind==='assessment'?'Psychological assessment':'Counseling',counselingKinds[row.kind]);
+    return proposal(`${say('Cancel','取消')} ${title} · ${dateLabel} ${row.date} · ${counselingStatus[row.status][zh?0:1]}`,
+      {id:row.id,expected_version:String(row.version)},counselingAppointmentsPath);
   }
   const matches=(snapshot.assignments??[]).filter(row=>target&&same(row.title,target));
   if(matches.length!==1)return clarify('Which personal assignment tracker in stu.best should I update? Please give its exact title.','請提供要更新的個人作業追蹤完整標題。');
