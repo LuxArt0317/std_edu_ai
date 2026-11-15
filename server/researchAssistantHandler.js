@@ -82,7 +82,8 @@ import { questionKind, publicSchoolQuestion, safeWebSource, searchSchoolWeb } fr
 import { searchAssistantKnowledge } from "./assistantKnowledge.js";
 import { inferKnowledgeLanguage } from "./knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "./researchOperations.js";
-import { answerCampusNavigation, answerDirectoryQuestion, campusDirectoryResearch, directoryEntries } from "./schoolAffairsDirectory.js";
+import { answerCampusNavigation, answerDirectoryQuestion, answerSchoolServiceNotice, campusDirectoryResearch, directoryEntries } from "./schoolAffairsDirectory.js";
+import {schoolServiceNoticeForRoute} from '../src/features/public/affairs/noticePages.js';
 import { createAssistantStream } from "./assistantStream.js";
 import { normalizeMissingDetails, runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
@@ -159,7 +160,8 @@ function parse(body) {
     const entryRoute=campusEntryIntent(question,source.route)?.path??learningEntryIntent(question,source.route)?.context;
     const submissionTimingRoute=typeof source.route==='string'&&source.route.startsWith('/dtm/course/')
       ?selectDtmSubmissionTiming(question,source.route,history)?.path:null;
-    const route = source.route==='/account-status'?source.route:entryRoute??serviceNoteContextRoute(source.route)??submissionTimingRoute??(offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
+    const noticeRoute=schoolServiceNoticeForRoute(source.route)?.route;
+    const route = source.route==='/account-status'?source.route:entryRoute??noticeRoute??serviceNoteContextRoute(source.route)??submissionTimingRoute??(offeringRoute?offeringRoute:isElearningMetadataQuestion(question,metadataRoute)?metadataRoute:
         isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
@@ -906,6 +908,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const directoryEligible = !input.images.length && !kind.personal && !personalQuestion && !kind.irrelevant;
+        const notice = !input.images.length && !kind.irrelevant ? answerSchoolServiceNotice(input.question,input.route) : null;
+        if(notice){
+            const [step]=notice.activity;
+            stream.progress(step.kind,step.label,step.detail,step.status);
+            stream.send(200,notice);
+            return;
+        }
         const isSchoolMenu = /^\/school-affairs\/(?:search|menu\/[a-zA-Z]+\/[a-z]+)\/?$/u.test(input.route);
         const checkDirectory = () => {
             stream.progress('directory', 'Checking school services', 'Looking for a matching service in the captured directory.');

@@ -9,6 +9,7 @@ import {adjustmentPaths} from './courseAdjustmentContract.js';
 import {programRegistrationPath} from './programRegistrationContract.js';
 import {curriculumMapPath} from '../src/features/public/affairs/curriculumMaps.js';
 import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
+import {schoolServiceNoticeForRoute} from '../src/features/public/affairs/noticePages.js';
 import {
   interdisciplinaryProgramsPath, internshipPath, leavePath, officialInternshipUrl, officialLeaveUrl, officialRegistrarUrl, officialWifiUrl,
   schoolMenuPrograms, schoolServiceEntries, studentServiceByKey, teachingAssistantPath, tutorEvaluationPath, wifiGuidePath,
@@ -320,7 +321,30 @@ export function answerSchoolSystemSearch(question,route) {
     suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},
     activity:[{kind:'directory',label:'Checked School Affairs system search',detail:title,status:'complete'}]};
 }
+export function answerSchoolServiceNotice(question,route) {
+  const notice=schoolServiceNoticeForRoute(route);
+  if(!notice)return null;
+  const chinese=/[\u3400-\u9fff]/u.test(question);
+  const prompt=question.normalize('NFKC').trim().replace(/[?？。.!]+$/u,'');
+  const matched=chinese
+    ? /^(?:這(?:個|則)?(?:通知|提示|訊息)(?:是)?什麼意思|按(?:下)?確定(?:之後|後)?(?:會)?(?:去哪裡|回到哪(?:一)?頁)|這(?:個)?頁面說什麼)$/u
+    : /^(?:what does (?:this|the) (?:notice|message|alert|page) (?:say|mean)|where (?:does confirming (?:this|the) notice take me|(?:do|will) i go (?:when|after) i (?:press|click|choose) confirm)|what happens (?:when|if) i (?:press|click|choose) confirm)(?:\s+and\s+(?:where does confirming it take me|what happens (?:when|if) i (?:press|click|choose) confirm))?$/iu;
+  if(!matched.test(prompt))return null;
+  const title=chinese?notice.title:notice.englishTitle;
+  const destination=notice.returnTitle[chinese?0:1];
+  const link=markdownLink(destination,notice.resultingRoute);
+  const answer=chinese
+    ? `${title}\n\n按「確定」即可返回${link}。`
+    : `${title}\n\nChoose 確定 (Confirm) to return to ${link}.`;
+  return {status:'answered',answer,citations:[{
+    chunkId:'directory:notice:'+notice.id,claim:title,title,sourceName:'stu.best School Affairs',
+    url:notice.route,locator:null,effectiveAt:null,reviewedAt:null,
+  }],suggestedQuestions:[],grounding:{source:'directory',webSearched:false,checkedAt:new Date().toISOString()},
+  activity:[{kind:'service-notice',label:chinese?'已查核頁面提示':'Checked the page notice',detail:title,status:'complete'}]};
+}
 export function answerDirectoryQuestion(question, route='') {
+  const noticeAnswer=answerSchoolServiceNotice(question,route);
+  if(noticeAnswer)return noticeAnswer;
   const searchAnswer=answerSchoolSystemSearch(question,route);
   if (searchAnswer) return searchAnswer;
   const here = /\b(?:here|this page|this section|on this screen|services here|what can i do)\b|這(?:裡|裏|頁|個頁面)|此頁|這些(?:服務|資訊)/i.test(question);

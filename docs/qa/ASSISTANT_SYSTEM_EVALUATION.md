@@ -463,3 +463,9 @@ node --experimental-strip-types --test tests/evaluation/facility-repair-native-h
 ```
 
 Exact protected `fc357c6` passed all 15 mounted Facility Repair questions after the direct verification change. The evaluator completed all 15 request pairs and 46 release checks. It verified the saved note, no-event and blank-note distinctions, selected and list scopes, both next-class question orders, exact absence, and action and other-caller boundaries. Two disposable accounts were removed. The separate protected cancellation replay `c123fd5` passed 13 checks. [Issue #100](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6898834727)
+
+### School Affairs notice screens
+
+The Teaching Assistant report and grant receipt dialogs each include a Campus Assistant button. The browser check opens the assistant from the notice at desktop and phone widths, sends the exact notice route, saves the chat, and checks keyboard focus again before using Confirm. Four bilingual questions require the actual notice and destination link. Both HTTP handlers answer from the same notice definitions displayed by the app. A notice provides no payment, award or submission status.
+
+Run `node tests/integration/assistant-renderer-inventory.mjs --family school-service-acknowledgements` for the eight browser comparisons. Run `node --experimental-strip-types --test tests/evaluation/school-service-notice-handler.test.mjs tests/evaluation/route-contracts.test.mjs` for the route and reply checks.

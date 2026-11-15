@@ -3,6 +3,7 @@ export type DirectoryAnswer = {status:'answered';answer:string;citations:Array<{
 export const directoryEntries: DirectoryEntry[];
 export function answerDirectoryQuestion(question:string,route?:string): DirectoryAnswer|null;
 export function answerSchoolSystemSearch(question:string,route:string): DirectoryAnswer|null;
+export function answerSchoolServiceNotice(question:string,route:string): DirectoryAnswer|null;
 export function answerCampusNavigation(question:string): DirectoryAnswer|null;
 
 export function campusDirectoryResearch(question:string):{directory:DirectoryAnswer;question:string;directoryFirst:boolean}|null;

@@ -17,8 +17,8 @@ import {parkingInstructionsPath} from '../../src/features/public/affairs/parking
 import {serviceLeadershipPath,serviceLeadershipViews} from '../../src/features/public/affairs/serviceLeadership.js';
 import {interdisciplinaryProgramsPath,learningSupportPath,schoolServiceNoteIds,teachingAssistantPath} from '../../src/features/public/affairs/studentServices.js';
 import {venuePaths} from '../../src/features/public/affairs/venueContract.js';
+import {exchangeGrantPath} from '../../src/features/public/affairs/noticePages.js';
 
-const exchangeGrantPath='/school-affairs/services/23-1';
 const views=(path,names)=>names.map(name=>path+'/'+name);
 
 // Signed-in views mounted by SchoolAffairsPortal beyond the service catalog
@@ -48,7 +48,4 @@ export const schoolServiceViews=[
 
 // These exact pages show a blocking notice and require acknowledgement before
 // their parent workspace becomes interactive. They keep their own route proof.
-export const schoolServiceNotices=[
-  {route:teachingAssistantPath+'/report',resultingRoute:teachingAssistantPath,title:'目前無法開啟學習單。'},
-  {route:exchangeGrantPath+'/receipts',resultingRoute:exchangeGrantPath,title:'目前沒有可列印的印領清冊。'},
-];
+export {schoolServiceNotices} from '../../src/features/public/affairs/noticePages.js';

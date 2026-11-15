@@ -86,11 +86,14 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     pending = useRef<AbortController | null>(null),
     pendingAction = useRef<AbortController | null>(null),
     openedFromMenu = useRef(false),
+    noticeLauncher = useRef<HTMLButtonElement | null>(null),
     sequence = useRef(0);
   useEffect(() => () => {pending.current?.abort();pendingAction.current?.abort();}, []);
   useEffect(() => {
-    const openFromAccount = () => {
-      openedFromMenu.current=true;
+    const openFromAccount = (event:Event) => {
+      const trigger=event instanceof CustomEvent && event.detail instanceof HTMLButtonElement ? event.detail : null;
+      noticeLauncher.current=trigger;
+      openedFromMenu.current=!trigger;
       setOpen(true);
     };
     window.addEventListener(campusAssistantOpenEvent, openFromAccount);
@@ -258,6 +261,13 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         aria-describedby="public-assistant-description"
         showCloseButton={!embedded}
         onCloseAutoFocus={(event) => {
+          const notice=noticeLauncher.current;
+          noticeLauncher.current=null;
+          if (notice?.isConnected) {
+            event.preventDefault();
+            notice.focus();
+            return;
+          }
           const fromMenu=openedFromMenu.current;
           openedFromMenu.current=false;
           if (showLauncher && !fromMenu) return;

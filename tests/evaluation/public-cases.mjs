@@ -2,6 +2,26 @@ import {buildSchoolMenuNativeCases} from './school-menu-native-cases.mjs';
 import {createHash} from 'node:crypto';
 
 const caseBase={fixtureKey:'anonymous',language:'en',mode:'navigation',capability:{level:'public',limitation:null}};
+export function buildSchoolServiceNoticeCases(){
+  return [
+    ['teaching-report-en','25-1/report','25-1','en','What does this notice mean?',
+      'The learning report cannot be opened right now.','Teaching Assistant Management','teaching-report'],
+    ['teaching-report-zh','25-1/report','25-1','zh-TW','按下確定後會回到哪一頁？',
+      '目前無法開啟學習單。','教學助理管理系統','teaching-report'],
+    ['exchange-receipts-en','23-1/receipts','23-1','en','What does this notice say and what happens if I press Confirm?',
+      'There is currently no receipt list to print.','Grant Application Management','exchange-receipts'],
+    ['exchange-receipts-zh','23-1/receipts','23-1','zh-TW','這個提示是什麼意思？',
+      '目前沒有可列印的印領清冊。','助學金申請管理系統','exchange-receipts'],
+  ].map(([id,path,destination,language,question,text,title,source])=>{
+    const route='/school-affairs/services/'+path;
+    return {...caseBase,id:'public-school-service-notice-'+id,domain:'school-service-notice',
+      routeFamily:'school-service-acknowledgements',route,language,question,
+      expected:{behavior:'navigation',requiredText:[text,title,'確定'],requiredTools:[],maximumAttemptedTools:0,
+        requiredLinks:[route,'/school-affairs/services/'+destination],noAction:true,localLinksOnly:true,forbidPublicResearch:true,
+        requiredSourceBindings:[{sourceId:'directory:notice:'+source,url:route}],
+        forbiddenText:['paid out','award is denied','application is rejected','已付款','申請不通過']}};
+  });
+}
 export function buildPublicCases(inventory) {
   const pages=inventory.publicPages.map(page=>{
     const titleAvailable=typeof page.title==='string'&&Boolean(page.title.trim());
@@ -88,5 +108,5 @@ export function buildPublicCases(inventory) {
       forbidPublicResearch:true,noAction:true},
     coveragePurpose:'Institutional facts, citation binding and dated capture provenance.',
   })):[];
-  return [...pages,...questions,...menuPages,customMenu,...buildSchoolMenuNativeCases(),...privacy,studyPlanning,...institutional];
+  return [...pages,...questions,...menuPages,customMenu,...buildSchoolMenuNativeCases(),...buildSchoolServiceNoticeCases(),...privacy,studyPlanning,...institutional];
 }

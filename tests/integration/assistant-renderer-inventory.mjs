@@ -253,7 +253,8 @@ async function checkRoute(page,contextState,row,mode,device,origin){
   const probe=useProbe?rendererContextProbes.get(row.route):null;
   contextState.activeProbe=null;contextState.assistantCalls=0;contextState.conversationSaves=0;
   let stage='navigate',finalPath=null,nativeDataRendered=false,academicDataRendered=false,certificateDataRendered=false,repairViewVerified=false,
-    clubView=null,readbackRoute,assistantPageContextPassed=false,learningSupportReviewVerified=false,staffReviewVerified=false;
+    clubView=null,readbackRoute,assistantPageContextPassed=false,learningSupportReviewVerified=false,staffReviewVerified=false,
+    assistantFromNotice=false;
   const checks={navigationSucceeded:false,workspaceMounted:false,sessionVerified:false,assistantPresent:false,keyboardUsable:false};
   try{
     const [pdfResponse,response]=await Promise.all([
@@ -268,6 +269,31 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     if(mode.state&&row.notice){
       stage='workspace-notice';
       const notice=page.getByRole('alertdialog',{name:row.notice.title,exact:true});
+      const noticeLauncher=notice.getByRole('button',{name:'Ask Campus Assistant'});
+      await noticeLauncher.focus();
+      await page.keyboard.press('Enter');
+      const assistant=page.getByRole('dialog',{name:dialogName,exact:true});
+      await assistant.getByRole('link',{name:mode.name,exact:true}).waitFor();
+      await settledFocus(page,'.public-assistant-surface');
+      assert.equal(new URL(page.url()).pathname,row.notice.route);
+      stage='notice-page-context';
+      const question='What does this notice mean?';
+      const reply='Checked the exact service notice.';
+      contextState.activeProbe={probe:{question,route:row.notice.route},reply};
+      await assistant.getByPlaceholder('Ask a school question…').fill(question);
+      await assistant.getByRole('button',{name:'Send',exact:true}).click();
+      await assistant.getByText(reply,{exact:true}).waitFor();
+      await assistant.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
+      assert.equal(contextState.assistantCalls,1);
+      assert.equal(contextState.conversationSaves,1);
+      contextState.activeProbe=null;
+      stage='notice-focus-return';
+      await page.keyboard.press('Escape');
+      await assistant.waitFor({state:'hidden'});
+      await settledFocus(page,'[aria-label="Ask Campus Assistant"]');
+      await notice.waitFor();
+      assistantFromNotice=true;
+      stage='notice-confirmation';
       await notice.getByText('確定',{exact:true}).press('Enter');
       await page.waitForURL(origin+row.notice.resultingRoute);
       await notice.waitFor({state:'hidden'});
@@ -396,6 +422,7 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     mode.state?'synthetic-signed-in':'guest';
   return {route:row.route,expectedRoute:mode.state?row.final:row.guest,finalPath,families:row.families,evidenceScope:row.evidenceScope,
     auth,device,checks,passed:stage===null,failureStage:stage,reads,
+    ...(row.notice&&mode.state?{assistantFromNotice}:{}),
     ...(dtmExpectation?{nativeDataRendered}:{}),...(academicExpectation?{academicDataRendered}:{}),
     ...(certificateView?{certificateView,certificateDataRendered}:{}),
     ...(learningSupportReview?{learningSupportReviewView:mode.staff?'manager-review':'student-denied',learningSupportReviewVerified}:{}),
@@ -465,7 +492,7 @@ try{
   browser=await chromium.launch({headless:true,executablePath});
   for(const [device,viewport] of Object.entries(viewports)){
     for(const mode of [roleAccount,roleGuest,roleManager,roleCounselingCoordinator,roleVenueManager]){
-      const routes=selected.filter(row=>(device==='desktop'||contextualPhoneRoutes.has(row.route))&&(!mode.staff||staffForRoute(row.route)===mode.staff));
+      const routes=selected.filter(row=>(device==='desktop'||row.notice||contextualPhoneRoutes.has(row.route))&&(!mode.staff||staffForRoute(row.route)===mode.staff));
       if(!routes.length)continue;
       const context=await browser.newContext({viewport,reducedMotion:'reduce',serviceWorkers:'block'});
       try{
@@ -478,7 +505,7 @@ try{
         for(const row of routes){
           // A fresh tab gives the synthetic question an empty conversation while
           // retaining the same authenticated browser and native page code.
-          const probePage=mode.state&&rendererContextProbes.has(row.route)?await openPage():null;
+          const probePage=mode.state&&(row.notice||rendererContextProbes.has(row.route))?await openPage():null;
           try{
             const outcome=await checkRoute(probePage??page,observation,row,mode,device,origin);
             outcomes.push(outcome);
@@ -503,7 +530,7 @@ try{
   await server?.close();
   await rm(cache,{recursive:true,force:true});
   await mkdir(join(root,'artifacts/assistant-renderer'),{recursive:true,mode:0o700});
-  const phoneRoutes=selected.filter(row=>contextualPhoneRoutes.has(row.route));
+  const phoneRoutes=selected.filter(row=>row.notice||contextualPhoneRoutes.has(row.route));
   const staffRoles=[...selected,...phoneRoutes].map(row=>staffForRoute(row.route)).filter(Boolean);
   const staffComparisons=staffRoles.length;
   const managerComparisons=staffRoles.filter(role=>role===roleManager.staff||role===roleVenueManager.staff).length;

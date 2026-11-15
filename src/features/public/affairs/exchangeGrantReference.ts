@@ -1,4 +1,4 @@
-export const exchangeGrantPath = '/school-affairs/services/23-1';
+export {exchangeGrantPath} from './noticePages.js';
 export const exchangeGrantTitle = '國際交流暨校外參賽助學金申請管理系統';
 export const exchangeGrantManual = '/stu-reference/grants/operation-manual.pdf';
 export const exchangeGrantMenu = [

@@ -9,13 +9,14 @@ import {buildAccountCases} from './account-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
 import {buildPublicCases} from './public-cases.mjs';
 import {buildSchoolMenuNativeCases} from './school-menu-native-cases.mjs';
+import {buildSchoolServiceNoticeCases} from './public-cases.mjs';
 import {buildDtmMaterialCases} from './dtm-material-cases.mjs';
 import {internshipRunnerCases} from './internship-native-runner.mjs';
 import {dtmAssignmentListCases} from './dtm-assignment-list-cases.mjs';
 import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import {elearningCatalogRunnerCases} from './elearning-catalog-runner.mjs';
 import {accountStatusCases} from './account-status-cases.mjs';
-import {schoolServiceNotices,schoolServiceViews} from './school-service-views.mjs';
+import {schoolServiceViews} from './school-service-views.mjs';
 
 const revision='offline-route-contract';
 const observe=(route,extra={})=>({route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true,...extra});
@@ -254,15 +255,16 @@ test('route coverage retains only unresolved semantic cases after adding public 
   newIds.push(...clubCases.map(row=>row.id),'anonymous-records-clubAttendance','anonymous-records-clubEquipment');
   const institutionalIds=['public-institution-founding-mission','public-institution-motto'];
   const publishedCoachingIds=['account:published-sample-current-courses-plus-interview-draft'];
-  newIds.push(...institutionalIds,...publishedCoachingIds);
+  const noticeIds=buildSchoolServiceNoticeCases().map(row=>row.id);
+  newIds.push(...institutionalIds,...publishedCoachingIds,...noticeIds);
   assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
-  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds,publishedCoachingIds])
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds,publishedCoachingIds,noticeIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   const alreadyCoveredServiceViews=new Set(['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id',
     '/school-affairs/services/29-1/appointments','/school-affairs/services/37-1/salary']);
   const missingServiceViews=schoolServiceViews.filter(route=>!alreadyCoveredServiceViews.has(route)).map(route=>
     route.replace('?page=:page','?page=%3Apage'));
-  const unresolved=[...expected,...added,...missingServiceViews,...schoolServiceNotices.map(row=>row.route),
+  const unresolved=[...expected,...added,...missingServiceViews,
     '/school-affairs/course-selection','/school-affairs/course-selection/review/tutor','/school-affairs/course-selection/review/dean',
     '/school-affairs/course-selection/review/academic','/school-affairs/admin/records','/dtm/course/:id/grades/overview'];
   assert.equal(report.coverage.routes.total,675);
@@ -270,7 +272,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
   assert.deepEqual([...report.coverage.routes.missing].sort(),unresolved.sort());
   assert.equal(report.browserAcceptance.total,675);assert.equal(report.browserAcceptance.requiredScenarios,685);
   assert.equal(report.coverage.routeFamilies.total,57);
-  assert.deepEqual(report.coverage.routeFamilies.missing,['school-service-acknowledgements','student-club-equipment','dtm-submissions',
+  assert.deepEqual(report.coverage.routeFamilies.missing,['student-club-equipment','dtm-submissions',
     'elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
   assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,unresolved.length);

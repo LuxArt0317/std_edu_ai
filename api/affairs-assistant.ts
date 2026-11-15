@@ -90,7 +90,7 @@ import { readCatalogEvidence } from '../server/accountCatalogEvidence.js';
 import { readCertificateEvidence } from '../server/accountCertificateEvidence.js';
 import { readSubmissionEvidence } from '../server/accountSubmissionEvidence.js';
 import { readTuitionEvidence } from '../server/accountTuitionEvidence.js';
-import { answerCampusNavigation,answerSchoolSystemSearch,campusDirectoryResearch } from '../server/schoolAffairsDirectory.js';
+import { answerCampusNavigation,answerSchoolServiceNotice,answerSchoolSystemSearch,campusDirectoryResearch } from '../server/schoolAffairsDirectory.js';
 import { isDtmRecordQuestion } from '../server/dtmAnswer.js';
 import { isScholarshipRecordQuestion } from '../server/scholarshipRecords.js';
 import { isStudentAidRecordQuestion } from '../server/studentAidRecords.js';
@@ -434,12 +434,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{stream.send(503,{error:'The selected Digital Academy page could not be checked.'});}
     return;
   }
-  const searchGuide=(!input?.images||Array.isArray(input.images)&&input.images.length===0)&&!questionKind(question).irrelevant
-    ? answerSchoolSystemSearch(question,route) : null;
-  if(searchGuide){
-    const [step]=searchGuide.activity;
+  const pageGuide=(!input?.images||Array.isArray(input.images)&&input.images.length===0)&&!questionKind(question).irrelevant
+    ? answerSchoolSystemSearch(question,route) ?? (!actionRequest ? answerSchoolServiceNotice(question,route) : null) : null;
+  if(pageGuide){
+    const [step]=pageGuide.activity;
     stream.progress(step.kind,step.label,step.detail,step.status);
-    stream.send(200,searchGuide);
+    stream.send(200,pageGuide);
     return;
   }
   if(actionRequest){await replyRequestedAction(actionRequest);return;}
