@@ -130,9 +130,19 @@ Complete standalone Internship answers verify the selected typed fields, text, t
 
 The School Affairs directory adds 22 bilingual catalog cases and an explicit browser-local Custom menu case. Controlled public and signed-in handlers verify links and sibling exclusions without forwarding account data. The Student Leave lifecycle stages caller and foreign sentinels, records uncertain transactions durably, and checks both owners before making any cleanup claim. The lifecycle tests do not authorize the live fixture adapter.
 
-The protected operator mounts 24 of these questions. Run `node tests/evaluation/run-internship-preview.mjs --preflight` for the exact case counts and fixture states. See the linked packet for authorized Preview replay, independent caller and query proofs, and the remaining controlled-only cases.
+The protected operator mounts 26 of these questions. Run `node tests/evaluation/run-internship-preview.mjs --preflight` for the exact case counts and fixture states. See the linked packet for authorized Preview replay, independent caller and query proofs, and the remaining controlled-only cases.
 
 The protected Internship operator includes both question orders that ask for saved contracts and the tuition balance. It binds the charge companion in the signed request, verifies the caller’s student lookup and charge projection independently before and after each answer, and checks that each disposable account can read only its own rows. The model verification count is shared across both sources. The two transport-failure cases remain controlled. The two frozen next-class cases still need a safe catalog binding for the exact dated meeting.
+
+### Confirmed facilities repair cancellation
+
+```sh
+node tests/evaluation/run-facility-repair-cancellation-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Use the exact clean deployed revision, an authorized Development `VERCEL_OIDC_TOKEN`, and the existing client fixture configuration. The 13 cases check that the assistant proposes cancellation from an exact owned report without changing it, that confirmation records one cancel event, and that a retry returns the identical receipt. They also cover the guest, unselected, other-owner, unrelated, ineligible, wrong-version, stale, and changed-retry paths. Each step compares the native API projections for both disposable callers with independently read database rows and events.
+
+The operator report in `artifacts/assistant-evaluation` contains safe status, counts, request and receipt digests, and cleanup proof. The private fixture journal records the exact allowed native event before confirmation. Uncertain or unexpected writes leave the journal for recovery. Run `node --test tests/evaluation/facility-repair-cancellation-preview.test.mjs tests/evaluation/vercel-preview-transport.test.mjs` for the local acceptance and transport contracts.
 
 ### Moodle assignment lists
 

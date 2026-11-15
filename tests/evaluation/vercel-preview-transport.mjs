@@ -52,27 +52,28 @@ function boundTaskCommand(command){
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
-function boundCancellation(command,kind,label){
+function boundCancellation(command,kind,label,versionKey='expected_version',maximumVersion=999999){
   const {callerToken,body}=command??{};
   if(typeof callerToken!=='string'||callerToken.length>16000||!jwt.test(callerToken)||!body
     ||Object.keys(body).sort().join(',')!=='kind,payload'||body.kind!==kind
-    ||!body.payload||Object.keys(body.payload).sort().join(',')!=='expected_version,id,request_id')fail('invalid '+label+' cancellation fixture');
-  const {request_id,id,expected_version}=body.payload;
+    ||!body.payload||Object.keys(body.payload).sort().join(',')!==[versionKey,'id','request_id'].sort().join(','))fail('invalid '+label+' cancellation fixture');
+  const {request_id,id,[versionKey]:version}=body.payload;
   if(!isConversationId(request_id)||request_id[14]!=='4'||!isConversationId(id)||id[14]!=='4'||id===request_id
-    ||!Number.isInteger(expected_version)||expected_version<1||expected_version>=1000000)fail('invalid '+label+' cancellation fixture');
+    ||!Number.isInteger(version)||version<1||version>maximumVersion)fail('invalid '+label+' cancellation fixture');
   return {authorization:'Bearer '+callerToken,body:JSON.stringify(body)};
 }
 
 /** Relay one operator-supplied identity only to the exact approved deployment.
  * Vercel validates the signature and trust rule. Caller Auth is independent. */
-export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
+export function createTrustedPreviewFetch({origin,token,conversationId,conversationDeleteFixtures,confirmedTaskCommand,confirmedClubCommand,confirmedCounselingCommand,confirmedRepairCommand,fetchImpl=globalThis.fetch,now=Date.now}={}){
   if(!isEvaluationPreviewOrigin(origin)||typeof fetchImpl!=='function'||typeof now!=='function'
     ||conversationId!==undefined&&!isConversationId(conversationId))fail('invalid Preview target');
   const deleteProbe=conversationDeleteFixtures!==undefined,deleteQueries=new Set(),deleteBodies=new Set();
   const taskCommand=confirmedTaskCommand===undefined?null:boundTaskCommand(confirmedTaskCommand);
   const clubCommand=confirmedClubCommand===undefined?null:boundCancellation(confirmedClubCommand,'cancel_club_equipment','club');
   const counselingCommand=confirmedCounselingCommand===undefined?null:boundCancellation(confirmedCounselingCommand,'counseling_cancel','counseling');
-  const commands=[taskCommand,clubCommand,counselingCommand].filter(Boolean);
+  const repairCommand=confirmedRepairCommand===undefined?null:boundCancellation(confirmedRepairCommand,'cancel_facility_repair','repair','version',10000);
+  const commands=[taskCommand,clubCommand,counselingCommand,repairCommand].filter(Boolean);
   const [actionCommand]=commands;
   if(actionCommand&&(commands.length!==1||deleteProbe||conversationId!==undefined))fail('invalid confirmed action fixture');
   let actionCommandUsed=false;

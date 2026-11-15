@@ -223,3 +223,22 @@ test('the runner pins before fixtures and keeps their readbacks on the same appr
     process.exitCode=previousExit;
   }
 });
+
+test('confirmed repair transport binds the exact numeric revision and allows one request per declared caller',async()=>{
+  const payload={id:'10000000-0000-4000-8000-000000000041',request_id:'10000000-0000-4000-8000-000000000042',version:1};
+  const body={kind:'cancel_facility_repair',payload},command={callerToken:caller.slice(7),body};
+  const sent=[];
+  const opts={origin,token:tokenAt(time),now:()=>time*1000,fetchImpl:async(url,init)=>{sent.push({url,init});return Response.json({ok:true});}};
+  for(const wrong of [{...payload,version:'1'},{...payload,version:0},{...payload,version:10001},
+    {request_id:payload.request_id,id:payload.id,expected_version:1},{...payload,unrelated:true}]){
+    assert.throws(()=>createTrustedPreviewFetch({...opts,confirmedRepairCommand:{...command,body:{...body,payload:wrong}}}),/invalid repair cancellation/u);
+  }
+  const relay=createTrustedPreviewFetch({...opts,confirmedRepairCommand:command});
+  const endpoint=origin+'/api/affairs-action',init={...post,body:JSON.stringify(body)};
+  await assert.rejects(relay(endpoint,{...init,headers:{...post.headers,Authorization:'Bearer another.caller.signature'}}),/unapproved request operation/u);
+  await assert.rejects(relay(endpoint,{...init,body:JSON.stringify({...body,payload:{...payload,version:2}})}),/unapproved request operation/u);
+  await assert.rejects(relay(origin+'/api/affairs-assistant',init),/unapproved request operation/u);
+  await relay(endpoint,init);
+  await assert.rejects(relay(endpoint,init),/unapproved request operation/u);
+  assert.equal(sent.length,1);
+});

@@ -90,7 +90,7 @@ export async function changeFacilityRepairFixtureRows(sql,{previous,next,identit
 }
 
 /** Compare the native list and full detail lineage using both caller sessions. */
-export async function verifyFacilityRepairFixtureReadback(plan,read){
+export async function verifyFacilityRepairFixtureReadback(plan,read,{missingId=manifest.reports.missing}={}){
   const proof={};
   for(const owner of plan.owners){
     const reports=plan.reports.filter(row=>row.user_id===owner).sort((a,b)=>b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id));
@@ -103,7 +103,7 @@ export async function verifyFacilityRepairFixtureReadback(plan,read){
       if(response.status!==200||!same(response.body,{userId:owner,detail:row,events}))fail('native detail or event history differs');
       detail.push(normalized(response.body));
     }
-    for(const id of [manifest.reports.missing,...plan.reports.filter(row=>row.user_id!==owner).map(row=>row.id)]){
+    for(const id of [missingId,...plan.reports.filter(row=>row.user_id!==owner).map(row=>row.id)]){
       const denied=await read(owner,id);
       if(denied.status!==404||typeof denied.body?.error!=='string'||Object.keys(denied.body).length!==1)fail('missing or other-account report was not fenced');
     }

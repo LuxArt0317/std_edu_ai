@@ -31,6 +31,9 @@ import {assertElearningFixtureCatalog,assertElearningFixtureRows,elearningFixtur
 import {assertOutlineFixtureRows,assertPublishedOutlineRead,isOutlineFixtureKey,planPublishedOutlineAccess} from './elearning-outline-fixtures.mjs';
 import {assertDormitoryConductFixtureIdentities,assertDormitoryConductFixtureRows,buildDormitoryConductFixturePlan,dormitoryConductFixtureReadContract,dormitoryConductLiveFixtureKey,reconcileDormitoryConductFixturePlans,verifyDormitoryConductFixtureReadback} from './dormitory-conduct-cases.mjs';
 import {buildFacilityRepairFixturePlan,changeFacilityRepairFixtureRows,facilityRepairLiveFixtureKey,verifyFacilityRepairFixtureDatabase,verifyFacilityRepairFixtureReadback} from './facility-repair-fixtures.mjs';
+import {buildFacilityRepairCancellationPlan,deleteFacilityRepairCancellation,FacilityRepairCancellationAssertion,facilityRepairCancellationMode,
+  hasFacilityRepairCancellationProof,observeFacilityRepairCancellation,requestFacilityRepairCancellation,seedFacilityRepairCancellation,
+  verifyFacilityRepairCancellation,verifyFacilityRepairCancellationAbsent} from './facility-repair-cancellation-preview.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
@@ -338,6 +341,7 @@ async function saveLedger(){
       ...(s.dtmTimingPlan?{dtmSubmissionTimingFixture:s.dtmTimingPlan}:{}),
       ...(s.dtmGradePreview?{dtmGradePreview:{courses:s.dtmGradePreview.courses,trackers:s.dtmGradePreview.trackers,
         ...(s.dtmGradeOverview?{profiles:s.dtmGradePreview.profiles,reports:s.dtmGradePreview.reports}:{})}}:{}),
+      ...(s.facilityRepairCancellation?{facilityRepairCancellation:s.facilityRepairCancellation}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.internshipJournal?{internshipFixture:s.internshipJournal}:{}),
@@ -416,7 +420,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -432,9 +436,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
   const dtmGradePreviewOnly=fixtureMode===dtmGradePreviewMode;
   const internshipNativeOnly=fixtureMode===internshipFixtureMode;
+  const facilityRepairCancellationOnly=fixtureMode===facilityRepairCancellationMode;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -450,6 +455,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(internshipNativeOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Internship checks require the exact protected Preview and isolated disposable owners.');
+  if(facilityRepairCancellationOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Facility repair cancellation requires the exact protected Preview and isolated disposable owners.');
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
@@ -531,7 +539,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -574,7 +582,8 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
   state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,internshipNativeOnly,
-    ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
+    facilityRepairCancellationOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
+    admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
       ssl:{rejectUnauthorized:true,ca:await readFile(resolve(ROOT,'supabase/certs/prod-ca-2021.crt'),'utf8')},onnotice:()=>{},
@@ -610,6 +619,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.internshipObservationKey=serviceKey;
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['internshipRecords']};
+    }
+    if(facilityRepairCancellationOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['facilityRepairs']};
     }
     if(leaveDataOnly){
       await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate,serviceKey);
@@ -680,6 +693,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(dtmGradePreviewOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle grade fixture preparation failed.');
       reason.dtmGradePreviewCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(facilityRepairCancellationOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Facility repair cancellation fixture preparation failed.');
+      reason.facilityRepairCancellationCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     try{await cleanup();}catch{/* The original error is safe; ledger remains. */}
@@ -1332,6 +1350,90 @@ export async function runCounselingCancellationPreview({origin,sourceRevision,pr
   }finally{
     try{cleanupProof=await cleanup();}
     finally{await onCheckpoint?.(report(true));}
+  }
+  return report(true);
+}
+
+export async function runFacilityRepairCancellationPreview({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
+    fail('fixture-config','Facility repair cancellation requires an exact protected Preview and source revision.');
+  const runId=randomUUID(),results=[],correlationIds=new Set();
+  let previewGate,prepared=false,completed=false,failure,phase='preflight',cleanupProof={verified:false,status:'not-started'};
+  const report=terminal=>structuredClone({runId,origin,sourceRevision,terminal,results,deployment:previewGate?.status()??null,
+    cleanup:cleanupProof,...(failure?{failure}:{}),liveAcceptance:terminal&&completed&&!failure&&hasFacilityRepairCancellationProof(results)
+      &&cleanupProof.verified===true&&cleanupProof.facilityRepairCancellationCleanup===true&&cleanupProof.protectedOwnerUnchanged===true});
+  try{
+    const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Facility repair cancellation requires the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:facilityRepairCancellationMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    phase='seed';
+    await assertRecordedFixtureLease(s,'Facility repair cancellation setup');
+    await previewGate.assertCurrent();
+    assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+    if(s.users.length!==2)fail('fixture-isolation','Facility repair cancellation requires two disposable callers.');
+    const owners=Object.fromEntries(s.users.map(({id},index)=>{
+      const matches=s.identityRequests.filter(row=>row.id===id&&row.runId===runId&&row.state==='created');
+      if(matches.length!==1||id===s.protectedOwnerBefore.id)fail('fixture-isolation','Facility repair callers are outside the reserved lease.');
+      return [index===0?'A':'B',{id,email:matches[0].email,runMarker:runId}];
+    }));
+    const plan=buildFacilityRepairCancellationPlan(runId,owners);
+    s.facilityRepairCancellation={plan,command:null};
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedFacilityRepairCancellation(s.sql,plan)), 'Could not seed the exact disposable repair rows.');
+    phase='verification';
+    await verifyFacilityRepairCancellation({plan,
+      markCancellation:async command=>{
+        await assertRecordedFixtureLease(s,'Facility repair cancellation intent');
+        await previewGate.assertCurrent();
+        s.facilityRepairCancellation.command=command;
+        await saveLedger();
+      },
+      observe:async expectedState=>{
+        await assertRecordedFixtureLease(s,'Facility repair cancellation readback');
+        await previewGate.assertCurrent();
+        return observeFacilityRepairCancellation(s.sql,plan,{command:s.facilityRepairCancellation.command,expectedState,
+          readScopes:expected=>readFacilityRepairFixtureScopes(expected,s.users,{origin,signal,fetchImpl:readback})});
+      },
+      request:async command=>{
+        phase=command.caseId;
+        const caller=command.actor==='guest'?null:s.users[command.actor==='A'?0:1];
+        let ticket,value;
+        try{
+          value=await pace(async()=>{
+            await assertRecordedFixtureLease(s,'Facility repair cancellation request');
+            await caller?.renewSession({signal});
+            const actionFetch=command.action?createTrustedPreviewFetch({origin,token:previewToken,
+              confirmedRepairCommand:{callerToken:caller.token,body:command.action}}):undefined;
+            const privateMarkers=[runId,plan.missingId,plan.staleRequestId,...plan.reports.map(row=>row.id),...plan.events.map(row=>row.request_id),
+              s.facilityRepairCancellation.command?.request_id,...s.users.flatMap(user=>[user.id,user.token]),...Object.values(owners).map(owner=>owner.email)];
+            return requestFacilityRepairCancellation({origin,command,token:caller?.token,previewFetch:readback,actionFetch,
+              readResponse:readBoundedFixtureResponse,signal:signals(signal,65000),correlationIds,privateMarkers});
+          },signal,async()=>{ticket=await previewGate.beforeRequest();});
+        }finally{if(ticket)await previewGate.afterRequest(ticket);}
+        return {...value,requestIndex:ticket.requestIndex};
+      },
+      onResult:async result=>{results.push(result);await onCheckpoint?.(report(false));},
+    });
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Facility repair cancellation source changed during evaluation.');
+    await previewGate.finish();
+    completed=true;
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.facilityRepairCancellationCleanupProof)cleanupProof=error.facilityRepairCancellationCleanupProof;
+    failure=error instanceof FacilityRepairCancellationAssertion?{phase,code:'fixture-assertion',stage:error.stage}
+      :{phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{
+    if(prepared)cleanupProof=await captureFixtureCleanup();
+    await onCheckpoint?.(report(true));
   }
   return report(true);
 }
@@ -2110,7 +2212,7 @@ export async function readFacilityRepairFixtureScopes(plan,users,{origin,signal,
       try{for(;;){const {done,value}=await reader.read();if(done)break;bytes+=value.byteLength;if(bytes>131072)throw new Error();chunks.push(value);}}
       finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
       return {status:response.status,body:JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(chunks)))};
-    });
+    },{missingId:plan.missingId});
   }catch{fail('fixture-readback','Facility repair status, event history or account isolation differed from the independent fixture.');}
 }
 
@@ -3367,6 +3469,13 @@ export async function cleanup(){
       },'Could not remove the exact disposable outline access rows.');
       await saveLedger();
     }
+    if(s.facilityRepairCancellation){
+      await assertRecordedFixtureLease(s,'Facility repair cancellation cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      const {plan,command}=s.facilityRepairCancellation;
+      await query(()=>feeTransaction(s,()=>deleteFacilityRepairCancellation(s.sql,plan,command)),
+        'Could not remove the exact disposable repair cancellation and events.');
+    }
     if(s.facilityRepairPlan||s.pendingFacilityRepairPlan){
       await query(async()=>{
         await s.sql.unsafe('begin');
@@ -3501,6 +3610,11 @@ export async function cleanup(){
       if(identities.length)fail('fixture-cleanup','A counseling cancellation fixture identity remains.');
       s.counselingCancellationCleanup=true;
     }
+    if(s.facilityRepairCancellation){
+      const {plan,command}=s.facilityRepairCancellation;
+      await query(()=>verifyFacilityRepairCancellationAbsent(s.sql,plan,command),'Could not prove exact facility repair cancellation cleanup.');
+      s.facilityRepairCancellationCleanup=true;
+    }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
     if(s.internshipFixture)await s.internshipFixture.verifyAbsent();
     if(s.internshipChargePlan){
@@ -3559,6 +3673,7 @@ export async function cleanup(){
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
+    ...(s.facilityRepairCancellationCleanup?{facilityRepairCancellationCleanup:true}:{}),
     ...(s.internshipFixture?{internshipCleanup:true}:{}),
     ...(s.internshipChargeCleanup?{internshipChargeCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
