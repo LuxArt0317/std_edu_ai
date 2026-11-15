@@ -7,7 +7,10 @@ const legacyRequirement='legacy_internship_rebind';
 const legacyIds=new Set(['account:internship-period',
   ...['record','empty','action-boundary'].map(mode=>'service:53-1:'+mode),
 ]);
-const detail='Native internship cases require isolated caller-bound fixtures and independent request observations. This case was not executed.';
+const protectedIds=new Set(buildInternshipNativeCases()
+  .filter(row=>!row.observationExpectation.companion&&row.observationExpectation.read?.state!=='unavailable').map(row=>row.id));
+const detail='The general evaluator cannot attest internship requests. Use the isolated protected operator for its mounted cases.';
+export const internshipCaseHasProtectedBinding=testCase=>protectedIds.has(testCase?.id);
 
 export function internshipRunnerCases(){
   return buildInternshipNativeCases().map(row=>{
@@ -36,5 +39,7 @@ export function assertNativeInternshipCaseReady(testCase){
 
 export function internshipSetupSummary(cases){
   const caseIds=cases.filter(nativeInternshipSetupRequired).map(row=>row.id);
-  return {registered:caseIds.length,liveEligible:0,observationsMounted:false,caseIds,legacyCaseIds:caseIds.filter(id=>legacyIds.has(id))};
+  const protectedCaseIds=caseIds.filter(id=>protectedIds.has(id));
+  return {registered:caseIds.length,liveEligible:0,observationsMounted:false,protectedEligible:protectedCaseIds.length,
+    protectedCaseIds,caseIds,legacyCaseIds:caseIds.filter(id=>legacyIds.has(id))};
 }

@@ -128,6 +128,8 @@ The 12 native Moodle material cases are in `dtm-material-cases.mjs`. `dtm-materi
 
 The School Affairs directory adds 22 bilingual catalog cases and an explicit browser-local Custom menu case. Controlled public and signed-in handlers verify links and sibling exclusions without forwarding account data. The Student Leave lifecycle stages caller and foreign sentinels, records uncertain transactions durably, and checks both owners before making any cleanup claim. The lifecycle tests do not authorize the live fixture adapter.
 
+The protected operator mounts 24 of these questions. Run `node tests/evaluation/run-internship-preview.mjs --preflight` for the exact case counts and fixture states. See the linked packet for authorized Preview replay, independent caller and query proofs, and the remaining controlled-only cases.
+
 ### Moodle assignment lists
 
 `dtm-assignment-list-handler.test.mjs` grades all 25 list cases through the actual endpoint using synthetic callers and controlled row requests. It checks the selected course, global personal/sample fallback, Taipei dates, exact counts, tracker states, access, retry and distinct submission and grade capabilities. Four original cases retain their earlier oracles and wait for updated fixture binding.

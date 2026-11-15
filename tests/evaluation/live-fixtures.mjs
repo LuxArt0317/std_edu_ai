@@ -56,6 +56,8 @@ import {counselingCancellationCaseIds,requestCounselingCancellation,verifyCounse
 import {buildCounselingAppointmentFixturePlan,counselingAppointmentFixtureCaseBinding} from './counseling-appointment-fixture-plan.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
+import {buildInternshipFixturePlan,createInternshipFixture,internshipFixtureMode,observeInternshipCallerRows} from './internship-native-fixture.mjs';
+import {internshipFixtureKindForCase,internshipHostedCases,requestInternshipHostedCase} from './internship-native-hosted.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
 import {assertElearningCatalogCaseReady,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
@@ -336,6 +338,7 @@ async function saveLedger(){
         ...(s.dtmGradeOverview?{profiles:s.dtmGradePreview.profiles,reports:s.dtmGradePreview.reports}:{})}}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
+      ...(s.internshipJournal?{internshipFixture:s.internshipJournal}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
         activeFamily:s.counselingFixture?.fixtureKey??null,pendingFamily:s.pendingCounselingFixture?.fixtureKey??null,
         ...(s.counselingCancellation?{cancellation:s.counselingCancellation.command}:{}),
@@ -410,7 +413,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -425,9 +428,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
   const dtmTimingOnly=fixtureMode===dtmTimingFixtureMode;
   const dtmGradePreviewOnly=fixtureMode===dtmGradePreviewMode;
+  const internshipNativeOnly=fixtureMode===internshipFixtureMode;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -440,6 +444,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(dtmGradePreviewOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Moodle grade checks require the exact protected Preview and isolated disposable owners.');
+  if(internshipNativeOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Internship checks require the exact protected Preview and isolated disposable owners.');
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
@@ -521,7 +528,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -563,7 +570,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,internshipNativeOnly,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -595,6 +602,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(dtmGradePreviewOnly){
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['dtmGradeReport']};
+    }
+    if(internshipNativeOnly){
+      state.internshipObservationKey=serviceKey;
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['internshipRecords']};
     }
     if(leaveDataOnly){
       await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate,serviceKey);
@@ -757,6 +769,100 @@ async function runPreparedStudentLeave({origin,sourceRevision,previewToken,signa
     await previewGate.finish();
   }finally{cleanupProof=await cleanup();}
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
+}
+
+export async function runInternshipPreview({origin,sourceRevision,previewToken,signal,caseIds,onCheckpoint}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Internship requires the exact protected Preview and source revision.');
+  const cases=internshipHostedCases(caseIds),runId=randomUUID(),results=[],correlations=new Set();
+  let phase='preflight',prepared=false,previewGate,failure;
+  let cleanupProof={verified:false,status:'not-started'};
+  const report=()=>({runId,origin,sourceRevision,selectedCases:cases.map(row=>row.id),results,
+    ...(failure?{failure}:{}),deployment:previewGate?.status()??null,cleanup:cleanupProof,
+    liveAcceptance:!failure&&results.length===cases.length&&results.every(row=>row.passed)
+      &&previewGate?.status().status==='finished'&&cleanupProof.verified&&cleanupProof.internshipCleanup===true});
+  try{
+    const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)
+      fail('fixture-target','Internship requires the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+      signal,fixtureMode:internshipFixtureMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    phase='bind';
+    if(s.users.length!==2||s.users.some(user=>user.id===s.protectedOwnerBefore.id
+      ||!s.identityRequests.some(row=>row.id===user.id&&row.runId===runId&&row.state==='created')))
+      fail('fixture-isolation','Internship callers are outside the disposable lease.');
+    const binding={runId,owners:{A:s.users[0].id,B:s.users[1].id}};
+    const reserved=buildInternshipFixturePlan(binding).ids;
+    s.internshipFixture=createInternshipFixture({sql:s.sql,binding,
+      assertLease:async({cleanup=false}={})=>{
+        await assertRecordedFixtureLease(s,'Internship');
+        assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+        if(!cleanup)await previewGate.assertCurrent();
+      },
+      persist:async journal=>{
+        s.internshipJournal={...journal,binding};
+        for(const value of Object.values(reserved).flat())s.recordIds.add(value);
+        await saveLedger();
+      },
+      transaction:work=>feeTransaction(s,work),
+    });
+    await assertRecordedFixtureLease(s,'Internship profiles');
+    await previewGate.assertCurrent();
+    await feeTransaction(s,async()=>{
+      for(const request of s.identityRequests)
+        await s.sql`insert into public.affairs_profiles(user_id,email,display_name,role)
+          select id,email,'Evaluation Internship Student','student' from auth.users
+          where id=${request.id} and email=${request.email} and raw_user_meta_data->>'assistant_evaluation_run'=${s.runId}`;
+      const verified=await s.sql`select user_id from public.affairs_profiles where user_id in ${s.sql(s.users.map(user=>user.id))} and role='student'`;
+      if(verified.length!==2)fail('fixture-isolation','Internship disposable roles could not be verified.');
+    });
+    const observe=async plan=>{
+      const rowsDigest=await s.internshipFixture.observe();
+      const bounded=signals(signal);
+      await Promise.all(s.users.map(user=>user.renewSession({signal:bounded})));
+      const callers=await observeInternshipCallerRows(plan,{callers:s.users,publishableKey:s.publishable,
+        fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:bounded});
+      return {rowsDigest,callerDigest:callers.digest,callerChecks:callers.checks};
+    };
+    // Group equal row states while retaining exact question order within each state.
+    for(const kind of new Set(cases.map(internshipFixtureKindForCase))){
+      phase='seed-'+kind;
+      await s.internshipFixture.transition(kind);
+      const plan=s.internshipFixture.current();
+      for(const testCase of cases.filter(row=>internshipFixtureKindForCase(row)===kind)){
+        phase=testCase.id;
+        const before=await observe(plan);
+        const privateMarkers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),
+          ...Object.values(plan.ids).flat()];
+        let ticket,result;
+        try{
+          result=await pace(()=>requestInternshipHostedCase({testCase,plan,origin,sourceRevision,runId,token:s.users[0].token,
+            key:s.internshipObservationKey,signal:signals(signal,65000),fetchImpl:readback,readResponse:readBoundedFixtureResponse,
+            privateMarkers,correlations}),signal,async()=>{ticket=await previewGate.beforeRequest();});
+        }finally{if(ticket)await previewGate.afterRequest(ticket);}
+        const after=await observe(plan);
+        if(!isDeepStrictEqual(before,after))fail('fixture-unapproved-write','Internship fixtures changed during a read-only case.');
+        results.push({...result,before,after,requestIndex:ticket.requestIndex});
+        await onCheckpoint?.(report());
+      }
+    }
+    phase='release-verification';
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Internship source changed during verification.');
+  }catch(error){failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};}
+  finally{
+    if(prepared)cleanupProof=await captureFixtureCleanup();
+    if(previewGate)try{await previewGate.finish();}catch{failure??={phase:'release-verification',code:'fixture-target'};}
+    await onCheckpoint?.(report());
+  }
+  return report();
 }
 
 export async function runConfirmedTaskPreview({origin,sourceRevision,previewToken,signal}={}){
@@ -3169,6 +3275,11 @@ export async function cleanup(){
       await s.feeFixture.lifecycle.cleanup();
       await saveLedger();
     }
+    if(s.internshipFixture){
+      await s.internshipFixture.cleanup();
+      s.internshipObservationKey=undefined;
+      await saveLedger();
+    }
     if(s.studentLeaveData){
       s.studentLeaveDataCleanup=await s.studentLeaveData.lifecycle.cleanup();
       await saveLedger();
@@ -3362,6 +3473,7 @@ export async function cleanup(){
       s.counselingCancellationCleanup=true;
     }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
+    if(s.internshipFixture)await s.internshipFixture.verifyAbsent();
     if(s.clubEquipmentFixture){
       await s.clubEquipmentFixture.verifyAbsent();
       const ids=s.users.map(user=>user.id);
@@ -3414,6 +3526,7 @@ export async function cleanup(){
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
+    ...(s.internshipFixture?{internshipCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};
 }

@@ -5,6 +5,8 @@
 
 - Let public verification follow a fresh source after an improved partial answer or an actionable rejected draft. Preserve the best verified answer when evidence, time or review capacity runs out. Save the observed checks in chat. [#100]
 
+- Add independent protected Preview evaluation for saved internship contracts, self-assessments, company applications and the personal directory. [#100]
+
 - Let signed-in students review and confirm cancellation of a saved facilities repair report that is still submitted. Refresh the report after the verified receipt. [#100]
 
 - Answer directly when the saved Moodle grade report or course total is absent, or when a complete course lookup finds no match. Verify each result against its own account read and link. [#100]

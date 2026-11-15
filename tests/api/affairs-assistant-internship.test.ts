@@ -10,6 +10,10 @@ import {buildInternshipNativeCases,internshipNativeFixtureForCase,internshipNati
 // @ts-expect-error The independent test runner is a standalone JavaScript module.
 import {internshipRunnerCases} from '../evaluation/internship-native-runner.mjs';
 import {gradeCase} from '../evaluation/grading.mjs';
+// @ts-expect-error Hosted operator helpers are standalone JavaScript modules.
+import {internshipHostedCases,internshipFixtureKindForCase,requestInternshipHostedCase} from '../evaluation/internship-native-hosted.mjs';
+// @ts-expect-error Fixture setup is a standalone JavaScript module.
+import {buildInternshipFixturePlan} from '../evaluation/internship-native-fixture.mjs';
 
 const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const owner=internshipNativeManifest.owners.A;
@@ -32,7 +36,7 @@ async function invoke(handler:any,body:Body,host?:string){
   return captured;
 }
 
-async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false}={}){
+async function exercise(suffix:string,{retry=false,unverifiable=false,observed=false,hosted=false}={}){
   const row=rowFor(suffix);assert.ok(row,suffix);
   const {sourceRead,rows,requests,forbidden}=internshipNativeFixtureForCase(row);
   const companion=row.observationExpectation.companion;
@@ -120,12 +124,31 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
     }catch(error){errors.push(error);throw error;}
   };
   const envBefore=Object.fromEntries(Object.keys(previewEnv).map(name=>[name,process.env[name]]));
-  if(observed)Object.assign(process.env,previewEnv);
-  const handler=createAffairsAssistantHandler({verifyToken:async()=>observed?{...account,user:{id:owner,email:'evaluation.student@example.invalid',
+  if(observed||hosted)Object.assign(process.env,previewEnv);
+  const handler=createAffairsAssistantHandler({verifyToken:async()=>observed||hosted?{...account,user:{id:owner,email:'evaluation.student@example.invalid',
     user_metadata:{assistant_evaluation_run:runId}}}:account as any,
     loadSnapshot:async()=>{broadReads++;throw Error('Broad account snapshot is forbidden.');},
     publicResearch:async()=>{broadReads++;throw Error('Public research cannot support private records.');}});
   try{
+    if(hosted){
+      const testCase=internshipHostedCases([row.id])[0],plan=buildInternshipFixturePlan({runId,owners:internshipNativeManifest.owners},
+        internshipFixtureKindForCase(testCase));
+      const graded=await requestInternshipHostedCase({testCase,plan,origin:previewOrigin,sourceRevision:previewRevision,runId,
+        token:account.token,key:operatorKey,privateMarkers:[...Object.values(plan.ids).flat(),account.token],correlations:new Set(),
+        fetchImpl:async (endpoint:URL,init:RequestInit)=>{
+          const payload=JSON.parse(String(init.body));
+          assert.equal(endpoint.origin,previewOrigin);
+          assert.equal(new Headers(init.headers).has('authorization'),row.auth!=='anonymous');
+          const actual=await invoke(row.auth==='anonymous'?researchHandler:handler,payload,previewEnv.VERCEL_URL);
+          return Response.json(actual.body,{status:actual.status,headers:actual.headers});
+        },readResponse:(response:Response)=>response.json()});
+      assert.equal(graded.passed,true,row.id+' '+JSON.stringify(graded.failures));
+      assert.equal(graded.readCount,row.auth==='anonymous'?null:calls.length);
+      assert.equal(graded.completedModelCalls,row.auth==='anonymous'?null:model.length);
+      assert.deepEqual(errors,[]);
+      assert.equal(broadReads,0);
+      return {result:{status:200,body:null,headers:new Headers()},calls,model};
+    }
     assert.equal(observed&&row.history.length>0,false);
     const probe=observed?createInternshipProbe(scope,{question:row.question,route:row.route,history:[],stream:false,consentedResearchUse:false},operatorKey):null;
     const result=await invoke(handler,probe?.body??row,probe?previewEnv.VERCEL_URL:undefined);
@@ -144,7 +167,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
     }
     return {result,calls,model};
   }finally{
-    if(observed)for(const [name,value] of Object.entries(envBefore))if(value===undefined)delete process.env[name];else process.env[name]=value;
+    if(observed||hosted)for(const [name,value] of Object.entries(envBefore))if(value===undefined)delete process.env[name];else process.env[name]=value;
     globalThis.fetch=originalFetch;
     if(oldKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=oldKey;
   }
@@ -288,5 +311,13 @@ test('an internship probe cannot reach a different release, caller, route or mal
     }finally{
       for(const [name,value] of Object.entries(before))if(value===undefined)delete process.env[name];else process.env[name]=value;
     }
+  }
+});
+
+test('all 24 mounted independent hosted rubrics grade the real handlers and expected read digests under controlled providers',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:new Date(internshipNativeManifest.asOf)});
+  for(const testCase of internshipHostedCases()){
+    t.mock.timers.setTime(Date.now()+61_000);
+    await exercise(testCase.id.replace(/^account:internship-native-/u,''),{hosted:true});
   }
 });

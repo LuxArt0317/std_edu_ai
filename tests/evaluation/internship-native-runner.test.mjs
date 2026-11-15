@@ -26,6 +26,7 @@ test('the full runner retains all native internship views and explicit independe
   assert.deepEqual(lookup('foreign-prefix').expected.allowedTools,[]);
   assert.deepEqual(lookup('failed-companion').expected.requiredTools,['charges']);
   assert.equal(internshipSetupSummary(cases).liveEligible,0);
+  assert.equal(internshipSetupSummary(cases).protectedEligible,24);
 });
 
 test('legacy adapter denies the native suite from prepare and forCase before creating fixtures',async()=>{
@@ -75,7 +76,7 @@ test('the live, retrieval and draft runners report unmounted cases as unexecuted
         assert.equal(row.passed,false);
         assert.equal(row.failureKind,'setup');
         assert.equal(row.response.execution,'not-run');
-        assert.match(row.response.body.error,/fixtures and independent request observations/u);
+        assert.match(row.response.body.error,/isolated protected operator/u);
       }
       assert.equal(report.assessment.releaseReady,false);
       assert.equal(report.assessment.totals.executed,0);
