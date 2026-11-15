@@ -5,6 +5,11 @@ import {gradeStudentProfileBrowserReply,inspectStudentProfileBrowserBootstrap,st
   studentProfileBrowserProfile,verifyProtectedStudentProfileBrowserEgress} from './student-profile-browser-turn.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
 
+export async function verifyEmptyStudentProfile(page){
+  const message=page.getByText(/^目前尚無可確認的學生基本資料。/u);
+  await message.getByRole('link',{name:'離開',exact:true}).waitFor({state:'visible'});
+}
+
 const studentProfileBrowser={
   profile:studentProfileBrowserProfile,route:studentProfilePath,heading:'學生基本資料確認',
   bootstrap:studentProfileBrowserBootstrap,receiptKey:'studentProfileReceipt',
@@ -16,8 +21,7 @@ const studentProfileBrowser={
   },
   async verifyWorkspace({observation},page){
     if(!observation.recordExists){
-      await page.getByText('目前尚無可確認的學生基本資料。',{exact:true}).waitFor({state:'visible'});
-      return;
+      return verifyEmptyStudentProfile(page);
     }
     const form=page.getByRole('table',{name:'學生基本資料確認',exact:true});
     await form.getByText(observation.workspace.student_number,{exact:true}).waitFor({state:'visible'});
