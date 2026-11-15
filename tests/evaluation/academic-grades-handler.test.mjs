@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
-import {academicGradeReadSources,academicGradesQuery,selectAcademicGradeCourses} from '../../server/academicGrades.js';
-import {loadNativeAcademicRecords} from '../../server/nativeAcademicWorkspace.js';
+import {academicGradeReadSources,academicGradesQuery,selectAcademicGradeCourses,standaloneAcademicGradeView} from '../../server/academicGrades.js';
 import {buildAccountCases} from './account-cases.mjs';
 import {fixtureForCase} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
@@ -42,9 +41,18 @@ test('the actual academic grade handler passes the frozen grade questions with e
   const key=process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY='OFFLINE_ACADEMIC_MODEL';
   t.after(()=>{if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;});
-  let current=null,payloads=[],operations=[],outboundErrors=[];
+  let current=null,payloads=[],operations=[],outboundErrors=[],tables,owner,reads;
   t.mock.method(globalThis,'fetch',async(input,init)=>{
     try{
+      const url=new URL(input);
+      if(url.origin==='https://xiftudmvxphxcjtmfmib.supabase.co'){
+        assert.equal(init.method,'GET');
+        assert.equal(new Headers(init.headers).get('Authorization'),'Bearer OFFLINE_ACADEMIC_TOKEN');
+        assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
+        const table=url.pathname.slice('/rest/v1/'.length);
+        assert.ok(tables.has(table));reads.push(table);
+        return Response.json(tables.get(table).filter(row=>row.user_id===owner));
+      }
       assert.equal(String(input),'https://api.openai.com/v1/responses');
       const request=JSON.parse(String(init.body)),operation=request.text.format.name;
       operations.push(operation);
@@ -67,7 +75,7 @@ test('the actual academic grade handler passes the frozen grade questions with e
   });
   for(const testCase of cases){
     current=testCase;payloads=[];operations=[];outboundErrors=[];
-    const fixture=fixtureForCase(testCase),owner=fixture.profile.userId;
+    const fixture=fixtureForCase(testCase);owner=fixture.profile.userId;
     const data=fixture.academicGrades;
     const anotherTerm={academicYear:114,semester:1};
     data.records.push({...data.records[0],...anotherTerm,id:'38000000-0000-4000-8000-000000000001',gradeText:ownerMarker});
@@ -78,25 +86,20 @@ test('the actual academic grade handler passes the frozen grade questions with e
       data.records.push({...data.records[0],id:'38000000-0000-4000-8000-000000000004',courseTitle:'OTHER COURSE UNASKED'});
     if(testCase.id==='account:warning-grades')
       data.records.push({...data.records[1],id:'38000000-0000-4000-8000-000000000006',courseTitle:'OTHER COURSE UNASKED'});
-    const tables=new Map(academicGradeReadSources.map(({key,table})=>[table,data[key].map(rawRow)]));
-    let reads=0;
+    tables=new Map(academicGradeReadSources.map(({key,table})=>[table,data[key].map(rawRow)]));
+    reads=[];
     const handler=createAffairsAssistantHandler({
       verifyToken:async()=>({url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'OFFLINE_PUBLISHABLE',token:'OFFLINE_ACADEMIC_TOKEN',user:{id:owner}}),
       publicResearch:async()=>assert.fail('Private academic questions do not use public research.'),
-      loadSnapshot:async()=>{
-        reads++;
-        const snapshot=await loadNativeAcademicRecords(owner,false,async(table,query)=>{
-          assert.equal(query.user_id,'eq.'+owner);
-          return (tables.get(table)??[]).filter(row=>row.user_id===owner);
-        });
-        return {...fixture,...snapshot.own};
-      },
+      loadSnapshot:async()=>assert.fail('Standalone academic grades must not initialize or load an unrelated workspace.'),
     });
     const envelope=await send(handler,testCase.question,testCase.route);
     if(outboundErrors.length)throw outboundErrors[0];
-    assert.equal(reads,1,testCase.id);
+    const view=standaloneAcademicGradeView(testCase.question,testCase.route);
+    const keys={transcript:['records','termSummaries'],warning:['records','termSummaries'],ranking:['rankings'],english:['metadata']}[view]??[];
+    assert.deepEqual([...reads].sort(),academicGradeReadSources.filter(source=>keys.includes(source.key)).map(source=>source.table).sort(),testCase.id);
     assert.equal(payloads.length,1,testCase.id);
-    assert.ok(operations.every(name=>['account_lookup_plan','answer_evidence_review'].includes(name)),testCase.id);
+    assert.deepEqual(operations,['answer_evidence_review'],testCase.id);
     assert.deepEqual(envelope.body.verification,{status:'verified',attempts:1},testCase.id);
     assert.doesNotMatch(JSON.stringify(envelope.body),/FOREIGN PRIVATE SENTINEL|TERM SCOPE DISTRACTOR|OTHER COURSE UNASKED/u,testCase.id);
     const graded=gradeCase(testCase,{...envelope,fixtureKey:testCase.fixtureKey,execution:'deterministic'});
@@ -121,4 +124,11 @@ test('course selection uses transcript clauses and leaves term-wide requests int
   const transcript=[{courseTitle:'Database Design'},{courseTitle:'Research Writing'}];
   assert.deepEqual(selectAcademicGradeCourses('Show my Database Design transcript grade and my Moodle grade for Research Writing.',transcript),[transcript[0]]);
   assert.deepEqual(selectAcademicGradeCourses('Show my transcript grades for115semester1.',transcript),transcript);
+});
+
+test('mixed requests and contextual follow-ups do not use the standalone academic reader',()=>{
+  const route='/school-affairs/services/13-1/transcript';
+  for(const question of ['My transcript', 'Show my transcript grades for115semester1 and my tuition balance.',
+    'Show my transcript grades for115semester1. Where is the bookstore?', 'Show my transcript grades in115semester1 and my tasks.'])
+    assert.equal(standaloneAcademicGradeView(question,route),null,question);
 });

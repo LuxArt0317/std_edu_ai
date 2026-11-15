@@ -6,3 +6,4 @@ type Collections={academicGrades:AcademicGradesRecords;graduationReview:Graduati
 export function loadNativeAcademicRecords(userId:string,includeAdmin:boolean,readRows:(table:string,query:Record<string,string>)=>Promise<unknown>):Promise<{
   own:Collections;admin?:Collections;adminUserIds:string[];completeness:Record<string,{returned:number;complete:true}>;
 }>;
+export function loadNativeGradeView(userId:string,view:string,readRows:(table:string,query:Record<string,string>)=>Promise<unknown>):Promise<AcademicGradesRecords>;

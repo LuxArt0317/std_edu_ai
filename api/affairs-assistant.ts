@@ -97,7 +97,8 @@ import {answerChargePaymentHistory,chargePaymentHistoryBoundary,selectChargePaym
 import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup, standaloneFeeBalanceLabel } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
-import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
+import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAcademicGrades, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
+import {standaloneAcademicGradeView} from '../server/academicGrades.js';
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -885,7 +886,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return {...scopedSnapshot(),courses:[],charges:[],timetableReadUnavailable:true,chargeReadUnavailable:true};
       return {...timetable,...charges};
     };
-    const loadBaseSnapshot=(initialize?:false)=>housingOnly
+    const academicGradeView=question===requestedQuestion&&!history.length&&!notes.keys.length&&!pageContext.selected
+      &&!dtmCompound&&!teachingSelection&&!housingSelection&&!applicationSelection&&!intent.baseTools.length
+      ?standaloneAcademicGradeView(question,route):null;
+    const loadBaseSnapshot=(initialize?:false)=>academicGradeView?loadOwnAcademicGrades(account,academicGradeView,{deadline}):housingOnly
       ?loadHousingCompanions()
       :overviewOnly?loadAccountOverviewSnapshot(account,{deadline})
       :currentStudyScope==='courses_and_year'?loadCurrentStudy()

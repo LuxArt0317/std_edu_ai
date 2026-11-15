@@ -65,6 +65,24 @@ function contextQuestion(question) {
   return /\b(?:my|mine|records?|results?|summary|average|credits?|which|year|semester|term|rank|status|show|details)\b|我的|紀錄|記錄|結果|平均|學分|學年|學期|排名|查詢|顯示/i.test(question) || Boolean(explicitView(question) || selected.academicYear || selected.semester || selected.invalid);
 }
 const academicClauses=question=>question.split(/\s+(?:and|also)\s+|[;；\n]|以及|還有/i).filter(part=>!otherTopic.test(part));
+const gradeContinuation=/^(?:the\s+|my\s+|stored\s+|recorded\s+)*(?:average(?:\s+grade)?|(?:earned|passed|failed|attempted)[ -]credits?(?:\s+total)?|(?:class|department)\s+rankings?)(?:\s+(?:in|for)\s*(?:academic\s*year\s*)?\d+\s*semester\s*[123])?[.?!]?$/iu;
+const gradeRemark=/^(?:its\s+|the\s+)?remarks?\s+for\s+[^;!?\n]+(?:\s+in\s*(?:academic\s*year\s*)?\d+\s*semester\s*[123])[.?!]?$/iu;
+
+/** Limit the independent reader to explicit standalone requests on 13-1. */
+export function standaloneAcademicGradeView(question,route){
+  const path=route.split(/[?#]/)[0].replace(/\/+$/u,'');
+  if(!routeView(path)||/[;；\n]|[.!?]\s+\S/u.test(question)||!/\b(?:my|mine)\b|我的/u.test(question.toLowerCase())
+    ||/\b(?:help|draft|change|update|delete|edit|adjust|download|another|someone|official|public)\b|修改|編輯|下載|他人|其他學生/u.test(question.toLowerCase())
+    ||!isAcademicGradesQuestion(question,path))return null;
+  const selection=academicGradesQuery(question,path);
+  if(selection.invalid||selection.multipleScopes)return null;
+  const [first,...continuations]=question.trim().split(/\s+(?:and|also|plus|or)\s+|以及|還有/iu);
+  if(!continuations.every(part=>gradeContinuation.test(part)||selection.view==='warning'&&gradeRemark.test(part)))return null;
+  if(!topic.test(first)&&!englishTopic.test(first)&&!/\b(?:earned[- ]credits?|department)\b|實得學分|系排名/u.test(first))return null;
+  if(['transcript','warning','ranking'].includes(selection.view))
+    return selection.academicYear!==undefined&&selection.semester!==undefined?selection.view:null;
+  return ['english','gpa','current','transfer','cycle'].includes(selection.view)?selection.view:null;
+}
 export function isAcademicGradesQuestion(question,route='',history=[]) {
   if(otherTopic.test(question))return false;
   if(/^(?:please\s+)?(?:remind me|add (?:a )?task|create (?:a )?task|complete (?:my |the )?task|finish (?:my |the )?task)|新增待辦|建立任務|完成任務/i.test(question))return false;

@@ -11,6 +11,7 @@ export type AffairsCharge={id:string;label:string;amountDue:number;amountPaid:nu
 export function loadOwnAffairsCharges(account:AffairsAccount&{requestDeadline?:number},options?:{deadline?:number;observeRead?:(read:unknown)=>void}):Promise<{
   checkedAt:string;profile:{userId:string};studentRecordFound:boolean;charges:AffairsCharge[];
 }>;
+export function loadOwnAcademicGrades(account:AffairsAccount,view:string,options?:{deadline?:number}):Promise<Record<string,unknown>>;
 export function loadOwnAffairsActionContext(account:AffairsAccount,selection:ExplicitAccountAction,options?:{deadline?:number;onRead?:(tool:string,status:'running'|'complete'|'unavailable')=>void}):Promise<Record<string,unknown>>;
 export function executeAffairsAction(account:AffairsAccount,kind:string,payload:unknown,requestId?:string):Promise<Record<string,unknown>>;
 export function manageAffairsRecord(account:AffairsAccount,kind:string,payload:unknown):Promise<Record<string,unknown>>;
