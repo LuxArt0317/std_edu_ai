@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Read only the saved courses and explicitly requested year for a combined course-list and interview-writing question. Verify the answer against those same records. [#100]
+
 - Add protected evaluation for 13 original teaching feedback questions, including exact empty-record checks, navigation, privacy and unsupported writes, using the existing isolated sample fixture. [#100]
 
 - Reread a school page once after a temporary connection or server failure when an unanswered detail could still be verified. Keep checked facts when the reread cannot resolve the detail. [#100]
