@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Check an explicit account display-name question against the signed-in caller’s saved profile. Distinguish a missing name from a read failure. [#100]
+
 - Derive the protected DTM browser’s exact asset allowlist from the pinned Preview shell and its selected runtime dependencies. [#100]
 
 - Verify fee-remission history directly against the selected saved period and distinguish empty, blank, missing and zero amounts. Check a separately named tuition charge against its own record and preserve both answers. [#100]

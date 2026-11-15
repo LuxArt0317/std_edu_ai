@@ -973,7 +973,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Observe the protected `5430bd5` baseline for public companion and fee-remission verification. Record both quota failures and verified cleanup.
 - [x] Check exact regular weekday library hours and literal fee-remission fields locally without calling the model. Preserve the original per-case acceptance rules and test both orders of a separate named balance request.
 - [x] Pass both public companion questions on exact protected `54319c0` with independently checked facts, citation order and the explicit native schedule Activity step in the streamed and returned reply.
-- [ ] Replay the 20 isolated fee-remission questions on protected paired-charge `4d7cc15`.
-- [ ] Wire the checked exact-origin relay into the protected browser operator and verify two durable conversations, saved Activity and independent readbacks.
+- [x] Pass all 20 isolated fee-remission questions on protected paired-charge `4d7cc15`, with exact paired readbacks, both access boundaries, 62 deployment checks and verified disposal.
+- [x] Wire the exact-origin relay, bounded asset derivation and independently checked owned profile into the protected browser operator. Pass local incremental Activity and refresh tests on desktop and mobile.
+- [ ] Run the protected browser operator on exact `44283cd`. Verify two durable conversations, saved Activity, independent answer and record readbacks, and disposal.
 - [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
