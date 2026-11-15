@@ -979,3 +979,10 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Pass the same two browser turns on exact `53a7599`. Verify both durable conversations, expanded saved Activity, exact own HTTP and SQL readbacks, crossed-account isolation and disposal.
 - [ ] Finish broader service and browser acceptance before production promotion.
 - [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
+
+- [x] Replay the 16 frozen health metadata cases on exact protected `53a7599` and verify both account readbacks and disposal.
+- [x] Pass the independent PDF availability case and 11 mounted Moodle material cases on exact protected `6e819f5`. Verify private inquiry PDF bytes separately, exact own and crossed account boundaries, and disposal.
+- [x] Verify local healthy health and named-charge answers in either order, a health exclusion, and honest partial answers for both injected reader outages.
+- [x] Replay 265 signed-in routes in local Chromium, including admin denial and canonical Moodle links. Track missing native fixture coverage separately.
+- [x] Verify the confirmed Learning Support submit flow in isolated PostgreSQL and simulated app hosting, including lost-response and receipt retries.
+- [ ] Stage the pending Learning Support schema in an isolated hosted environment, test mounted real-data cases, and continue the wider semantic gates before promotion.

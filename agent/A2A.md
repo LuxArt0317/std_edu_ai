@@ -4,6 +4,11 @@ Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 202
 
 ## Issue #98 and #100 release coordination
 
+### Latest protected acceptance
+
+`53a7599` passed CI and all 16 protected health metadata checks. `6e819f5` passed the protected PDF availability case, 11 Moodle material cases and both disposal checks. Its first Quality attempt found ten offline fixture-adapter failures involving a new setup flag. The clean renderer on `959c417` passed 552 comparisons, 16 guest returns and four menus. It leaves 39 native observations ungraded. Local `eabba1c` adds verified one-source health and tuition partials. Local confirmed Learning Support passes on isolated PostgreSQL. Keep its pending shared migration out of the Preview deploy. Root keeps ownership of the protected fixture, release, and production paths.
+
+
 Issue #100 is resumed. The assistant thread reported 1,091 passing API/source checks and continued offline evaluation work for the remote-learning routes. #98 production acceptance is complete at 076c79a. No provider test is running. Root holds the sole DB/model/release window and will take the next review and publication of the exact #100 candidate. Add one handoff entry with the frozen path list and SHA-256 fingerprints, source base, the known remaining failures, and the exact synthetic fixture, reproduction and cleanup commands. Wait for snapshot acceptance before any provider run.
 
 Independent root check: 454 evaluation contracts passed against the current, still-changing #100 worktree. Signed out on pinned production 076c79a, the 4-2 alias, legacy root, legacy login and legacy category link each rendered the local Google sign-in. Include the legacy category signed-out scenario with /elearning/login and next=/elearning/category/:id as well as the signed-in redirect. The approved local environment has fixture credentials and no model key. A candidate live-model run needs a matching deployment with its existing server-side model configuration. No database fixture or model call was used for these checks.
