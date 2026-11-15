@@ -946,7 +946,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     :scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :await planAccountLookup(question,history,fullRoute,deadline);
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
-  const scopedSupplementalTool=pageLookup.readerOnly&&pageLookup.tools.length===1&&pageLookup.tools[0];
+  const pairedRemissionLabel=pageLookup.feeAndBalance&&pageLookup.tools.length===1&&pageLookup.tools[0]==='feeRemission'
+    ?pageLookup.feeChargeLabel:null;
+  const scopedSupplementalTool=(pageLookup.readerOnly||pairedRemissionLabel!==null)&&pageLookup.tools.length===1&&pageLookup.tools[0];
   const withScopedBed=scopedSupplementalTool==='dormitoryConduct'&&dormitoryWithBed;
   const conductCount=scopedSupplementalTool==='studentConduct'&&isStudentConductCountQuestion(pageLookup.questions.studentConduct);
   const tutorSelection=scopedSupplementalTool==='tutorEvaluation'?selectTutorEvaluationEvidence(question,fullRoute,history):null;
@@ -983,10 +985,11 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&(remissionDisposition?result.readState==='unavailable'&&result.reason===remissionDisposition
       :!remissionSelection.reason&&['ok','empty','partial'].includes(result.readState)));
   const exactFeeRemission=firstSupplemental.length===1&&supportedRemissionRead(firstSupplemental[0]);
-  const exactSupplemental=(conductCount||exactTutorRecord||exactFeeRemission||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
+  let exactSupplemental=(conductCount||exactTutorRecord||exactFeeRemission||['dormitoryConduct','healthExaminations','counselingAppointments'].includes(scopedSupplementalTool))
     &&!plan.publicTopics.length&&!publicPageRoute&&intent.kind==='records'
     &&activeTools.includes(scopedSupplementalTool)&&(withScopedBed
-      ?activeTools.length===2&&activeTools.includes('housing'):activeTools.length===1);
+      ?activeTools.length===2&&activeTools.includes('housing')
+      :pairedRemissionLabel!==null?!remissionDisposition&&activeTools.length===2&&activeTools.includes('charges'):activeTools.length===1);
   if(publicPageRoute)emit({kind:'page-context',label:'Checked the current public page',detail:pageContext?.contentAvailable?'Read the checksum-verified public snapshot; account records remain separate.':'Only available public page metadata can be used; no account records were sent to the capture host.',status:pageContext?.contentAvailable?'complete':'unavailable'});
   const exactTeaching=allowNativeTeachingVerification&&!plan.publicTopics.length&&!publicPageRoute&&activeTools.length===1&&activeTools[0]==='teachingFeedback'
     ?exactTeachingFeedbackRead(teaching):null;
@@ -1316,7 +1319,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   if(emptyHousing)initial={...initial,...emptyHousing};
   const renderExactSupplemental=sources=>{
     const sourceId='account:'+scopedSupplementalTool;
-    const wanted=['account-scope',sourceId,...(withScopedBed?['account:housing']:[])];
+    const wanted=['account-scope',sourceId,...(withScopedBed?['account:housing']:pairedRemissionLabel!==null?['account:charges']:[])];
     if(sources.length!==wanted.length||!wanted.every(id=>sources.some(source=>source.id===id))||supplemental.length!==1
       ||supplemental[0].evidence!==sources.find(source=>source.id===sourceId))return null;
     if(conductCount&&(!['ok','empty'].includes(supplemental[0].readState)
@@ -1327,6 +1330,25 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       ||!isDeepStrictEqual(JSON.parse(supplemental[0].evidence.content).selection,remissionSelection)))return null;
     const rendered=formatSupplementalAccountAnswers(supplemental,{question});
     if(exactFeeRemission&&rendered.status!=='answered')return null;
+    if(pairedRemissionLabel!==null){
+      const source=sources.find(item=>item.id==='account:charges');
+      const charge=JSON.parse(source.content);
+      if(supplemental[0].readState!=='ok'||!rendered.complete||charge.checkedAt!==current.checkedAt
+        ||charge.selectionLabel!==pairedRemissionLabel||charge.unavailableReason||charge.studentRecordFound!==true
+        ||charge.excerpted!==false||charge.records?.length!==1||charge.counts?.[0]?.matchingRows!==1)return null;
+      try{
+        const fees=formatSelectedChargeEvidence(source,{language:supplementalAnswerLanguage(question),exactBalance:true,separateCurrency:true});
+        const chargeFirst=question.trimStart().toLowerCase().startsWith(pageLookup.otherQuestion.toLowerCase());
+        const answer=(chargeFirst?[fees.answer,rendered.answer]:[rendered.answer,fees.answer]).join('\n\n');
+        const combined={...rendered,answer,citations:[...rendered.citations,...fees.citations],views:[...rendered.views,...fees.views],
+          sourceIds:[...rendered.sourceIds,...fees.sourceIds]};
+        return fees.views[0]?.rows.length===1&&answer.length<=supplementalAnswerLimits.answerCharacters
+          &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=supplementalAnswerLimits.resultBytes&&answerLinksSupported(answer,sources)?combined:null;
+      }catch(error){
+        if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;
+        return null;
+      }
+    }
     if(scopedSupplementalTool!=='dormitoryConduct')return answerLinksSupported(rendered.answer,sources)?rendered:null;
     const bed=withScopedBed?housingAnswer(sources):null;
     if(withScopedBed&&!bed)return null;
@@ -1335,8 +1357,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     return {...rendered,status:bed?'answered':rendered.status,answer,citations:evidenceCitations(sources),views:[...rendered.views,...(bed?.views??[])]};
   };
   if(exactSupplemental){
-    initial={...initial,...(renderExactSupplemental(evidence)??{status:'abstained',answer:'',citations:[]})};
-    needsComposition=false;
+    const exact=renderExactSupplemental(evidence);
+    if(pairedRemissionLabel!==null&&!exact)exactSupplemental=false;
+    else {
+      initial={...initial,...(exact??{status:'abstained',answer:'',citations:[]})};
+      needsComposition=false;
+    }
   }
   const directServiceNotes=scopedNotes&&!serviceNoteScope.otherQuestion&&!serviceNoteScope.operation
     &&activeTools.length===1&&activeTools[0]==='serviceRecords';
@@ -1487,9 +1513,12 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           const zh=supplementalAnswerLanguage(question)==='zh-TW';
           emit({kind:'fee-remission-evidence-check',
             label:remissionDisposition?(zh?'已核對學雜費減免查詢限制':'Checked the fee-remission lookup limit')
-              :(zh?'已核對學雜費減免紀錄':'Verified your saved fee-remission records'),
+              :pairedRemissionLabel!==null?(zh?'已分別核對減免紀錄與費用餘額':'Verified the remission history and separate fee balance')
+                :(zh?'已核對學雜費減免紀錄':'Verified your saved fee-remission records'),
             detail:remissionDisposition?(zh?'已核對查詢限制；未確認任何金額或狀態。':'Verified the lookup limitation without establishing an amount or status.')
-              :(zh?'已比對所選期間、紀錄筆數和原文欄位。':'Matched the selected period, record counts and literal fields to your saved history.'),
+              :pairedRemissionLabel!==null?(zh?'已核對減免原文與選定費用各自的紀錄；兩者分開計算。'
+                :'Matched the saved remission fields and calculated the named fee balance from its separate charge record.')
+                :(zh?'已比對所選期間、紀錄筆數和原文欄位。':'Matched the selected period, record counts and literal fields to your saved history.'),
             status:'complete'});
           return {ok:true};
         }
@@ -1586,7 +1615,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     :'I couldn’t check a draft this time. Share a real example or tell me what you’d like to practise.';
   const viewSources=verified?supplemental:supplemental.filter(source=>
     !servicePlan&&source.evidence.id!=='account:dtmAssignment'&&!(dtmCompound&&source.evidence.id==='account:dtmGradeReport')
-    &&!(exactFeeRemission&&source.evidence.id==='account:feeRemission'));
+    &&!(exactFeeRemission&&exactSupplemental&&source.evidence.id==='account:feeRemission'));
   const supplementalViews=viewSources.length?formatSupplementalAccountAnswers(viewSources,{question}).views:[];
   const repairClarification=activeTools.length===1&&['facilityRepairs','elearningOutline','feeRemission','healthExaminations'].includes(activeTools[0])
     &&supplemental.some(source=>source.evidence.id==='account:facilityRepairs'?JSON.parse(source.evidence.content).requiresClarification===true
@@ -1612,7 +1641,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');
   const baseViews=[...(scopedOverview?(verified?overviewRecordViews(viewSnapshot):[]):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(applicationSelected&&result.verification?.status==='verified'?applicationAnswer(evidence)?.views??[]:[]),...(housingSelected?(result.verification?.status==='verified'?housingAnswer(evidence)?.views??[]:[]):activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
-  const views=servicePlan&&!verified?[]:[...supplementalViews,...baseViews].slice(0,3);
+  const views=servicePlan&&!verified?[]:pairedRemissionLabel!==null&&exactSupplemental&&verified?result.views
+    :[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note=(view.note?view.note+' ':'')+'Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
   return {...result,...(repairClarification&&result.verification?.status==='verified'?{status:'clarification'}:{}),views,grounding:{...result.grounding,...(recordFreeCoaching?{source:'general-guidance'}:{}),webSearched:observed.some(step=>step.kind.startsWith('web-')),checkedAt:current.checkedAt},
     activity:[...new Map([...(result.activity||[]),...observed].map(step=>[step.kind,step])).values()]};
