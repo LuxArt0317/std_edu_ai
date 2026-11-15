@@ -1,4 +1,5 @@
 import {assertNativeDtmCaseReady,nativeDtmRunnerCases,nativeDtmSetupRequired} from './dtm-native-runner.mjs';
+import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
 import {assertNativeInternshipCaseReady,internshipRunnerCases,nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {assertNativeStudentLeaveCaseReady,nativeStudentLeaveSetupRequired,studentLeaveRunnerCases} from './student-leave-runner.mjs';
 import assert from 'node:assert/strict';
@@ -310,7 +311,8 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       pace:async(start,_signal,beforeStart)=>{await beforeStart();return start(0);},fetchImpl:async()=>{modelCalls++;return new Response(JSON.stringify({status:'answered',answer:'Synthetic response'}),{headers:{'content-type':'application/json'}});},
       deploymentGate:{assertCurrent:async()=>{pinChecks++;},beforeRequest:async()=>{pinChecks++;return {requestIndex:1,sourceRevision:'a'.repeat(40)};},afterRequest:async()=>{pinChecks++;},status:()=>({status:'pinned'})},
       URL,AbortSignal,readReply,gradeEvaluationCase,assertTeachingFeedbackCaseReady,assertNativeDtmCaseReady,assertNativeStudentLeaveCaseReady,assertNativeInternshipCaseReady,
-      nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
+      nativeStudentLeaveSetupRequired,nativeInternshipSetupRequired,nativeDtmSetupRequired,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,gradeElearningCatalogCase,
+      persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);
     if(kind==='bound'){assert.equal(setupCalls,1);assert.equal(modelCalls,1);assert.equal(pinChecks,3);assert.equal(report.results[0].executed,true);}
@@ -373,8 +375,9 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.equal(suite.cases.filter(nativeStudentLeaveSetupRequired).length,51);
   assert.deepEqual(suite.cases.filter(row=>row.fixtureRequirement==='offline_native_internship'),internshipRunnerCases());
   assert.equal(suite.cases.filter(nativeInternshipSetupRequired).length,34);
+  assert.deepEqual(suite.cases.filter(elearningCatalogSetupRequired),elearningCatalogRunnerCases());
 
-  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['dtmAssignmentList','dtmMaterials','leaveRecords','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
+  assert.deepEqual(suite.inventory.clientDispatch.verifiedDispatch.map(({graphTool})=>graphTool),['elearningCatalog','dtmAssignmentList','dtmMaterials','leaveRecords','internshipRecords','dtmAssignment','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','graduationClearance','tutorEvaluation','studentConduct','serviceRecords','teachingFeedback','housing','housingApplications']);
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>row.executed===false));
   assert.ok(suite.inventory.clientDispatch.questions.every(row=>!suite.cases.some(apiCase=>apiCase.id===row.id)));
   const assessment=assessRun({results:[],cleanup:{complete:true},sourceUnchanged:true,dirty:false},{...suite,requestedSuite:'full',sourceRevision:'offline'});
@@ -391,6 +394,10 @@ test('full bank includes every source page and catalog entry without duplicate c
   assert.equal(assessment.internshipSetup.legacyCaseIds.length,4);
   assert.equal(assessment.internshipSetup.liveEligible,0);
   assert.ok(assessment.releaseBlockers.includes('run.nativeInternshipFixtureUnbound'));
+  assert.equal(assessment.elearningCatalogSetup.registered,25);
+  assert.equal(assessment.elearningCatalogSetup.metadataCaseIds.length,6);
+  assert.equal(assessment.elearningCatalogSetup.liveEligible,0);
+  assert.ok(assessment.releaseBlockers.includes('run.elearningCatalogFixtureUnbound'));
   assert.ok(assessment.releaseBlockers.includes('client_dispatch_acceptance_missing'));
 
   for(const page of suite.inventory.publicPages)assert.ok(suite.cases.some(row=>row.domain==='public-page-context'&&row.route===page.route),page.route);

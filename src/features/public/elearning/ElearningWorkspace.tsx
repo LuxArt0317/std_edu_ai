@@ -382,7 +382,7 @@ export default function ElearningWorkspace(){
   const {user,loading,error}=useAffairsAuth();
   const {pathname,search}=useLocation();
   const isLogin=pathname.replace(/\/$/,'')===path+'/login';
-  const requested=safeSchoolReturnPath(isLogin?new URLSearchParams(search).get('next'):pathname,path);
+  const requested=safeSchoolReturnPath(isLogin?new URLSearchParams(search).get('next'):pathname+search,path);
   const next=requested===path||requested.startsWith(path+'/')?requested:path;
   useEffect(()=>{document.title=siteTitle;},[]);
   if(loading)return <main className="elearning-root" role="status">讀取數位學園…</main>;

@@ -1,6 +1,8 @@
 import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
+import {answerElearningCatalog,elearningCatalogBoundary} from '../server/accountElearningCatalogAnswer.js';
+import {isElearningCatalogPageQuestion,selectElearningCatalogPage} from '../server/elearningCatalogPageIntent.js';
 import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
 import {answerDtmAssignmentList} from '../server/accountDtmAssignmentListAnswer.js';
 import {dtmAssignmentListBoundary,dtmAssignmentListSelection} from '../server/dtmAssignmentListIntent.js';
@@ -240,6 +242,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  if(isElearningCatalogPageQuestion(question,route)){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'For exact catalog questions, remove the image and ask using text.'});
+      return;
+    }
+    const selection=selectElearningCatalogPage(question,route);
+    if(!selection){stream.send(200,elearningCatalogBoundary(question,null,true));return;}
+    const onProgress=(step:VerificationProgress)=>stream.progress(step.kind,step.label,step.detail,step.status);
+    try{
+      stream.send(200,await answerElearningCatalog({account,question,route:selection.path,deadline,onProgress}));
+    }catch{stream.send(503,{error:'The selected Digital Academy catalog page could not be checked.'});}
+    return;
+  }
   const searchGuide=(!input?.images||Array.isArray(input.images)&&input.images.length===0)&&!questionKind(question).irrelevant
     ? answerSchoolSystemSearch(question,route) : null;
   if(searchGuide){

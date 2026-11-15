@@ -5,6 +5,7 @@ import { permanentCoursesPath } from './permanentCourseRouting.js';
 import { venuePaths,venueScheduleSelection } from './venueContract.js';
 import { healthExaminationPath } from '../../../../server/healthExaminationContract.js';
 import { aidPaymentsMaxPage,aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
+import { elearningCatalogPageRoute } from '../../../../server/elearningCatalogPageIntent.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -12,6 +13,10 @@ export const affairsStorageKey = 'stu-school-affairs-auth';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
 export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
+  if(value?.startsWith('/elearning/')){
+    const catalog=elearningCatalogPageRoute(value);
+    if(catalog)return catalog.path;
+  }
   if(value?.includes('?')){
     const [path,query]=value.split('?');
     if(path===healthExaminationPath||Object.values(aidPaymentsPaths).includes(path)){

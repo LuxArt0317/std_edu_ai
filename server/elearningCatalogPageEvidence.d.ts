@@ -1,11 +1,6 @@
 import type {AffairsAccount} from './affairsWorkspace.js';
-export type ElearningCatalogPageSelection={
-  path:string;
-  categoryId:number|null;
-  query:string;
-  page:number;
-  mode:'list'|'total-count'|'page-count'|'both';
-};
+import type {ElearningCatalogPageSelection} from './elearningCatalogPageIntent.js';
+export {selectElearningCatalogPage} from './elearningCatalogPageIntent.js';
 export type ElearningCatalogPageEvidence =
   | {state:'sign_in'|'unavailable';selection:ElearningCatalogPageSelection}
   | {
@@ -13,7 +8,6 @@ export type ElearningCatalogPageEvidence =
     selection:ElearningCatalogPageSelection;total:number;pageCount:number;listedCount:number;
     courses:Array<{title:string;url:string}>;
   };
-export function selectElearningCatalogPage(question:unknown,route?:unknown):ElearningCatalogPageSelection|null;
 export function readElearningCatalogPage(
   account:(AffairsAccount&{requestDeadline?:number})|null,
   options:{question:string;route?:string;deadline?:number}

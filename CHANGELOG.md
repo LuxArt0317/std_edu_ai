@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Verify Digital Academy search and category course results from the exact open page. Preserve its filter and page through Google sign-in and retry a failed catalog read once. [#100]
 - Verify requested stu.best task, nickname, tracker, service-request and announcement changes before showing the confirmation button. Check the action receipt before showing success. [#100]
 - Answer saved Moodle assignment-list questions from the caller’s exact list and selected course. [#100]
 - Preserve exact Student Leave record IDs and bind offline requests to independent ownership and reader observations. [#100]

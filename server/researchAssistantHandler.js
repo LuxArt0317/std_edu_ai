@@ -7,6 +7,8 @@ import {accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQues
 import {studentConductGuide} from './studentConductGuide.js';
 import {dtmAssignmentListBoundary,dtmAssignmentListRoute,dtmAssignmentListSelection} from './dtmAssignmentListIntent.js';
 import {dtmMaterialBoundary,dtmMaterialIntent,dtmMaterialRoute} from './dtmMaterialIntent.js';
+import {elearningCatalogBoundary} from './accountElearningCatalogAnswer.js';
+import {elearningCatalogGuestRoute,isElearningCatalogPageQuestion,selectElearningCatalogPage} from './elearningCatalogPageIntent.js';
 import {studentLeaveAssistantPlan,studentLeaveGuestAnswer} from './studentLeaveAssistantPlan.js';
 import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {serviceNoteGuide} from './serviceNoteGuide.js';
@@ -135,7 +137,8 @@ function parse(body) {
         const item = entry;
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: boundedAssistantText(item.content, 2000) }] : [];
     }) : [];
-    const route = typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
+    const catalogRoute=elearningCatalogGuestRoute(source.route);
+    const route = isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
@@ -432,6 +435,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const citations=currentStudy||studyYear?.courseQuestion?[{chunkId:'directory:school-affairs-subjects',title,url,claim:title,sourceName:'School Affairs'}]:[];
             stream.send(200,{status:'handoff',answer:[boundary,...citations.map(link=>'['+title+']('+link.url+')'),teachingGuide?.answer].filter(Boolean).join('\n\n'),
                 citations:[...citations,...(teachingGuide?.citations??[])],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}});
+            return;
+        }
+        if(!input.images.length&&isElearningCatalogPageQuestion(input.question,input.route)){
+            stream.send(200,elearningCatalogBoundary(input.question,selectElearningCatalogPage(input.question,input.route),false));
             return;
         }
         const assignmentList=!input.images.length&&dtmAssignmentListSelection(input.question,input.route);
