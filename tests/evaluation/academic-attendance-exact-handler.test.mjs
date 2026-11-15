@@ -133,6 +133,15 @@ test('owned transport and question bounds reject foreign, cropped or mixed resul
     assert.match(observed.body.answer,/10:12/u);
     assert.doesNotMatch(observed.body.answer,/21:33|Other Saved Workshop/u);
   });
+  await t.test('a UTC response preserves the precise timestamp and displays the Taipei clock',async t=>{
+    const row=frozen.find(row=>row.id.endsWith('attendance-timestamp'));
+    const stamp=date+'T02:12:00.012345+00:00';
+    const observed=await replay(t,{question:row.question,path:row.route,edit(records){records.details[0].rollCalledAt=stamp;}});
+    assert.ok(observed.body.answer.includes(stamp));
+    assert.match(observed.body.answer,/10:12:00 Taipei time/u);
+    const grade=gradeCase(row,{...observed,events:observed.activity,execution:'deterministic',fixtureKey:row.fixtureKey});
+    assert.deepEqual(grade.failures,[],observed.body.answer);
+  });
   await t.test('unknown named course does not show other courses',async t=>{
     const observed=await replay(t,{question:'When and which periods was I absent for Missing Workshop?',path:route+'/detail'});
     assert.deepEqual(observed.calls,[metadata,details]);

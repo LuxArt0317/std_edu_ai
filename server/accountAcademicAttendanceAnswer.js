@@ -13,6 +13,8 @@ const plain=/^(?:(?:show(?: me)?|list|check) my (?:saved |current )?(?:(?:academ
 const datedDetails=new RegExp(`^show(?: me)? my absence details on ${date}$`,'iu');
 const zhPlain=/^(?:請)?(?:顯示|列出|查詢)(?:我(?:的)?)?(?:(?:當學期|本學期|這學期|目前)|\d{1,4}\s*學年(?:度)?(?:第)?\s*[一二暑123]\s*學期)?(?:的)?(?:缺曠(?:課)?(?:統計|明細|紀錄|記錄)|缺課(?:時數|明細)|曠課(?:時數|明細))$/u;
 const safeLiteral=value=>String(value).replace(/[\p{Cc}\p{Cf}]/gu,' ').replace(/[&<>\x60*_[\]()#!~|]/gu,char=>'&#'+char.codePointAt(0)+';');
+const taipeiClock=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',
+  hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
 const courseKey=value=>value.normalize('NFKC').trim().toLowerCase();
 
 /** Accept independently renderable, explicit attendance questions on the attendance pages. */
@@ -74,8 +76,14 @@ function buildCandidate(plan,result,checkedAt){
     if(!selected.length)lines.push(say('No saved attendance records match this selection.','沒有符合此查詢範圍的已儲存缺曠課紀錄。'));
     for(const row of selected){
       const name=display(row.courseTitle)+' ('+display(row.courseCode)+')';
-      const rollCall=say('Roll-call timestamp recorded','點名時間')+' '+display(row.rollCalledAt);
       if(detail){
+        const stamp=row.rollCalledAt;
+        // PostgREST may normalize a zoned column to UTC. Keep the exact stored
+        // instant and provide the Taipei clock shown on the attendance page.
+        const localClock=stamp?taipeiClock.format(new Date(stamp)):null;
+        const localSuffix=localClock&&localClock!==stamp.slice(0,19).replace('T',' ')
+          ?say(` (${localClock} Taipei time)`,`（台北時間 ${localClock}）`):'';
+        const rollCall=say('Roll-call timestamp recorded','點名時間')+' '+display(stamp)+localSuffix;
         lines.push('- '+name+(plan.rollCallOnly?` · ${rollCall}`:
           say(` · Course date ${display(row.courseDate)} · Period ${display(row.periodText)} · Teacher ${display(row.teacherName)} · Category ${display(row.absenceTypeText)} · ${rollCall}`,
             ` · 課程日期 ${display(row.courseDate)} · 節次 ${display(row.periodText)} · 授課老師 ${display(row.teacherName)} · 類別 ${display(row.absenceTypeText)} · ${rollCall}`)));
