@@ -6,10 +6,32 @@ import test from 'node:test';
 import vm from 'node:vm';
 import {createHash} from 'node:crypto';
 import {planPublishedSampleFixture,readPublishedSampleInitializerRows,verifyPublishedSampleFixtureBinding,verifyNativeFixtureReadback,planNativeFixture,LiveFixtureError} from './live-fixtures.mjs';
-import {buildAccountFixture,EVAL_USER_ID,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
+import {buildAccountFixture,fixtureForCase,EVAL_USER_ID,EVAL_OTHER_USER_ID,evalId} from './fixtures.mjs';
 
 const now='2026-11-13T02:00:00Z',studentId=evalId(10);
 const id=n=>'40000000-0000-4000-8000-'+String(n).padStart(12,'0');
+
+test('published sample setup preserves both nullable Moodle material links for exact readback',async()=>{
+  const code=await readFile(new URL('./live-fixtures.mjs',import.meta.url),'utf8');
+  const start=code.indexOf('function recordsToInsert(');
+  const end=code.indexOf('\nasync function',start);
+  const buildRows=vm.runInNewContext(code.slice(start,end)+'\nrecordsToInsert',{state:{now},
+    pick:(row,keys)=>Object.fromEntries(keys.map(key=>[key,row[key]])),hash:()=> 'synthetic-import-key',
+    UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u,fail:assert.fail});
+  const snapshot=fixtureForCase('published-sample:records',{now});
+  const [course]=snapshot.dtm.courses,[material]=course.materials;
+  assert.equal(material.sourceUrl,null);
+  assert.equal(material.targetUrl,null);
+  snapshot.serviceRecords=[];
+  const write=()=>buildRows(snapshot,{id:EVAL_USER_ID,studentId}).dtm_materials[0];
+  assert.equal(write().source_url,null);
+  assert.equal(write().target_url,null);
+  material.sourceUrl='https://example.invalid/material';
+  material.targetUrl='https://example.invalid/reading';
+  const persisted=write();
+  assert.equal(persisted.source_url,material.sourceUrl);
+  assert.equal(persisted.target_url,material.targetUrl);
+});
 const terms={
   'SAMPLE-2026-FALL':{termId:id(901),termLabel:'Sample Fall 2026',termStartsOn:'2026-09-07',termEndsOn:'2027-01-15'},
   'SAMPLE-2026-SPRING':{termId:id(902),termLabel:'Sample Spring 2026',termStartsOn:'2026-02-16',termEndsOn:'2026-06-26'},

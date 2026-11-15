@@ -1545,7 +1545,7 @@ function recordsToInsert(snapshot,user){
   const courseIds=new Set(courses.map(row=>row.id));
   const rows={
     dtm_courses:courses.map((row,index)=>({...pick(row,['id','code','title','term','role']),user_id:user.id,source_mode:'personal',created_at:new Date(Date.parse(state.now)-index*1000).toISOString()})),
-    dtm_materials:courses.flatMap(course=>course.materials.map(row=>({id:row.id,course_id:course.id,title:row.title,kind:row.kind,summary:row.summary,position:row.position,source_mode:'personal',source_url:row.sourceUrl??null}))),
+    dtm_materials:courses.flatMap(course=>course.materials.map(row=>({id:row.id,course_id:course.id,title:row.title,kind:row.kind,summary:row.summary,position:row.position,source_mode:'personal',source_url:row.sourceUrl??null,target_url:row.targetUrl??null}))),
     dtm_meetings:courses.flatMap(course=>course.meetings.map(row=>({id:row.id,course_id:course.id,meeting_on:row.date,starts_at:row.startsAt,title:row.title,attendance:row.attendance,notes:row.notes}))),
     dtm_grade_items:courses.flatMap(course=>course.grades.map(row=>({id:row.id,course_id:course.id,label:row.label,score:row.score,maximum:row.maximum,graded_on:row.date,feedback:row.feedback}))),
     affairs_assignments:snapshot.assignments.map(row=>{

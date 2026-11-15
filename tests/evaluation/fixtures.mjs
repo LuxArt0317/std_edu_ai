@@ -41,7 +41,7 @@ export function buildAccountFixture({userId=EVAL_USER_ID,now=DEFAULT_EVAL_NOW}={
   const course=(n,values)=>({enrollmentId:evalId(n),status:'enrolled',sourceMode:'sample',code:'EVAL'+n,title:'Synthetic course',credits:3,term:'115學年度第1學期',termStartsOn:dates.termStart,termEndsOn:dates.termEnd,instructor:'Teacher Lin',weekday:dates.weekday,startsAt:'13:10:00',endsAt:'15:00:00',room:'R301',grades:[],attendance:[],...values});
   const current=course(1,{code:'DB301',title:'Database Design',grades:[{label:'Practice quiz',score:18,maximum:20,sourceMode:'sample'}],attendance:[{date:'2026-11-10',status:'absent',sourceMode:'sample'}]});
   const dtmCourse={id:EVAL_IDS.dtmCourse,code:'DTM301',title:'Learning Research',term:'115學年度第1學期',role:'student',sourceMode:'personal',
-    materials:[{id:EVAL_IDS.material,title:'Review notes',kind:'page',summary:'The quiz covers normalization and transaction isolation.',position:1,sourceMode:'personal',sourceUrl:null}],
+    materials:[{id:EVAL_IDS.material,title:'Review notes',kind:'page',summary:'The quiz covers normalization and transaction isolation.',position:1,sourceMode:'personal',sourceUrl:null,targetUrl:null}],
     meetings:[{id:EVAL_IDS.meeting,date:'2026-11-10',startsAt:'09:00:00',title:'Database indexes',attendance:'absent',notes:'Compare B-tree and hash indexes; prepare an index plan.'},
       {id:EVAL_IDS.nextMeeting,date:dates.tomorrow,startsAt:'09:00:00',title:'Transaction lab',attendance:'unknown',notes:'Bring the saved laboratory worksheet.'}],
     grades:[{id:EVAL_IDS.grade,label:'Quiz 1',score:12,maximum:20,date:'2026-11-10',feedback:'Revise normalization examples.'}]};
