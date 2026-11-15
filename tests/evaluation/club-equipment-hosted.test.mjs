@@ -226,3 +226,12 @@ test('cancel cleanup reconciles an acknowledged intent even when the confirmatio
   await fixture.verifyAbsent();
   assert.deepEqual(state,{club:[],rows:[],dependents:[],operations:[]});
 });
+
+test('replaying after the frozen pickup day keeps the cancellation fixture eligible',()=>{
+  const later=buildClubEquipmentHostedPlan({runId,owners,cancellationDate:'2027-02-28'});
+  assert.deepEqual(later.rows.slice(0,2),plan.rows.slice(0,2));
+  assert.equal(later.rows[2].id,plan.rows[2].id);
+  assert.equal(later.rows[2].pickup_on,'2027-03-12');
+  assert.equal(later.rows[2].return_on,'2027-03-15');
+  assert.throws(()=>buildClubEquipmentHostedPlan({runId,owners,cancellationDate:'2027-02-30'}),/did not match/u);
+});

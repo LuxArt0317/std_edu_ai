@@ -42,18 +42,27 @@ function reserveId(runId,part){
   const hash=digest([clubEquipmentFixtureMode,runId,part]);
   return hash.slice(0,8)+'-'+hash.slice(8,12)+'-4'+hash.slice(13,16)+'-a'+hash.slice(17,20)+'-'+hash.slice(20,32);
 }
-export function buildClubEquipmentHostedPlan({runId,owners}){
+function shiftedDate(value,days){
+  if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/u.test(value))throw error();
+  const at=Date.parse(value+'T00:00:00Z');
+  if(!Number.isFinite(at)||new Date(at).toISOString().slice(0,10)!==value)throw error();
+  return new Date(at+days*86_400_000).toISOString().slice(0,10);
+}
+
+export function buildClubEquipmentHostedPlan({runId,owners,cancellationDate}){
   const binding=validateAidPaymentFixtureOwners({runId,owners});
   const club={id:reserveId(runId,'club'),name:'QA Equipment Club '+runId.slice(0,8),active:false};
+  const laterPickup=cancellationDate===undefined?undefined:shiftedDate(cancellationDate,12);
+  const pickupDates=cancellationDate>=fixed[2].pickup?[laterPickup,shiftedDate(cancellationDate,15)]:null;
   const rows=fixed.map(({role,label,status,pickup,returnDate,updated},index)=>({
     id:reserveId(runId,'request-'+index),user_id:owners[role].id,club_id:club.id,student_number:'QA-STUDENT-'+role,
     student_name:'QA Private Student '+role,club_name:club.name,phone:role==='A'?'+886 777 1234':'+886 777 5678',
-    pickup_on:pickup,return_on:returnDate,purpose:'other',other_purpose:'QA Private Purpose',
+    pickup_on:index===2&&pickupDates?pickupDates[0]:pickup,return_on:index===2&&pickupDates?pickupDates[1]:returnDate,purpose:'other',other_purpose:'QA Private Purpose',
     items:[{id:reserveId(runId,'item-'+index),label}],collateral:'QA Private Collateral',status,version:2,updated_at:updated,
   }));
   const ids=[club.id,...rows.flatMap(row=>[row.id,row.items[0].id])];
   if(new Set([...ids,runId,...roles.map(role=>owners[role].id)]).size!==ids.length+3)throw error();
-  return {...binding,club,rows,ids};
+  return {...binding,club,rows,ids,...(cancellationDate===undefined?{}:{cancellationDate})};
 }
 function assertPlan(plan){
   if(!isDeepStrictEqual(plan,buildClubEquipmentHostedPlan(plan)))throw error();
@@ -227,7 +236,7 @@ export async function requestClubEquipment({testCase,plan,origin,token,fetchImpl
   return {envelope,status,correlationId:protectedRead?correlationId:null,requestDigest:digest(body)};
 }
 
-export function gradeClubEquipmentHosted(testCase,result,before,after){
+export function gradeClubEquipmentHosted(testCase,result,before,after,plan){
   const {status,envelope:{body,events}}=result;
   const normalize=value=>JSON.stringify(value).toLowerCase();
   const accountRead=events.filter(step=>String(step?.kind).startsWith('account-read:'));
@@ -243,7 +252,7 @@ export function gradeClubEquipmentHosted(testCase,result,before,after){
       ])&&none(['QA Wireless Mixer']),
     'a-count':()=>/requests: 1\./u.test(answer)&&none(allLabels)&&!body.views,
     'a-exact':()=>text('QA USB Capture Kit','2026-11-20')&&none(['QA Stereo Projector','QA Wireless Mixer']),
-    'b-isolation':()=>text('QA Wireless Mixer','Awaiting review','2026-11-27','2026-11-30')&&none(['QA Stereo Projector','QA USB Capture Kit']),
+    'b-isolation':()=>text('QA Wireless Mixer','Awaiting review',plan?.rows[2].pickup_on??fixed[2].pickup,plan?.rows[2].return_on??fixed[2].returnDate)&&none(['QA Stereo Projector','QA USB Capture Kit']),
     'a-b-request':()=>text('No saved club equipment requests matched')&&none(allLabels)&&!body.views,
     foreign:()=>body?.status==='handoff'&&text('your own account')&&citations.length===0,
     'guest-routing':()=>body?.status==='handoff'&&citations.length===1&&citations[0].url==='/school-affairs/login?next='+encodeURIComponent(route),

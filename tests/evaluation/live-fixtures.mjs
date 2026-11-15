@@ -1089,7 +1089,13 @@ export async function runClubEquipmentPreview({origin,sourceRevision,previewToke
       if(requests.length!==1||user.id===s.protectedOwnerBefore.id)fail('fixture-isolation','Club equipment callers are outside the fixture lease.');
       return [index===0?'A':'B',{id:user.id,email:requests[0].email,runMarker:runId}];
     }));
-    const plan=buildClubEquipmentHostedPlan({runId,owners});
+    let cancellationDate;
+    if(confirmedCancellation){
+      const [clock]=await query(()=>s.sql`select (now() at time zone 'Asia/Taipei')::date::text as today`,'Could not read the club equipment fixture date.');
+      if(!clock?.today)fail('fixture-readback','The club equipment fixture date is unavailable.');
+      cancellationDate=clock.today;
+    }
+    const plan=buildClubEquipmentHostedPlan({runId,owners,cancellationDate});
     s.clubEquipmentFixture=createClubEquipmentFixture({sql:s.sql,plan,
       assertLease:async({cleanup})=>{
         await assertRecordedFixtureLease(s,'Club equipment');
@@ -1117,7 +1123,7 @@ export async function runClubEquipmentPreview({origin,sourceRevision,previewToke
       }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
       const after=await observe();
       const {envelope,...requestProof}=request;
-      results.push({...gradeClubEquipmentHosted(testCase,{...requestProof,envelope},before,after),...requestProof,requestIndex:ticket.requestIndex});
+      results.push({...gradeClubEquipmentHosted(testCase,{...requestProof,envelope},before,after,plan),...requestProof,requestIndex:ticket.requestIndex});
     }
     if(confirmedCancellation){
       if(!results.every(result=>result.passed))fail('fixture-readback','Club equipment reads did not pass before the mutation check.');
