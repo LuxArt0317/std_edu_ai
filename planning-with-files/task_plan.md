@@ -1078,5 +1078,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Exercise ten new 31-1 and 32-1 questions in the actual handler against migrated PostgreSQL. Verify paired own and crossed snapshots. Cover navigation, tracked notes, unverifiable official outcomes and unsupported submissions without changing the original 100 cases.
 - [x] Run the exact protected Attendance and international-service packets. Preserve the independent 19/20 result and both cleanup proofs.
 - [x] Repair the specific named-course term absence hours failure, the original compact November payment question, and the 12 frozen Course Selection questions in controlled and migrated tests.
-- [ ] Replay all ten Attendance cases, all 12 Course Selection cases and both funded and empty monthly payment cases on the same protected revision in separate leases.
-- [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting; complete live browser dispatch observations before production acceptance.
+- [x] Replay all ten Attendance cases, all 12 Course Selection cases and six funded or verified-empty signed monthly answers on protected `5e6af59` with 33 exact pins and three verified cleanups.
+- [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting.
+- [ ] Mount the first genuine 52-1 signed browser dispatch packet using the existing published certificate fixture and a fixed protected transport profile. Require exact JSON answer, rendered reply and persisted write binding with independent database readback.
+- [ ] Complete signed browser dispatch observations before production acceptance. Use request-scoped server observation for zero-private-read assertions once a graph request is sent.

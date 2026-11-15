@@ -30,3 +30,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Integrated ten work permit and campus service questions after native two-owner PostgreSQL acceptance. Preserved all existing service note cases. Fixed two unrelated flaky tests with an explicit unsafe directory mode and a controlled deadline before the next protected run.
 
 - 2026-11-16 [#100] Exact `3a27235` passed international services 10/10 and Attendance 9/10, with 20 matching pins, Quality and both cleanup proofs. The claimed term absence hours for the named course now use direct scoped records in controlled tests. The original compact monthly payment phrase and all 12 frozen Course Selection prompts pass locally. Stage a separate cumulative protected revision.
+
+- 2026-11-16 [#100] Exact `5e6af59` passed Attendance 10/10, Course Selection 12/12, six paired monthly answers and five access checks. All 33 release pins, three disposals, and Quality 43757754637 passed. Local payment history browser checks and the eight opt-in suites passed with isolated database setup. Production still serves `076c79a`.
