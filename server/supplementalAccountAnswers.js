@@ -700,14 +700,14 @@ export function formatExactDtmGradeAvailability(result,question){
     &&p.counts.matching===0&&envelope.reason==='course_not_found'&&p.unavailableReason===envelope.reason){
     answer=t('No saved course matches the code or title you gave. Choose a course from the grade overview.',
       '找不到符合您提供的代碼或名稱的已儲存課程。請在成績綜覽選擇課程。');
-    link=t('Open Moodle grade overview','開啟 Moodle 成績綜覽');
+    link=t('Open sample Moodle grade overview','開啟 Moodle 範例成績綜覽');
   }else if(envelope.readState==='empty'&&p.selection.view==='report'&&p.reportPresent===false){
     answer=t('There is no saved native grade report for this course.','這門課沒有已儲存的 Moodle 成績報告。');
-    link=t('Open Moodle grade report','開啟 Moodle 成績報告');
+    link=t('Open sample Moodle grade report','開啟 Moodle 範例成績報告');
   }else if(envelope.readState==='ok'&&p.selection.view==='report'&&p.reportPresent===true
     &&p.report.totalIncluded&&p.report.totalPresent===false&&asksOnlyDtmCourseTotal(question)){
     answer=t('No course total is saved in this Moodle grade report.','這份 Moodle 成績報告沒有已儲存的課程總分。');
-    link=t('Open Moodle grade report','開啟 Moodle 成績報告');
+    link=t('Open sample Moodle grade report','開啟 Moodle 範例成績報告');
   }else return null;
   const title=t('Moodle grade report','Moodle 成績報告');
   return {status:'answered',answer:answer+'\n\n['+link+']('+evidence.url+')',
