@@ -19,7 +19,7 @@ const env={VERCEL_ENV:'preview',VERCEL_URL:new URL(origin).host,VERCEL_GIT_COMMI
 const database='https://xiftudmvxphxcjtmfmib.supabase.co';
 const columns=['id','user_id','service_key','record_type','title','status'];
 
-async function replay({tamper,extraReadActivity=false,providerFailure=false}={}){
+async function replay({tamper,extraReadActivity=false,providerFailure=false,native=false,omitNativeActivity=false}={}){
   let reads=0;
   const answer=await requestInternshipHostedCase({testCase,plan,origin,sourceRevision,runId,token,key,privateMarkers:[token,owners.A,owners.B],
     correlations:new Set(),readResponse:response=>response.json(),fetchImpl:async(endpoint,request)=>{
@@ -51,7 +51,13 @@ async function replay({tamper,extraReadActivity=false,providerFailure=false}={})
       const first=await load(1),initialAnswer=formatSupplementalAccountAnswers([first],{question:input.question});
       const result=await runAnswerVerification({question:input.question,initialAnswer,onProgress:emit,allowDeeperReview:true,
         loadEvidence:async({attempt})=>[(attempt===1?first:await load(attempt)).evidence],
-        verify:async({attempt})=>{
+        verify:async({attempt,candidate,evidence})=>{
+          if(native){
+            assert.equal(attempt,1);
+            assert.deepEqual(evidence,[first.evidence]);
+            assert.deepEqual(candidate,initialAnswer);
+            return {ok:true};
+          }
           if(providerFailure&&attempt===1)throw new Error('Controlled non-completion');
           signed.modelCompleted('answer_evidence_review');
           return {ok:attempt===(providerFailure?2:3),reason:'unsupported_claims',feedback:['Check the two saved contract statuses.']};
@@ -60,6 +66,11 @@ async function replay({tamper,extraReadActivity=false,providerFailure=false}={})
           signed.modelCompleted('correct_grounded_answer');
           return candidate;
         }});
+      if(native){
+        assert.equal(result.verification?.status,'verified');
+        signed.nativeCheckCompleted();
+        if(!omitNativeActivity)emit({kind:'internship-evidence-check',status:'complete',label:'Verified exact saved records',detail:'Exact selected fields'});
+      }
       const body={...result,grounding:{source:'account',webSearched:false},activity:[...activity.values()]};
       if(extraReadActivity)body.activity.push({kind:'account-read:internshipRecords:3',status:'complete'});
       const receipt=signed.finish(body,true);
@@ -105,4 +116,20 @@ test('a verified answer with incomplete provider receipts remains diagnostic-onl
   assert.equal(answer.completedEvidenceReviews,1);
   assert.equal(answer.passed,false);
   assert.deepEqual(answer.failures,['observation.model_review']);
+});
+
+test('the grade requires a signed native match and its actual terminal activity without a provider call',async()=>{
+  const direct=await replay({native:true});
+  assert.equal(direct.answer.passed,true);
+  assert.equal(direct.answer.execution,'live-native');
+  assert.equal(direct.answer.verificationMethod,'native-exact');
+  assert.equal(direct.answer.completedNativeCheck,true);
+  assert.equal(direct.answer.completedModelCalls,0);
+  assert.equal(direct.answer.readCount,1);
+
+  const missing=await replay({native:true,omitNativeActivity:true});
+  assert.equal(missing.answer.passed,false);
+  assert.equal(missing.answer.observed,true);
+  assert.equal(missing.answer.completedNativeCheck,false);
+  assert.ok(missing.answer.failures.includes('observation.native_check'));
 });

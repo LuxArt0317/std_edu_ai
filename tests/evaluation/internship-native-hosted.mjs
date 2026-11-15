@@ -63,8 +63,9 @@ export async function requestInternshipHostedCase({testCase,plan,origin,sourceRe
   const body=await readResponse(response,endpoint,128000);
   const failures=[];
   const output=JSON.stringify(body);
+  const activity=Array.isArray(body.activity)?body.activity:[];
   if(privateMarkers.some(marker=>marker&&output.includes(marker)))failures.push('observation.private_marker');
-  let observation=null,reads=0,reviews=0,operations=0;
+  let observation=null,reads=0,reviews=0,operations=0,completedNativeCheck=false;
   if(guest){
     if(receipt)failures.push('observation.guest_receipt');
   }else{
@@ -82,24 +83,33 @@ export async function requestInternshipHostedCase({testCase,plan,origin,sourceRe
         // Account verification refreshes scoped rows once. Its deeper review
         // may then use that same evidence without authorizing a third read.
         const expectedPhysicalReads=Math.min(checks,2);
-        // Transport/provider failures may lack a completion receipt. They are
-        // diagnostic rather than a complete hosted model acceptance.
-        if(body.verification?.status!=='verified'||!Number.isInteger(checks)||checks<1||checks>maxAnswerVerificationChecks
-          ||reads!==expectedPhysicalReads||observation.attempts.length!==expectedPhysicalReads||reviews!==checks)
-          failures.push('observation.model_review');
-      }else if(reads||observation.attempts.length||operations)failures.push('observation.unexpected_lookup');
+        const exactReadChecks=body.verification?.status==='verified'&&Number.isInteger(checks)
+          &&checks>=1&&checks<=maxAnswerVerificationChecks&&reads===expectedPhysicalReads&&observation.attempts.length===expectedPhysicalReads;
+        if(observation.verificationMethod==='native-exact'){
+          const nativeChecks=activity.filter(step=>step.kind==='internship-evidence-check'&&step.status==='complete');
+          completedNativeCheck=exactReadChecks&&operations===0&&nativeChecks.length===1;
+          if(!completedNativeCheck)failures.push('observation.native_check');
+        }else{
+          // Transport/provider failures may lack a completion receipt. They are
+          // diagnostic rather than a complete hosted model acceptance.
+          if(observation.verificationMethod!=='model'||!exactReadChecks||reviews!==checks)
+            failures.push('observation.model_review');
+        }
+      }else if(observation.verificationMethod!=='none'||reads||observation.attempts.length||operations)
+        failures.push('observation.unexpected_lookup');
     }
   }
-  const activity=Array.isArray(body.activity)?body.activity:[];
   if(activity.some(step=>String(step.kind).startsWith('account-read:')&&(!source||!/^account-read:internshipRecords:[12]$/u.test(step.kind))))
     failures.push('observation.unrelated_activity');
   if(body.grounding?.webSearched!==false)failures.push('observation.public_research');
-  const execution=guest?'live-native':!observation?'unverified':source?(reviews?'live-model':'unverified'):'live-native';
+  const execution=guest||completedNativeCheck||observation?.verificationMethod==='none'?'live-native'
+    :observation?.verificationMethod==='model'&&reviews?'live-model':'unverified';
   const outcome=gradeCase({...testCase,executionContract:'live-native'},{statusCode:response.status,fixtureKey:testCase.fixtureKey,
     body,events:activity,execution});
   failures.push(...outcome.failures.map(failure=>failure.id));
   return {caseId:testCase.id,passed:failures.length===0,execution,readCount:observation?reads:null,
-    verificationChecks:body.verification?.attempts??null,completedEvidenceReviews:observation?reviews:null,completedModelCalls:observation?operations:null,observed:observation!==null,...(observation?{correlationId,responseDigest:observation.responseDigest,
+    verificationChecks:body.verification?.attempts??null,completedEvidenceReviews:observation?reviews:null,completedModelCalls:observation?operations:null,
+    completedNativeCheck,verificationMethod:observation?.verificationMethod??null,observed:observation!==null,...(observation?{correlationId,responseDigest:observation.responseDigest,
       receiptDigest:internshipObservationDigest(receipt),readDigests:observation.attempts.flatMap(attempt=>attempt.reads),
       projectionDigests:observation.attempts.map(attempt=>attempt.evidenceDigest)}:{}),failures};
 }
