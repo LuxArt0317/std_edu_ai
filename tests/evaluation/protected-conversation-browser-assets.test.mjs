@@ -5,6 +5,9 @@ import {certificateBrowserHeading,certificateBrowserProfile} from './vercel-prev
 import {announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
 import {studentProfilePath} from '../../server/studentProfileContract.js';
 import {studentProfileBrowserHeading,studentProfileBrowserProfile} from './student-profile-browser-turn.mjs';
+import {clubMembershipPath} from '../../server/clubMembershipIntent.js';
+import {clubAttendanceBrowserMark} from './club-attendance-browser-turn.mjs';
+import {clubMembershipBrowserProfile} from './club-membership-browser-turn.mjs';
 
 const origin='https://stdedu-abcdef123-v1-d286.vercel.app';
 const revision='6'.repeat(40);
@@ -208,4 +211,15 @@ test('an aborted lookup cannot return an allowlist or read a later dependency',a
   });
   await assert.rejects(f.derive({signal:controller.signal}),/request deadline|resource could not be read/u);
   assert.ok(!f.paths.includes(site));
+});
+
+test('Club Membership derives its own signed route and shell mark from the protected source',async ()=>{
+  const f=fixture();
+  f.files.set(clubMembershipPath,f.files.get('/dtm'));
+  f.files.set(signInElsewhere,'import '+JSON.stringify(relative(auth))+';');
+  const result=await f.derive({profile:clubMembershipBrowserProfile});
+  assert.deepEqual(f.paths.slice(0,2),['/release.json',clubMembershipPath]);
+  assert.ok(result.assets.includes(clubAttendanceBrowserMark)&&result.assets.includes(signInElsewhere));
+  assert.ok(!f.paths.includes('/school-affairs/services/40-1/my-attendance'));
+  assert.ok(!f.paths.includes('/dtm')&&!f.paths.includes('/api/affairs-data'));
 });

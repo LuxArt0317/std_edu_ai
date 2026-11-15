@@ -70,3 +70,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Verified all three reported prompts on protected `473f17a` in the streaming API and Chromium, including the restored Activity. The earlier Playwright attempt used a relative locator scoped to the full answer; the corrected locator verifies the actual Activity in each answer. No signed fixture was opened in this run.
 
 - 2026-11-16 [#100] Completed the previously staged Club Membership fixture and mounted the original three-browser-case profile. The independent answer oracle rejects peer records, future term facts and extra account-read activity. Focused evaluator passed 49/49. Exact hosted replay pending.
+
+- 2026-11-16 [#100] Protected `692f590` passed the three reported guidance controls. Its signed browser suite stopped before setup because asset discovery lacked the Membership route. Added the bounded shell and mark, then verified the route-specific discovery in the focused evaluator.
