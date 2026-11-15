@@ -241,7 +241,8 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Verify exact protected `a8d8fb9` CI and replay 16 clearance and 11 Academic Services questions. Recover the clearance fixture separately and preserve the original cleanup result.
 - [x] Check all three positive clearance-window cases through isolated SQL and actual handlers, plus 13 previously unavailable Student Clubs browser observations with separate manager and student outcomes.
 - [x] Check five unchanged teaching-survey prompts against actual isolated PostgreSQL and the API. Keep the remaining teaching questions and hosted evidence visible.
-- [ ] Replay five original Moodle course and meeting questions in protected Preview with paired owned and crossed reads, exact request scope and verified cleanup.
+- [x] Replay five original Moodle course and meeting questions in protected Preview with paired owned and crossed reads, exact request scope and verified cleanup.
+- [x] Replay the original four-turn conversation on that same protected revision. Verify persisted context, cleanup and both independent helpfulness reviews.
 - [ ] Mount hosted positive clearance windows and Learning Support in an independently verified runtime. The connected Preview and Production currently share one Supabase database.
 
 - [x] Integrate housing receipt scope, direct native Moodle grades and the teaching question bank on the protected menu-context revision.
