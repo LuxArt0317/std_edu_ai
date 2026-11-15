@@ -62,6 +62,8 @@ import {studentLeaveJournalBinding} from './student-leave-fixture-lifecycle.mjs'
 import {buildStudentLeaveFixturePlan,leaveFixtureFamilies,studentLeaveFixtureManifest} from './student-leave-fixture-plan.mjs';
 import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {checkConfirmedTaskRoundTrip,readConfirmedTaskRows} from './confirmed-task-preview.mjs';
+import {checkTuitionLedgerPreview,deleteTuitionLedgerPreviewState,isEmptyTuitionLedgerPreviewState,readTuitionLedgerPreviewState,
+  seedTuitionLedgerPreviewState,tuitionLedgerFixtureMode,tuitionLedgerHistoryPath,tuitionLedgerPlan,tuitionLedgerPreviewDates} from './tuition-ledger-preview.mjs';
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
@@ -317,6 +319,7 @@ async function saveLedger(){
     await handle.writeFile(JSON.stringify({version:1,projectRef:PROJECT,runId:s.runId,origin:s.origin,createdAt:s.startedAt,
       protectedOwner,fixtureUserIds:s.users.map(user=>user.id),identityRequests:s.identityRequests,ownedRecordIds:[...s.recordIds].sort(),supplementalTables:[...(s.supplementalTables||[])].sort(),activeCaseId:s.current?.caseId??null,
       ...(s.taskActionJournal?{confirmedTaskJournal:s.taskActionJournal}:{}),
+      ...(s.tuitionLedgerPlan?{tuitionLedgerFixture:s.tuitionLedgerPlan}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
       ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
@@ -403,10 +406,14 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const leaveDataOnly=fixtureMode===runStudentLeaveDataPreflight;
   const counselingOnly=caseFamily==='counseling-appointments';
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  const tuitionLedgerOnly=fixtureMode===tuitionLedgerFixtureMode;
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
+  if(tuitionLedgerOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Tuition ledger checks require the exact protected Preview and isolated disposable owners.');
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
@@ -480,7 +487,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -542,6 +549,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.taskActionJournal=[];
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['tasks']};
+    }
+    if(tuitionLedgerOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['paymentHistory']};
     }
     if(leaveDataOnly){
       await prepareStudentLeaveDataFixture(state,expectedReleaseRevision,previewGate,serviceKey);
@@ -740,6 +751,65 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
     await previewGate.finish();
   }finally{cleanupProof=await cleanup();}
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
+}
+
+export async function runTuitionLedgerPreview({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!(/^[a-f0-9]{40}$/u.test(sourceRevision??'')))
+    fail('fixture-config','Tuition ledger checks require an exact protected Preview and source revision.');
+  const {sourceIdentity}=await import('./run.mjs');
+  const identity=await sourceIdentity();
+  if(identity.dirty||identity.sourceRevision!==sourceRevision)
+    fail('fixture-target','Tuition ledger checks require the exact clean deployed source.');
+  const previewReadbackFetch=createTrustedPreviewFetch({origin,token:previewToken});
+  const runId=randomUUID();
+  await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+    signal,fixtureMode:tuitionLedgerFixtureMode,previewReadbackFetch});
+  const s=ready(),{previewGate}=s;
+  let result,cleanupProof;
+  try{
+    const owners=s.users.map(user=>({userId:user.id,studentId:user.studentId}));
+    if(owners.length!==2||owners.some(owner=>owner.userId===s.protectedOwnerBefore.id
+      ||!s.identityRequests.some(row=>row.id===owner.userId&&row.runId===runId&&row.state==='created')))
+      fail('fixture-state','Tuition ledger owners do not match the disposable identity ledger.');
+    await assertRecordedFixtureLease(s,'Tuition ledger seed');
+    await previewGate.assertCurrent();
+    const plan=tuitionLedgerPlan({runId,owners});
+    s.tuitionLedgerPlan=plan;
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedTuitionLedgerPreviewState(s.sql,plan)),'Could not seed the exact disposable tuition ledger.');
+
+    async function request(side,path,body){
+      await assertRecordedFixtureLease(s,'Tuition ledger request');
+      const user=side==='guest'?null:s.users[side==='A'?0:1];
+      if(user)await user.renewSession?.({signal});
+      const ticket=await previewGate.beforeRequest();
+      const target=new URL(path,origin);
+      const response=await previewReadbackFetch(target,{method:body?'POST':'GET',signal:signals(signal,25000),
+        headers:{...(user?{Authorization:'Bearer '+user.token}:{}),...(body?{'Content-Type':'application/json'}:{})},
+        ...(body?{body:JSON.stringify(body)}:{})});
+      const parsed=await readBoundedFixtureResponse(response,target,65536,response.status);
+      await previewGate.afterRequest(ticket);
+      return {status:response.status,body:parsed,correlationId:response.headers.get('x-assistant-request-id')};
+    }
+    result=await checkTuitionLedgerPreview({plan,
+      observe:async()=>{
+        await assertRecordedFixtureLease(s,'Tuition ledger readback');
+        return query(()=>readTuitionLedgerPreviewState(s.sql,plan),'Could not read independent disposable tuition ledger state.');
+      },
+      history:(side,chargeId)=>request(side,'/api/affairs-data?'+new URLSearchParams({
+        scope:'fee-payment-history',charge_id:chargeId,...tuitionLedgerPreviewDates,
+      })),
+      ask:(side,question)=>request(side,'/api/affairs-assistant',{
+        question,route:tuitionLedgerHistoryPath,stream:false,consentedResearchUse:false,
+      }),
+    });
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==identity.sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','The tuition ledger verification source changed during the run.');
+    await previewGate.finish();
+  }finally{cleanupProof=await cleanup();}
+  return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof,
+    liveAcceptance:result.passed&&cleanupProof.verified&&cleanupProof.tuitionLedgerCleanup===true};
 }
 
 export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal}={}){
@@ -2765,6 +2835,11 @@ export async function cleanup(){
         catch(error){try{await s.sql.unsafe('rollback');}catch{/* Preserve the original cleanup failure. */}throw error;}
       },'Could not remove the exact disposable aid payment records.');
     }
+    if(s.tuitionLedgerPlan){
+      await assertRecordedFixtureLease(s,'Tuition ledger cleanup');
+      await query(()=>feeTransaction(s,()=>deleteTuitionLedgerPreviewState(s.sql,s.tuitionLedgerPlan)),
+        'Could not remove the exact disposable tuition ledger rows.');
+    }
     for(const user of [...s.users].reverse().filter(user=>deletable.has(user.id))){
       let deleted=false;
       for(let attempt=0;attempt<3;attempt++){
@@ -2811,6 +2886,14 @@ export async function cleanup(){
         fail('fixture-cleanup','A task fixture identity, task, audit or receipt remains.');
       s.taskActionCleanup=true;
     }
+    if(s.tuitionLedgerPlan){
+      const remaining=await query(()=>readTuitionLedgerPreviewState(s.sql,s.tuitionLedgerPlan),'Could not verify tuition ledger cleanup.');
+      const ids=s.tuitionLedgerPlan.accounts.map(account=>account.userId);
+      const identities=await query(()=>s.sql`select 1 from auth.identities where user_id in ${s.sql(ids)} limit 1`,'Could not verify tuition ledger identity cleanup.');
+      if(!isEmptyTuitionLedgerPreviewState(remaining)||identities.length)
+        fail('fixture-cleanup','An exact tuition ledger row or disposable identity remains.');
+      s.tuitionLedgerCleanup=true;
+    }
     if(s.healthMetadataFixture)await s.healthMetadataFixture.verifyAbsent();
     if(s.tutorEvaluationFixture){
       await s.tutorEvaluationFixture.verifyAbsent();
@@ -2850,6 +2933,7 @@ export async function cleanup(){
   if(cleanupError){if(cleanupError instanceof LiveFixtureError)throw cleanupError;fail('fixture-cleanup','Cleanup could not be verified; the private ledger is retained.');}
   return {verified:true,createdUsers:s.users.length,projectRef:PROJECT,protectedOwnerUnchanged,
     ...(s.taskActionCleanup?{taskActionCleanup:true}:{}),
+    ...(s.tuitionLedgerCleanup?{tuitionLedgerCleanup:true}:{}),
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.studentLeaveData?{studentLeaveDataCleanup:s.studentLeaveDataCleanup}:{}),
     ...(s.transcriptConversation?{conversationCleanup:s.transcriptConversationCleanup}:{})};

@@ -148,6 +148,14 @@ node tests/evaluation/run-confirmed-task-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_
 
 Run from the clean deployed client revision with the authorized exact-client environment and Vercel Development identity. The owner-only report lists the completed operations and readback digests. This packet covers local task actions; service requests, profile changes, assignment tracking and administrative publishing have separate acceptance requirements.
 
+### Private tuition ledger Preview
+
+```sh
+node tests/evaluation/run-tuition-ledger-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Use the clean deployed revision, the existing exact-client fixture environment and an authorized Development `VERCEL_OIDC_TOKEN`. The dated tuition migrations must already be present. The run binds two new Google-qualified student accounts under the shared fixture lease and seeds four synthetic dated events on two reserved sample charges. It checks two own reads, two crossed reads, distinct assistant month totals including a reversal and an undated balance, and anonymous denial. An independent SQL read confirms that the student requests left the ledger, audits, and operation receipts unchanged. Cleanup verifies the exact charge, event, and Auth rows are absent. An unresolved row retains the private recovery ledger. The report covers student reads and contains no raw answers or account IDs. Staff reads and writes require separate evidence.
+
 Conversation cleanup binds the serialized message array as text and casts it to JSONB in PostgreSQL before the exact row comparison. The fixture retains its deletion witness when automatic cleanup fails. Record any verified manual recovery separately from the original hosted report.
 
 The Digital Academy Preview packet contains 16 course-list and search cases and six category and notice cases. Two disposable callers independently read the exact authenticated catalog or metadata RPC before and after each assistant request. The grader compares both projections with the committed source oracles and ties the response and verification events to the exact request and deployment. Catalog grading also checks each visible course title against its local link. The isolated adapter uses the existing published catalog without changing it. The two fault-injection cases and the guest handoff still require independent hosted observations.
