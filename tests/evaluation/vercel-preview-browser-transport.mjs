@@ -5,6 +5,9 @@ import {ProtectedBrowserDiagnostic,requireProtectedBrowser as check} from './pro
 import {certificateAwardPath,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {certificateAwardPreviewManifest} from './certificate-award-preview.mjs';
 import {inspectProtectedCertificateBrowserReply,verifyProtectedCertificateBrowserReceipt,verifyProtectedCertificateBrowserSave} from './certificate-browser-turn.mjs';
+import {announcementEmailPath} from '../../server/announcementEmailContract.js';
+import {announcementEmailBrowserAnswerPath,announcementEmailBrowserBootstrap,announcementEmailBrowserCases,announcementEmailBrowserProfile,
+  inspectAnnouncementEmailBrowserBootstrap,inspectAnnouncementEmailBrowserReply,verifyProtectedAnnouncementEmailBrowserSave} from './announcement-email-browser-turn.mjs';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const conversationPath='/api/affairs-conversations',assistantPath='/api/affairs-assistant';
@@ -16,8 +19,19 @@ export const certificateBrowserIcon='/favicon.png';
 export const certificateBrowserHeading='/stu-reference/certificate-award/heading.png';
 const certificateBootstrap=dataPath+'?scope='+certificateAwardScope+'&view=mine';
 const certificateAnswers=new Map(certificateAwardPreviewManifest().filter(row=>row.id.endsWith('-aggregate-control')||row.bankReceipt)
-  .map(row=>[row.question,certificateBootstrap+'&answer=en'+(row.bankReceipt?'&bank_receipt=requested':'')]));
-const certificateAnswerPaths=new Set(certificateAnswers.values());
+  .map(({question,bankReceipt})=>[question,{selection:{bankReceipt:Boolean(bankReceipt)},
+    answerPath:certificateBootstrap+'&answer=en'+(bankReceipt?'&bank_receipt=requested':'')}]));
+const announcementAnswers=new Map(announcementEmailBrowserCases.map(({question,inbox})=>[question,{selection:{inbox},answerPath:announcementEmailBrowserAnswerPath(inbox)}]));
+const nativeProfiles=new Map([
+  [certificateBrowserProfile,{label:'certificate',route:certificateAwardPath,bootstrap:certificateBootstrap,answers:certificateAnswers,
+    requiredMedia:[certificateBrowserHeading],receiptKey:'certificateReceipt',
+    inspectReply:inspectProtectedCertificateBrowserReply,verifySave:verifyProtectedCertificateBrowserSave,
+    inspectBootstrap(value,ownerId){check(value?.userId===ownerId&&Array.isArray(value.rows)&&Array.isArray(value.files),'wrong fixture caller');}}],
+  [announcementEmailBrowserProfile,{label:'announcement-email',route:announcementEmailPath,bootstrap:announcementEmailBrowserBootstrap,
+    answers:announcementAnswers,requiredMedia:[],receiptKey:'announcementEmailReceipt',
+    inspectReply:inspectAnnouncementEmailBrowserReply,verifySave:verifyProtectedAnnouncementEmailBrowserSave,
+    inspectBootstrap:inspectAnnouncementEmailBrowserBootstrap}],
+]);
 const sha=/^[a-f0-9]{40}$/u,uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const asset=/^\/(?:assets|stu-reference|school-assets|dtm-theme)\/[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+$/u;
 const browserMedia=/\.(?:woff2?|ttf|png|jpe?g|webp|gif|svg|avif)$/iu;
@@ -58,14 +72,14 @@ async function capture(response,max){
 
 export function validateProtectedConversationBrowserResources({origin,assets,dataPaths,profile='dtm'}){
   check(isEvaluationPreviewOrigin(origin),'invalid resource origin');
-  check(profile==='dtm'||profile===certificateBrowserProfile,'invalid fixture config');
-  const certificate=profile===certificateBrowserProfile;
-  check(Array.isArray(assets)&&assets.length<=256&&assets.every(path=>(asset.test(path)||certificate&&path===certificateBrowserIcon)&&target(origin+path).pathname===path
-    &&(!certificate||path.startsWith('/assets/')||browserMedia.test(path)))
-    &&(!certificate||assets.includes(certificateBrowserHeading)),'invalid resource allowlist');
-  if(certificate){
+  const native=nativeProfiles.get(profile);
+  check(profile==='dtm'||native,'invalid fixture config');
+  check(Array.isArray(assets)&&assets.length<=256&&assets.every(path=>(asset.test(path)||native&&path===certificateBrowserIcon)&&target(origin+path).pathname===path
+    &&(!native||path.startsWith('/assets/')||browserMedia.test(path)))
+    &&(!native||native.requiredMedia.every(path=>assets.includes(path))),'invalid resource allowlist');
+  if(native){
     check(dataPaths===undefined,'invalid data route allowlist');
-    return {staticPaths:new Set(assets),ownDataPaths:new Set([certificateBootstrap])};
+    return {staticPaths:new Set(assets),ownDataPaths:new Set([native.bootstrap])};
   }
   if(dataPaths===undefined)dataPaths=[dataPath];
   check(Array.isArray(dataPaths)&&dataPaths.length<=8&&dataPaths.every(path=>{
@@ -81,17 +95,17 @@ export function validateProtectedConversationBrowserResources({origin,assets,dat
  * on the original browser request. The OIDC header exists only in Node fetch. */
 export function createProtectedConversationBrowserRelay({origin,revision,token,ownerId,getCallerToken,verifyPin,authorizeSave,
   assets=[],dataPaths,profile='dtm',fetchImpl=globalThis.fetch,now=Date.now}={}){
-  const certificate=profile===certificateBrowserProfile;
+  const native=nativeProfiles.get(profile);
   check(isEvaluationPreviewOrigin(origin)&&sha.test(revision??'')&&uuid.test(ownerId??'')&&typeof getCallerToken==='function'
-    &&typeof verifyPin==='function'&&(certificate||typeof authorizeSave==='function')&&typeof fetchImpl==='function','invalid fixture config');
+    &&typeof verifyPin==='function'&&(native||typeof authorizeSave==='function')&&typeof fetchImpl==='function','invalid fixture config');
   const tokenGuard=createPreviewDevelopmentTokenGuard(token,now);
   const checkToken=()=>{try{tokenGuard();}catch{check(false,'Preview credential expired');}};
   const {staticPaths,ownDataPaths}=validateProtectedConversationBrowserResources({origin,assets,dataPaths,profile});
-  const permittedPages=certificate?new Set([certificateAwardPath]):pages;
+  const permittedPages=native?new Set([native.route]):pages;
   const reservations=new Map(),correlations=new Set();
   const observations=[];
-  let certificateDocumentRequested=false,certificateDocumentLoaded=false,certificateBootstrapRequested=false,certificateLoaded=false;
-  let certificateTurn=null,certificateRestoration=null,overflow=false;
+  let nativeDocumentRequested=false,nativeDocumentLoaded=false,nativeBootstrapRequested=false,nativeLoaded=false;
+  let nativeTurn=null,nativeRestoration=null,overflow=false;
   let releaseChecked=false,pinFailed=false,pinQueue=Promise.resolve();
   function pin(){
     const work=pinQueue.then(async()=>{
@@ -111,17 +125,16 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       &&(real?permittedPages.has(route)&&typeof question==='string'&&question.trim()===question&&question.length>=2&&question.length<=2000
         &&![...reservations.values()].some(item=>item.route===route&&item.question===question):route===undefined&&question===undefined),
     'invalid conversation reservation');
-    if(certificate){
+    if(native){
       check(reservations.size===0&&!overflow,'invalid conversation reservation');
       if(real){
-        check(certificateLoaded&&observations.every(row=>row.result!=='pending')&&certificateAnswers.has(question)
+        check(nativeLoaded&&observations.every(row=>row.result!=='pending')&&native.answers.has(question)
           &&expected===undefined,'invalid conversation reservation');
-        const answerPath=certificateAnswers.get(question);
-        certificateTurn={answerPath,bankReceipt:answerPath.endsWith('&bank_receipt=requested'),requested:false,response:null};
+        nativeTurn={...native.answers.get(question),requested:false,response:null};
       }else{
-        check(mode==='read'&&!certificateDocumentRequested&&expected?.id===id&&typeof expected.updatedAt==='string',
+        check(mode==='read'&&!nativeDocumentRequested&&expected?.id===id&&typeof expected.updatedAt==='string',
           'invalid conversation reservation');
-        certificateRestoration={expected:structuredClone(expected),requested:false};
+        nativeRestoration={expected:structuredClone(expected),requested:false};
       }
     }
     reservations.set(id,{mode,route,question,requested:false,saved:false,answer:null});
@@ -140,9 +153,9 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     check(signal===undefined||signal instanceof AbortSignal&&!signal.aborted,'invalid request signal');
     check(!received.has(previewTrustedHeader)&&![...received.values()].some(value=>value.includes(token))
       &&(typeof body!=='string'||!body.includes(token)),'inherited Preview credential');
-    if(url.origin===project&&authPaths.has(path)&&(!certificate||path==='/auth/v1/user')&&
+    if(url.origin===project&&authPaths.has(path)&&(!native||path==='/auth/v1/user')&&
       (authPaths.get(path)===method||method==='OPTIONS'&&body===undefined&&!received.has('authorization'))){
-      if(certificate&&method==='GET'){check(body===undefined,'unapproved request operation');ownedToken(received);}
+      if(native&&method==='GET'){check(body===undefined,'unapproved request operation');ownedToken(received);}
       return {kind:'supabase-auth'};
     }
     check(url.origin===origin,'unapproved request origin');
@@ -151,35 +164,35 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     const get=method==='GET'&&body===undefined,post=method==='POST'&&received.get('content-type')==='application/json';
     const document=get&&permittedPages.has(path),staticAsset=get&&staticPaths.has(path),publicResource=document||staticAsset;
     const headers=new Headers({Accept:received.get('accept')||'*/*'});
-    let ask,answer,save,readId,index=false,caller=null,transaction,expectedSave,certificateReceipt;
+    let ask,answer,save,readId,index=false,caller=null,transaction,expectedSave,nativeReceipt;
     if(publicResource){
       check(!received.has('authorization'),'caller credential on a public resource');
-      if(certificate&&document){
-        check(!certificateDocumentRequested,'unapproved request operation');
-        certificateDocumentRequested=true;
+      if(native&&document){
+        check(!nativeDocumentRequested,'unapproved request operation');
+        nativeDocumentRequested=true;
       }
     }else{
       caller=ownedToken(received);
       headers.set('Authorization','Bearer '+caller);
       if(post)headers.set('Content-Type','application/json');
       if(get&&ownDataPaths.has(path)){
-        if(certificate){
-          check(certificateDocumentLoaded&&!certificateBootstrapRequested&&frameUrl===origin+certificateAwardPath,'unapproved request operation');
-          certificateBootstrapRequested=true;
+        if(native){
+          check(nativeDocumentLoaded&&!nativeBootstrapRequested&&frameUrl===origin+native.route,'unapproved request operation');
+          nativeBootstrapRequested=true;
         }
-      }else if(certificate&&get&&path===certificateTurn?.answerPath){
-        check(!certificateTurn.requested&&frameUrl===origin+certificateAwardPath,'unapproved request operation');
-        certificateTurn.requested=true;
+      }else if(native&&get&&path===nativeTurn?.answerPath){
+        check(!nativeTurn.requested&&frameUrl===origin+native.route,'unapproved request operation');
+        nativeTurn.requested=true;
       }else if(get&&url.pathname===conversationPath){
         index=path===conversationPath;
         readId=url.searchParams.get('id');
-        check(!certificate||certificateDocumentLoaded&&frameUrl===origin+certificateAwardPath,'unapproved request operation');
+        check(!native||nativeDocumentLoaded&&frameUrl===origin+native.route,'unapproved request operation');
         check(index||reservations.has(readId)&&url.search==='?id='+readId,'unreserved conversation read');
-        if(certificate&&!index){
-          check(certificateRestoration&&!certificateRestoration.requested&&readId===certificateRestoration.expected.id,'unreserved conversation read');
-          certificateRestoration.requested=true;
+        if(native&&!index){
+          check(nativeRestoration&&!nativeRestoration.requested&&readId===nativeRestoration.expected.id,'unreserved conversation read');
+          nativeRestoration.requested=true;
         }
-      }else if(!certificate&&post&&path===assistantPath){
+      }else if(!native&&post&&path===assistantPath){
         const envelope=decode(body,60000);
         check(exact(envelope,'history,images,question,route,stream')&&envelope.stream===true
           &&Array.isArray(envelope.images)&&!envelope.images.length&&Array.isArray(envelope.history)&&!envelope.history.length,
@@ -187,14 +200,14 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
         ask=[...reservations.values()].find(item=>item.mode==='turn'&&item.question===envelope.question&&item.route===envelope.route);
         check(ask&&!ask.requested&&frameUrl===origin+ask.route,'unreserved assistant turn or frame');
         ask.requested=true;
-      }else if(post&&path===conversationPath&&(!certificate||typeof authorizeSave==='function'&&certificateTurn)){
+      }else if(post&&path===conversationPath&&(!native||typeof authorizeSave==='function'&&nativeTurn)){
         transaction=decode(body,190000);
         save=reservations.get(transaction?.id);
         check(exact(transaction,'id,messages,title,version')&&transaction.version===0&&typeof transaction.title==='string'
           &&transaction.title.trim()===transaction.title&&transaction.title.length>0&&transaction.title.length<=100
           &&Array.isArray(transaction.messages)&&transaction.messages.length===2&&save&&!save.saved
           &&(save.mode==='fixture'&&[...permittedPages].some(page=>frameUrl===origin+page)
-            ||save.mode==='turn'&&(certificate?certificateTurn.response:save.answer)&&frameUrl===origin+save.route
+            ||save.mode==='turn'&&(native?nativeTurn.response:save.answer)&&frameUrl===origin+save.route
             &&transaction.messages[0]?.role==='user'&&transaction.messages[0].content===save.question
             &&transaction.messages[1]?.role==='assistant'&&transaction.messages[1].phase==='complete'),'unreserved conversation save');
         save.saved=true;
@@ -203,15 +216,15 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     if(!staticAsset||!releaseChecked)await pin();
     else{await pinQueue;check(!pinFailed,'release pin failed');}
     if(save){
-      const certificateCommand=certificate?{
-        assistantResponse:Buffer.from(certificateTurn.response.bytes),requestSequence:certificateTurn.response.requestSequence,
-        bankReceipt:certificateTurn.bankReceipt,question:save.question,
+      const nativeCommand=native?{
+        assistantResponse:Buffer.from(nativeTurn.response.bytes),requestSequence:nativeTurn.response.requestSequence,
+        ...nativeTurn.selection,question:save.question,
       }:null;
-      if(certificateCommand)expectedSave=verifyProtectedCertificateBrowserSave({payload:transaction,...certificateCommand});
+      if(nativeCommand)expectedSave=native.verifySave({payload:transaction,...nativeCommand});
       let approved;
       try{
-        approved=await authorizeSave({ownerId,payload:structuredClone(transaction),...(certificateCommand
-          ?{...certificateCommand,expected:structuredClone(expectedSave)}
+        approved=await authorizeSave({ownerId,payload:structuredClone(transaction),...(nativeCommand
+          ?{...nativeCommand,expected:structuredClone(expectedSave)}
           :{correlationId:save.answer?.correlationId??null,assistantResponse:save.answer?Buffer.from(save.answer.bytes):null})});
       }catch(error){
         // Forward only our allowlisted categories from the durable save checker.
@@ -231,10 +244,10 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       void response.body?.cancel().catch(()=>{});check(false,'unexpected redirect or response URL',response.status);
     }
     check(response.status===200,'unexpected application status',response.status);
-    if(certificate&&path===certificateBrowserIcon)check(/^image\/png(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
-    if(certificate&&document)check(/^text\/html(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
+    if(native&&path===certificateBrowserIcon)check(/^image\/png(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
+    if(native&&document)check(/^text\/html(?:\s*;|$)/iu.test(response.headers.get('content-type')??''),'unexpected application response');
     const limit=publicResource?4_000_000:ownDataPaths.has(path)?1_000_000:ask?300000:
-      certificate&&path===certificateTurn?.answerPath?32768:220000;
+      native&&path===nativeTurn?.answerPath?32768:220000;
     const bytes=await capture(response,limit);
     check(!bytes.includes(token)&&(!caller||!bytes.includes(caller)),'credential in response');
     if(!publicResource){
@@ -250,28 +263,29 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       }else{
         check(contentType==='application/json','unexpected application response');
         const value=decode(bytes.toString('utf8'),limit);
-        if(certificate&&path===certificateBootstrap)
-          check(value?.userId===ownerId&&Array.isArray(value.rows)&&Array.isArray(value.files),'wrong fixture caller');
-        if(certificate&&path===certificateTurn?.answerPath)
-          inspectProtectedCertificateBrowserReply(value,certificateTurn);
+        if(native&&path===native.bootstrap)
+          native.inspectBootstrap(value,ownerId);
+        if(native&&path===nativeTurn?.answerPath)
+          native.inspectReply(value,nativeTurn.selection);
         if(index)check(Array.isArray(value?.conversations)&&value.conversations.length<=reservations.size
           &&new Set(value.conversations.map(row=>row?.id)).size===value.conversations.length
           &&value.conversations.every(row=>reservations.has(row?.id)),'unreserved conversation in index');
         if(readId||transaction)check(value?.id===(readId??transaction.id),'wrong conversation response');
-        if(expectedSave)certificateReceipt=verifyProtectedCertificateBrowserReceipt({row:value,expected:expectedSave,mode:'save'});
-        if(certificate&&readId)certificateReceipt=verifyProtectedCertificateBrowserReceipt({row:value,expected:certificateRestoration.expected,mode:'read'});
+        if(expectedSave)nativeReceipt=verifyProtectedCertificateBrowserReceipt({row:value,expected:expectedSave,mode:'save'});
+        if(native&&readId)nativeReceipt=verifyProtectedCertificateBrowserReceipt({row:value,expected:nativeRestoration.expected,mode:'read'});
       }
     }
     if(!staticAsset)await pin();
     const visibleHeaders=Object.fromEntries([...response.headers].filter(([name])=>replyHeaders.has(name)));
     check(Object.values(visibleHeaders).every(value=>!value.includes(token)&&(!caller||!value.includes(caller))),'credential in response');
     if(ask)ask.answer=answer;
-    if(certificate&&document)certificateDocumentLoaded=true;
-    if(certificate&&path===certificateBootstrap)certificateLoaded=true;
-    if(certificate&&path===certificateTurn?.answerPath)certificateTurn.response={bytes:Buffer.from(bytes),requestSequence:observation.sequence};
-    return {kind:'preview',status:response.status,headers:visibleHeaders,body:bytes,...(certificateReceipt?{certificateReceipt}:{})};
+    if(native&&document)nativeDocumentLoaded=true;
+    if(native&&path===native.bootstrap)nativeLoaded=true;
+    if(native&&path===nativeTurn?.answerPath)nativeTurn.response={bytes:Buffer.from(bytes),requestSequence:observation.sequence};
+    return {kind:'preview',status:response.status,headers:visibleHeaders,body:bytes,...(nativeReceipt?{[native.receiptKey]:nativeReceipt}:{})};
   }
-  if(!certificate)return {reserve,dispatch:dispatchRequest};
+  if(!native)return {reserve,dispatch:dispatchRequest};
+  const nativeAnswerPaths=new Set([...native.answers.values()].map(turn=>turn.answerPath));
   async function dispatch(input){
     if(observations.length===256){overflow=true;check(false,'egress observation limit');}
     let request='other';
@@ -280,14 +294,14 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
       if(url.origin===origin){
         if(permittedPages.has(path))request='document';
         else if(staticPaths.has(path))request='asset';
-        else if(path===certificateBootstrap)request='certificate-bootstrap';
-        else if(certificateAnswerPaths.has(path))request='certificate-answer';
+        else if(path===native.bootstrap)request=native.label+'-bootstrap';
+        else if(nativeAnswerPaths.has(path))request=native.label+'-answer';
         else if(url.pathname===conversationPath)request=methodForObservation(input)==='POST'?'conversation-save':
           url.search?'conversation-detail':'conversations';
         else if(url.pathname===assistantPath)request='graph-assistant';
       }else if(url.origin===project&&path==='/auth/v1/user')request='auth';
     }catch{/* Classify malformed URLs without recording any of their contents. */}
-    const observation={sequence:observations.length+1,phase:certificateTurn?'turn':certificateRestoration?'restore':'bootstrap',request,
+    const observation={sequence:observations.length+1,phase:nativeTurn?'turn':nativeRestoration?'restore':'bootstrap',request,
       method:methodForObservation(input),forwarded:false,result:'pending'};
     observations.push(observation);
     try{

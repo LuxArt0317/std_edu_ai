@@ -4,6 +4,8 @@ import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
 import {certificateBrowserHeading,certificateBrowserIcon,certificateBrowserProfile,validateProtectedConversationBrowserResources} from './vercel-preview-browser-transport.mjs';
 import {isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
 import {certificateAwardPath} from '../../server/certificateAwardsContract.js';
+import {announcementEmailPath} from '../../server/announcementEmailContract.js';
+import {announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
 
 const assetLimit=256, fileLimit=4_000_000, totalLimit=24_000_000;
 const generated=/^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css)$/u;
@@ -14,12 +16,14 @@ const validTypes={
   css:/^text\/css(?:\s*;|$)/iu,
 };
 // Select only the lazy entry for the fixed page and its assistant/auth dependencies.
+const schoolAffairsAssets={requiredEdges:['index:PublicSite','PublicSite:SchoolAffairsEntry'],
+  extraEdges:['useAffairsRecords:authClient','researchAssistant:supabase']};
 const browserAssetsProfiles=new Map([
   ['dtm',{shell:'/dtm',requiredEdges:['index:PublicSite','PublicSite:DigitalMaterials'],
     extraEdges:['DigitalMaterials:authClient','useAffairsRecords:authClient','researchAssistant:supabase'],
     homeMedia:['/dtm-theme/page.svg','/dtm-theme/url.svg','/dtm-theme/user-small.png']}],
-  [certificateBrowserProfile,{shell:certificateAwardPath,requiredEdges:['index:PublicSite','PublicSite:SchoolAffairsEntry'],
-    extraEdges:['useAffairsRecords:authClient','researchAssistant:supabase'],homeMedia:[certificateBrowserHeading]}],
+  [certificateBrowserProfile,{...schoolAffairsAssets,shell:certificateAwardPath,homeMedia:[certificateBrowserHeading]}],
+  [announcementEmailBrowserProfile,{...schoolAffairsAssets,shell:announcementEmailPath,homeMedia:[]}],
 ]);
 class AssetDiscoveryError extends Error{
   constructor(reason){super('Protected browser assets: '+reason+'.');}
@@ -192,7 +196,7 @@ export async function deriveProtectedConversationBrowserAssets({origin,approvedP
   }
   const html=await textResource(fetchImpl,origin,shell,'html',active,charge);
   const {modules,icons}=moduleList(html);
-  if(profile===certificateBrowserProfile&&icons.includes(certificateBrowserIcon))record(certificateBrowserIcon);
+  if(profile!=='dtm'&&icons.includes(certificateBrowserIcon))record(certificateBrowserIcon);
   const [entry,...links]=modules.map(reference=>absoluteAssetPath(reference,shell,origin));
   check(stem(entry)==='index','invalid shell entry');
   add(entry);
@@ -203,7 +207,8 @@ export async function deriveProtectedConversationBrowserAssets({origin,approvedP
     if(type==='js')javascriptAssets(source,file,origin,add,seenEdges,lazyEdges);
     else stylesheetAssets(source,file,origin,add,record);
   }
-  check(requiredEdges.every(edge=>seenEdges.has(edge)),profile==='dtm'?'missing required DTM route':'missing required certificate route');
+  const routeName=profile===certificateBrowserProfile?'certificate':profile==='dtm'?'DTM':'announcement email';
+  check(requiredEdges.every(edge=>seenEdges.has(edge)),'missing required '+routeName+' route');
   validateProtectedConversationBrowserResources({origin,assets:[...assets],profile});
   await pin.finish();
   return {revision,assets:[...assets].sort()};

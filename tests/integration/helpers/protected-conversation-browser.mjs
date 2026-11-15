@@ -92,8 +92,9 @@ export async function verifyRenderedCertificateBrowserTurn({dialog,expected}){
     tags:[...element.children].map(row=>row.tagName),
   }));
   const links=[{title:display.title,url:display.url}];
-  check(isDeepStrictEqual(body,{paragraphs:[display.summary,...(display.bankNote?[display.bankNote]:[]),display.title],
-    items:display.items,links,tags:['P',...(display.items.length?['UL']:[]),...(display.bankNote?['P']:[]),'P']}),
+  const paragraphs=display.paragraphs??[display.summary,...(display.bankNote?[display.bankNote]:[]),display.title];
+  check(isDeepStrictEqual(body,{paragraphs,
+    items:display.items,links,tags:['P',...(display.items.length?['UL']:[]),...paragraphs.slice(1).map(()=>'P')]}),
   'rendered certificate transcript mismatch');
   const sources=await reply.getByRole('list',{name:'Sources'}).evaluate(element=>({
     links:[...element.querySelectorAll('a')].map(row=>({title:row.textContent,url:row.getAttribute('href')})),

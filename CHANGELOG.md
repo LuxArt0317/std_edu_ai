@@ -7,6 +7,8 @@
 
 - Verify saved Leave periods, exact counts, and fee or next-class companions. Keep saved dates available when only their linked review cannot be read. [#100]
 
+- Report the saved announcement email activation status and distinguish a missing setting, Gmail delivery and another student's preference. Add the isolated 2-1 browser evaluation packet. [#100]
+
 - Add a protected Chromium replay for the original certificate status and bank receipt questions. Verify the visible answer, private conversation restore, and account isolation. [#100]
 
 - Add a protected Preview evaluator for the three original Tutor Evaluation and tuition questions with exact caller readback and cleanup. [#100]

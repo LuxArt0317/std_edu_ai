@@ -2,7 +2,7 @@
 
 [Issue #98](https://github.com/LuxArt0317/std_edu_ai/issues/98) tracks the protected workflows. Service 2-1 follows the signed-in source layout with one checkbox, Confirm and Cancel. The local setting takes effect at midnight in Taipei on the following day. Turning it off takes effect immediately. [University settings](https://info.stu.edu.tw/ePortal/pg/setNewsToMail.asp)
 
-The [stu.best settings page](https://stu.best/school-affairs/services/2-1) uses the caller's Google-linked account. Supabase persists the choice and a retry receipt. The assistant can describe the signed-in user's saved preference and link to the form. It receives no recipient address. Accounts are opted out until they choose to enable email.
+The [stu.best settings page](https://stu.best/school-affairs/services/2-1) uses the caller's Google-linked account. Supabase persists the choice and a retry receipt. The assistant can describe the signed-in user's saved preference and activation time and link to the form. It identifies an absent setting as the default off state and limits Gmail questions to the saved preference. The foreign-account question receives a local privacy denial. The assistant receives no recipient address or inbox data.
 
 ## Delivery
 
@@ -22,6 +22,18 @@ PUBLIC_SITE_ORIGIN=http://127.0.0.1:54629 node tests/integration/announcement-em
 ```
 
 Use the preflight mode before applying the migration and the deployed mode afterward. The database suite rolls back its announcements and fixtures. The authenticated HTTP suite removes disposable accounts and preferences. Worker tests use a controlled provider response, and browser tests use a synthetic account. The deployment ships with the delivery workflow disabled until a sender is available.
+
+## Signed assistant browser packet
+
+The Issue #100 operator component selects three frozen questions for a caller-owned preference, a Gmail follow-up and an empty saved preference. The fixture has one future-effective opt-in and a second owner without a preference. The existing publication trigger excludes the future-effective record. Independent SQL and paired RPC checks guard the row, queue and change receipts. The protected browser relay allows the exact 2-1 page, one bootstrap read and one reserved answer read, then one journaled conversation save and a fresh-context restore. The fixture owner must wire the existing lease and durable cleanup before hosted use.
+
+```sh
+STU_ANNOUNCEMENT_EMAIL_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index.js \
+  STU_ANNOUNCEMENT_EMAIL_TEST_CHROME=/absolute/path/to/chromium \
+  node --experimental-strip-types --test tests/evaluation/announcement-email-browser.test.mjs
+```
+
+The local test runs the actual API handler over migrated in-memory PostgreSQL with intercepted Auth and RPC transport. It also compiles the actual browser dispatcher and runs it in local Chromium with all egress intercepted. The two own-account prompts use their exact GET selectors. The foreign prompt returns its denial without an assistant or record request. This foreign check remains separate from the three guarded browser case definitions.
 
 ## Deployed evidence
 

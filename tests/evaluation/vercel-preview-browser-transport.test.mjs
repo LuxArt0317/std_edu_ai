@@ -7,8 +7,11 @@ import {certificateBrowserHeading,certificateBrowserProfile,createProtectedConve
 import {previewTrustedHeader} from './vercel-preview-transport.mjs';
 import {ProtectedBrowserDiagnostic} from './protected-browser-diagnostics.mjs';
 import {verifyProtectedCertificateBrowserEgress,verifyProtectedCertificateBrowserSave} from './certificate-browser-turn.mjs';
+import {announcementEmailBrowserCases,announcementEmailBrowserAnswerPath,announcementEmailBrowserBootstrap,announcementEmailBrowserProfile,
+  verifyProtectedAnnouncementEmailBrowserEgress} from './announcement-email-browser-turn.mjs';
 import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 import {certificateAwardBankReceiptNote} from '../../server/certificateAwardsContract.js';
+import {announcementEmailInboxLimit,announcementEmailPath} from '../../server/announcementEmailContract.js';
 
 const epoch=1800000000,origin='https://stdedu-abcdef123-v1-d286.vercel.app',project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const revision='a'.repeat(40),ownerId=randomUUID(),otherId=randomUUID();
@@ -133,6 +136,48 @@ test('certificate egress reports denied cross-origin and unbounded attempts with
   await assert.rejects(h.dispatch(get(certificateRoute)),/egress observation limit/u);
   assert.equal(h.egress().overflow,true);
   assert.equal(h.calls.length,0);
+});
+
+test('announcement email admits one reserved inbox answer and journaled save with closed egress',async()=>{
+  const scope=announcementEmailBrowserAnswerPath(true),{question}=announcementEmailBrowserCases[1],target=id();
+  const summary='Your announcement email preference is enabled and scheduled to activate.';
+  const effectiveAt='2099-01-01T00:00:00+00:00',title='Announcement email settings';
+  const activity=[{kind:'announcement-email',label:title,detail:summary,status:'complete'},
+    {kind:'announcement-email-inbox-receipt',label:'Inbox delivery confirmation',detail:announcementEmailInboxLimit,status:'unavailable'}];
+  const response={status:'answered',answer:[summary,'Saved activation time: '+effectiveAt,announcementEmailInboxLimit,
+    `[${title}](${announcementEmailPath})`].join('\n\n'),activity,
+    citations:[{chunkId:'account:announcement-email',claim:summary,title,url:announcementEmailPath,sourceName:'My stu.best settings'}],
+    grounding:{source:'account',webSearched:false},suggestedQuestions:[]};
+  const payload={id:target,title:question.slice(0,80),version:0,messages:sanitizeStoredConversation([
+    {id:'u-'+otherId,role:'user',content:question,images:[]},
+    {id:'a-'+otherId,role:'assistant',phase:'complete',content:response.answer,result:response,activity},
+  ])};
+  const h=harness({profile:announcementEmailBrowserProfile,assets:[assets[0]],
+    authorizeSave:command=>command.inbox===true&&command.requestSequence===4&&command.expected.answer===response.answer,
+    respond(url,init){
+      if(url.pathname===announcementEmailPath)return new Response('Pinned email page',{headers:{'Content-Type':'text/html'}});
+      if(url.pathname==='/api/affairs-conversations')return Response.json(init.method==='GET'?{conversations:[]}:
+        {...JSON.parse(init.body),version:1,created_at:certUpdatedAt,updated_at:certUpdatedAt});
+      return Response.json(url.searchParams.has('answer')?response:
+        {userId:ownerId,enabled:true,active:false,effectiveAt,version:1,deliveryConfigured:true});
+    },
+  });
+  const own=path=>certificateGet(path,ownerId,announcementEmailPath);
+  await h.dispatch(get(announcementEmailPath));
+  await h.dispatch(own(announcementEmailBrowserBootstrap));
+  await h.dispatch(own('/api/affairs-conversations'));
+  h.reserve({id:target,mode:'turn',route:announcementEmailPath,question});
+  await h.dispatch(own(scope));
+  const saved=await h.dispatch({...certificatePost(payload),frameUrl:origin+announcementEmailPath});
+  assert.deepEqual(saved.announcementEmailReceipt,{id:target,version:1,updatedAt:certUpdatedAt});
+  assert.deepEqual(verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),
+    {mode:'turn',answerRequests:1,saveRequests:1,restoreRequests:0});
+  const before=h.calls.length;
+  for(const path of [scope,announcementEmailBrowserAnswerPath(false),certificateAnswer,scope+'&user_id='+otherId])
+    await assert.rejects(h.dispatch(own(path)),/unapproved request operation/u);
+  assert.equal(h.calls.length,before);
+  assert.throws(()=>verifyProtectedAnnouncementEmailBrowserEgress({evidence:h.egress(),mode:'turn',requestSequence:4}),
+    {code:'certificate-egress-mismatch'});
 });
 
 test('certificate profiles cannot broaden data paths and malformed replies cannot hide forwarded reads',async()=>{

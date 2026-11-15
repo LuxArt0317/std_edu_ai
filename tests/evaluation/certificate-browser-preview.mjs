@@ -15,25 +15,38 @@ const conversationPath='/api/affairs-conversations';
 const generatedAsset=/^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css)$/u;
 const digest=certificateAwardPreviewHash;
 const decode=bytes=>JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(bytes));
+const certificateBrowser={
+  profile:certificateBrowserProfile,route:certificateAwardPath,heading:'學生證照記錄填表作業',
+  bootstrap:'/api/affairs-data?scope=certificate-awards&view=mine',receiptKey:'certificateReceipt',
+  grade:gradeCertificateAwardPreviewResponse,verifyEgress:verifyProtectedCertificateBrowserEgress,
+};
 
-export async function deriveCertificateBrowserAssets({origin,revision,token,signal,fetchImpl=globalThis.fetch}){
+export function deriveCertificateBrowserAssets(options){
+  return deriveProtectedNativeBrowserAssets(options,certificateBrowser);
+}
+
+export async function deriveProtectedNativeBrowserAssets({origin,revision,token,signal,fetchImpl=globalThis.fetch},browserProfile){
   check(isEvaluationPreviewOrigin(origin),'invalid fixture config');
   const guard=createPreviewDevelopmentTokenGuard(token);
   const get=async(input,options)=>{
     guard();
     const url=new URL(input);
     check(url.origin===origin&&url.href===origin+url.pathname&&
-      (url.pathname===certificateAwardPath||url.pathname==='/release.json'||generatedAsset.test(url.pathname))
+      (url.pathname===browserProfile.route||url.pathname==='/release.json'||generatedAsset.test(url.pathname))
       &&options?.method==='GET'&&options.body===undefined,'invalid resource allowlist');
     const headers=new Headers(options.headers);
     check(!headers.has('authorization')&&!headers.has('cookie')&&!headers.has(previewTrustedHeader),'inherited Preview credential');
     headers.set(previewTrustedHeader,token);
     return fetchImpl(url,{method:'GET',headers,signal:options.signal,redirect:'error',credentials:'omit',cache:'no-store'});
   };
-  return deriveProtectedConversationBrowserAssets({origin,approvedPreviewOrigin:origin,revision,fetchImpl:get,signal,profile:certificateBrowserProfile});
+  return deriveProtectedConversationBrowserAssets({origin,approvedPreviewOrigin:origin,revision,fetchImpl:get,signal,profile:browserProfile.profile});
 }
 
-export async function createCertificateBrowserSaveJournal({directory,runId,ownerId,conversationId,sourceRevision,bound}){
+export function createCertificateBrowserSaveJournal(options){
+  return createProtectedNativeBrowserSaveJournal(options,certificateBrowser);
+}
+
+export async function createProtectedNativeBrowserSaveJournal({directory,runId,ownerId,conversationId,sourceRevision,bound},browserProfile){
   const journal=await createTranscriptDurableJournal({directory,binding:{
     runId,ownerId,conversationId,sourceRevision,suiteHash:digest(bound),
   }});
@@ -43,7 +56,7 @@ export async function createCertificateBrowserSaveJournal({directory,runId,owner
     async reserveSave({payload,expected,assistantResponse,requestSequence,requestPath}){
       check(!pending&&payload.id===conversationId&&payload.version===0&&Buffer.isBuffer(assistantResponse)
         &&Number.isSafeInteger(requestSequence)&&requestSequence>0,'save envelope mismatch');
-      const grade=gradeCertificateAwardPreviewResponse(bound,{statusCode:200,body:decode(assistantResponse),requestPath});
+      const grade=browserProfile.grade(bound,{statusCode:200,body:decode(assistantResponse),requestPath});
       check(grade.passed,'save answer mismatch');
       const messages=JSON.parse(JSON.stringify(sanitizeStoredConversation(payload.messages)));
       check(expected.title===payload.title&&isDeepStrictEqual(messages,expected.messages),'save message shape mismatch');
@@ -58,17 +71,21 @@ export async function createCertificateBrowserSaveJournal({directory,runId,owner
       const {id,title,version,messages}=decode(reply.body);
       check(reply.status===200&&id===conversationId&&title===pending.title&&version===1
         &&Array.isArray(messages)&&digest(messages)===pending.messageDigest
-        &&reply.certificateReceipt?.id===id&&reply.certificateReceipt.version===version,'save receipt mismatch');
+        &&reply[browserProfile.receiptKey]?.id===id&&reply[browserProfile.receiptKey].version===version,'save receipt mismatch');
       const {operation:_operation,requestIndex:_requestIndex,...receipt}=pending;
       try{await journal.received(receipt);}catch{check(false,'save journal write failed');}
-      expectedSave={...expectedSave,updatedAt:reply.certificateReceipt.updatedAt};
+      expectedSave={...expectedSave,updatedAt:reply[browserProfile.receiptKey].updatedAt};
     },
     expected:()=>expectedSave,
   });
 }
 
-export async function runCertificateBrowserTurn({origin,sourceRevision,token,assets,bound,getSession,assertLease,verifyPin,
-    reserveConversation,pinReadback,readConversation,directory,runId,signal,onDiagnostic=()=>{}}){
+export function runCertificateBrowserTurn(options){
+  return runProtectedNativeBrowserTurn(options,certificateBrowser);
+}
+
+export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token,assets,bound,getSession,assertLease,verifyPin,
+    reserveConversation,pinReadback,readConversation,directory,runId,signal,onDiagnostic=()=>{}},browserProfile){
   signal?.throwIfAborted();
   const {chromium}=await import('playwright-core');
   const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH||
@@ -92,7 +109,7 @@ export async function runCertificateBrowserTurn({origin,sourceRevision,token,ass
         }
       },{session,origin});
       relay=createProtectedConversationBrowserRelay({origin,revision:sourceRevision,token,ownerId:session.user.id,
-        getCallerToken:()=>session.access_token,verifyPin,assets,profile:certificateBrowserProfile,
+        getCallerToken:()=>session.access_token,verifyPin,assets,profile:browserProfile.profile,
         async authorizeSave({ownerId,payload,assistantResponse,requestSequence,expected}){
           check(!restore&&ownerId===session.user.id&&savedJournal&&savedId===payload.id
             &&capture&&capture.body.equals(assistantResponse),'save fixture owner mismatch');
@@ -104,6 +121,7 @@ export async function runCertificateBrowserTurn({origin,sourceRevision,token,ass
       if(restore)relay.reserve({id:savedId,mode:'read',expected:beforeSave});
       drain=await installProtectedConversationBrowserRoute(context,{relay,async onReply({url,method,reply}){
         const destination=new URL(url);
+        if(url===origin+browserProfile.bootstrap)browserProfile.verifyBootstrap?.(bound,decode(reply.body));
         if(destination.pathname==='/api/affairs-data'&&destination.searchParams.has('answer')){
           check(!restore&&!capture,'unexpected application response');
           capture={path:destination.pathname+destination.search,body:reply.body};
@@ -114,14 +132,15 @@ export async function runCertificateBrowserTurn({origin,sourceRevision,token,ass
       page.setDefaultTimeout(15000);
       page.on('pageerror',()=>{pageErrors++;});
       // Open the private assistant only after the School Affairs shell is verified.
-      const boot=page.waitForResponse(reply=>reply.url()===origin+'/api/affairs-data?scope=certificate-awards&view=mine'
+      const boot=page.waitForResponse(reply=>reply.url()===origin+browserProfile.bootstrap
         &&reply.ok()&&reply.request().method()==='GET',{timeout:20000}).then(()=>null,error=>error);
       const index=page.waitForResponse(reply=>reply.url()===responseUrl&&reply.ok()
         &&reply.request().method()==='GET',{timeout:25000}).then(()=>null,error=>error);
-      await page.goto(origin+certificateAwardPath,{waitUntil:'domcontentloaded'});
-      await page.getByRole('heading',{name:'學生證照記錄填表作業',exact:true}).waitFor();
+      await page.goto(origin+browserProfile.route,{waitUntil:'domcontentloaded'});
+      await page.getByRole('heading',{name:browserProfile.heading,exact:true}).waitFor();
       const missing=await boot;
       if(missing)throw missing;
+      await browserProfile.verifyWorkspace?.(bound,page);
       await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
       const dialog=page.getByRole('dialog',{name:/Assistant/u});
       await dialog.getByLabel('Conversations',{exact:true}).waitFor();
@@ -152,8 +171,8 @@ export async function runCertificateBrowserTurn({origin,sourceRevision,token,ass
       const picker=live.dialog.getByLabel('Conversations',{exact:true});
       savedId=await picker.inputValue();
       check(isConversationId(savedId)&&savedId[14]==='7','invalid conversation reservation');
-      savedJournal=await createCertificateBrowserSaveJournal({directory,runId,ownerId:live.session.user.id,
-        conversationId:savedId,sourceRevision,bound});
+      savedJournal=await createProtectedNativeBrowserSaveJournal({directory,runId,ownerId:live.session.user.id,
+        conversationId:savedId,sourceRevision,bound},browserProfile);
       await reserveConversation(savedId,savedJournal.journal);
       live.relay.reserve({id:savedId,mode:'turn',route:testCase.route,question:testCase.question});
       const wait=live.page.waitForResponse(reply=>reply.url()===responseUrl&&reply.request().method()==='POST'&&reply.ok(),{timeout:30000})
@@ -169,7 +188,7 @@ export async function runCertificateBrowserTurn({origin,sourceRevision,token,ass
     }finally{turnNetwork=await live.close();}
     if(turnNetwork.denial)throw turnNetwork.denial;
     check(turnNetwork.pageErrors===0,'unexpected application response');
-    const browserTurn=verifyProtectedCertificateBrowserEgress({evidence:turnNetwork.egress,mode:'turn',requestSequence:beforeSave.requestSequence});
+    const browserTurn=browserProfile.verifyEgress({evidence:turnNetwork.egress,mode:'turn',requestSequence:beforeSave.requestSequence});
 
     const readback=await pinReadback(async()=>{
       await assertLease();
@@ -184,7 +203,7 @@ export async function runCertificateBrowserTurn({origin,sourceRevision,token,ass
     }finally{restoreNetwork=await fresh.close();}
     if(restoreNetwork.denial)throw restoreNetwork.denial;
     check(restoreNetwork.pageErrors===0,'unexpected application response');
-    const browserRestore=verifyProtectedCertificateBrowserEgress({evidence:restoreNetwork.egress,mode:'restore'});
+    const browserRestore=browserProfile.verifyEgress({evidence:restoreNetwork.egress,mode:'restore'});
     return {caseId:testCase.id,passed:true,native:beforeSave.grade,requestDigest:beforeSave.grade.requestDigest,
       responseDigest:beforeSave.grade.responseDigest,readback,browserTurn,browserRestore};
   }finally{

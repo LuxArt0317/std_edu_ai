@@ -40,12 +40,17 @@ export function inspectProtectedCertificateBrowserReply(reply,{bankReceipt}){
 
 /** Bind the browser's version-zero save to the exact native response bytes. */
 export function verifyProtectedCertificateBrowserSave({payload,question,assistantResponse,requestSequence,bankReceipt}){
+  return verifyProtectedNativeBrowserSave({payload,question,assistantResponse,requestSequence,
+    inspectReply:reply=>inspectProtectedCertificateBrowserReply(reply,{bankReceipt})});
+}
+
+export function verifyProtectedNativeBrowserSave({payload,question,assistantResponse,requestSequence,inspectReply}){
   check(Number.isSafeInteger(requestSequence)&&requestSequence>0&&Buffer.isBuffer(assistantResponse)
     &&assistantResponse.length>0&&assistantResponse.length<=32768,'save certificate binding');
   let reply;
   try{reply=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(assistantResponse));}
   catch{check(false,'invalid certificate response');}
-  const display=inspectProtectedCertificateBrowserReply(reply,{bankReceipt});
+  const display=inspectReply(reply);
   const title=boundedAssistantText(question,80);
   check(exact(payload,'id,messages,title,version')&&validConversation(payload.id)&&title&&payload.title===title&&payload.version===0,
     'save envelope mismatch');
@@ -74,7 +79,12 @@ export function verifyProtectedCertificateBrowserReceipt({row,expected,mode}){
 
 /** Evaluate only after closing the Playwright context and draining its relay. */
 export function verifyProtectedCertificateBrowserEgress({evidence,mode,requestSequence}){
+  return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope:'certificate'});
+}
+
+export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope}){
   const turn=mode==='turn';
+  const bootstrap=scope+'-bootstrap',answer=scope+'-answer';
   check((turn||mode==='restore')&&evidence?.overflow===false&&Array.isArray(evidence.observations)
     &&evidence.observations.length>0&&evidence.observations.length<=256,'certificate egress mismatch');
   const counts=new Map();
@@ -84,19 +94,19 @@ export function verifyProtectedCertificateBrowserEgress({evidence,mode,requestSe
       check(['GET','OPTIONS'].includes(row.method)&&row.result==='pass-through'&&row.forwarded===false,'certificate egress mismatch');
       continue;
     }
-    const startup=['document','asset','certificate-bootstrap','conversations'].includes(row.request);
-    const turnRequest=turn&&(row.request==='certificate-answer'||row.request==='conversation-save');
+    const startup=['document','asset',bootstrap,'conversations'].includes(row.request);
+    const turnRequest=turn&&(row.request===answer||row.request==='conversation-save');
     const restoreRequest=!turn&&row.request==='conversation-detail';
     check((startup||turnRequest||restoreRequest)&&row.forwarded===true&&row.result==='accepted'&&row.status===200
       &&row.method===(row.request==='conversation-save'?'POST':'GET')
       &&(turn?startup?row.phase==='bootstrap'||row.phase==='turn':row.phase==='turn':row.phase==='restore'),
       'certificate egress mismatch');
     counts.set(row.request,(counts.get(row.request)??0)+1);
-    if(row.request==='certificate-answer')check(row.sequence===requestSequence,'certificate egress mismatch');
-    if(row.request==='conversation-save')check(counts.get('certificate-answer')===1,'certificate egress mismatch');
+    if(row.request===answer)check(row.sequence===requestSequence,'certificate egress mismatch');
+    if(row.request==='conversation-save')check(counts.get(answer)===1,'certificate egress mismatch');
   }
-  const required=['document','certificate-bootstrap','conversations',
-    ...(turn?['certificate-answer','conversation-save']:['conversation-detail'])];
+  const required=['document',bootstrap,'conversations',
+    ...(turn?[answer,'conversation-save']:['conversation-detail'])];
   check(required.every(request=>counts.get(request)===1),'certificate egress mismatch');
   return {mode,answerRequests:turn?1:0,saveRequests:turn?1:0,restoreRequests:turn?0:1};
 }

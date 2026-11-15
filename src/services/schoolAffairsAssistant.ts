@@ -34,7 +34,7 @@ import {counselingQuestion} from '../../server/counselingContract.js';
 import {isCounselingEvidenceQuestion} from '../../server/counselingEvidenceIntent.js';
 import {certificateAwardQuestion,certificateAwardRecordId} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
-import {announcementEmailQuestion} from '../../server/announcementEmailContract.js';
+import {announcementEmailForeignAnswer,announcementEmailQuestion} from '../../server/announcementEmailContract.js';
 import {readAnnouncementEmailAnswer} from './announcementEmail';
 import {studentProfileQuestion} from '../../server/studentProfileContract.js';
 import {readStudentProfileAnswer} from './studentProfile';
@@ -112,6 +112,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     return readCertificateAwardAnswer(data.session.user.id,question,signal,certificateAwardRecordId(route)??undefined);
   }
   const email=!images.length&&announcementEmailQuestion(question);
+  if(email==='foreign')return announcementEmailForeignAnswer(question);
   if(email==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(email==='status'){
     onProgress?.({kind:'announcement-email',label:'Checking announcement email preference',detail:'Reading your saved setting.',status:'running'});

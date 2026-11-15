@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {deriveProtectedConversationBrowserAssets} from './protected-conversation-browser-assets.mjs';
 import {certificateBrowserHeading,certificateBrowserProfile} from './vercel-preview-browser-transport.mjs';
+import {announcementEmailBrowserProfile} from './announcement-email-browser-turn.mjs';
 
 const origin='https://stdedu-abcdef123-v1-d286.vercel.app';
 const revision='6'.repeat(40);
@@ -97,6 +98,17 @@ test('the fixed certificate profile reads the 52-1 shell and admits its declared
   missing.files.set(certificateRoute,missing.files.get('/dtm'));
   missing.files.set(site,'export default true;');
   await assert.rejects(missing.derive({profile:certificateBrowserProfile}),/missing required certificate route/u);
+});
+
+test('the announcement email profile starts at the pinned 2-1 shell and selects School Affairs assets',async()=>{
+  const f=fixture(),route='/school-affairs/services/2-1';
+  f.files.set(route,f.files.get('/dtm'));
+  f.files.set(signInElsewhere,'import '+JSON.stringify(relative(auth))+';');
+  const result=await f.derive({profile:announcementEmailBrowserProfile});
+  assert.deepEqual(f.paths.slice(0,2),['/release.json',route]);
+  assert.equal(f.paths.at(-1),'/release.json');
+  assert.ok(result.assets.includes(signInElsewhere)&&result.assets.includes('/favicon.png'));
+  assert.ok(!result.assets.includes(certificateBrowserHeading)&&!result.assets.includes(dtm));
 });
 
 test('the operator approves the generated origin and the complete manifest before and after discovery',async()=>{

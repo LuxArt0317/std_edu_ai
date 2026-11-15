@@ -16,6 +16,7 @@ const categories=new Set([
   'save certificate binding','save certificate transcript mismatch','save certificate receipt mismatch',
   'rendered certificate transcript mismatch','rendered certificate activity mismatch',
   'certificate egress mismatch',
+  'invalid announcement email response','announcement fixture mismatch',
 ]);
 const codes=new Set([...categories].map(category=>category.toLowerCase().replaceAll(' ','-')));
 const paths=new Set(['/api/affairs-data','/api/affairs-assistant','/api/affairs-conversations']);
