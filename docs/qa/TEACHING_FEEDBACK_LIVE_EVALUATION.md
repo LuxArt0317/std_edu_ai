@@ -27,6 +27,35 @@ The offline runner test uses injected manifest/HTTP responses and fixture calls.
 It does not run a provider, create accounts, seed a database or establish browser
 acceptance. Its reports also retain `injectedDependencies: true`.
 
+## Sample-section fixture
+
+`teaching-feedback-sample-fixture.mjs` binds the exact existing `SAMPLE-2026-FALL`
+term and three `SAMP101`–`SAMP103` sample sections through a read-only catalog
+query. The fixture requires zero surveys for that term. It writes only the two
+disposable account profiles and their independently authored immediate-feedback
+records. Two distinct student sessions can hold different comments and statuses
+for the same section. The second account also has an empty-history state.
+Current eligibility and survey completions are empty. Creating a student row
+would trigger additional sample data, so eligibility and current-subject
+questions need their own fixture.
+
+Each observation compares the four caller-scoped native DTOs and checks two
+management denials and two crossed direct-table denials. Independent SQL state
+checks keep the native history, catalog binding and account changes distinct.
+The transition journal keeps the prior and pending states so an interrupted
+commit can be reconciled before deleting only the exact fixture rows.
+
+Run the local fixture checks with
+`node --test tests/evaluation/teaching-feedback-sample-fixture.test.mjs`.
+Set `STU_TEACHING_TEST_PG_SOCKET` to a private, opt-in scratch PostgreSQL socket
+for the database test. Use the scratch database setup in the
+[evaluation README](../../tests/evaluation/README.md) with the directory prefix
+`stu100-teaching-pg.` and the teaching test command. The database test applies
+the real migrations, checks the paired and empty fixture states, recovers an
+uncertain commit after recreating the fixture controller and verifies cleanup and
+preservation of an unrelated caller's row. The protected Preview operator and
+the request-bound observation still need integration.
+
 ## Required next mount
 
 1. Build a separate, caller-bound fixture lifecycle using the existing fresh A/B

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Prepare and verify an isolated teaching-feedback fixture using existing sample sections, paired owner reads and exact cleanup. [#100]
+
 - Verify complete Internship and tuition-balance answers directly against both saved sources so corrections retain each contract status and exact balance. [#100]
 
 - Continue public verification when initial school pages cannot be read or the managed reviewer runs out of output. Recheck a transient read, look for a different official publication, and preserve the search outcome in the conversation. [#100]
