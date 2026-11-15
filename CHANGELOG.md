@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep verified course and year results if the tailored interview draft provider is unavailable. Offer a clearly separated interview practice guide. [#100]
+
 - Read only the saved courses and explicitly requested year for a combined course-list and interview-writing question. Verify the answer against those same records. [#100]
 
 - Add protected evaluation for 13 original teaching feedback questions, including exact empty-record checks, navigation, privacy and unsupported writes, using the existing isolated sample fixture. [#100]

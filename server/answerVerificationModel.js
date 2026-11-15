@@ -7,7 +7,8 @@ const readText = payload => (payload?.output || []).flatMap(item => item.content
   .filter(item => item.type === 'output_text').map(item => item.text || '').join('').trim();
 
 export async function verificationModelCall(name, schema, instructions, input, deadline, images = [], deeperReview = false, onProviderCompleted) {
-  if (!process.env.OPENAI_API_KEY || deadline - Date.now() < 750) throw new Error('Verification unavailable');
+  if (!process.env.OPENAI_API_KEY || deadline - Date.now() < 750)
+    throw Object.assign(new Error('Verification unavailable'),{code:'VERIFICATION_UNAVAILABLE'});
   // A review expands one answer into independently grounded claims. Its output
   // budget also includes reasoning tokens; a planner-sized cap truncates audits
   // of detailed academic reports before the JSON can be completed.
@@ -41,7 +42,9 @@ export async function verificationModelCall(name, schema, instructions, input, d
     console.warn('Answer verification provider rejected request',{operation:name,status:response.status,type,code,param:safe(failure?.error?.param)});
     const quotaExhausted=response.status===429&&(type==='insufficient_quota'
       ||['credit_balance_exhausted','insufficient_quota','organization_spend_limit_exceeded','project_spend_limit_exceeded','organization_usage_limit_exceeded'].includes(code));
-    throw Object.assign(new Error('Verification provider unavailable'),quotaExhausted?{code:'VERIFICATION_QUOTA_EXHAUSTED'}:{});
+    const unavailable=response.status===429||response.status>=500;
+    throw Object.assign(new Error('Verification provider unavailable'),quotaExhausted?{code:'VERIFICATION_QUOTA_EXHAUSTED'}
+      :unavailable?{code:'VERIFICATION_UNAVAILABLE'}:{});
   }
   const payload = await response.json();
   if (payload.status && payload.status !== 'completed') {
