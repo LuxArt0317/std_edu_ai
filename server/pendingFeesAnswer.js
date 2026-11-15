@@ -36,6 +36,7 @@ export function isOwnFeeBalanceQuestion(question) {
   if(typeof question!=='string')return false;
   const text=question.normalize('NFKC').trim().replace(/[?.!。！？]+$/u,'').trim();
   return /^how much(?: (?:school |tuition )?fees?| tuition)? do i (?:still )?owe(?: (?:at|in|for) (?:the )?(?:school|tuition))?$/iu.test(text)
+    ||/^how much tuition and fees (?:remain(?:s)? unpaid|do i (?:still )?owe)$/iu.test(text)
     || /^(?:(?:(?:please )?(?:show(?: me)?|list|tell me|check)|what is|what's|how much is) )?my (?:(?:remaining|outstanding|unpaid|pending) )?(?:(?:school|tuition) )?(?:fees?|charges|balance)(?: (?:at|in|for) (?:the )?school)?$/iu.test(text)
     ||/^(?:請問|請查詢|幫我查|顯示)?(?:我(?:的|目前)?)(?:學雜費|學費|費用|待繳)(?:還(?:要繳|有|欠)|尚欠|剩餘|待繳|餘額|還剩)?(?:多少|金額|明細)?$/u.test(text);
 }
@@ -54,9 +55,18 @@ export function savedFeeBalanceFollowup(question,history=[]){
 /** Restrict a named balance to one literal saved charge label. */
 export function ownFeeBalanceLabel(question) {
   if(typeof question!=='string')return null;
-  const match=/^(?:what remains unpaid for|(?:(?:what is|show(?: me)?) )?(?:my|the) unpaid balance (?:of|for)|how much is unpaid for) (.{3,160}?)\s*[?!.]?$/iu.exec(question.trim());
-  if(!match||!/^[\p{L}\p{N}][\p{L}\p{N} -]*$/u.test(match[1].trim()))return null;
-  return match[1].trim();
+  const match=/^(?:what remains unpaid for|(?:(?:what is|show(?: me)?) )?(?:my|the) (?:unpaid|remaining|outstanding) balance (?:of|for)|how much is unpaid for) (.{3,162}?)\s*[?!.]?$/iu.exec(question.normalize('NFKC').trim());
+  if(!match)return null;
+  const quoted=/^(?:"([^"]+)"|“([^”]+)”)$/u.exec(match[1].trim());
+  const label=(quoted?(quoted[1]??quoted[2]):match[1]).trim();
+  if(label.length<3||label.length>160||!/[\p{L}\p{N}]/u.test(label))return null;
+  return (quoted?!/[\p{Cc}\p{Zl}\p{Zp}“”\x22]/u.test(label):/^[\p{L}\p{N}][\p{L}\p{N} -]*$/u.test(label))?label:null;
+}
+
+// Do not interpret a second clause as part of an unquoted charge label.
+export function standaloneFeeBalanceLabel(question){
+  const label=ownFeeBalanceLabel(question);
+  return label&&(/["”]\s*[?!.]?\s*$/u.test(question.normalize('NFKC'))||!/\b(?:and|or|also|then|but)\b/iu.test(label))?label:null;
 }
 
 export function answerPendingFees(question,snapshot,route='',history=[]) {
