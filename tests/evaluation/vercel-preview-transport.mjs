@@ -3,7 +3,7 @@ import {isConversationId} from '../../src/services/assistantConversationId.js';
 // The client uses the generated `stdedu` deployment stem. Branch aliases
 // and other projects under the same team are outside the credential scope.
 const previewOrigin=/^https:\/\/stdedu-[a-z0-9]{9}-v1-d286\.vercel\.app$/u;
-const trustedHeader='x-vercel-trusted-oidc-idp-token';
+export const previewTrustedHeader='x-vercel-trusted-oidc-idp-token';
 const assistantPaths=new Set(['/api/affairs-assistant','/api/research-assistant']);
 const allowedHeaders=new Set(['accept','authorization','content-type']);
 const jwt=/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/u;
@@ -31,6 +31,17 @@ function developmentClaims(token){
     ||!Number.isSafeInteger(claims.exp)||!Number.isSafeInteger(claims.nbf)||claims.exp<=claims.nbf)
     fail('the token does not declare this client project and Development environment');
   return claims;
+}
+
+export function createPreviewDevelopmentTokenGuard(token,now=Date.now){
+  if(typeof now!=='function')fail('invalid Preview target');
+  const {nbf,exp}=developmentClaims(token);
+  const check=()=>{
+    const seconds=Math.floor(now()/1000);
+    if(!Number.isFinite(seconds)||seconds<nbf||seconds>=exp)fail('the Development token is outside its validity window');
+  };
+  check();
+  return check;
 }
 
 function matchesConversation(body,conversationId){
@@ -92,12 +103,7 @@ export function createTrustedPreviewFetch({origin,token,conversationId,conversat
       deleteQueries.add(query);deleteBodies.add(body);
     }
   }
-  const {nbf,exp}=developmentClaims(token);
-  const assertCurrentToken=()=>{
-    const seconds=Math.floor(now()/1000);
-    if(!Number.isFinite(seconds)||seconds<nbf||seconds>=exp)fail('the Development token is outside its validity window');
-  };
-  assertCurrentToken();
+  const assertCurrentToken=createPreviewDevelopmentTokenGuard(token,now);
   return async (input,init={})=>{
     assertCurrentToken();
     const raw=typeof input==='string'?input:input instanceof URL?input.href:null;
@@ -125,7 +131,7 @@ export function createTrustedPreviewFetch({origin,token,conversationId,conversat
       &&auth===actionCommand.authorization&&init.body===actionCommand.body;
     if(!manifest&&!(actionCommand?probeAction:deleteProbe?probeConversation:readback||assistant||conversation))fail('unapproved request operation');
     if(probeAction)actionCommandUsed=true;
-    headers.set(trustedHeader,token);
+    headers.set(previewTrustedHeader,token);
     let response;
     try{response=await fetchImpl(url,{method,headers,body:init.body,signal:init.signal,redirect:'error',credentials:'omit',cache:'no-store'});}
     catch{fail('request could not reach the pinned Preview');}
