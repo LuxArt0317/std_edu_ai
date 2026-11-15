@@ -4,6 +4,8 @@ import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
 import {catalogDetailGuestRoute,catalogDetailIntent} from './catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestPlan} from './venueRequestIntent.js';
 import {clubAttendanceBoundary,clubAttendanceRoute,clubAttendanceSelection} from './clubAttendanceIntent.js';
+import {clubMembershipBoundary} from './accountClubMembershipAnswer.js';
+import {clubMembershipSelection} from './clubMembershipIntent.js';
 import {clubEquipmentBoundary,clubEquipmentPlan,clubEquipmentRoute} from './clubEquipmentIntent.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
@@ -481,6 +483,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             }
             stream.send(200,result);return;
         }
+        const clubMembership=clubMembershipSelection(input.question,input.route);
+        if(clubMembership){stream.send(200,clubMembershipBoundary(input.question,{foreign:clubMembership.reason==='foreign'}));return;}
         const clubAttendance=clubAttendanceSelection(input.question,input.route);
         if(clubAttendance){stream.send(200,clubAttendanceBoundary(clubAttendance,input.question,false));return;}
         const studyYear = !input.images.length && currentStudyForeignYearQuestion(studyQuestion);

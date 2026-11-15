@@ -72,6 +72,12 @@ Run `node --test tests/evaluation/club-attendance-browser-turn.test.mjs` to veri
 
 Production 076c79a is live as Vercel 4Gi741acYjhLKPYZiw4y9Af4FFNt. Migration 20261115100000 brings the client to 169 migrations with 206 RLS-protected public tables. Five student club destinations add searchable clubs and activities, account-owned participation and memberships, and new-club applications with protected approval. Local and production actual JWT, exact cleanup, pinned browser, five guest assistant links, deployment shell, client verification and Quality 43575984434 passed. All 94 catalog routes passed navigation.
 
+## Assistant read of club memberships
+
+From `/school-affairs/services/40-1/my-memberships`, ask “Which clubs am I a member of, and which memberships are active?” Append “Also show my current semester subjects” to check both sources. The answer names the saved role and reports the club's active flag. The first page can contain up to 25 records and displays a 12-row excerpt with a link when more are available. The assistant reads the timetable only for an explicit semester question. A read failure retries the affected source while keeping the other verified section, and a request about a different account is refused before any lookup.
+
+`node --experimental-strip-types --test tests/api/club-membership-assistant.test.ts` exercises the original questions, paired source retry, current-term filtering, wrong-owner rows and languages. The local `node tests/integration/club-student-ui.mjs` check uses the actual signed assistant handler through Chromium against controlled data. It verifies the combined response, one save and a fresh read of the saved conversation. Protected Preview acceptance for this path is pending.
+
 ## Assistant read of club equipment requests
 
 From `/school-affairs/services/40-1/equipment`, ask “What is the status of my club equipment request, and when do I return the items?” The signed-in assistant verifies the saved status and scheduled date, then links to the borrowing page. It also supports a recent request, an exact owned request, or a count. The source returns up to 100 requests sorted by their last update, and the answer identifies that limit when the source returns 100. The Student Health equipment entry at `/school-affairs/services/30-2` has its own tracking notes.

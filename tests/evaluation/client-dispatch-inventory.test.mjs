@@ -15,6 +15,7 @@ test('the four direct readers and verified graph dispatch remain separately visi
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
     {id:'verified-sign-in',graphTool:'accountIdentity'},
     {id:'club-activity-attendance',graphTool:'clubAttendance'},
+    {id:'club-memberships',graphTool:'clubMemberships'},
     {id:'club-equipment',graphTool:'clubEquipment'},
     {id:'published-course-detail',graphTool:'courseCatalog'},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog'},
@@ -102,7 +103,10 @@ test('independent natural-language probes expose unsupported wording without cou
   assert.equal(probeNativePredicate('club-student','Show my club memberships.'),'my-memberships');
   assert.equal(probeNativePredicate('student-profile','Have I confirmed my student information?'),'status');
   // Natural variants are deliberate targets, not rewritten to force regex hits.
-  assert.equal(inventory.questions.find(row=>row.id==='client:club-student:record').staticProbe.predicate,null);
+  assert.equal(inventory.questions.find(row=>row.id==='client:club-student:record').staticProbe.predicate,'my-memberships');
+  assert.equal(inventory.questions.find(row=>row.id==='client:club-student:multipart').staticProbe.predicate,'mine-and-current-subjects');
+  assert.equal(inventory.questions.find(row=>row.id==='client:club-student:foreign').staticProbe.predicate,'foreign');
+  assert.equal(inventory.questions.find(row=>row.id==='client:club-student:record').endpoint,'/api/affairs-assistant');
   assert.equal(inventory.questions.find(row=>row.id==='client:student-profile:record').staticProbe.predicate,'status');
   for(const row of inventory.questions.filter(row=>row.mode==='read-failure')){
     assert.equal(row.fixtureRequirement,'offline_reader_failure');assert.equal(row.assertions.mustSayUnavailable,true);

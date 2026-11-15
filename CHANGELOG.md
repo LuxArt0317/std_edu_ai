@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify saved club membership roles and club status together with current semester subjects when requested. Retry the missing source and retain any verified section. [#100]
+
 - When the indexed notice remains unreadable, try a different school publication if the targeted lookup came back empty and time remains. [#100]
 
 - Name the missing details and keep the indexed school notice link when its public read fails. Require an observed sign-in redirect before reporting a sign-in requirement. [#100]

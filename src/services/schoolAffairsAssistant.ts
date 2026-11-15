@@ -16,6 +16,7 @@ import {isStudentConductScopeQuestion} from '../../server/studentConductEvidence
 import {boundedAssistantText} from './assistantActivityBudget.js';
 import { clubStudentQuestion } from '../../server/clubStudentContract.js';
 import {clubAttendanceSelection} from '../../server/clubAttendanceIntent.js';
+import {clubMembershipSelection} from '../../server/clubMembershipIntent.js';
 import {clubEquipmentPlan} from '../../server/clubEquipmentIntent.js';
 import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
@@ -85,7 +86,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
     ||learningSupportQuestion(question,route)||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
     ||isTeachingFeedbackScopeQuestion(question,route,history)
-    ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history)||clubAttendanceSelection(question,route)||clubEquipmentPlan(question,route,history))
+    ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history)||clubAttendanceSelection(question,route)||clubMembershipSelection(question,route)||clubEquipmentPlan(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
   const profile=!images.length&&studentProfileQuestion(question);
   if(profile==='foreign'){

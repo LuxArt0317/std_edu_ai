@@ -2,6 +2,7 @@ import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import ts from 'typescript';
 import {clubStudentQuestion,clubStudentScope} from '../../server/clubStudentContract.js';
+import {clubMembershipSelection} from '../../server/clubMembershipIntent.js';
 import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
@@ -64,7 +65,8 @@ const otherDirectReaders=['readProgramRegistrationAnswer','readEarlyGraduationAn
  * network outcomes still require the real client harness. */
 export function probeNativePredicate(id,question,route=''){
   switch(id){
-    case 'club-student':return clubStudentQuestion(question);
+    case 'club-student':{const selection=clubMembershipSelection(question,route);
+      return selection?selection.reason??(selection.courses?'mine-and-current-subjects':'my-memberships'):clubStudentQuestion(question);}
     case 'club-activity-attendance':{const selection=clubAttendanceSelection(question,route);return selection?selection.reason??(selection.tuitionBalance?'mine-and-tuition':selection.partial?'partial':'mine'):null;}
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
@@ -112,7 +114,7 @@ export function inspectClientDispatchSource(source){
   const first=graphCalls[0];
   const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
     &&node.thenStatement.expression?.getStart(file)===first.at);
-  const graphPredicates={campusEntryIntent:['campusEntryContract','question,route'],learningEntryIntent:['learningEntryContract','question,route'],accountStatusIntent:['accountStatusIntent','question,route'],clubAttendanceSelection:['clubAttendanceIntent','question,route'],clubEquipmentPlan:['clubEquipmentIntent','question,route,history'],isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
+  const graphPredicates={campusEntryIntent:['campusEntryContract','question,route'],learningEntryIntent:['learningEntryContract','question,route'],accountStatusIntent:['accountStatusIntent','question,route'],clubAttendanceSelection:['clubAttendanceIntent','question,route'],clubMembershipSelection:['clubMembershipIntent','question,route'],clubEquipmentPlan:['clubEquipmentIntent','question,route,history'],isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
     isStudentLeaveEvidenceQuestion:['studentLeaveEvidenceIntent','question,route,history'],
     isVenueRequestQuestion:['venueRequestIntent','question,route,history'],
     isDtmAssignmentEvidenceQuestion:['dtmAssignmentEvidenceIntent','question,route,history'],
@@ -153,6 +155,7 @@ export function inspectClientDispatchSource(source){
   return {contracts,verifiedDispatch:[
     {id:'verified-sign-in',graphTool:'accountIdentity',source:dispatchPath,line:first.line},
     {id:'club-activity-attendance',graphTool:'clubAttendance',serviceKeys:['40-1/my-attendance'],source:dispatchPath,line:first.line},
+    {id:'club-memberships',graphTool:'clubMemberships',serviceKeys:['40-1/my-memberships'],source:dispatchPath,line:first.line},
     {id:'club-equipment',graphTool:'clubEquipment',serviceKeys:['40-1/equipment'],source:dispatchPath,line:first.line},
     {id:'published-course-detail',graphTool:'courseCatalog',source:dispatchPath,line:first.line},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog',source:dispatchPath,line:first.line},
@@ -214,7 +217,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/campusEntryContract.js','server/learningEntryContract.js','server/accountStatusIntent.js','server/accountStatusAnswer.js','server/clubAttendanceIntent.js','server/accountClubAttendanceAnswer.js','server/clubEquipmentIntent.js','server/accountClubEquipmentAnswer.js','server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/elearningMetadataIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/campusEntryContract.js','server/learningEntryContract.js','server/accountStatusIntent.js','server/accountStatusAnswer.js','server/clubAttendanceIntent.js','server/accountClubAttendanceAnswer.js','server/clubMembershipIntent.js','server/accountClubMembershipAnswer.js','server/clubEquipmentIntent.js','server/accountClubEquipmentAnswer.js','server/catalogDetailIntent.js','server/elearningCatalogPageIntent.js','server/elearningMetadataIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
     'server/learningSupportAssistantIntent.js','server/learningSupportAssistant.js',
@@ -234,7 +237,8 @@ export async function discoverClientDispatchSurfaces({read=readSource}={}){
       capabilityGap:'No independent live native fixture/client-dispatch acceptance in this inventory.'};
   });
   return {version:1,layer:'browser-client-dispatch',graphBankIncluded:false,sourceManifest:entries.map(([path,text])=>({path,sha256:digest(text)})),
-    services,scopes:[...new Set(services.map(row=>row.scope))],questions:[...definitions,graphVenueDefinition,graphAttendanceDefinition].flatMap(questionCases),verifiedDispatch:dispatch.verifiedDispatch,
+    services,scopes:[...new Set(services.map(row=>row.scope))],questions:[...definitions,graphVenueDefinition,graphAttendanceDefinition].flatMap(definition=>questionCases(definition.id==='club-student'
+      ?{...definition,call:'answerClubMemberships',graphTool:'clubMemberships'}:definition)),verifiedDispatch:dispatch.verifiedDispatch,
     navigationOnly:dispatch.navigationOnly,otherDirectReaders:dispatch.otherDirectReaders,
     limits:['Static code linkage is not browser execution, deployed reachability, successful private reads or verified answer quality.',
       'The graph reader registry does not include these direct browser dispatch readers. Direct API evaluation cannot silently count their coverage.',

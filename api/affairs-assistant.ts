@@ -4,6 +4,8 @@ import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
 import {openVenueObservation,venueObservationHeader} from '../server/venueObservation.js';
 import {clubAttendanceBrowserObservationEvent,openClubAttendanceBrowserObservation} from '../server/clubAttendanceObservation.js';
 import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
+import {answerClubMemberships,clubMembershipBoundary} from '../server/accountClubMembershipAnswer.js';
+import {clubMembershipSelection} from '../server/clubMembershipIntent.js';
 import {clubAttendanceBoundary,clubAttendanceSelection} from '../server/clubAttendanceIntent.js';
 import {answerClubEquipment} from '../server/accountClubEquipmentAnswer.js';
 import {clubEquipmentBoundary,clubEquipmentPlan} from '../server/clubEquipmentIntent.js';
@@ -402,6 +404,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const learningEntry=learningEntryIntent(question,route);
   if(learningEntry){stream.send(200,answerLearningEntry(question,learningEntry,true));return;}
+  const clubMembership=clubMembershipSelection(question,route);
+  if(clubMembership){
+    if(clubMembership.reason){stream.send(200,clubMembershipBoundary(question,{foreign:true}));return;}
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your saved club memberships using text.'});return;
+    }
+    try{
+      stream.send(200,await answerClubMemberships({account,question,route,selection:clubMembership,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The selected club memberships could not be checked.'});}
+    return;
+  }
   const clubAttendance=clubAttendanceSelection(question,route);
   if(clubAttendance){
     if(!clubAttendance.reason&&Array.isArray(input?.images)&&input.images.length){

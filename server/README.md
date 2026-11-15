@@ -246,3 +246,7 @@ A protected Preview request can attest an Internship lookup for a reserved dispo
 
 
 `studentLeaveObservation.js` attests protected Preview Student Leave evaluation requests at the native database reader and terminal response. The request must match the exact deployment host, deployed revision, short-lived nonce and Auth-verified disposable evaluation caller. Separate derived HMAC keys bind the request and receipt. The receipt limits its contents to caller and request binding, data digests, and completed provider operation names.
+
+### Club memberships and current subjects
+
+`clubMembershipIntent.js` routes membership questions to the signed-in verification graph and refuses another student's records before any lookup. `accountClubMembershipAnswer.js` reads the caller's first page of saved roles. Its status column describes the club. A question that also asks about this semester reads the caller's saved enrollments separately. Each source can be retried independently, and the result identifies what remains unavailable.

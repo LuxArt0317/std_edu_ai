@@ -1114,6 +1114,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Correct the empty Student Profile evaluator selector for the inline exit link and check it in the rendered app locally.
 - [ ] Replay the corrected empty Student Profile case on protected Preview.
 - [x] Mount the five frozen Club Attendance browser cases in the proof-aware aggregate evaluator, with controlled actual LangGraph and Chromium coverage.
-- [ ] Run the protected Club Attendance evaluator on exact `0c8815c`. Preserve the independent outage requirement and any case that remains unverified.
-- [ ] Cover the separate Club Student membership question, active status, and compound current semester subjects. Use distinct owned evidence and refuse other-owner queries.
+- [x] Run the protected Club Attendance evaluator on exact `0c8815c`. Four cases passed and all five cleanups passed. Keep the outage case unverified until its independent transport-failure evidence is available.
+- [x] Implement separate Club Student membership and current-semester evidence. Preserve the original questions, distinguish club status and the student's saved role, and refuse other-owner queries before a read. Verify the real handler and controlled Chromium save and restore.
+- [ ] Bind and run the five original Club Membership browser cases on an exact protected Preview. Preserve the independent outage, empty and crossed-owner conditions.
 - [ ] Verify the follow-up `7461124` on protected Preview, including its different-publication continuation after an unread indexed notice.
