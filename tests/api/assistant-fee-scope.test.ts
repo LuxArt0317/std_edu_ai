@@ -34,9 +34,9 @@ type BalanceResponse={status:string;answer:string;grounding:{checkedAt:string;de
   verification:{status:string;attempts:number;reason?:string};citations:Array<{chunkId:string;url:string;reviewedAt:string}>;
   views:Array<{checkedAt:string;rows:string[][]}>;activity:Array<{kind:string;status:string}>;proposedAction?:unknown};
 
-async function evaluateBalance({readsByAttempt,approve=false,question='how much is my remaining balance in school',
+async function evaluateBalance({readsByAttempt,approve=false,quotaExhausted=false,question='how much is my remaining balance in school',
   route='/school-affairs/services/34-2',history=[]}:{
-  readsByAttempt:Array<FeeRow[]|'unavailable'|'unlinked'>;approve?:boolean;question?:string;route?:string;history?:Array<{role:string;content:string}>;
+  readsByAttempt:Array<FeeRow[]|'unavailable'|'unlinked'>;approve?:boolean;quotaExhausted?:boolean;question?:string;route?:string;history?:Array<{role:string;content:string}>;
 }){
   const before={fetch:globalThis.fetch,key:process.env.OPENAI_API_KEY};
   process.env.OPENAI_API_KEY='mock-test-only';
@@ -64,6 +64,7 @@ async function evaluateBalance({readsByAttempt,approve=false,question='how much 
       assert.equal(fees.records[0]?.amountPaid,(readsByAttempt[0] as FeeRow[])[0]?.amount_paid);
       assert.doesNotMatch(String(init?.body),/mock-caller|mock-publishable|01710111-1111-4111-8111-111111111112|FORGED_HISTORY/u);
       reviewedDrafts.push(JSON.stringify(payload));
+      if(quotaExhausted)return Response.json({error:{type:'insufficient_quota',code:'credit_balance_exhausted'}},{status:429});
       const reply={supported:approve,answersQuestion:approve,claims:approve?[{
           claim:'The saved sample charge has a remaining balance.',supported:true,evidenceId:'account:charges',
           quotes:[],jsonPaths:['/records/0/sourceMode','/records/0/amountDue','/records/0/amountPaid'],
@@ -150,6 +151,16 @@ test('a standalone instalment question forwards and retries only the named saved
   assert.match(result.answer,/21,500/u);
   assert.doesNotMatch(result.answer,/91,000|23,000|Unrelated technology/u);
   assert.deepEqual(result.views[0].rows,[['Tuition instalment A','TWD','28,000.00','6,500.00','21,500.00','sample']]);
+});
+
+test('a known provider quota exhaustion still permits an independent local fee-balance correction',async()=>{
+  const {result,readPaths,reviewedDrafts}=await evaluateBalance({quotaExhausted:true,
+    readsByAttempt:[[charge(1)],[charge(1,{amount_paid:6500})]]});
+  assert.deepEqual(result.verification,{status:'verified',attempts:2});
+  assert.equal(reviewedDrafts.length,1);
+  assert.deepEqual(readPaths,[...readPair,...readPair]);
+  assert.match(result.answer,/21,500/u);
+  assert.doesNotMatch(result.answer,/23,000/u);
 });
 
 test('a successful read without an exact instalment match cannot establish an amount or disclose another charge',async()=>{
