@@ -835,7 +835,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay the identified payroll and dormitory precision regressions through the real local handlers with independent facts and scoped reads.
 - [x] Replay the five original payroll failures and all nine executable dormitory cases on a matching protected build.
 - [x] Verify the direct empty payroll answer in the eight-case protected payroll packet.
-- [ ] Verify a configured 115/1 housing period before positive protected housing and dormitory companion cases. The exact client currently has no housing periods. Use disposable PostgreSQL for the positive path and protected Preview for the empty state.
+- [x] Verify the three positive bed, cost and dormitory/housing prompts against an actual published 115/1 period in disposable PostgreSQL. Verify two-owner isolation and unchanged domain rows.
+- [x] Reproduce both empty housing grading failures on `bb29a3e`, including public fallback for a short question on 34-1. Verify the repaired actual handler with only the owned empty read and zero provider calls.
+- [ ] Recheck both empty housing prompts through protected Preview. A configured published 115/1 period is still required for positive hosted claims.
 - [x] Pass all 16 protected Health Exam cases with two independent caller views and exact cleanup.
 - [x] Pass all nine protected Counseling cases after correcting the unchanged-state proof wiring. Preserve both reports and verified cleanup.
 - [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
@@ -908,11 +910,13 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Complete 24 pinned Internship cases on `0b88ca1`. Twenty passed, four need exact answer corrections, all retained paired readbacks, and fixture cleanup was verified.
 - [x] Grade a signed third review as a review of the existing second scoped read and require actual third-check activity. Retain all four substantive failures.
 - [x] Verify exact standalone Internship answers from typed records and pass all 24 mounted cases on the controlled actual handler with signed observations.
-- [ ] Pass the full 24-case protected replay on the exact candidate.
-- [ ] Extend the Internship packet to the independent tuition companion questions. Retain the exact timetable and transport-outage requirements.
+- [x] Pass all 24 mounted Internship questions on protected `bb29a3e`, with signed exact-read or no-read proofs and verified cleanup.
+- [x] Mount the two independent tuition companions with separately signed reads and controlled actual handlers.
+- [ ] Pass the combined 26-case protected replay. Retain the frozen timetable and transport-outage requirements.
 - [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
 - [x] Implement and locally verify confirmed facilities report cancellation with a native receipt check and same-page refresh.
-- [ ] Mount a protected facilities cancellation fixture that allows only its expected native event.
+- [x] Verify the 13-case repair cancellation packet in scratch PostgreSQL with real handlers, exact native event and replay, and verified isolated cleanup.
+- [ ] Pass the exact protected facilities repair action replay.
 - [x] Implement and locally verify explicit confirmation of one eligible caller-owned 29-1 appointment through the versioned workflow.
 - [x] Mount nine hosted Counseling cancellation cases and exercise the real handlers, native PostgreSQL with RLS, exact receipts and fixture cleanup locally.
 - [x] Verify nine protected Counseling cancellation cases on `2427eee`, with exact owner readback, unchanged protected owner and fixture/identity cleanup.
