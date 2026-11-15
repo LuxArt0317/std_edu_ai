@@ -43,6 +43,9 @@ import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataC
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
 import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamily,
   dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
+import {counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
+  transitionCounselingFixtures,validateCounselingHostedCases} from './counseling-appointment-hosted.mjs';
+import {buildCounselingAppointmentFixturePlan,counselingAppointmentFixtureCaseBinding} from './counseling-appointment-fixture-plan.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {requestObservedStudentLeave,studentLeaveHostedSelection} from './student-leave-hosted-observation.mjs';
@@ -313,6 +316,9 @@ async function saveLedger(){
       ...(s.taskActionJournal?{confirmedTaskJournal:s.taskActionJournal}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
+      ...(s.counselingFixture||s.pendingCounselingFixture?{counselingAppointments:{
+        activeFamily:s.counselingFixture?.fixtureKey??null,pendingFamily:s.pendingCounselingFixture?.fixtureKey??null,
+      }}:{}),
       ...(s.transcriptConversationRecovery?{transcriptConversation:s.transcriptConversationRecovery}:{}),
       ...(s.healthMetadataJournal?{healthMetadataFixture:s.healthMetadataJournal}:{}),
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
@@ -381,7 +387,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -391,6 +397,7 @@ async function createFixtureUser(index){
 export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expectedReleaseRevision,signal,fixtureMode,caseFamily,applicationFetch,previewReadbackFetch}={}){
   if(state)fail('fixture-state','This fixture adapter cannot run overlapping lifecycles.');
   const leaveDataOnly=fixtureMode===runStudentLeaveDataPreflight;
+  const counselingOnly=caseFamily==='counseling-appointments';
   const taskActionOnly=fixtureMode==='confirmed-task-actions';
   if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
@@ -399,6 +406,13 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(leaveDataOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Student Leave data preflight requires an exact protected Preview and no assistant cases.');
+  if(counselingOnly){
+    if(fixtureMode!==counselingFixtureMode||origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+      ||typeof previewReadbackFetch!=='function'||applicationFetch!==undefined)
+      fail('fixture-target','Counseling fixtures require the exact protected Preview.');
+    validateCounselingHostedCases(cases);
+  }else if(cases.some(row=>row?.fixtureRequirement==='counseling_appointments_disposable'))
+    fail('fixture-target','Counseling fixture cases must run in the isolated evaluator.');
   const assignmentListOnly=fixtureMode===dtmAssignmentListFixtureMode;
   const healthMetadataOnly=fixtureMode===healthMetadataFixtureMode;
   if(healthMetadataOnly){
@@ -454,7 +468,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!healthMetadataOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!healthMetadataOnly&&!counselingOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -496,7 +510,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,healthMetadataOnly,elearningPublishedReadbackOnly,previewGate,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,elearningPublishedReadbackOnly,previewGate,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -531,6 +545,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       prepareHealthMetadataFixture(state);
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['healthExaminations']};
+    }
+    if(counselingOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['counselingAppointments']};
     }
     if(assignmentListOnly){
       await prepareDtmAssignmentListFixture(state,cases);
@@ -706,6 +724,65 @@ export async function runConfirmedTaskPreview({origin,sourceRevision,previewToke
     await previewGate.finish();
   }finally{cleanupProof=await cleanup();}
   return {runId,sourceRevision,origin,...result,deployment:previewGate.status(),cleanup:cleanupProof};
+}
+
+export async function runCounselingHostedEvaluation({origin,sourceRevision,previewToken,signal}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
+    fail('fixture-config','Counseling requires an exact protected Preview and source revision.');
+  const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
+  const identity=await sourceIdentity();
+  if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Counseling requires the exact clean deployed source.');
+  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=counselingHostedCases();
+  await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+    signal,fixtureMode:counselingFixtureMode,caseFamily:'counseling-appointments',previewReadbackFetch:readback});
+  const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
+  let cleanupProof;
+  try{
+    const owners=Object.fromEntries(s.users.map((user,index)=>{
+      const request=s.identityRequests.find(row=>row.id===user.id&&row.runId===runId&&row.state==='created');
+      if(!request||user.id===s.protectedOwnerBefore.id)fail('fixture-isolation','The counseling callers are outside the fixture lease.');
+      return [index===0?'A':'B',{id:user.id,email:request.email,runMarker:runId}];
+    }));
+    for(const testCase of cases){
+      await assertRecordedFixtureLease(s,'Counseling evaluation');
+      await s.previewGate.assertCurrent();
+      const {fixtureKey}=counselingAppointmentFixtureCaseBinding(testCase);
+      if(s.counselingFixture?.fixtureKey!==fixtureKey){
+        const plan=buildCounselingAppointmentFixturePlan({runId,owners,fixtureKey});
+        for(const id of plan.recordIds)s.recordIds.add(id);
+        s.pendingCounselingFixture=plan;
+        await saveLedger();
+        await query(()=>feeTransaction(s,()=>transitionCounselingFixtures(s.sql,{
+          previous:s.counselingFixture,next:plan,knownIds:[...s.recordIds],
+        })),'Could not stage the exact disposable counseling rows.');
+        s.counselingFixture=plan;s.pendingCounselingFixture=null;
+        await saveLedger();
+      }
+      const observe=async()=>{
+        await assertRecordedFixtureLease(s,'Counseling evaluation');
+        for(const user of s.users)await user.renewSession({signal});
+        return observeCounselingFixture(s.counselingFixture,{sql:s.sql,users:s.users,origin,
+          fetchImpl:readback,readResponse:readBoundedFixtureResponse,signal:signals(signal),knownIds:[...s.recordIds]});
+      };
+      const before=await observe();
+      const markers=[...s.users.flatMap(user=>[user.id,user.token]),...s.identityRequests.map(row=>row.email),...s.recordIds];
+      let ticket,request;
+      try{
+        request=await pace(()=>requestCounselingHostedCase({testCase,origin,token:s.users[0].token,signal:signals(signal,65000),
+          fetchImpl:readback,privateMarkers:markers,correlationIds}),signal,async()=>{ticket=await s.previewGate.beforeRequest();});
+      }finally{if(ticket)await s.previewGate.afterRequest(ticket);}
+      const after=await observe();
+      const {envelope,...requestProof}=request;
+      results.push({...gradeHostedCounseling(testCase,envelope,before,after),...requestProof,requestIndex:ticket.requestIndex});
+    }
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Counseling source changed during evaluation.');
+    await s.previewGate.finish();
+  }finally{cleanupProof=await cleanup();}
+  return {runId,origin,sourceRevision,results,deployment:s.previewGate.status(),cleanup:cleanupProof,
+    noFileActivityObserved:results.every(row=>!row.failures.includes('counseling.file_activity')),
+    egressObservation:false,liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified};
 }
 
 async function feeTransaction(s,work){
@@ -2456,6 +2533,13 @@ export async function cleanup(){
       await query(()=>feeTransaction(s,()=>changeClubAttendanceFixture(s.sql,s.clubAttendancePlan,s.identityRequests,{cleanup:true})),
         'Could not reconcile the exact disposable club attendance rows; the cleanup ledger is retained.');
       s.clubAttendancePlan=null;s.clubAttendancePending=false;
+      await saveLedger();
+    }
+    if(s.counselingFixture||s.pendingCounselingFixture){
+      await query(()=>feeTransaction(s,()=>transitionCounselingFixtures(s.sql,{
+        previous:s.counselingFixture,next:s.pendingCounselingFixture,recovering:true,knownIds:[...s.recordIds],
+      })),'Could not reconcile the exact disposable counseling rows; the cleanup ledger is retained.');
+      s.counselingFixture=null;s.pendingCounselingFixture=null;
       await saveLedger();
     }
     if(s.dormitoryPlan||s.pendingDormitoryPlan){

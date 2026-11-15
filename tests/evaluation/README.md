@@ -31,7 +31,13 @@ The read-only integrations are:
 - Tuition: read the caller's literal settlement statements separately from charge balances. Null, blank text and the literal text `0` have distinct meanings; none proves a payment, issued receipt or completed refund.
 - Tuition remission uses the saved history at School Affairs service 21-3. The independent case bank checks exact literal periods, amount and status, missing fields, unauthorized account references and combined charge requests. Its fixture plan verifies both callers' complete remission and charge records independently. The planned cases remain outside default live execution.
 
-The health and counseling packets include exact own-account fixture plans. The isolated health metadata evaluator uses the fixture described below. Counseling awaits scoped live acceptance. Counseling uses the private appointments page and reads tuition separately when requested.
+The dedicated counseling evaluator grades nine own-appointment questions on a protected Preview, including historical statuses, preference versus scheduled time, empty history, a capped result and a follow-up. The run verifies both disposable callers through the private appointments read, compares persisted rows before and after each question, checks for counseling operation or access changes, and removes only reconciled fixture rows. Its report contains case results and hashes without raw appointment replies or caller identifiers. File activity is checked in the response stream. The operator does not observe downstream network egress.
+
+```sh
+node tests/evaluation/run-counseling-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Supply the authorized Development OIDC identity for the exact deployed project and use a clean checkout of the deployed revision. Compound tuition, access, booking, reporting and deliberately failed-read cases remain pending for independent hosted coverage.
 
 To list the isolated fee packet without contacting a provider, run:
 
