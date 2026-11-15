@@ -367,3 +367,13 @@ Protected Preview `927ea4c` completed all 13 pinned transcript requests. The fou
 The GitHub run on `927ea4c` found a timer race in the Moodle grade reader while Vercel built without the earlier API type diagnostics. Deterministic tests reproduced a new provider dispatch after expiry when the wall clock still appeared to be before the deadline. The local fixes latch the timeout for the Moodle grade, saved submission, and supplemental account queues.
 
 The saved About STU source now takes priority for explicit stable institutional questions. Its own dated text drives answer composition and independent review. If it fails verification, the graph can retrieve a new official source. The paired model harness holds the public evidence, prompt, draft, feedback, effort and deadline constant. Its controlled harness tests pass. The live comparison requires an authorized OpenAI runtime.
+
+### Protected source and Student Leave data acceptance
+
+The exact `a3da38a` protected deployment answered the founding-and-mission question on check three after reading another school source. Its final citation was the checksummed institutional capture dated 2026-11-03. The Chinese motto verified from that capture in one check. The storage quota and effective date remained unverified. An anonymous private-grade question required sign-in before search. [Quality run](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43678171264)
+
+Four independent hosted case grades on `927ea4c` passed for saved tracking notes at 27-1, 30-1, 31-1 and 35-1. The caller scopes and fixture cleanup matched their exact expected state.
+
+Protected `a3da38a` passed all eight Student Leave data families, 128 PostgREST reads across own and crossed callers, and 50 manifest checks. Cleanup removed both disposable identities and preserved the owner fingerprint. This test prepared and verified data only. The 42 native and nine legacy questions still require independent hosted observations of the actual assistant request and its readers.
+
+Digital Academy metadata migration `20261115110100` passed the exact isolated PostgreSQL permission and selector tests. Client preflight selected only that file, then the committed SQL checksum and authenticated-only grant matched. The live source still contains 43 categories and 20 notices. The six category and notice cases need hosted acceptance.

@@ -17,3 +17,5 @@
 - 2026-11-15 [#100] Applied checksum-matched conversation coexistence SQL after the exact 169-migration client preflight. Verified the committed catalog, old runtime with 13 HTTP and 21 browser requests, and 13 pinned saved-chat Preview requests with four independently graded replies and exact cleanup.
 
 - 2026-11-15 [#100] Reproduced the hosted Moodle timeout race under a frozen clock and fixed three related dispatch paths. Integrated checksum-verified institutional capture selection, the on-demand paired model harness and the PostgreSQL Student Leave data preflight.
+
+- 2026-11-15 [#100] Four scoped saved-note model cases passed on `927ea4c`. Applied the verified metadata migration to the 171-migration client checkpoint. Protected `a3da38a` passed Quality, a successful live third review, and 128 scoped Student Leave data checks across all eight mounted families with exact cleanup. Integrated the operator-only UUIDv7 delete probe for the next protected run.

@@ -266,6 +266,7 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Connect the four internship views and independent tuition and timetable lookup to the verified account endpoint. Register the 30-case native bank.
 - [ ] Bind the internship cases to disposable accounts and trusted request observations. Rebind four earlier internship cases against their original requirements.
 - [x] Connect the eight Student Leave fixture families to a real PostgreSQL data preflight and verify crossed-caller isolation.
+- [x] Run the Student Leave data preflight on the exact protected Preview and verify all 128 own and crossed reads plus cleanup.
 - [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures and trusted request observations on the protected Preview.
 - [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
 - [x] Verify the current caller's Google sign-in with seven separately graded account-status cases.
@@ -825,7 +826,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify generated protected chat IDs from transcript preparation to stored readback and cleanup.
 - [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
 - [x] Stage the compatible conversation schema on the exact client and verify legacy coexistence and the new save/read protocol.
-- [ ] Verify the Digital Academy metadata migration and its signed-in category and notice cases.
+- [x] Verify and apply the Digital Academy metadata migration on the exact client.
+- [ ] Verify the six signed-in Digital Academy category and notice cases with trusted hosted readbacks.
 - [x] Execute the four exact prompts on the previous protected baseline, read back every saved reply and verify the scoped fixture cleanup.
 - [x] Repair the current-course and year response, preserve fee source labels, and recover useful record-free interview guidance in the combined local candidate.
 - [ ] Execute the exact protected candidate with real model responses and automatic fixture cleanup.

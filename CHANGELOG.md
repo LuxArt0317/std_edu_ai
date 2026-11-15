@@ -2,6 +2,7 @@
 ## Unreleased
 
 - Deploy the compatible UUIDv7 chat protocol and verify exact saved answers on the protected Preview. [#100]
+- Apply the authenticated Digital Academy metadata reader and verify Student Leave fixture data on the protected Preview. [#100]
 - Stop queued Moodle and supplemental account reads when the shared verification deadline expires. [#100]
 
 - Verify public founding, mission and motto questions from the approved About STU capture. Try a focused official source read after a rejected draft. [#100]
