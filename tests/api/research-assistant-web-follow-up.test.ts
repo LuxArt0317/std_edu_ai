@@ -263,7 +263,8 @@ test('after a second-review outage, an empty or mirrored batch leaves the next q
     assert.match(answer.answer,/opens at 10:30 a\.m\./u);
     assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
     const finalReview = attempt.scopes.filter(({name})=>name==='answer_evidence_review').at(-1);
-    assert.ok(finalReview?.urls.includes(officialNotice));
+    assert.ok(finalReview);
+    assert.ok(finalReview.urls.includes(officialNotice));
     assert.equal(finalReview.urls.some(url=>queuedBatch.includes(url)),false);
     assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
   }
@@ -281,8 +282,8 @@ test('additional queued pages share the original evidence read deadline', async 
   assert.equal(stops.length,1);
   assert.equal(stops[0].detail,queueTimeLimitDetail);
   const saved=sanitizeStoredConversation([{id:'queued-budget',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
-  assert.deepEqual(saved[0].activity.filter(step=>step.kind==='verification-stop'),stops);
-  assert.deepEqual(saved[0].result.activity.filter(step=>step.kind==='verification-stop'),stops);
+  assert.deepEqual(saved[0].activity.filter((step:Progress)=>step.kind==='verification-stop'),stops);
+  assert.deepEqual(saved[0].result.activity.filter((step:Progress)=>step.kind==='verification-stop'),stops);
   assert.deepEqual(saved[0].result.verification,{status:'unverified',attempts:2});
 });
 
@@ -301,7 +302,7 @@ test('a queued read timeout keeps a verified partial answer and saves the reason
   assert.equal(retained[0].status,'complete');
   assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
   const saved=sanitizeStoredConversation([{id:'partial-queued-budget',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
-  assert.deepEqual(saved[0].activity.filter(step=>step.kind==='verification-kept-partial'),retained);
+  assert.deepEqual(saved[0].activity.filter((step:Progress)=>step.kind==='verification-kept-partial'),retained);
   assert.deepEqual(saved[0].result.verification,{status:'verified',attempts:1});
 });
 
