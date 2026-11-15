@@ -185,7 +185,31 @@ The separate `--published-timetable` packet checks both orders of an Internship 
 
 `dtm-assignment-list-handler.test.mjs` grades all 25 list cases through the actual endpoint using synthetic callers and controlled row requests. It checks the selected course, global personal/sample fallback, Taipei dates, exact counts, tracker states, access, retry and distinct submission and grade capabilities. Four original cases retain their earlier oracles and wait for updated fixture binding.
 
-The isolated `dtm-assignment-list` family mounts 16 cases on protected Preview. It exercises course and account scope, a fixed Taipei due date, tracker filters, titles, exact counts, the selected sample course and signed-in and guest access boundaries. A selected foreign course must have two unavailable reads, an unverified reply and no links or records. The `dtm-assignment-list-empty`, `dtm-assignment-list-sample` and `dtm-assignment-list-partial` families add four independent scenarios. They check an empty course, sample rows hidden by existing personal courses, accurate sample fallback with no personal courses, and exactly 20 displayed links for 21 matching rows. Each family uses a separate fixture lease. Both caller projections must match the independently specified rows before and after each request. Fixture setup provisions School Affairs only so the normal Moodle bootstrap cannot add rehearsal rows. The readback includes all Moodle assignments and courses belonging to either disposable account. Cleanup verifies that the reserved courses and assignments are gone. Four relative-date cases need a trusted Taipei reference clock. The reader outage and four older tracker cases retain separate fixture requirements.
+The isolated `dtm-assignment-list` family mounts 16 cases on protected Preview. It exercises course and account scope, a fixed Taipei due date, tracker filters, titles, exact counts, the selected sample course and signed-in and guest access boundaries. A selected foreign course must have two unavailable reads, an unverified reply and no links or records. The `dtm-assignment-list-empty`, `dtm-assignment-list-sample` and `dtm-assignment-list-partial` families add four independent scenarios. They check an empty course, sample rows hidden by existing personal courses, accurate sample fallback with no personal courses, and exactly 20 displayed links for 21 matching rows. Each family uses a separate fixture lease. Both caller projections must match the independently specified rows before and after each request. Fixture setup provisions School Affairs only so the normal Moodle bootstrap cannot add rehearsal rows. The readback includes all Moodle assignments and courses belonging to either disposable account. Cleanup verifies that the reserved courses and assignments are gone. The reader outage and four older tracker cases retain separate fixture requirements.
+
+#### Moodle assignment-list clock families
+
+The original fixed-date prompts, durable rows and literal rubric are mounted in two families. The three `dtm-assignment-list-relative-fixed` cases run on November 17, 2026, Taipei time (UTC `[2026-11-16T16:00:00Z, 2026-11-17T16:00:00Z)`). The `dtm-assignment-list-overdue-fixed` case runs strictly after November 16 at 18:00 Taipei time and before November 17 at 09:10 Taipei time (UTC `(2026-11-16T10:00:00Z, 2026-11-17T01:10:00Z)`). Start with enough time for paired readback. The pre-dispatch check reserves the final 65 seconds of the window.
+
+The separately named `dtm-assignment-list-relative-portable` and `dtm-assignment-list-overdue-portable` families keep the prompts and selections while binding independent deadlines to the real run clock. Calendar fixtures move the saved deadlines by the Taipei day difference. The overdue fixture moves all dated rows by the elapsed UTC offset, leaving one open row overdue and another in the future. These four results use distinct `portable-` case IDs and do not count as runs of the four fixed cases.
+
+The runner forbids a live `--now` override. It admits the clock window before fixture setup and after pacing. The handler returns the same server `grounding.checkedAt` used for its date filter and retry. The pinned reply timestamp must fall between dispatch and the paired after-read with at most two seconds of client/server clock skew. All three timestamps must satisfy the case's Taipei window. Both callers read both disposable owner scopes through RLS before and after, and the fixture lifecycle verifies scoped cleanup. A window or clock mismatch is recorded as setup failure.
+
+On an approved protected Preview, select one family at a time through the existing isolated runner.
+
+```sh
+node --experimental-strip-types tests/evaluation/run.mjs --mode live \
+  --case-family dtm-assignment-list-relative-portable \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN" \
+  --preview-auth oidc --fixture-module tests/evaluation/live-fixtures.mjs
+```
+
+A local replay can use the real wall clock and migrated PostgreSQL RLS without credentials or a deployment. It exercises all four portable prompts. The handler and binding unit tests exercise the fixed windows without mounting a hosted fixture.
+
+```sh
+STU_DTM_CLOCK_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index.js \
+  node --experimental-strip-types --test tests/evaluation/dtm-assignment-list-clock-postgres.test.mjs
+```
 
 ### Saved Moodle courses and meetings
 

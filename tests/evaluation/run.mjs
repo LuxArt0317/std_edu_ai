@@ -25,8 +25,8 @@ import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCat
 import {metadataDispatchObservation as assistantDispatchObservation} from './elearning-metadata-live.mjs';
 import {assertHealthMetadataLiveCases,gradeHealthMetadataLiveCase,healthMetadataDispatch,healthMetadataFamily,
   healthMetadataFixtureMode,healthMetadataLiveCases,verifiedHealthMetadataReadback} from './health-examination-live.mjs';
-import {assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListFixtureMode,
-  dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase,verifiedDtmAssignmentListReadback} from './dtm-assignment-list-live.mjs';
+import {assertDtmAssignmentListClock,assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignmentListFamilies,dtmAssignmentListFixtureMode,
+  dtmAssignmentListLiveCases,gradeDtmAssignmentListLiveCase,isDtmAssignmentListClockFamily,verifiedDtmAssignmentListReadback} from './dtm-assignment-list-live.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
 import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,gradeClubAttendanceCase} from './club-attendance-cases.mjs';
@@ -55,6 +55,8 @@ export function options(args){
     const label=result.caseFamily===healthMetadataFamily?'Health metadata':dtmAssignmentListFamilies.includes(result.caseFamily)?'Moodle assignment-list':'Fee remission';
     if(!['inventory','live'].includes(result.mode)||result.only||result.domain||result.maxCases!==Infinity)throw new Error(label+' runs require the complete isolated family in inventory or live mode; case filters are not permitted.');
     if(result.mode==='live'&&!result.fixtureModule)throw new Error(label+' live runs require an explicit isolated fixture adapter.');
+    if(result.mode==='live'&&isDtmAssignmentListClockFamily(result.caseFamily)&&args.includes('--now'))
+      throw new Error('Date-sensitive Moodle live runs use the real clock; --now is not accepted.');
     const projectPreview=result.caseFamily!=='fee-remission'?isEvaluationPreviewOrigin(result.origin)
       :/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(result.origin);
     if(result.mode==='live'&&(!result.approvedPreviewOrigin||result.origin!==result.approvedPreviewOrigin||!projectPreview))throw new Error(label+' live runs require an explicitly approved exact project Preview origin.');
@@ -128,7 +130,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   if(caseFamily!==undefined&&!['fee-remission',...dtmAssignmentListFamilies,healthMetadataFamily].includes(caseFamily))throw new Error('Unknown case family.');
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
-  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():dtmAssignmentListFamilies.includes(caseFamily)?dtmAssignmentListLiveCases(caseFamily):caseFamily===healthMetadataFamily?healthMetadataLiveCases()
+  const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():dtmAssignmentListFamilies.includes(caseFamily)?dtmAssignmentListLiveCases(caseFamily,{now}):caseFamily===healthMetadataFamily?healthMetadataLiveCases()
     :[...serviceNoteRunnerCases({now}),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
       ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...clubEquipmentRunnerCases(),
@@ -474,7 +476,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   const suite=await buildSuite(opt.now,{caseFamily:opt.caseFamily}),runId=randomUUID();
   if(feeOnly){validateFeeRemissionRunnerCases(suite.cases);if(suite.suiteHash!==hash(suite.cases))throw new Error('Fee remission suite hash does not match its frozen cases.');}
   if(assignmentListOnly){
-    assertDtmAssignmentListLiveCases(suite.cases,opt.caseFamily);
+    assertDtmAssignmentListLiveCases(suite.cases,opt.caseFamily,{now:opt.now});
     if(suite.suiteHash!==hash(suite.cases))throw new Error('Moodle assignment-list suite hash does not match the frozen cases.');
   }
   if(healthMetadataOnly){
@@ -519,6 +521,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   let fetchImpl=dependencies.fetchImpl||globalThis.fetch;
   try{
     if(opt.mode==='live'){
+      if(isDtmAssignmentListClockFamily(opt.caseFamily))
+        assertDtmAssignmentListClock(selected[0],new Date().toISOString(),{reserveMs:65_000});
       const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8'));
       if(opt.origin!==config.vercel.productionUrl&&opt.approvedPreviewOrigin!==opt.origin)throw new Error('Live evaluation requires the configured production origin or an explicitly approved exact Preview origin.');
       if(identity.dirty!==false)throw new Error('Live evaluation requires a clean, exact source revision before creating fixtures.');
@@ -635,9 +639,14 @@ export async function main(args=process.argv.slice(2),dependencies={}){
               try{assertPublishedNextClassClock(testCase.publishedNextClass,{now:new Date().toISOString()});}
               catch(error){phase='setup';throw error;}
             }
+            let assignmentListStartedAt;
+            if(testCase.assignmentListClock){
+              try{assignmentListStartedAt=assertDtmAssignmentListClock(testCase,new Date().toISOString(),{reserveMs:65_000});}
+              catch(error){phase='setup';throw error;}
+            }
             pacingWaitMs=waited;executed=true;
             if(publishedAcademyReadback)academyDispatch=assistantDispatchObservation(endpoint,requestBody);
-            if(assignmentListOnly)assignmentListDispatch=dtmAssignmentListDispatch(endpoint,requestBody,Boolean(context.token));
+            if(assignmentListOnly)assignmentListDispatch=dtmAssignmentListDispatch(endpoint,requestBody,Boolean(context.token),assignmentListStartedAt);
             if(healthMetadataOnly)healthDispatch=healthMetadataDispatch(endpoint,requestBody);
             return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
               body:requestBody,signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});
@@ -683,7 +692,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
             report.runFailure='Pinned deployment verification failed; no further assistant requests were sent.';
           }
         }
-        if(fixtureReady&&adapter?.afterCase){
+        if(fixtureReady&&adapter?.afterCase&&(!testCase.assignmentListClock||executed)){
           try{
             await adapter.afterCase(feeOnly?structuredClone(testCase):testCase,envelope,{signal:controller.signal,
               ...(fixtureMode?{fixtureMode,fixtureFamily:feeOnly?feeRemissionLiveFamilyForCase(testCase):opt.caseFamily}:{})});
@@ -696,7 +705,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
               ||envelope.fixtureReadback.serviceNotes.caseId!==testCase.id))throw new Error('Exact service-note readback is missing.');
 
           }
-          catch(error){envelope.fixtureIntegrityError=error instanceof Error?error.message:'Fixture readback failed';envelope.fixtureIntegrityFailed=true;envelope.failureKind='infrastructure';}
+          catch(error){envelope.fixtureIntegrityError=error instanceof Error?error.message:'Fixture readback failed';envelope.fixtureIntegrityFailed=true;
+            envelope.failureKind=error?.code==='dtm-assignment-list-clock-invalid'?'setup':'infrastructure';}
         }
       }
       envelope.elapsedMs=Date.now()-started;
@@ -720,7 +730,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       const academySetupFailed=publishedAcademyReadback&&opt.mode==='live'&&envelope.failureKind==='setup';
       if(academySetupFailed)report.runFailure='Digital Academy setup failed before dispatch; the runner stopped before another request.';
       const assignmentListSetupFailed=assignmentListOnly&&opt.mode==='live'&&envelope.failureKind==='setup';
-      if(assignmentListSetupFailed)report.runFailure='Moodle assignment-list fixture setup failed before dispatch.';
+      if(assignmentListSetupFailed)report.runFailure='Moodle assignment-list fixture or clock guard failed. No further requests were sent.';
       const healthSetupFailed=healthMetadataOnly&&opt.mode==='live'&&envelope.failureKind==='setup';
       if(healthSetupFailed)report.runFailure='Health metadata fixture setup failed before dispatch.';
       await persist(out,report);
