@@ -182,6 +182,14 @@ test('personal School Affairs question reads only the caller site records, never
   }
   if(path==='/auth/v1/user')return new Response(JSON.stringify({id:userId,email:'student@example.com',identities:[{provider:'google'}]}),{status:200});
   assert.equal((init?.headers as Record<string,string>)?.Authorization,token);
+  const selected=new URL(url).searchParams;
+  if(path==='/rest/v1/affairs_graduation_reviews'&&selected.get('select')==='user_id,report_kind,source_mode,review_status:report->graduationReview->>text'){
+    assert.equal(init?.method,'GET');
+    assert.equal(new Headers(init?.headers).get('prefer'),'count=exact');
+    assert.equal(selected.get('user_id'),'eq.'+userId);
+    assert.ok(['eq.academic_services','eq.legacy'].includes(selected.get('report_kind')??''));
+    return range([]);
+  }
   if(overview){
     const params=new URL(url).searchParams;
     if(init?.method==='HEAD'){

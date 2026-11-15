@@ -37,7 +37,7 @@ export async function answerGraduationReviewStatus({account,question,kind,deadli
     const saved=JSON.parse(sources[0].content);
     if(saved.reportKind!==kind)return null;
     let status;
-    if(!saved.found)status=zh?`此帳戶沒有已儲存的${label}報告。`:`Your account has no saved ${label} report.`;
+    if(!saved.found)status=zh?`此帳戶沒有已儲存的${label}報告。`:`Your account has no saved ${kind==='legacy'?'Legacy':'Academic Services'} graduation report.`;
     else if(saved.statusText===null)status=zh?`${label}未記錄狀態文字。`:`The saved ${label} has no recorded status text.`;
     else if(!saved.statusText.trim())status=zh?`${label}的狀態欄為空白。`:`The saved ${label} status field is blank.`;
     else status=`${label}${zh?'狀態：':' status: '}${literal(saved.statusText)}`;
