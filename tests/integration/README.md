@@ -109,7 +109,7 @@ import {createPreviewDevelopmentTokenGuard, previewTrustedHeader} from './tests/
 const origin = process.env.ASSISTANT_ORIGIN;
 const token = process.env.VERCEL_OIDC_TOKEN;
 const assertCurrentToken = createPreviewDevelopmentTokenGuard(token);
-const allowedPath = /^\/(?:dtm|release[.]json|assets\/[a-zA-Z0-9_.-]+[.](?:js|css))$/u;
+const allowedPath = /^\/(?:dtm|release[.]json|assets\/[a-zA-Z0-9_.-]+\.(?:js|css))$/u;
 const fetchImpl = (url, init) => {
   const target = new URL(url);
   if (target.origin !== origin || url !== origin + target.pathname || !allowedPath.test(target.pathname)
