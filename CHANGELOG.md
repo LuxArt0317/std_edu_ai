@@ -3,6 +3,8 @@
 
 - Keep graduation-clearance window and submission-inference questions in their native scope. Add isolated PostgreSQL replay for the three positive window questions. [#100]
 
+- Reconcile disposable Auth users after uncertain deletion responses and space out transient cleanup retries. [#100]
+
 - Verify complete standalone Academic Services answers directly from their selected saved records. Match the answer, table and link without calling a model, and check unsupported grade views against their capability limits. [#100]
 
 - Verify exact graduation-clearance status and note answers from saved rows without a model call. Retry a transient read and refuse chat writes and manager access before querying records. [#100]

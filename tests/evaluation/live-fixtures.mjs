@@ -10,6 +10,7 @@ import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {readFile,readdir,mkdir,open,rename,rm,chmod} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {resolve} from 'node:path';
+import {setTimeout as pause} from 'node:timers/promises';
 import {createClient} from '@supabase/supabase-js';
 import postgres from 'postgres';
 import {deploymentEnvironment} from '../../scripts/deployment-env.mjs';
@@ -3926,6 +3927,12 @@ export function reconcileFixtureIdentity(request,rows){
   return {userId:row.id,unresolved:false};
 }
 
+function readFixtureIdentityRows(sql,request){
+  // A changed email must not hide a known ID from ownership validation.
+  return query(()=>sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id from auth.users
+    where lower(email)=lower(${request.email}) or id=${request.id??null}::uuid limit 2`,'Could not reconcile the pending fixture identity.');
+}
+
 /** Only the exact four-turn application fixture exposes this metadata. No
  * access token, email, student identifier or mutable state escapes. */
 export function transcriptFixtureIdentity(){
@@ -3974,21 +3981,19 @@ export async function cleanup(){
   }
   s.closing=true;let verified=false,protectedOwnerUnchanged=false,cleanupError;
   try{
-    let unresolvedCreation=false;const deletable=new Set(),absent=new Set();
+    let unresolvedCreation=false;const deletable=new Map(),absent=new Set();
     if((s.identityRequests.length||s.users.length)&&!s.ledgerOwned)fail('fixture-cleanup','Fixture identities have no owned cleanup ledger; no account will be deleted.');
     if(s.identityRequests.length||s.users.length||s.ledgerOwned)checkedProtectedOwnerFingerprint(s.protectedOwnerBefore);
     if(s.protectedOwnerBefore&&(s.users.some(user=>user.id===s.protectedOwnerBefore.id)||s.identityRequests.some(request=>request.id===s.protectedOwnerBefore.id||request.email?.toLowerCase()===s.protectedOwnerEmail?.toLowerCase())))
       fail('fixture-protected-owner','The protected owner cannot be treated as a disposable fixture; no account will be deleted.');
     for(const request of s.identityRequests){
       if(request.runId!==s.runId||request.id!==undefined&&!UUID.test(request.id))fail('fixture-cleanup','The fixture recovery request does not belong to this lifecycle.');
-      // A changed email must not hide a known ID from ownership validation.
-      const rows=await query(()=>s.sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id from auth.users
-        where lower(email)=lower(${request.email}) or id=${request.id??null}::uuid limit 2`,'Could not reconcile the pending fixture identity.');
+      const rows=await readFixtureIdentityRows(s.sql,request);
       const resolved=reconcileFixtureIdentity(request,rows);
       if(resolved.userId&&resolved.userId===s.protectedOwnerBefore.id)fail('fixture-protected-owner','The protected owner cannot be treated as a disposable fixture; no account will be deleted.');
       unresolvedCreation ||= resolved.unresolved;
       if(resolved.userId&&!s.users.some(user=>user.id===resolved.userId))s.users.push({id:resolved.userId,token:null});
-      if(resolved.userId){request.id=resolved.userId;request.state='created';deletable.add(resolved.userId);}
+      if(resolved.userId){request.id=resolved.userId;request.state='created';deletable.set(resolved.userId,request);}
       else if(request.id)absent.add(request.id);
     }
     if(s.users.some(user=>!UUID.test(user.id)||!deletable.has(user.id)&&!absent.has(user.id)))fail('fixture-cleanup','A known fixture identity could not be reconciled; no account will be deleted.');
@@ -4167,9 +4172,20 @@ export async function cleanup(){
       await query(()=>feeTransaction(s,()=>deleteDtmTimingRows(s.sql,s.dtmTimingPlan)),'Could not remove the exact disposable Moodle timing records.');
     }
     for(const user of [...s.users].reverse().filter(user=>deletable.has(user.id))){
+      const request=deletable.get(user.id),backoffs=[1000,4000];
       let deleted=false;
-      for(let attempt=0;attempt<3;attempt++){
-        try{const result=await s.admin.auth.admin.deleteUser(user.id);if(!result.error||result.error.status===404){deleted=true;break;}}catch{/* Retry a bounded Auth call, without tokens in diagnostics. */}
+      for(let attempt=0;attempt<=backoffs.length;attempt++){
+        let status;
+        try{
+          const result=await s.admin.auth.admin.deleteUser(user.id);
+          if(!result.error||result.error.status===404){deleted=true;break;}
+          status=result.error.status;
+        }catch{/* A network failure may follow a committed deletion. */}
+        const retry=attempt<backoffs.length&&(!(status>=400&&status<500)||status===408||status===429);
+        if(retry)await pause(backoffs[attempt]);
+        const rows=await readFixtureIdentityRows(s.sql,request);
+        if(!reconcileFixtureIdentity(request,rows).userId){deleted=true;break;}
+        if(!retry)break;
       }
       if(!deleted)fail('fixture-cleanup','Disposable account removal failed; exact IDs remain in the owner-only cleanup ledger.');
       user.token=null;

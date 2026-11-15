@@ -39,7 +39,7 @@ const ownRow=()=>({id:userId,email,run_id:runId});
 const protectedOwnerEmail='protected-admin@example.invalid';
 const protectedFingerprint=()=>({id:'90000000-0000-4000-8000-000000000001',auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)});
 
-function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:initialFiles,deleteFails=false,releaseFails=false,closeFails=false}={}){
+function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:initialFiles,deleteFails=false,deleteAttempt,releaseFails=false,closeFails=false}={}){
   const events=[],deleted=[],records=new Map(rows.map(row=>[row.id,{...row}]));
   const files=new Map(initialFiles??(owned?[[ledger,'initial owned ledger']]:[]));
   let connectionClosed=false,authCreate=async()=>{throw new Error('PROVIDER_SECRET_BODY');};
@@ -69,12 +69,14 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
       const saved=JSON.parse(files.get(ledger));assert.ok(saved.fixtureUserIds.includes(id));
       assert.ok(saved.identityRequests.some(request=>request.id===id&&request.runId===runId&&request.state==='created'));
       events.push({kind:'delete',id});deleted.push(id);
-      if(deleteFails)throw new Error('PROVIDER_SECRET_BODY');records.delete(id);return {error:null};
+      if(deleteFails)throw new Error('PROVIDER_SECRET_BODY');
+      if(deleteAttempt)return deleteAttempt({id,attempt:deleted.length,records});
+      records.delete(id);return {error:null};
     }}}}};
   const context={venueProtectedFixtureMode,facilityRepairCancellationMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,clearanceStatusPreviewMode,academicGradesPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
     PRIVATE_DIR:'/synthetic',readdir:async directory=>{assert.equal(directory,'/synthetic');events.push({kind:'scan'});return [...files.keys()].filter(path=>path.startsWith(directory+'/')).map(path=>path.slice(directory.length+1));},
     LiveFixtureError,readProtectedOwnerFingerprint,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest,ownTables:[],fail:(code,message)=>{throw new LiveFixtureError(code,message);},query:async work=>work(),
-    randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),
+    randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),pause:async duration=>{events.push({kind:'pause',duration});},
     open:async(path,flag,mode)=>{
       assert.equal(mode,0o600);events.push({kind:'open',path,flag});
       if(flag==='wx'&&files.has(path))throw Object.assign(new Error('PRIVATE_EXISTING_LEDGER'),{code:'EEXIST'});
@@ -286,6 +288,32 @@ test('Auth deletion and connection-close failures retain owned recovery records 
     assert.equal(life.events.filter(event=>event.kind==='rm').length,0);
     assert.equal(life.context.state.closed,true);
     assert.ok(life.context.state.users.every(user=>user.token===null));
+  }
+});
+
+test('transient Auth deletion errors retry with backoff and fresh ownership proof',async()=>{
+  const life=lifecycle({requests:[{email,runId,state:'created',id:userId}],users:[{id:userId}],rows:[ownRow()],
+    deleteAttempt({id,attempt,records}){
+      if(attempt<3)return {error:{status:attempt===1?429:503}};
+      records.delete(id);return {error:null};
+    }});
+  assert.equal((await life.api.cleanup()).verified,true);
+  const attempts=life.events.filter(event=>event.kind==='delete'||event.kind==='pause'||event.statement?.includes('raw_user_meta_data'));
+  assert.deepEqual(attempts.map(event=>event.kind),['query','delete','pause','query','delete','pause','query','delete']);
+  assert.deepEqual(attempts.filter(event=>event.kind==='pause').map(event=>event.duration),[1000,4000]);
+});
+
+test('uncertain Auth deletion is read back and a changed binding stops further attempts',async()=>{
+  for(const altered of [false,true]){
+    const life=lifecycle({requests:[{email,runId,state:'created',id:userId}],users:[{id:userId}],rows:[ownRow()],
+      deleteAttempt({id,records}){
+        if(altered)records.set(id,{...ownRow(),run_id:'unrelated'});else records.delete(id);
+        throw new Error('PROVIDER_SECRET_BODY');
+      }});
+    if(altered)await assert.rejects(life.api.cleanup(),/ownership does not match/);
+    else assert.equal((await life.api.cleanup()).verified,true);
+    assert.deepEqual(life.deleted,[userId]);
+    assert.equal(life.files.has(ledger),altered);
   }
 });
 
