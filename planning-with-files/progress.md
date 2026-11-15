@@ -71,3 +71,5 @@
 - 2026-11-15 [#100] Pinned protected `6f9fb5e` on `dpl_DTHPJkCXpHJstTEnxYc7fgjQMcvR`. Completed all five public SSE requests and passed nine caller-scoped club equipment reads with two owner-specific record views and verified cleanup. Desktop and mobile retained verification checks and stopping reasons after reload.
 
 - 2026-11-15 [#100] Exact Preview Quality 43695833757 passed. Independent public review confirmed accurate scope on the five probes and found an omitted archived-page summary and a missing sign-in-required DTM notice lead. Posted the verified checkpoint and remaining acceptance gates in Issue #100.
+
+- 2026-11-15 [#100] Implemented verified public continuation after a useful but incomplete answer and content-backed same-capture summaries. Added pinned equipment cancellation and Moodle timing runners with paired record readbacks and exact fixture disposal. The Moodle evaluator and actual API handlers passed all six cases locally against disposable PostgreSQL.

@@ -879,5 +879,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay five public queries on protected `6f9fb5e`, including the captured student page and a fresh evidence read after a rejected storage draft.
 - [ ] Complete broader protected acceptance before promotion. The public manifest still serves `076c79a`.
 
-- [ ] Require the archived-page answer to summarize requested content from the same capture and independently grade it.
-- [ ] Preserve a specific sign-in-required school lead when its contents are unavailable, and check whether verified partial answers can make useful progress on another eligible public source.
+- [x] Require the archived-page answer to summarize requested content from the same capture and independently grade it locally.
+- [ ] Verify the exact archived student-page summary on protected Preview.
+- [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
+- [ ] Verify that the specific sign-in-required DTM notice is preserved without treating it as evidence.
+- [x] Add protected runners for equipment confirmation and exact Moodle submission timing with paired record readbacks and journaled cleanup.

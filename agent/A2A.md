@@ -931,3 +931,12 @@ The paired club read packet passed 9/9 with exact cleanup and the protected
 owner unchanged. The shared club read fixture lease has been released.
 The confirmed cancellation browser proof still needs an actual protected
 mutation replay. Production still serves `076c79a`.
+
+### Issue #100 verified public completeness and confirmed action
+
+The public graph can keep a verified partial reply while following a
+remaining source. It only writes a follow-up draft when the extra lookup
+returns new evidence. Explicit archive summaries require a claim referring
+to the same source excerpt. The equipped protected runners verify nine
+cancellation outcomes and six saved Moodle timing scenarios. Serialize
+their disposable account lease and keep the independent cleanup reports.

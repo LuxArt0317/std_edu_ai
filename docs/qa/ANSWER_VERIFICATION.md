@@ -14,6 +14,14 @@ against that exact capture when readable content is available. The signed-in pub
 deadline separately from browser input so it can report a timed stop.
 Unsupported drafts and actions stay withheld.
 
+A verified public reply can still leave part of the question unanswered. The
+independent review records the missing detail count. With a viable public
+source and budget, the graph reads new contents before drafting again. An
+extra read that cannot improve the answer keeps the earlier verified reply.
+The Activity list shows this separately from a rejected draft. For an
+explicit question about an archived page, a requested summary must cite the
+saved page text. The title, link and capture date come from the manifest.
+
 ## Acceptance criteria
 
 1. An incorrect amount, date, enrollment claim or unsupported source claim must
