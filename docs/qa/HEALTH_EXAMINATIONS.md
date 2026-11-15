@@ -13,6 +13,7 @@ An authorized operator provisions each row against a verified Google-linked Scho
 - `node tests/integration/health-examinations-db.mjs --deployed` checks SQL boundaries in a rollback-only transaction on the client Supabase project.
 - `node tests/integration/health-examinations-ui.mjs` checks the rendered inquiry with synthetic records, errors, sign-in navigation and file responses.
 - `node tests/integration/health-examinations-http.mjs` exercises Supabase Auth, Storage, and the API with disposable test accounts. With `EXPECTED_RELEASE_REVISION` set, it tests the pinned production endpoint.
+- The controlled case in `tests/evaluation/health-examination-report-boundary.test.mjs` runs the inquiry and chat handlers against one synthetic Storage registry. It checks a true owned availability flag, an unpublished file, a missing file, and other-account and guest denial. The inquiry requests a 30-second capability and opens the synthetic PDF. The chat grades the independent availability question using only its metadata read. This test uses no external Storage, database, authentication or model calls.
 - The reference screen is at [STU Student Health Management](https://info.stu.edu.tw/SAO/PEC/trnFiles/rptStuReportByStu.asp).
 
 ## Release evidence
