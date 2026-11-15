@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {afterEach, test} from 'node:test';
 import {createResearchAssistantHandler} from '../../api/research-assistant.ts';
 import {readVerificationSources} from '../../server/answerVerificationSources.js';
+import {sanitizeStoredConversation} from '../../server/assistantConversationData.js';
 
 const officialDirectory = 'https://www.lib.stu.edu.tw/visitor-information/';
 const officialNotice = 'https://www.lib.stu.edu.tw/2026-archive-exhibit/';
@@ -62,7 +63,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -82,6 +83,11 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget') {
     if (name === 'stu_web_answer') {
       searchRequests.push(request);
       searchCalls++;
+      if (outcome === 'tool-links' || outcome === 'unreadable-tool-link') {
+        return Response.json(searchCalls === 1
+          ? searchPayload([officialNotice,'https://outside.example.org/campus/'],unsafeDraft,['https://invented.example.org/'])
+          : {output:[]});
+      }
       if (searchCalls === 1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
       assert.equal(searchCalls,2);
       if (outcome === 'same-source')
@@ -101,7 +107,11 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget') {
       assert.match(source.content,/opens at 10:30 a\.m\. on November 24, 2026/);
       assert.doesNotMatch(source.content,/FORGED|11:45/);
     }
-    if (name === 'correct_grounded_answer') {
+    if (name === 'correct_grounded_answer' || name === 'compose_grounded_answer') {
+      if (name === 'compose_grounded_answer') {
+        assert.equal(context.previousAnswer,undefined);
+        assert.equal(context.unsupportedClaims,undefined);
+      }
       return provider({status:'answered',
         answer:source ? `The archive exhibition opens at 10:30 a.m. on November 24, 2026. [STU Library notice](${officialNotice})` : unsafeDraft,
         sourceIds:[source?.id ?? context.evidence[0].id],
@@ -124,6 +134,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget') {
       captures:[],
       acquire: async url=>{
         acquiredUrls.push(url);
+        if (outcome === 'unreadable-tool-link') throw Error('Controlled source read failure');
         const content = url===officialDirectory ? directoryContent : url===officialNotice ? noticeContent : undefined;
         assert.ok(content);
         return {bytes:new TextEncoder().encode(`<html><title>STU Library</title><main><p>${content}</p></main></html>`),mimeType:'text/html',finalUrl:url};
@@ -143,7 +154,7 @@ test('an exact follow-up source is fetched independently and replaces the unsupp
   for (const request of attempt.searchRequests) {
     const fields = JSON.parse(String(request.input));
     assert.equal(fields.question,testQuestion);
-    assert.doesNotMatch(JSON.stringify(fields),/PRIVATE_|NOT_PUBLIC_SEARCH_INPUT|8:00|my attendance/);
+    assert.doesNotMatch(JSON.stringify(fields),/PRIVATE_|NOT_PUBLIC_SEARCH_INPUT|8:00 a\.m\.|my attendance/u);
     const tools = request.tools as Array<{filters:{allowed_domains:string[]}}>;
     assert.deepEqual(tools[0].filters.allowed_domains,['stu.edu.tw']);
   }
@@ -194,6 +205,34 @@ test('a duplicate result or exhausted follow-up budget cannot turn missing evide
   }
 });
 
+test('independently reads a tool-returned official page even when the search draft invents a link',async()=>{
+  const attempt=harness('tool-links');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:testQuestion},attempt.run,'web-discarded-draft',progress);
+  assert.equal(attempt.searchRequests.length,2);
+  assert.deepEqual(attempt.acquiredUrls,[officialNotice]);
+  assert.deepEqual(attempt.scopes.map(({name})=>name),['compose_grounded_answer','answer_evidence_review']);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:1});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.doesNotMatch(JSON.stringify(answer),/invented\.example|outside\.example|NOT_PUBLIC_SEARCH_INPUT|supposedly/);
+  assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+});
+
+test('an unreadable tool-returned page cannot become an answer or an invented citation',async()=>{
+  const attempt=harness('unreadable-tool-link');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:testQuestion},attempt.run,'web-unreadable-tool-link',progress);
+  assert.deepEqual(attempt.acquiredUrls,[officialNotice]);
+  assert.deepEqual(attempt.scopes,[]);
+  assert.ok(['abstained','handoff'].includes(answer.status));
+  assert.deepEqual(answer.citations,[]);
+  const stops=progress.filter(step=>step.kind==='verification-stop');
+  assert.equal(stops.length,1);
+  assert.match(stops[0].detail,/usable evidence/u);
+  assert.deepEqual(answer.activity.at(-1),stops[0]);
+});
+
 test('private records and explicit authorization text never trigger the public web search', async () => {
   configured();
   let modelCalls = 0;
@@ -221,25 +260,30 @@ const managedExcerpt = {
   exact_score:0.8,keyword_score:0.7,vector_score:0.6,fused_score:0.2,
   document_version:1,content_checksum:'a'.repeat(64),
 };
-function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'verified-knowledge') {
+function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review-outage'|'early-web'|'verified-knowledge'|'source-switch-repair'|'source-switch-stall') {
   configured();
   const started = Date.now();
   let elapsed = 0;
   Date.now = () => started + elapsed;
   let knowledgeReviews = 0;
+  let knowledgeReads = 0;
+  const failedRefresh = outcome === 'source-switch-repair' || outcome === 'source-switch-stall';
   const calls: string[] = [];
   const searches: Array<{question:string}> = [];
   const run = createResearchAssistantHandler({
     readSources: async citations => {
       calls.push('read-public-page');
-      assert.deepEqual(citations.map(citation=>citation.url),[officialNotice]);
-      return citations.map(citation=>({id:citation.chunkId,url:citation.url,content:noticeContent}));
+      assert.deepEqual(citations.map(citation=>citation.url),[failedRefresh && searches.length === 1 ? officialDirectory : officialNotice]);
+      return citations.map(citation=>({id:citation.chunkId,url:citation.url,content:citation.url===officialDirectory?directoryContent:noticeContent}));
     },
   });
   globalThis.fetch = async (input,init) => {
     const url = String(input);
     if (url.endsWith('/v1/embeddings')) return Response.json({data:[{embedding:Array(1536).fill(0)}]});
-    if (url.includes('/rpc/search_public_knowledge')) return Response.json([managedExcerpt]);
+    if (url.includes('/rpc/search_public_knowledge')) {
+      knowledgeReads++;
+      return Response.json(failedRefresh && knowledgeReads > 1 ? [] : [managedExcerpt]);
+    }
     if (url.includes('/knowledge_documents?')) return Response.json([{
       id:managedExcerpt.document_id,logical_key:'archive-exhibit',content_checksum:managedExcerpt.content_checksum,
     }]);
@@ -255,15 +299,38 @@ function managedHarness(outcome: 'verified-web'|'no-web-result'|'budget'|'review
         return provider({status:'answered',answer:outcome==='verified-knowledge'
           ? 'The library visitor directory explains how to contact staff. The directory gives no exhibition opening time.' : unsafeDraft,
           citations:[{chunkId:managedExcerpt.chunk_id,claim:'Archive exhibition opening'}],suggestedQuestions:[]});
-      case 'correct_grounded_answer':
+      case 'correct_grounded_answer': {
+        const repair=JSON.parse(request.input[0].content[0].text);
+        if (failedRefresh) {
+          assert.equal(outcome,'source-switch-repair');
+          assert.equal(request.reasoning.effort,'medium');
+          const notice=repair.evidence.find((item: {url:string})=>item.url===officialNotice);
+          assert.equal(notice.content,noticeContent);
+          return provider({status:'answered',answer:noticeContent,sourceIds:[notice.id]});
+        }
         return provider({status:'answered',answer:unsafeDraft,sourceIds:[managedExcerpt.chunk_id]});
+      }
       case 'stu_web_answer':
         searches.push(JSON.parse(request.input));
         if (outcome==='no-web-result'||outcome==='early-web') return Response.json({output:[]});
+        if (failedRefresh && searches.length===1) return Response.json(searchPayload([officialDirectory],unsafeDraft));
+        if (outcome==='source-switch-stall') return Response.json(searchPayload([officialDirectory+'?utm_source=retry'],unsafeDraft));
         return Response.json(searchPayload([officialNotice],noticeContent));
       case 'answer_evidence_review': {
         const review=JSON.parse(request.input[0].content[0].text);
         if (review.evidence[0].id!==managedExcerpt.chunk_id) {
+          if (failedRefresh && review.evidence[0].url===officialDirectory) {
+            // The reviewer rejects the draft without concrete repair guidance.
+            // Only new independently read material can justify another check.
+            return provider({supported:false,answersQuestion:false,claims:[]});
+          }
+          if (failedRefresh) {
+            assert.equal(request.reasoning.effort,'medium');
+            assert.equal(review.evidence[0].content,noticeContent);
+            return provider({supported:true,answersQuestion:true,claims:[{
+              claim:'Exhibition time and date',supported:true,evidenceId:review.evidence[0].id,quotes:[noticeContent],jsonPaths:[],
+            }]});
+          }
           assert.equal(review.evidence.length,1);
           assert.equal(review.evidence[0].content,noticeContent);
           return provider({supported:true,answersQuestion:true,claims:[{
@@ -301,7 +368,7 @@ test('two failed managed checks can switch to separately read public evidence wi
   ]);
   assert.equal(attempt.searches.length,1);
   assert.equal(attempt.searches[0].question,knowledgeQuestion);
-  assert.doesNotMatch(JSON.stringify(attempt.searches),/PRIVATE_|NOT_PUBLIC_SEARCH_INPUT|8:00|my attendance/);
+  assert.doesNotMatch(JSON.stringify(attempt.searches),/PRIVATE_|NOT_PUBLIC_SEARCH_INPUT|8:00 a\.m\.|my attendance/u);
   assert.equal(answer.status,'answered');
   assert.equal(answer.grounding.source,'web');
   assert.deepEqual(answer.verification,{status:'verified',attempts:3});
@@ -328,8 +395,48 @@ test('an attempted evidence switch preserves both managed checks when the web se
   assert.deepEqual(answer.citations,[]);
   assert.equal(attempt.searches.length,2,'one web lookup tries official sources then broader results');
   assert.deepEqual(answer.activity.map(({kind}:Progress)=>kind),
-    ['knowledge','verification-1','verification-retry','verification-2','verification-source-switch','web']);
+    ['knowledge','verification-1','verification-retry','verification-2','verification-source-switch','web','verification-stop']);
   assert.equal(answer.activity.at(-1).status,'unavailable');
+});
+
+test('one completed managed check leaves room to verify a more specific page after a source switch',async()=>{
+  const attempt=managedHarness('source-switch-repair');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-source-switch-repair',progress);
+  assert.deepEqual(attempt.calls,[
+    'public_grounded_answer','answer_evidence_review','stu_web_answer','read-public-page','answer_evidence_review',
+    'stu_web_answer','read-public-page','correct_grounded_answer','answer_evidence_review',
+  ]);
+  assert.deepEqual(attempt.searches.map(({question})=>question),[knowledgeQuestion,knowledgeQuestion]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}: {url:string})=>url),[officialNotice]);
+  assert.deepEqual(answer.activity.filter(({kind}: Progress)=>/^verification-\d+$/u.test(kind)).map(({kind}: Progress)=>kind),
+    ['verification-1','verification-2','verification-3']);
+  assert.ok(answer.activity.some(({kind}: Progress)=>kind==='verification-preparation-2'));
+  assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+});
+
+test('duplicate pages and no actionable feedback stop a source switch without spending the remaining check',async()=>{
+  const attempt=managedHarness('source-switch-stall');
+  const progress:Progress[]=[];
+  const answer=await invoke({question:knowledgeQuestion},attempt.run,'knowledge-source-switch-stall',progress);
+  assert.deepEqual(attempt.calls,[
+    'public_grounded_answer','answer_evidence_review','stu_web_answer','read-public-page','answer_evidence_review','stu_web_answer',
+  ]);
+  assert.equal(answer.status,'abstained');
+  assert.equal(answer.verification.attempts,2);
+  assert.deepEqual(answer.citations,[]);
+  const stops=progress.filter(step=>step.kind==='verification-stop');
+  assert.equal(stops.length,1);
+  assert.match(stops[0].detail,/usable evidence/u);
+  assert.deepEqual(answer.activity.at(-1),stops[0]);
+  assert.deepEqual(answer.activity.filter(({kind}: Progress)=>/^verification-\d+$/u.test(kind)).map(({kind}: Progress)=>kind),
+    ['verification-1','verification-2']);
+  assert.ok(answer.activity.some(({kind}: Progress)=>kind==='verification-preparation-3'));
+  const restored=sanitizeStoredConversation([{id:'a-stop',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+  assert.deepEqual(restored[0].activity.at(-1),stops[0]);
+  assert.deepEqual(restored[0].result.activity.at(-1),stops[0]);
 });
 
 test('an already attempted web lookup, expired reserve or verifier outage does not trigger a new source switch',async()=>{
@@ -340,5 +447,7 @@ test('an already attempted web lookup, expired reserve or verifier outage does n
     assert.equal(answer.status,outcome==='verified-knowledge'?'answered':'abstained',outcome);
     assert.equal(attempt.searches.length,outcome==='early-web'?2:0,outcome);
     assert.equal(answer.activity.some((step:Progress)=>step.kind==='verification-source-switch'),false,outcome);
+    if (outcome==='budget') assert.match(answer.activity.at(-1).detail,/too little time/u);
+    if (outcome==='review-outage') assert.match(answer.activity.at(-1).detail,/checker could not complete/u);
   }
 });

@@ -95,6 +95,7 @@ export async function searchSchoolWeb(question, options = {}) {
   const deadline = options.deadline || Date.now()+35000;
   const followUp = options.followUp === true;
   let attempted = false;
+  const discoveredLinks = new Map();
   for (const officialOnly of followUp ? [true] : [true,false]) {
     const remaining = deadline-Date.now();
     if (remaining < 2500) break;
@@ -147,6 +148,12 @@ export async function searchSchoolWeb(question, options = {}) {
       let parsed = null;
       try { parsed = JSON.parse(outputText); } catch { /* Only report structure, never model text. */ }
       const sources = toolSources(payload,officialOnly);
+      // Keep independently checkable school links even when the provider's
+      // proposed answer is malformed, unrelated or supported by invented URLs.
+      for (const [url, source] of sources) {
+        if (discoveredLinks.size >= 8) break;
+        if (official(url)) discoveredLinks.set(url,webCitation(source));
+      }
       const answerUrls = typeof parsed?.answer === 'string' ? [...parsed.answer.matchAll(/https?:\/\/[^\s<>"\])]+/g)].map(match => safeWebSource(match[0].replace(/[.,;!?]+$/,''))) : [];
       console.warn('school web search returned no verifiable answer', {
         officialOnly,
@@ -169,5 +176,5 @@ export async function searchSchoolWeb(question, options = {}) {
       });
     }
   }
-  return {result:null,attempted};
+  return {result:null,attempted,...(discoveredLinks.size ? {discoveredSources:[...discoveredLinks.values()]} : {})};
 }

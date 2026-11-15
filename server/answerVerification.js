@@ -16,6 +16,24 @@ const reviewFailureDetails = new Map([
   ['verification_timeout', 'The reviewer ran out of time.'],
   ['verifier_unavailable', 'The reviewer could not complete this check.'],
 ]);
+const stopDetails = {
+  time_budget: ['There was too little time left for another evidence check.', '此請求已沒有足夠時間再次核對。'],
+  reviewer_unavailable: ['The checker could not complete another verification.', '核對服務無法完成下一次查核。'],
+  repair_unavailable: ['A corrected answer could not be prepared for another check.', '無法準備修正後的答案以再次查核。'],
+  no_usable_evidence: ['There was no additional usable evidence for another check.', '沒有其他可用的證據可供再次查核。'],
+  no_safe_continuation: ['The request had no eligible next evidence check.', '此請求沒有可進行的下一次證據查核。'],
+  verification_limit: ['The available checks ended with details still unverified.', '已完成可用的查核，部分細節仍無法確認。'],
+};
+
+export function verificationStopActivity(question, cause = 'no_safe_continuation') {
+  const chinese = /[\u3400-\u9fff]/u.test(question);
+  return {
+    kind: 'verification-stop',
+    label: chinese ? '查核已結束' : 'Why verification stopped',
+    detail: (Object.hasOwn(stopDetails, cause) ? stopDetails[cause] : stopDetails.no_safe_continuation)[chinese ? 1 : 0],
+    status: 'unavailable',
+  };
+}
 
 export function unverifiedAnswer(question, candidate, activity, attempts, reason) {
   const chinese = /[\u3400-\u9fff]/.test(question);
@@ -33,7 +51,8 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
-  question, initialAnswer, loadEvidence, verify, repair, onProgress, allowDeeperReview = false, previousChecks = 0, deadline = Date.now() + 50_000,
+  question, initialAnswer, loadEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
+  previousChecks = 0, deadline = Date.now() + 50_000,
 }) {
   if (!Number.isInteger(previousChecks) || previousChecks < 0 || previousChecks >= maxAnswerVerificationChecks)
     throw new RangeError('Invalid initial verification check count');
@@ -48,14 +67,32 @@ export async function runAnswerVerification({
     try { onProgress?.(step); } catch { /* A closed stream cannot approve a draft. */ }
   };
   const withinBudget = () => Date.now() < deadline - 500;
-  const shouldDeepen = verdict => allowDeeperReview && !initialAnswer?.proposedAction && !candidate?.proposedAction
+  const safeToContinue = () => allowDeeperReview && !initialAnswer?.proposedAction && !candidate?.proposedAction;
+  const enoughTimeToContinue = () => deadline - Date.now() >= deeperReviewBudgetMs;
+  const shouldDeepen = verdict => safeToContinue()
     && evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
-    && (feedback.length > 0 || verdict.reason === 'verification_output_limit') && deadline - Date.now() >= deeperReviewBudgetMs;
+    && (feedback.length > 0 || verdict.reason === 'verification_output_limit');
+  const canRetryAfterSourceSwitch = verdict => safeToContinue()
+    && (deeperReviewReasons.has(verdict.reason) || verdict.reason === 'evidence_unavailable');
+  const stop = (attempts, reason, attempt) => {
+    const cause = reason === 'timeout' || reason === 'verification_timeout' || !withinBudget()
+      || (attempt + previousChecks < maxAnswerVerificationChecks && !enoughTimeToContinue()
+        && (previousChecks > 0 ? canRetryAfterSourceSwitch({ reason }) : shouldDeepen({ reason })))
+      ? 'time_budget'
+      : ['verifier_unavailable', 'verification_unavailable'].includes(reason) ? 'reviewer_unavailable'
+      : reason === 'repair_unavailable' ? 'repair_unavailable'
+      : reason === 'evidence_unavailable' || !evidence.length ? 'no_usable_evidence'
+      : attempts >= maxAnswerVerificationChecks ? 'verification_limit' : 'no_safe_continuation';
+    const step = verificationStopActivity(question, cause);
+    if (deferTerminalProgress) activity.push(step);
+    else emit(step.kind, step.label, step.detail, step.status);
+    return unverifiedAnswer(question, candidate, activity, attempts, reason);
+  };
   const bounded = async (work, until = deadline) => {
     let timer;
     try {
       return await Promise.race([work(),new Promise((_,reject)=>{
-        timer=setTimeout(()=>reject(new Error('Verification time limit')),Math.max(1,until-Date.now()));
+        timer=setTimeout(()=>reject(Object.assign(new Error('Verification time limit'), {code:'VERIFICATION_TIMEOUT'})),Math.max(1,until-Date.now()));
       })]);
     } finally { clearTimeout(timer); }
   };
@@ -68,22 +105,24 @@ export async function runAnswerVerification({
       try {
         evidence = await bounded(()=>loadEvidence({ attempt: state.attempt, deadline, feedback, previousFailure:state.previousFailure }));
         return { verdict: null };
-      } catch {
+      } catch (error) {
         evidence = [];
-        return { verdict: { ok: false, reason: 'evidence_unavailable' } };
+        const reason = error?.code === 'VERIFICATION_TIMEOUT' ? 'timeout' : 'evidence_unavailable';
+        return { verdict: { ok: false, reason } };
       }
     })
     .addNode('draft', async state => {
       if (state.attempt === 1 || state.verdict || !withinBudget()) return {};
       try {
-        const repairDeadline=state.attempt>standardChecks?deadline-8_000:deadline;
+        const repairDeadline=state.attempt>standardChecks || previousChecks>0 ? deadline-8_000 : deadline;
         candidate = await bounded(()=>repair({ question, candidate, evidence, deadline:repairDeadline, feedback, attempt:state.attempt }),repairDeadline);
         return {};
       } catch (error) {
         // Missing sources or invented correction links are evidence failures,
         // distinct from a provider timeout/outage. All still withhold the draft.
         const reason=error?.code==='EVIDENCE_UNAVAILABLE'?'evidence_unavailable'
-          :error?.code==='CORRECTION_UNSUPPORTED'?'unsupported_claims':'repair_unavailable';
+          :error?.code==='CORRECTION_UNSUPPORTED'?'unsupported_claims'
+            :error?.code==='VERIFICATION_TIMEOUT'?'timeout':'repair_unavailable';
         return { verdict: { ok: false, reason } };
       }
     })
@@ -114,7 +153,9 @@ export async function runAnswerVerification({
       return { verdict };
     })
     .addNode('retry', state => {
-      if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
+      if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
+        'Looking for the missing detail and revising the answer if the evidence supports it.');
+      else if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
         'Reconsidering the unresolved claims using the same authorized evidence.');
       else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
       return { attempt: state.attempt + 1, verdict: null, previousFailure:state.verdict.reason };
@@ -123,9 +164,9 @@ export async function runAnswerVerification({
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
     .addConditionalEdges('verify', state => {
-      // A public evidence switch is the last new source attempt in this request.
-      if(state.verdict.ok || previousChecks > 0 || state.attempt >= maxAnswerVerificationChecks || !withinBudget())return END;
-      return state.attempt < standardChecks || shouldDeepen(state.verdict) ? 'retry' : END;
+      if(state.verdict.ok || state.attempt + previousChecks >= maxAnswerVerificationChecks || !withinBudget())return END;
+      if(previousChecks>0)return canRetryAfterSourceSwitch(state.verdict) && enoughTimeToContinue() ? 'retry' : END;
+      return state.attempt < standardChecks || (shouldDeepen(state.verdict) && enoughTimeToContinue()) ? 'retry' : END;
     })
     .addEdge('retry', 'retrieve')
     .compile();
@@ -133,10 +174,10 @@ export async function runAnswerVerification({
   try {
     result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: 15, callbacks: [] });
   } catch {
-    return unverifiedAnswer(question, candidate, activity, checks, 'verification_unavailable');
+    return stop(checks, 'verification_unavailable', maxAnswerVerificationChecks);
   }
   const attempts=allowDeeperReview || previousChecks > 0 ? checks : result.attempt;
-  if (!result.verdict.ok) return unverifiedAnswer(question, candidate, activity, attempts, result.verdict.reason);
+  if (!result.verdict.ok) return stop(attempts, result.verdict.reason, result.attempt);
   return {
     ...candidate,
     verification: { status: 'verified', attempts },

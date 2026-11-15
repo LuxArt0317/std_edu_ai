@@ -55,6 +55,8 @@ Shared server-only retrieval, authorization and validation helpers for `api/`. `
 
 Web verification uses independently fetched source text. If a source is unavailable, an exact URL match to the versioned public-capture manifest may supply checksum-verified, explicitly dated text from stu.best; it is never represented as a live page.
 
+If a search draft is unusable, the research handler can read official links returned by the search tool and compose a fresh draft from their contents. Checks across a managed-to-web source switch share the three-check limit. A remaining check can use more specific evidence or actionable reviewer feedback when time permits. The final Activity entry records the reason a request stopped.
+
 Explicit public questions about Shu-Te University's founding, mission and motto can start with the checksum-verified About STU capture. The response cites its date, and a separate review checks the factual draft. A rejected draft can trigger a focused official source read in the same verification loop. Current information requests go through the regular public research flow.
 
 Evidence quote matching tolerates JSON formatting whitespace only outside string values. Unsupported claims and invented/noncontiguous excerpts still fail; aggregate diagnostic counts never contain questions, records, quotes or drafts.
