@@ -76,7 +76,7 @@ import {assertHealthMetadataLiveCases,bindHealthMetadataReadback,healthMetadataC
   healthMetadataFixtureMode,healthMetadataRequirement,readHealthMetadataPages} from './health-examination-live.mjs';
 import {createHealthMetadataFixture} from './health-examination-live-fixture.mjs';
 import {assertDtmAssignmentListLiveCases,bindDtmAssignmentListReadback,buildDtmAssignmentListFixture,dtmAssignmentListFamilies,
-  dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
+  dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,initializeDtmAssignmentListStudent,readDtmAssignmentListFixture} from './dtm-assignment-list-live.mjs';
 import {counselingFixtureMode,counselingHostedCases,gradeHostedCounseling,observeCounselingFixture,requestCounselingHostedCase,
   cleanupCounselingCancellation,transitionCounselingFixtures,validateCounselingHostedCases,verifyCounselingCancellationAbsent} from './counseling-appointment-hosted.mjs';
 import {counselingCancellationCaseIds,requestCounselingCancellation,verifyCounselingCancellation} from './counseling-cancellation-preview.mjs';
@@ -460,6 +460,12 @@ async function createFixtureUser(index){
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
   if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.learningSupportPreviewOnly||s.clearanceStatusPreviewOnly||s.academicGradesPreviewOnly||s.dtmStudyPreviewOnly||s.teachingSampleOnly||s.venueProtectedOnly||s.certificateAwardPreviewOnly)return user;
+  if(s.fixtureMode===dtmAssignmentListFixtureMode){
+    await s.previewGate.assertCurrent();
+    user.studentId=await initializeDtmAssignmentListStudent(user,{publishable:s.publishable,fetchImpl:s.boundedFetch,
+      readResponse:readBoundedFixtureResponse,signal:s.signal});
+    return user;
+  }
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;

@@ -74,6 +74,28 @@ export function buildDtmAssignmentListFixture(users,family=dtmAssignmentListFami
   return {courses,assignments,recordIds:[...courses,...assignments].map(row=>row.id)};
 }
 
+export async function initializeDtmAssignmentListStudent(user,{publishable,fetchImpl,readResponse,signal}){
+  if(!uuid.test(user?.id??'')||typeof user.token!=='string'||!user.token)
+    throw new Error('A verified disposable Moodle caller is required.');
+  const origin='https://'+project+'.supabase.co';
+  const headers={apikey:publishable,Authorization:'Bearer '+user.token};
+  // The full workspace also initializes a real sample Moodle assignment.
+  // Provision only the School Affairs student that the independent plan needs.
+  const initialize=new URL('/rest/v1/rpc/affairs_initialize_account',origin);
+  const initialized=await readResponse(await fetchImpl(initialize,{method:'POST',redirect:'error',credentials:'omit',cache:'no-store',
+    headers:{...headers,'Content-Type':'application/json'},body:'{}',signal}),initialize,16384);
+  const profile=Array.isArray(initialized)&&initialized.length===1?initialized[0]:initialized;
+  if(profile?.user_id!==user.id||profile.role!=='student')
+    throw new Error('School Affairs initialization did not return the disposable student profile.');
+  const students=new URL('/rest/v1/affairs_students',origin);
+  students.search=new URLSearchParams({select:'id,user_id',user_id:'eq.'+user.id,limit:'2'});
+  const rows=await readResponse(await fetchImpl(students,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
+    headers,signal}),students,4096);
+  if(!Array.isArray(rows)||rows.length!==1||rows[0]?.user_id!==user.id||!uuid.test(rows[0].id??''))
+    throw new Error('School Affairs initialization did not bind exactly one disposable student.');
+  return rows[0].id;
+}
+
 function normalizeAssignment(row){
   const normalized={...row};
   for(const field of ['due_at','submitted_at'])if(row[field]!==null)normalized[field]=new Date(row[field]).toISOString();
@@ -91,24 +113,25 @@ export async function readDtmAssignmentListFixture(plan,users,{family=dtmAssignm
   if(!isDeepStrictEqual(plan,buildDtmAssignmentListFixture(users,family))
     ||users.some(user=>typeof user.token!=='string'||!user.token)||users[0].token===users[1].token)
     throw new Error('The Moodle assignment-list fixture has no matching caller sessions.');
-  const courseIds='in.('+plan.courses.map(row=>row.id).join(',')+')';
+  const ownerIds='in.('+users.map(row=>row.id).join(',')+')';
+  const studentIds='in.('+users.map(row=>row.studentId).join(',')+')';
   // Include room to detect one unexpected row in either caller's scope.
   const limit=String(Math.max(plan.courses.length,plan.assignments.length)+1);
   return Promise.all(users.map(async user=>{
-    async function select(table,fields,key,filter){
+    async function select(table,fields,filter){
       const url=new URL('/rest/v1/'+table,'https://'+project+'.supabase.co');
-      url.search=new URLSearchParams({select:fields.join(','),[key]:filter,order:'id.asc',limit});
+      url.search=new URLSearchParams({select:fields.join(','),...filter,order:'id.asc',limit});
       const response=await fetchImpl(url,{method:'GET',redirect:'error',credentials:'omit',cache:'no-store',
         headers:{apikey:publishable,Authorization:'Bearer '+user.token},signal});
       return readResponse(response,url,16384);
     }
-    // Apply the same ID set for both callers. The database must enforce the
-    // ownership filter, including the second caller's actual positive control.
+    // Both callers request both disposable scopes. This also detects extra
+    // owner rows outside the reserved record IDs that might change list scope.
     const courses=plan.courses.filter(row=>row.user_id===user.id);
     const assignments=plan.assignments.filter(row=>row.student_id===user.studentId);
     const [actualCourses,actualAssignments]=await Promise.all([
-      select('dtm_courses',courseFields,'id',courseIds),
-      select('affairs_assignments',assignmentFields,'dtm_course_id',courseIds),
+      select('dtm_courses',courseFields,{user_id:ownerIds}),
+      select('affairs_assignments',assignmentFields,{student_id:studentIds,dtm_course_id:'not.is.null'}),
     ]);
     assertRows(actualCourses,courses);
     assertRows(actualAssignments,assignments,normalizeAssignment);
