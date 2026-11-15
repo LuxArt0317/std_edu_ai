@@ -34,6 +34,25 @@ const cases=[
 export function clubEquipmentHostedCases(){
   return cases.map(item=>({...item,id:'account:club-equipment-'+item.id,route,domain:'clubEquipment',fixtureRequirement:clubEquipmentRequirement}));
 }
+const routeContextCases=[
+  {id:'new-context',actor:'A',mode:'read',routeContext:'new',oracle:'a-status-dates',
+    question:'What is the status of my latest club equipment request and when do I return the items?'},
+  {id:'owned-edit-context',actor:'B',mode:'read',routeContext:'edit',oracle:'b-isolation',
+    question:'Show the status, pickup and return dates, and borrowed items for this request.'},
+  {id:'crossed-edit-context',actor:'A',mode:'read',routeContext:'edit',oracle:'a-b-request',
+    question:'Show the status, pickup and return dates, and borrowed items for this request.'},
+];
+export function clubEquipmentHostedRouteCases(){
+  return routeContextCases.map(item=>({...item,id:'account:club-equipment-'+item.id,domain:'clubEquipment',fixtureRequirement:clubEquipmentRequirement}));
+}
+export function clubEquipmentCaseRoute(testCase,plan){
+  if(testCase.routeContext==='new')return route+'/new';
+  if(testCase.routeContext==='edit'){
+    assertPlan(plan);
+    return route+'/new?edit='+encodeURIComponent(plan.rows[2].id);
+  }
+  return route;
+}
 export function validateClubEquipmentHostedCases(value){
   if(!isDeepStrictEqual(value,clubEquipmentHostedCases()))throw error();
 }
@@ -214,11 +233,11 @@ export async function observeClubEquipmentCallers(plan,{users,origin,previewFetc
 }
 
 export async function requestClubEquipment({testCase,plan,origin,token,fetchImpl,signal,privateMarkers,correlationIds}){
-  if(!clubEquipmentHostedCases().some(row=>isDeepStrictEqual(row,testCase)))throw error();
+  if(![...clubEquipmentHostedCases(),...clubEquipmentHostedRouteCases()].some(row=>isDeepStrictEqual(row,testCase)))throw error();
   const protectedRead=testCase.actor!=='guest',denied=testCase.mode==='unauthorized';
   const endpoint=new URL(testCase.mode==='guest'?'/api/research-assistant':'/api/affairs-assistant',origin);
   const question=testCase.question.replace('{aOlder}',plan.rows[1].id).replace('{bRequest}',plan.rows[2].id);
-  const body={question,route,stream:!denied,consentedResearchUse:false};
+  const body={question,route:clubEquipmentCaseRoute(testCase,plan),stream:!denied,consentedResearchUse:false};
   const headers={'Content-Type':'application/json',Accept:denied?'application/json':'text/event-stream',...(protectedRead?{Authorization:'Bearer '+token}:{})};
   const response=await fetchImpl(endpoint,{method:'POST',headers,body:JSON.stringify(body),signal});
   const status=response.status,correlationId=response.headers.get('X-Assistant-Request-Id');
@@ -257,7 +276,7 @@ export function gradeClubEquipmentHosted(testCase,result,before,after,plan){
     foreign:()=>body?.status==='handoff'&&text('your own account')&&citations.length===0,
     'guest-routing':()=>body?.status==='handoff'&&citations.length===1&&citations[0].url==='/school-affairs/login?next='+encodeURIComponent(route),
     'guest-denial':()=>status===401&&Boolean(body?.error)&&!('answer' in body),
-  }[testCase.id.replace(/^account:club-equipment-/u,'')];
+  }[testCase.oracle??testCase.id.replace(/^account:club-equipment-/u,'')];
   const failures=[];
   if(!isDeepStrictEqual(before,after)||!/^[a-f0-9]{64}$/u.test(before.rowsDigest??'')
     ||!isDeepStrictEqual(before.callers.map(row=>[row.role,row.visibleRows,row.eligibleToRequest,row.managerReviewDenied]),[['A',2,false,true],['B',1,false,true]]))failures.push('equipment.readback');

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
-import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,
+import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentHostedRouteCases,
   createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
   validateClubEquipmentHostedCases} from './club-equipment-hosted.mjs';
 import {verifyClubEquipmentCancellation} from './club-equipment-cancellation-preview.mjs';
@@ -154,15 +154,25 @@ test('the exact protected packet grades against the real signed-in and guest han
     return Response.json(dto(users.find(user=>'Bearer '+user.token===options.headers.Authorization).id));
   }});
   const proof={rowsDigest:'a'.repeat(64),callers:verification},correlationIds=new Set();
-  for(const testCase of cases){
+  const expectedRoutes=['/school-affairs/services/40-1/equipment/new',
+    '/school-affairs/services/40-1/equipment/new?edit='+plan.rows[2].id,
+    '/school-affairs/services/40-1/equipment/new?edit='+plan.rows[2].id];
+  for(const [index,testCase] of [...cases,...clubEquipmentHostedRouteCases()].entries()){
     const token=testCase.actor==='guest'?null:users[testCase.actor==='A'?0:1].token;
     const result=await requestClubEquipment({testCase,plan,origin,token,privateMarkers:users.map(user=>user.token),correlationIds,
-      fetchImpl:(url,init)=>collect(url.pathname==='/api/research-assistant'?guest:account,init)});
+      fetchImpl:(url,init)=>{
+        if(index>=cases.length){
+          const body=JSON.parse(init.body);
+          assert.equal(body.route,expectedRoutes[index-cases.length]);
+          assert.ok(!body.question.includes(plan.rows[2].id),'Use the edit route selector, without an ID in the question');
+        }
+        return collect(url.pathname==='/api/research-assistant'?guest:account,init);
+      }});
     assert.deepEqual(gradeClubEquipmentHosted(testCase,result,proof,proof).failures,[],testCase.id);
     assert.ok(gradeClubEquipmentHosted(testCase,result,proof,{...proof,rowsDigest:'b'.repeat(64)}).failures.includes('equipment.readback'));
   }
-  assert.deepEqual(calls,[owners.A.id,owners.A.id,owners.A.id,owners.A.id,owners.B.id,owners.A.id]);
-  assert.equal(correlationIds.size,7);
+  assert.deepEqual(calls,[owners.A.id,owners.A.id,owners.A.id,owners.A.id,owners.B.id,owners.A.id,owners.A.id,owners.B.id,owners.A.id]);
+  assert.equal(correlationIds.size,10);
 });
 
 test('confirmed club packet independently catches proposals or retries that write and checks nine outcomes',async()=>{

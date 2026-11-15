@@ -47,7 +47,7 @@ import {isDeepStrictEqual} from 'node:util';
 import {createTutorEvaluationFixture,gradeHostedTutorEvaluation,observeTutorEvaluationCallers,requestTutorEvaluation,
   tutorEvaluationFamily,tutorEvaluationFixtureMode,tutorEvaluationHostedCases,tutorEvaluationHostedGaps,
   validateTutorEvaluationHostedCases} from './tutor-evaluation-hosted.mjs';
-import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentRequirement,
+import {buildClubEquipmentHostedPlan,clubEquipmentFamily,clubEquipmentFixtureMode,clubEquipmentHostedCases,clubEquipmentHostedRouteCases,clubEquipmentRequirement,
   createClubEquipmentFixture,gradeClubEquipmentHosted,observeClubEquipmentCallers,requestClubEquipment,
   validateClubEquipmentHostedCases} from './club-equipment-hosted.mjs';
 import {requestClubEquipmentCancellation,verifyClubEquipmentCancellation} from './club-equipment-cancellation-preview.mjs';
@@ -1749,14 +1749,17 @@ export async function runTutorEvaluationPreview({origin,sourceRevision,previewTo
     liveAcceptance:results.length===cases.length&&results.every(row=>row.passed)&&cleanupProof.verified&&cleanupProof.tutorEvaluationCleanup===true};
 }
 
-export async function runClubEquipmentPreview({origin,sourceRevision,previewToken,signal,confirmedCancellation=false}={}){
+export async function runClubEquipmentPreview({origin,sourceRevision,previewToken,signal,confirmedCancellation=false,routeContext=false}={}){
   if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??''))
     fail('fixture-config','Club equipment requires an exact protected Preview and source revision.');
+  if(typeof routeContext!=='boolean'||routeContext&&confirmedCancellation)
+    fail('fixture-config','Run the equipment page-context packet separately from confirmed cancellation.');
   const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
   const identity=await sourceIdentity();
   if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Club equipment requires the exact clean deployed source.');
-  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),cases=clubEquipmentHostedCases();
-  await prepare({runId,cases,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
+  const readback=createTrustedPreviewFetch({origin,token:previewToken}),runId=randomUUID(),frozen=clubEquipmentHostedCases();
+  const cases=routeContext?clubEquipmentHostedRouteCases():frozen;
+  await prepare({runId,cases:frozen,now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,expectedReleaseRevision:sourceRevision,
     signal,fixtureMode:clubEquipmentFixtureMode,caseFamily:clubEquipmentFamily,previewReadbackFetch:readback});
   const s=ready(),pace=createLiveRequestPacer(),results=[],correlationIds=new Set();
   let cleanupProof,cancellation=[];
@@ -1767,7 +1770,7 @@ export async function runClubEquipmentPreview({origin,sourceRevision,previewToke
       return [index===0?'A':'B',{id:user.id,email:requests[0].email,runMarker:runId}];
     }));
     let cancellationDate;
-    if(confirmedCancellation){
+    if(confirmedCancellation||routeContext){
       const [clock]=await query(()=>s.sql`select (now() at time zone 'Asia/Taipei')::date::text as today`,'Could not read the club equipment fixture date.');
       if(!clock?.today)fail('fixture-readback','The club equipment fixture date is unavailable.');
       cancellationDate=clock.today;
@@ -3203,6 +3206,8 @@ async function currentServiceNoteFixture(s,signal){
 }
 
 export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
+  if(testCase?.fixtureRequirement==='club_equipment_disposable'||/^account:club-equipment-/u.test(testCase?.id??''))
+    fail('fixture-unsupported','Club equipment requires its isolated paired-owner evaluator.');
   if(nativeInternshipSetupRequired(testCase))
     fail('fixture-unsupported','Native internship requires isolated caller fixtures and independent request observations.');
   if(nativeStudentLeaveSetupRequired(testCase))

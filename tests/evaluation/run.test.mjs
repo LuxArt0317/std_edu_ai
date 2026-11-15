@@ -3,6 +3,7 @@ import {assertNativeDtmCaseReady,nativeDtmRunnerCases,nativeDtmSetupRequired} fr
 import {accountStatusCases,accountStatusSetupRequired,assertAccountStatusCaseReady} from './account-status-cases.mjs';
 import {learningEntryCases,learningEntrySetupRequired,assertLearningEntryCaseReady} from './learning-entry-cases.mjs';
 import {campusEntryCases,campusEntrySetupRequired,assertCampusEntryCaseReady} from './campus-entry-cases.mjs';
+import {assertClubEquipmentCaseReady,clubEquipmentSetupRequired} from './club-equipment-runner.mjs';
 import {assertElearningCatalogCaseReady,elearningCatalogRunnerCases,elearningCatalogSetupRequired,gradeElearningCatalogCase,isElearningCatalogReadbackCase,isElearningMetadataCase,isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import {assertNativeInternshipCaseReady,internshipRunnerCases,nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {assertNativeStudentLeaveCaseReady,nativeStudentLeaveSetupRequired,studentLeaveRunnerCases} from './student-leave-runner.mjs';
@@ -320,6 +321,7 @@ test('catalog runner blocks pending/unavailable fixtures before adapter or model
       assertAccountStatusCaseReady,accountStatusSetupRequired,
       assertLearningEntryCaseReady,learningEntrySetupRequired,
       assertCampusEntryCaseReady,campusEntrySetupRequired,
+      assertClubEquipmentCaseReady,clubEquipmentSetupRequired,
       persist:async()=>{},out:'unused',log(){},identity:{sourceRevision:'a'.repeat(40)},
     });
     await execute();assert.equal(report.results.length,1);assert.equal(report.results[0].caseId,testCase.id);

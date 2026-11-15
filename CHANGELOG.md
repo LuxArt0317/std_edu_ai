@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Verify the exact count of saved conduct entries at 38-1 using the signed-in account without retrieving conduct record details. [#100]
+
+- Register equipment history, new form and owned edit-page questions in the default evaluator. Keep separate paired-owner proof for protected results, and treat requests for pickup and return dates as reads. [#100]
+
 - Preserve the selected club equipment request when signing in from its edit page. Continue to handle invalid or extra selectors as ordinary sign-in redirects. [#100]
 
 - Verify combined Internship and next-class answers directly when the complete timetable has a unique upcoming meeting with a saved room. [#100]

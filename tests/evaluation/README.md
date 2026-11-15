@@ -292,3 +292,19 @@ node tests/evaluation/run-internship-preview.mjs "$PREVIEW_ORIGIN" "$DEPLOYED_RE
 ```
 
 The separate two-case packet leaves the original count at 26 of 30. The two original QAP201 timetable cases still require their frozen shared source, and the two intentional read failures are covered by controlled tests.
+
+### Club equipment page context
+
+The default inventory registers the nine existing protected equipment questions
+and three page-context checks. The general runner reports these twelve cases as
+setup-unexecuted until it can ingest the isolated paired-owner proof. The
+`--route-context` packet exercises the new-request form and the edit page for
+the same submitted request as both its owner and a second student. The exact
+owned request ID comes from the fixture and appears only in the edit route.
+The fixture preserves the original facts and checks readback and cleanup for
+both accounts. The browser acceptance gate retains its own requirements.
+
+```sh
+node tests/evaluation/run-club-equipment-preview.mjs <protected-preview-origin> <source-revision> --route-context
+node --experimental-strip-types --test tests/evaluation/club-equipment-{hosted,runner}.test.mjs
+```

@@ -30,6 +30,7 @@ import {assertDtmAssignmentListLiveCases,dtmAssignmentListDispatch,dtmAssignment
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
 import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,gradeClubAttendanceCase} from './club-attendance-cases.mjs';
+import {assertClubEquipmentCaseReady,clubEquipmentRunnerCases,clubEquipmentSetupRequired,clubEquipmentSetupSummary} from './club-equipment-runner.mjs';
 import {serviceNoteRunnerCases,serviceNoteRunnerOracle,isServiceNoteCase,serviceNoteSetupRequired,serviceNoteSetupSummary,gradeLiveServiceNoteCase} from './service-note-runner.mjs';
 import {studentLeaveRunnerCases,markLegacyStudentLeaveFixture,nativeStudentLeaveSetupRequired,assertNativeStudentLeaveCaseReady,studentLeaveSetupSummary} from './student-leave-runner.mjs';
 import {buildGuidanceReviewBinding,validateGuidanceReview} from './guidance-rubric.mjs';
@@ -130,7 +131,8 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases():caseFamily===dtmAssignmentListFamily?dtmAssignmentListLiveCases():caseFamily===healthMetadataFamily?healthMetadataLiveCases()
     :[...serviceNoteRunnerCases({now}),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
-      ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...learningEntryCases(),...campusEntryCases(),...buildPublicCases(inventory)];
+      ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...clubEquipmentRunnerCases(),
+      ...learningEntryCases(),...campusEntryCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
   const ids=new Set();
   for(const item of cases){if(!item.id||ids.has(item.id))throw new Error('Duplicate or missing case ID: '+item.id);ids.add(item.id);}
@@ -340,6 +342,11 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     assessment.venueSetup=venueSetup;
     integrity.push({id:'run.nativeVenueFixtureUnbound',detail:'Venue request cases require independent venue and companion fixtures and caller-bound request observations.'});
   }
+  const equipmentSetup=clubEquipmentSetupSummary(cases);
+  if(equipmentSetup.registered){
+    assessment.clubEquipmentSetup=equipmentSetup;
+    integrity.push({id:'run.clubEquipmentFixtureUnbound',detail:'Exact protected equipment results are graded by the isolated paired-owner operator; the default runner lacks these observations.'});
+  }
   const noteSetup=serviceNoteSetupSummary(cases);
   if(noteSetup.registered)assessment.serviceNoteSetup=noteSetup;
   if(noteSetup.unboundCaseIds.length)integrity.push({id:'run.serviceNoteFixtureUnbound',
@@ -478,7 +485,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
   if(!selected.length)throw new Error('No cases match.');
   // Do not pass an unmounted native case into the legacy adapter: prepare
   // may initialize accounts and seed unrelated data before forCase is called.
-  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row)&&!accountStatusSetupRequired(row)&&!serviceNoteSetupRequired(row)&&!learningEntrySetupRequired(row)&&!campusEntrySetupRequired(row));
+  const fixtureCases=selected.filter(row=>!teachingFeedbackCaseAdmission(row)&&!nativeDtmSetupRequired(row)&&!nativeStudentLeaveSetupRequired(row)&&!nativeInternshipSetupRequired(row)&&!elearningCatalogSetupRequired(row)&&!nativeVenueSetupRequired(row)&&!accountStatusSetupRequired(row)&&!serviceNoteSetupRequired(row)&&!learningEntrySetupRequired(row)&&!campusEntrySetupRequired(row)&&!clubEquipmentSetupRequired(row));
   const out=resolve(root,opt.out||`artifacts/assistant-evaluation/${opt.mode}-${runId}.json`);
   if(relative(resolve(root,'artifacts/assistant-evaluation'),out).startsWith('..')||!out.endsWith('.json'))throw new Error('Reports must be JSON under artifacts/assistant-evaluation.');
   let browserAcceptance;
@@ -494,6 +501,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     browserEvidence:browserAcceptance?{sha256:hash(browserAcceptance),sourceRevision:browserAcceptance.sourceRevision}:null,
     selectedCases:selected.map(row=>row.id),totalCases:suite.cases.length,inventory:suite.inventory,results:[],cleanup:{required:opt.mode==='live',complete:opt.mode!=='live'}};
   if(selected.some(row=>teachingFeedbackCaseAdmission(row)))report.teachingFeedbackSetup=teachingFeedbackSetupSummary(selected);
+  if(selected.some(clubEquipmentSetupRequired))report.clubEquipmentSetup=clubEquipmentSetupSummary(selected);
   const leaveSetup=studentLeaveSetupSummary(selected);
   if(leaveSetup.registered)report.studentLeaveSetup=leaveSetup;
   const internshipSetup=internshipSetupSummary(selected);
@@ -589,6 +597,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         assertElearningCatalogCaseReady(testCase);
         if(publishedAcademyReadback&&opt.mode!=='live')throw new Error('Digital Academy published readbacks require the exact protected Preview and both callers.');
         assertNativeVenueCaseReady(testCase);
+        assertClubEquipmentCaseReady(testCase);
         assertAccountStatusCaseReady(testCase);
         assertLearningEntryCaseReady(testCase);
         assertCampusEntryCaseReady(testCase);
@@ -656,7 +665,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(healthMetadataOnly||assignmentListOnly||publishedAcademyReadback||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
+        const execution=phase==='setup'&&(healthMetadataOnly||assignmentListOnly||publishedAcademyReadback||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase)||clubEquipmentSetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
