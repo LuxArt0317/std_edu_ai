@@ -997,4 +997,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the narrowed exact clearance recovery against the unchanged 16-case grader and actual isolated PostgreSQL without provider calls.
 - [x] Replay the typed clearance recovery on exact protected `b9aa9b3`. Pass the unchanged 16 mounted cases and paired cleanup.
 - [ ] Run the positive window cases after a suitable isolated fixture is available.
-- [ ] Mount and replay outstanding Academic Services 13-1 cases on the exact protected app.
+- [x] Mount and replay all 11 selected Academic Services 13-1 cases on exact protected `b9aa9b3`. Verify the native Activity event, scoped readbacks and disposal.
+- [ ] Finish exact follow-up Quality and broader release acceptance before production promotion.
