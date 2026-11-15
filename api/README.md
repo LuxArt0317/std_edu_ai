@@ -12,6 +12,8 @@
 
 ## Account conversations and verified replies
 
+New conversation IDs use the versioned save, read and delete RPCs. During rollout, a first-save request for an old UUIDv4 draft uses the shared locking wrapper so an open tab can save and a delayed retry respects a protected deletion. Retiring that admission requires the separate legacy cutover. Exact sign-in questions read only the caller's verified Google session.
+
 Student leave history, archive, periods and exact-form questions select the caller's leave reader before any broad account load. Requested fee balances, the next class and native Moodle grades use their own scoped sources. Guest requests receive local sign-in return links.
 
 Focused Moodle assignment questions use the signed-in caller's exact course and assignment route, including the edit page. A combined assignment and native grade question dispatches separate scoped readers. The retry reuses the same scope and cannot perform a write.
