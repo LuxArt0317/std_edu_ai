@@ -54,6 +54,10 @@ The directory searches active clubs and the activity lookup searches published a
 
 Authenticated assistant replies use the same read API for private participation and application status. The public assistant provides sign-in links for those questions. The directory and activity search answers link to their respective search pages.
 
+At `/school-affairs/services/40-1/my-attendance`, ask “Show my saved club activity attendance records. Also show my tuition balance.” The assistant checks the saved attendance page and the account’s saved tuition amounts independently. It uses the saved tuition category and the known label format for legacy sample rows. Other charges are omitted from the answer. A failed source is checked once more while the successful section is retained. The final response says which evidence remained unavailable.
+
+`node --experimental-strip-types --test tests/api/club-attendance-assistant.test.ts` runs all five original attendance prompts through the compiled client dispatcher and actual handler with controlled transport. The checks distinguish an empty page from a failed read and cover the separate tuition amount and foreign-owner boundary. This replay does not count toward protected-browser acceptance.
+
 - `node tests/integration/club-student-db.mjs --deployed` verifies literal filtering, paging, publication, caller isolation and the approval/withdrawal workflow in a rolled-back transaction.
 - `node --import tsx tests/integration/club-student-http.mjs` checks authentication, private reads, durable retries and withdrawal against the API with disposable accounts. Set `EXPECTED_RELEASE_REVISION` to use production.
 - `node tests/integration/club-student-ui.mjs` verifies all six menu links, form retries, review, mobile width and the assistant response using synthetic browser fixtures. Pin production with `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION`.

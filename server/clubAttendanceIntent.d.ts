@@ -1,5 +1,5 @@
 import type {VerificationCandidate} from './answerVerification.js';
-export type ClubAttendanceSelection={page:number;reason:'foreign'|'excluded'|'navigation'|'action'|'scope'|null;latest:boolean;countOnly:boolean;partial:boolean};
+export type ClubAttendanceSelection={page:number;reason:'foreign'|'excluded'|'navigation'|'action'|'scope'|null;latest:boolean;countOnly:boolean;partial:boolean;tuitionBalance?:'first'|'last'};
 export const clubAttendancePath:string;
 export const clubAttendanceRoute:RegExp;
 export const clubAttendancePagePattern:RegExp;

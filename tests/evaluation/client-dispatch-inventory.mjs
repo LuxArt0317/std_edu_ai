@@ -65,7 +65,7 @@ const otherDirectReaders=['readProgramRegistrationAnswer','readEarlyGraduationAn
 export function probeNativePredicate(id,question,route=''){
   switch(id){
     case 'club-student':return clubStudentQuestion(question);
-    case 'club-activity-attendance':{const selection=clubAttendanceSelection(question,route);return selection?selection.reason??(selection.partial?'partial':'mine'):null;}
+    case 'club-activity-attendance':{const selection=clubAttendanceSelection(question,route);return selection?selection.reason??(selection.tuitionBalance?'mine-and-tuition':selection.partial?'partial':'mine'):null;}
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;

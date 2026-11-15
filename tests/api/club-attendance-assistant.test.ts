@@ -2,12 +2,14 @@ import assert from 'node:assert/strict';
 import test,{type TestContext} from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {runInNewContext} from 'node:vm';
+import {createRequire} from 'node:module';
 import ts from 'typescript';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import * as intent from '../../server/clubAttendanceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
+import {discoverClientDispatchSurfaces} from '../evaluation/client-dispatch-inventory.mjs';
 
 const route='/school-affairs/services/40-1/my-attendance';
 const host='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -17,11 +19,18 @@ const listed={id:'df32aa98-0000-4000-8000-000000000012',title:'Robotics Lab Work
   starts_at:'2026-11-12T18:10:00.000001+00:00',location:'Engineering Lab 3',academic_year:115,term:1,
   recorded_at:'2026-11-13T20:45:00.000123+00:00'};
 const prompt='Show my saved club activity attendance records.';
+const student='df32aa98-0000-4000-8000-0000000000a1';
+const ownCharge={id:'df32aa98-0000-4000-8000-0000000000a2',student_id:student,label:'Saved tuition 115-1',category:'學雜費',
+  amount_due:'28000.00',amount_paid:'5000.00',currency:'TWD',source_mode:'verified',due_on:'2027-01-02',
+  occurrence_on:'2026-11-07',contact_unit:null,contact_extension:null,payment_unit:null};
+const incidental={...ownCharge,id:'df32aa98-0000-4000-8000-0000000000a3',label:'Recreation equipment charge',category:'equipment',amount_due:9000,amount_paid:0};
+const unclassified={...ownCharge,id:'df32aa98-0000-4000-8000-0000000000a4',label:'Miscellaneous enrollment charge',category:null,amount_due:11111,amount_paid:0};
 let suite=0;
 
 type RequestBody={p_view:string;p_search:string;p_page:number};
 type Delivery=(request:RequestBody,attempt:number,owner:string)=>Response|Promise<Response>;
 type Step={kind:string;status:string};
+type Citation={chunkId:string;url:string};
 const workspace=(owner:string,page:number,rows:object[]=[listed],extra={})=>
   ({userId:owner,view:'my-attendance',page,eligible:false,hasMore:false,rows,...extra});
 
@@ -32,14 +41,24 @@ async function request(handler:ReturnType<typeof createAffairsAssistantHandler>|
   return sink;
 }
 
-function fixture(t:TestContext,delivery:Delivery){
+function fixture(t:TestContext,delivery:Delivery,tuition?:(attempt:number)=>Response|Promise<Response>){
   const owner='df32aa98-0000-4000-8000-'+String(++suite).padStart(12,'0');
-  const reads:RequestBody[]=[],unexpected:string[]=[];
+  const reads:RequestBody[]=[],unexpected:string[]=[],feeReads:URL[]=[];
   t.mock.method(globalThis,'fetch',async (input:string|URL,init:RequestInit)=>{
-    assert.equal(String(input),host+'/rest/v1/rpc/affairs_read_club_student');
-    assert.equal(init.method,'POST');assert.equal(init.redirect,'error');
+    const url=new URL(String(input));
+    assert.equal(url.origin,host);assert.equal(init.redirect,'error');
     const headers=new Headers(init.headers);
     assert.equal(headers.get('authorization'),'Bearer '+token);assert.equal(headers.get('apikey'),key);
+    if(tuition&&url.pathname==='/rest/v1/affairs_students'){
+      assert.equal(init.method,'GET');assert.equal(url.searchParams.get('select'),'id,user_id');
+      assert.equal(url.searchParams.get('user_id'),'eq.'+owner);
+      feeReads.push(url);return Response.json([{id:student,user_id:owner}]);
+    }
+    if(tuition&&url.pathname==='/rest/v1/affairs_charges'){
+      assert.equal(init.method,'GET');assert.equal(url.searchParams.get('student_id'),'eq.'+student);
+      feeReads.push(url);return tuition(feeReads.filter(read=>read.pathname.endsWith('/affairs_charges')).length);
+    }
+    assert.equal(url.pathname,'/rest/v1/rpc/affairs_read_club_student');assert.equal(init.method,'POST');
     const body=JSON.parse(String(init.body));
     assert.deepEqual(body,{p_view:'my-attendance',p_search:'',p_page:body.p_page});
     assert.ok(Number.isInteger(body.p_page)&&body.p_page>=1&&body.p_page<=1000);
@@ -51,7 +70,7 @@ function fixture(t:TestContext,delivery:Delivery){
     verifyToken:async received=>{assert.equal(received,token);return {user:{id:owner},url:host,token,key};},
     loadSnapshot:guarded('broad account snapshot'),answerAccount:guarded('account model'),publicResearch:guarded('public research'),
   });
-  return {reads,unexpected,ask:(question=prompt,options:Record<string,unknown>={})=>request(handler,{question,route,...options})};
+  return {owner,reads,feeReads,unexpected,handler,ask:(question=prompt,options:Record<string,unknown>={})=>request(handler,{question,route,...options})};
 }
 
 function expectVerified(body:any,attempts=1){
@@ -102,15 +121,76 @@ test('latest uses source order and the saved start time, not the attendance reco
   assert.doesNotMatch(body.answer,/Previous event/u);assert.equal(body.views,undefined);
 });
 
-test('mixed requests disclose the partial verified read without fetching the other domain',async t=>{
+test('unverified extra scopes are identified without fetching other domains',async t=>{
   const h=fixture(t,({p_page},_attempt,owner)=>Response.json(workspace(owner,p_page)));
-  for(const question of ['Show my club activity attendance records and tell me my tuition balance.',
+  for(const question of ['Show my club activity attendance records and tell me my grades.',
     'What is my tuition balance this semester? Also show my club activity attendance records.']){
     const {body}=await h.ask(question);
     expectVerified(body);
     assert.match(body.answer,/Robotics Lab Workshop/u);assert.match(body.answer,/other requested details need a separate lookup/u);
   }
   assert.equal(h.reads.length,2);assert.deepEqual(h.unexpected,[]);
+});
+
+test('the exact combined question checks the saved attendance and scoped tuition amount',async t=>{
+  const h=fixture(t,({p_page},_attempt,owner)=>Response.json(workspace(owner,p_page)),
+    ()=>Response.json([ownCharge,incidental,unclassified]));
+  for(const question of [prompt+' Also show my tuition balance.',
+    'What is my tuition balance and show my club activity attendance records.',
+    '顯示我的社團活動出席紀錄。另外查詢我的學費餘額。']){
+    const {body}=await h.ask(question);
+    expectVerified(body);
+    assert.match(body.answer,/Robotics Lab Workshop/u);
+    assert.match(body.answer,/NT\$23,000/u);
+    assert.doesNotMatch(JSON.stringify(body),/Recreation|11,111|9,000|Miscellaneous enrollment|separate lookup/u);
+    const feeFirst=question.startsWith('What');
+    assert.equal(body.answer.indexOf('NT$23,000')<body.answer.indexOf('Robotics'),feeFirst);
+    const sources=body.citations.map((row:Citation)=>row.chunkId);
+    assert.deepEqual(sources,feeFirst?['account:charges','account:clubAttendance']:['account:clubAttendance','account:charges']);
+    assert.ok(body.activity.some((step:Step)=>step.kind==='account-read:charges:1'&&step.status==='complete'));
+  }
+  assert.equal(h.reads.length,3);assert.equal(h.feeReads.length,6);assert.deepEqual(h.unexpected,[]);
+});
+
+test('a single missing source is reread and the healthy source remains verified',async t=>{
+  let mode='fee-recovers';
+  const h=fixture(t,({p_page},_attempt,owner)=>mode==='attendance-down'?new Response(null,{status:503})
+    :mode==='crossed-records'?Response.json(workspace(foreign,p_page)):Response.json(workspace(owner,p_page)),attempt=>
+      mode==='fee-down'||mode==='fee-recovers'&&attempt===1?new Response(null,{status:503}):Response.json([ownCharge]));
+  for(const state of ['fee-recovers','fee-down','attendance-down','crossed-records']){
+    mode=state;
+    const startAttendance=h.reads.length,startFees=h.feeReads.length;
+    const {body}=await h.ask(prompt+' Also show my tuition balance.');
+    assert.equal(body.status,'answered');assert.equal(body.verification.attempts,2);
+    const attendanceDown=state==='attendance-down'||state==='crossed-records';
+    assert.equal(h.reads.length-startAttendance,attendanceDown?2:1);
+    assert.equal(h.feeReads.length-startFees,attendanceDown?2:4);
+    if(state==='fee-recovers'){
+      expectVerified(body,2);assert.match(body.answer,/Robotics.*[\s\S]*NT\$23,000/u);
+    }else{
+      assert.equal(body.grounding.degraded,true);assert.equal(body.verification.status,'unverified');
+      assert.deepEqual(body.citations.map((row:Citation)=>row.chunkId),[attendanceDown?'account:charges':'account:clubAttendance']);
+      if(attendanceDown){
+        assert.doesNotMatch(body.answer,/Robotics|No saved attendance/u);assert.match(body.answer,/couldn’t verify.*attendance[\s\S]*NT\$23,000/u);
+      }else{
+        assert.doesNotMatch(body.answer,/NT\$|no matching tuition/u);assert.match(body.answer,/Robotics.*[\s\S]*couldn’t verify.*tuition balance/u);
+      }
+      assert.ok(body.activity.some((step:Step)=>step.kind==='partial-verification'&&step.status==='complete'));
+    }
+  }
+  assert.deepEqual(h.unexpected,[]);
+});
+
+test('legacy sample tuition is included while an empty tuition scope does not imply a zero balance',async t=>{
+  const legacy={...ownCharge,label:'Sample Fall 2026 tuition',source_mode:'sample',category:null};
+  const h=fixture(t,({p_page},_attempt,owner)=>Response.json(workspace(owner,p_page,[])),attempt=>Response.json(attempt===1?[legacy]:[incidental]));
+  const legacyReply=await h.ask(prompt+' Also show my tuition balance.');
+  expectVerified(legacyReply.body);
+  assert.match(legacyReply.body.answer,/No saved attendance[\s\S]*Sample Fall 2026 tuition[\s\S]*NT\$23,000/u);
+  const emptyReply=await h.ask(prompt+' Also show my tuition balance.');
+  expectVerified(emptyReply.body);
+  assert.match(emptyReply.body.answer,/No saved attendance[\s\S]*no matching tuition charges/u);
+  assert.doesNotMatch(emptyReply.body.answer,/NT\$0|Recreation|\bzero\b/u);
 });
 
 test('empty page and an unavailable source differ, with one exact reread on failure',async t=>{
@@ -201,4 +281,56 @@ test('the actual authenticated browser dispatcher enters the verification endpoi
   }});
   await exports.askSchoolAffairsAssistant(owner,prompt,[],undefined,[],route+'?page=2');
   assert.deepEqual(calls,[['/api/affairs-assistant','Bearer '+token,{question:prompt,history:[],images:[],route:route+'?page=2',stream:false}]]);
+});
+
+test('the five frozen club-attendance questions route from the compiled client to the actual handler',async t=>{
+  const cases=(await discoverClientDispatchSurfaces()).questions.filter(row=>row.domain==='club-activity-attendance');
+  assert.deepEqual(cases.map(row=>row.mode),['record','multipart','empty','foreign','read-failure']);
+  const path=new URL('../../src/services/schoolAffairsAssistant.ts',import.meta.url);
+  const requireModule=createRequire(path);
+  const source=await readFile(path,'utf8');
+  const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+  const probe=(h:ReturnType<typeof fixture>)=>{
+    const exports:Record<string,any>={},requests:unknown[]=[];
+    runInNewContext(code,{exports,require:(specifier:string)=>{
+      if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:h.owner},access_token:token}},error:null})}}};
+      if(specifier.endsWith('.js'))return requireModule(specifier);
+      return new Proxy({},{get:()=>()=>assert.fail('Unexpected direct dispatch: '+specifier)});
+    },fetch:async(url:string,init:RequestInit)=>{
+      assert.equal(url,'/api/affairs-assistant');assert.equal(init.method,'POST');
+      const header=new Headers(init.headers).get('authorization');assert.equal(header,'Bearer '+token);
+      const posted=JSON.parse(String(init.body));requests.push(posted);
+      const result=await request(h.handler,posted,{authorization:header});
+      return Response.json(result.body,{status:result.statusCode});
+    }});
+    return {requests,ask:(row:(typeof cases)[number])=>exports.askSchoolAffairsAssistant(h.owner,row.question,[],undefined,[],row.route)};
+  };
+  for(const row of cases){
+    const h=fixture(t,({p_page},_attempt,owner)=>row.mode==='read-failure'?new Response(null,{status:503})
+      :Response.json(workspace(owner,p_page,row.mode==='empty'?[]:[listed])),()=>Response.json([ownCharge,incidental]));
+    const browser=probe(h),body=await browser.ask(row);
+    assert.deepEqual(browser.requests,[{question:row.question,history:[],images:[],route:row.route,stream:false}]);
+    assert.equal(h.reads.length,row.mode==='foreign'?0:row.mode==='read-failure'?2:1);
+    assert.equal(h.feeReads.length,row.mode==='multipart'?2:0);
+    assert.deepEqual(h.unexpected,[]);
+    assert.equal(body.proposedAction,undefined);assert.equal(body.grounding.webSearched,false);
+    assert.doesNotMatch(JSON.stringify(body),/Recreation equipment charge|fixture-student-club-token|fixture-publishable-key/u);
+    if(row.mode==='foreign'){
+      assert.equal(body.status,'handoff');assert.match(body.answer,/own account/u);
+      assert.deepEqual(body.citations,[]);assert.doesNotMatch(body.answer,/Robotics/u);
+    }else if(row.mode==='read-failure'){
+      assert.equal(body.verification.status,'unverified');assert.equal(body.verification.attempts,2);
+      assert.deepEqual(body.activity.filter((step:Step)=>step.kind.startsWith('account-read:')).map((step:Step)=>step.status),['unavailable','unavailable']);
+      assert.doesNotMatch(body.answer,/No saved attendance|Robotics/u);
+    }else{
+      expectVerified(body);assert.equal(body.citations[0].url,row.expected.requiredLinks[0]);
+      if(row.mode==='empty')assert.match(body.answer,/No saved attendance entries were returned on page 1/u);
+      else for(const detail of ['Robotics Lab Workshop','Robotics Team','2026-11-13 02:10','Engineering Lab 3','Academic year: 115','Term: 1','2026-11-14 04:45'])
+        assert.ok(body.answer.includes(detail),detail);
+      if(row.mode==='multipart'){
+        assert.match(body.answer,/NT\$23,000/u);
+        assert.equal(body.citations[1].url,'/school-affairs/services/39-1');
+      }
+    }
+  }
 });

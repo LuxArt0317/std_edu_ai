@@ -16,6 +16,7 @@ const action=/\b(?:mark|record|edit|change|update|delete|add|remove|submit|appro
 const exclude=/^(?:(?:please\s+)?(?:do not|don['’]t|never)\s+(?:show|check|read|list|look up)|skip|exclude|不要|請不要|略過|排除)|\b(?:exclude|skip|without)\s+(?:my )?(?:club |student club )?(?:attendance|participation)\b|(?:不要|排除|略過).{0,12}(?:活動參與|社團出席)/iu;
 const separate=/[;；！？。\n]|\.(?:\s|$)|\b(?:and|plus|also|along with|as well as)\b|以及|還有|並且|另外/iu;
 const otherTopic=/\b(?:tuition|balance|fees?|grades?|subjects?|timetable|next class|assignments?|homework|memberships?|equipment|foundation|leave|catalog|registrar|wi-?fi|weather)\b|學費|成績|課表|下一堂|科目|作業|社團參與紀錄|器材|成立社團|請假|招生/iu;
+const tuitionBalance=/^(?:please\s+)?(?:show(?: me)?|(?:tell|give) me|look up|check|what is|what['’]s)\s+(?:my )?(?:(?:saved|remaining) )?tuition balance[.!?]?$|^(?:請)?(?:顯示|查詢|查一下|告訴我)(?:我的?)?(?:已儲存的)?(?:學費|學雜費)(?:待繳金額|餘額)[。！？]?$/iu;
 const filter=/\b(?:today|yesterday|tomorrow|this (?:week|month|year|semester|term)|last (?:week|month|year|semester|term)|between|since|before|after|only)\b|\b(?:did|have) i (?:attend|participate in) (?!any\b|club events?\b|club activities\b)\S|\b(?:filter|find|search)\b.{0,28}\b(?:named|titled|for)\b|(?<!\d)\d{4}[-/]\d|今天|昨天|明天|這學期|上學期|本學期|上週|本週|只(?:看|列)|(?:民國\s*)?\d{2,4}\s*(?:年|學年)/iu;
 const hidden=/\b(?:review notes?|approved|approval|proof|certif(?:y|icate|ied)|hours?|credits?|contact|roster|roles?|names? of attendees)\b|審核|核准|證明|時數|學分|名單|角色|聯絡/iu;
 const forNamedPerson=/\bfor\s+(?!(?:me|my own|my records|this|last|next|the|an?|any|each|page|today|yesterday|tomorrow|week|month|school)\b)[\p{L}][\p{L}\d'’_-]*(?:\s+[\p{L}][\p{L}\d'’_-]*){0,2}\s*[.!?]?$/iu;
@@ -47,10 +48,13 @@ export function clubAttendanceSelection(question,route=''){
   const clauses=text.split(separate).map(clause=>clause.trim()).filter(Boolean);
   const companion=clauses.length>1&&clauses.some(clause=>otherTopic.test(clause)&&!attendanceTopic(clause));
   const attendanceText=companion?clauses.find(attendanceTopic)??text:text;
+  const tuitionPart=clauses.length===2&&clauses.indexOf(attendanceText)>=0&&!hidden.test(attendanceText)
+    ?clauses.findIndex(clause=>clause!==attendanceText&&tuitionBalance.test(clause)):-1;
   const latest=/\b(?:latest|most recent|last (?:club event|club activity))\b|最近一筆|最新|最後一次/iu.test(attendanceText);
   if(filter.test(attendanceText)||eventFilter.test(attendanceText)||latest&&page!==1)return boundary('scope',page);
   if(forNamedPerson.test(attendanceText))return boundary('foreign',page);
-  return {page,reason:null,latest,countOnly:/\b(?:how many|count|number of)\b|有幾|多少|幾筆|筆數/iu.test(attendanceText),partial:companion||hidden.test(text)};
+  return {page,reason:null,latest,countOnly:/\b(?:how many|count|number of)\b|有幾|多少|幾筆|筆數/iu.test(attendanceText),
+    partial:tuitionPart<0&&(companion||hidden.test(text)),...(tuitionPart<0?{}:{tuitionBalance:tuitionPart===0?'first':'last'})};
 }
 
 export function clubAttendancePage(page){return clubAttendancePath+(page===1?'':'?page='+page);}

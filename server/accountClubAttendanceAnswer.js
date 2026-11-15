@@ -3,6 +3,7 @@ import {runAnswerVerification} from './answerVerification.js';
 import {readClubStudent} from './clubStudent.js';
 import {clubStudentScope} from './clubStudentContract.js';
 import {clubAttendancePage,clubAttendanceSelection} from './clubAttendanceIntent.js';
+import {formatOwnTuitionBalance,readOwnTuitionBalance} from './ownTuitionBalance.js';
 
 const sourceId='account:clubAttendance';
 const view='my-attendance';
@@ -46,9 +47,8 @@ async function readAttendance(account,selection,deadline){
   })};
 }
 
-function formatAnswer(question,selection,evidence){
-  const [source]=evidence;
-  if(evidence.length!==1||source?.id!==sourceId||source.url!==clubAttendancePage(selection.page))throw unavailable();
+function formatAttendance(question,selection,source){
+  if(source?.id!==sourceId||source.url!==clubAttendancePage(selection.page))throw unavailable();
   const {page,rows,pageCount,hasMore,checkedAt}=JSON.parse(source.content);
   if(page!==selection.page)throw unavailable();
   const zh=/\p{Script=Han}/u.test(question),say=(en,cn)=>zh?cn:en;
@@ -60,8 +60,7 @@ function formatAnswer(question,selection,evidence){
     row.year===null?empty:String(row.year),row.term===null?empty:String(row.term),time.format(new Date(row.recordedAt))]);
   const count=pageCount?say(`Saved attendance entries on page ${page}: ${pageCount}.`,`第 ${page} 頁有 ${pageCount} 筆已儲存的參與紀錄。`)
     :say(`No saved attendance entries were returned on page ${page}.`,`第 ${page} 頁沒有傳回已儲存的參與紀錄。`);
-  const local=say('These attendance entries apply only to your stu.best account. Official attendance, eligibility, and hours require separate records.',
-    '這些參與紀錄僅適用於你的 stu.best 帳戶。校方出席、資格與時數需要另外的紀錄。');
+  const local=say('These entries are saved in your stu.best account.','這些參與紀錄已儲存在你的 stu.best 帳戶。');
   const lines=[count];
   if(cells.length===1)lines.push(cells[0].map((value,index)=>heading[index]+': '+markdown(value)).join(' · '));
   if(selection.latest&&cells.length)lines.push(say('Showing the latest entry by activity start time.','依活動開始時間顯示最新一筆。'));
@@ -75,6 +74,26 @@ function formatAnswer(question,selection,evidence){
     ...(cells.length>1?{views:[{id:'club-attendance',title,url:source.url,columns:heading,rows:cells,total:pageCount,checkedAt,note:local}]}:{})};
 }
 
+function formatAnswer(question,selection,evidence){
+  const attendance=evidence.find(item=>item.id===sourceId);
+  const charges=evidence.find(item=>item.id==='account:charges');
+  const club=attendance?formatAttendance(question,selection,attendance):null;
+  if(!selection.tuitionBalance)return club;
+  const zh=/\p{Script=Han}/u.test(question);
+  const fees=charges?formatOwnTuitionBalance(charges,zh):null;
+  if(!club&&!fees)return null;
+  const clubMissing=zh?'目前無法查核你的活動參與紀錄。':'I couldn’t verify your saved club attendance.';
+  const feeMissing=zh?'目前無法查核你的學費餘額。':'I couldn’t verify your saved tuition balance.';
+  const clubSection={reply:club,text:club?.answer??clubMissing};
+  const feeSection={reply:fees,text:fees?.answer??feeMissing};
+  const sections=selection.tuitionBalance==='first'?[feeSection,clubSection]:[clubSection,feeSection];
+  return {status:'answered',answer:sections.map(section=>section.text).join('\n\n'),
+    citations:sections.flatMap(section=>section.reply?.citations??[]),suggestedQuestions:[],
+    views:sections.flatMap(section=>section.reply?.views??[]),
+    grounding:{source:'account',webSearched:false,checkedAt:club?.grounding.checkedAt??JSON.parse(charges.content).checkedAt,
+      ...(!club||!fees?{degraded:true}:{})}};
+}
+
 export async function answerClubActivityAttendance({account,question,route,selection,deadline,onProgress}){
   const expected=clubAttendanceSelection(question,route);
   if(!expected||expected.reason||!isDeepStrictEqual(expected,selection))throw unavailable();
@@ -84,19 +103,36 @@ export async function answerClubActivityAttendance({account,question,route,selec
     if(index<0)activity.push(step);else activity[index]=step;
     try{onProgress?.(step);}catch{/* A closed stream does not change evidence. */}
   };
+  const caller={...account,user:{id:account.user.id}};
+  const retained=new Map();
+  const reads=[{id:sourceId,tool:'clubAttendance',label:'Checked club activity attendance',
+    missing:'The selected attendance page could not be read.',reader:()=>readAttendance(caller,expected,deadline)}];
+  if(expected.tuitionBalance)reads.push({id:'account:charges',tool:'charges',label:'Checked saved tuition balance',
+    missing:'The selected tuition records could not be read.',reader:()=>readOwnTuitionBalance(caller,deadline)});
   const read=async attempt=>{
-    const result=await readAttendance(account,expected,deadline).catch(()=>null);
-    progress({kind:'account-read:clubAttendance:'+attempt,label:'Checked club activity attendance',status:result?'complete':'unavailable',
-      detail:result?'Checked attendance saved for this signed-in account.':'The selected attendance page could not be read.'});
-    return result?[result]:[];
+    await Promise.all(reads.map(async ({id,tool,label,missing,reader})=>{
+      if(retained.has(id))return;
+      const result=await reader().catch(()=>null);
+      if(result?.id===id)retained.set(id,result);
+      progress({kind:'account-read:'+tool+':'+attempt,label,status:retained.has(id)?'complete':'unavailable',
+        detail:retained.has(id)?'Checked the selected records for this signed-in account.':missing});
+    }));
+    return reads.flatMap(({id})=>retained.has(id)?[retained.get(id)]:[]);
   };
   const first=await read(1);
   const missing={status:'abstained',answer:'',citations:[],grounding:{source:'account',webSearched:false}};
   const format=evidence=>formatAnswer(question,expected,evidence);
-  const result=await runAnswerVerification({question,initialAnswer:first.length?format(first):missing,deadline,onProgress:progress,
+  const result=await runAnswerVerification({question,initialAnswer:format(first)??missing,deadline,onProgress:progress,
     loadEvidence:async({attempt})=>attempt===1?first:read(attempt),
-    verify:async({candidate,evidence})=>evidence.length?{ok:isDeepStrictEqual(candidate,format(evidence))}:{ok:false,reason:'evidence_unavailable'},
-    repair:async({evidence})=>evidence.length?format(evidence):missing,
+    verify:async({candidate,evidence,attempt})=>!evidence.length||attempt===1&&evidence.length<reads.length
+      ?{ok:false,reason:'evidence_unavailable'}:{ok:isDeepStrictEqual(candidate,format(evidence))},
+    repair:async({evidence})=>format(evidence)??missing,
   });
+  if(expected.tuitionBalance&&result.verification?.status==='verified'&&retained.size<reads.length){
+    const unavailableSource=retained.has(sourceId)?'tuition':'club_attendance';
+    progress({kind:'partial-verification',label:'Verified the available records',status:'complete',
+      detail:'One requested source remained unavailable. The answer shows only what was verified.'});
+    return {...result,activity,verification:{...result.verification,status:'unverified',reason:unavailableSource+'_evidence_unavailable'}};
+  }
   return {...result,activity};
 }

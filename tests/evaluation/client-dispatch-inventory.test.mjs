@@ -63,7 +63,7 @@ test('native questions require the fields the reader actually supplies and discl
   assert.equal(service('student-leave'),undefined);
   assert.equal(service('club-activity-attendance'),undefined);
   assert.equal(question('client:club-activity-attendance:record').endpoint,'/api/affairs-assistant');
-  assert.equal(question('client:club-activity-attendance:multipart').staticProbe.predicate,'partial');
+  assert.equal(question('client:club-activity-attendance:multipart').staticProbe.predicate,'mine-and-tuition');
   assert.equal(question('client:club-activity-attendance:foreign').staticProbe.predicate,'foreign');
   assert.equal(service('venue-requests'),undefined);
   assert.equal(question('client:venue-requests:record').endpoint,'/api/affairs-assistant');

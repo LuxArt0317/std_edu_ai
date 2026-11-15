@@ -131,11 +131,16 @@ export function expectedClubAttendancePage(plan,owner,page){
       ({id,title,club_name:plan.clubs[0].name,starts_at:instant(starts_at),location,academic_year,term,recorded_at:instant(attendees.get(id))}))};
 }
 
-export async function observeClubAttendanceFixture({sql,plan,identities,users,origin,page,read,signal}){
+export async function observeClubAttendanceFixture({sql,plan,identities,users,origin,page,read,signal,tuitionUnlinked=false}){
   await verifiedIdentities(sql,plan,identities);
   if(!projectPreview.test(origin??'')||users.length!==2||!plan.owners.every(id=>users.some(user=>user.id===id)))fail();
   const persisted=await readClubAttendanceTargets(sql,plan);
   assertRows(plan,persisted);
+  if(tuitionUnlinked){
+    // An initialized workspace cannot satisfy a fixture for an unlinked student.
+    const linked=await sql`select 1 from public.affairs_students where user_id in ${sql(plan.owners)} limit 1`;
+    if(linked.length)fail();
+  }
   const observations=[];
   for(const owner of plan.owners){
     const user=users.find(candidate=>candidate.id===owner);
@@ -155,7 +160,7 @@ export async function observeClubAttendanceFixture({sql,plan,identities,users,or
   // JSONB member order is irrelevant. Preserve row order, literal fields and
   // nulls while making the digest stable across separately obtained responses.
   const stable=Object.fromEntries(Object.keys(keyOrders).map(kind=>[kind,dbRows(persisted[kind],kind)]));
-  const digest=createHash('sha256').update(JSON.stringify({persisted:stable,observations},(_key,value)=>
+  const digest=createHash('sha256').update(JSON.stringify({persisted:stable,observations,...(tuitionUnlinked?{tuitionUnlinked:true}:{})},(_key,value)=>
     value&&typeof value==='object'&&!Array.isArray(value)?Object.fromEntries(Object.keys(value).sort().map(key=>[key,value[key]])):value)).digest('hex');
   return digest;
 }

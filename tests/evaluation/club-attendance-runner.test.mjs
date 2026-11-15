@@ -11,18 +11,25 @@ const uuid=n=>'bac1feed-0000-4000-8000-'+String(n).padStart(12,'0');
 const owners=[uuid(2),uuid(3)],runId=uuid(1),plan=buildClubAttendancePlan({runId,owners,ids:Array.from({length:30},(_,i)=>uuid(i+100))});
 const cases=clubAttendanceRunnerCases(),digest='d'.repeat(64);
 function fixtureProof(row){
-  const {page,role}=clubAttendanceOracle(row);
+  const {page,role,tuitionUnlinked}=clubAttendanceOracle(row);
   return {stateBefore:{ownedRecordsDigest:digest},stateAfterProposal:{ownedRecordsDigest:digest},
-    fixtureReadback:{verified:true,independentGolden:true,clubAttendance:{page,role,twoOwnersVerified:true}}};
+    fixtureReadback:{verified:true,independentGolden:true,clubAttendance:{page,role,twoOwnersVerified:true,...(tuitionUnlinked?{tuitionUnlinked:true}:{})}}};
 }
 
 async function execute(t,selected=cases){
-  const host='https://xiftudmvxphxcjtmfmib.supabase.co',key='SYNTHETIC_CLUB_PUBLISHABLE_KEY',ownToken='SYNTHETIC_CLUB_PARTICIPANT_',calls=[];
+  const host='https://xiftudmvxphxcjtmfmib.supabase.co',key='SYNTHETIC_CLUB_PUBLISHABLE_KEY',ownToken='SYNTHETIC_CLUB_PARTICIPANT_',calls=[],studentReads=[];
   const current={owner:undefined};
   t.mock.method(globalThis,'fetch',async (value,init)=>{
-    assert.equal(value,host+'/rest/v1/rpc/affairs_read_club_student');
-    assert.equal(init.method,'POST');assert.equal(init.redirect,'error');
+    assert.equal(init.redirect,'error');
     assert.equal(new Headers(init.headers).get('authorization'),'Bearer '+ownToken+current.owner);
+    const url=new URL(value);
+    if(url.pathname==='/rest/v1/affairs_students'){
+      assert.equal(url.origin,host);assert.equal(init.method,'GET');
+      assert.deepEqual(Object.fromEntries(url.searchParams),{select:'id,user_id',user_id:'eq.'+current.owner,limit:'1'});
+      studentReads.push(current.owner);
+      return Response.json([]);
+    }
+    assert.equal(String(value),host+'/rest/v1/rpc/affairs_read_club_student');assert.equal(init.method,'POST');
     const requested=JSON.parse(init.body);
     assert.deepEqual(requested,{p_view:'my-attendance',p_search:'',p_page:requested.p_page});
     calls.push(requested.p_page);
@@ -35,13 +42,14 @@ async function execute(t,selected=cases){
   const guest=createResearchAssistantHandler();
   const results=[];
   for(const row of selected){
-    const oracle=clubAttendanceOracle(row),start=calls.length;
+    const oracle=clubAttendanceOracle(row),start=calls.length,studentStart=studentReads.length;
     const headers=oracle.guest?{'x-forwarded-for':'192.0.2.67'}:{authorization:'Bearer '+ownToken+owners[oracle.role==='A'?0:1]};
     let statusCode,body;
     const sink={setHeader(){},status(status){statusCode=status;return sink;},json(value){body=value;}};
     await (oracle.guest?guest:account)({method:'POST',headers,body:{question:row.question,route:row.route,history:row.history}},sink);
     assert.equal(statusCode,200,row.id);
     assert.deepEqual(calls.slice(start),oracle.read?[oracle.page]:[],row.id);
+    assert.deepEqual(studentReads.slice(studentStart),oracle.tuitionUnlinked?[owners[0]]:[],row.id);
     const envelope={statusCode,body,events:body.activity??[],execution:'deterministic',fixtureKey:row.fixtureKey,
       ...(oracle.guest?{}:fixtureProof(row))};
     const result=gradeClubAttendanceCase(row,envelope);
@@ -64,6 +72,11 @@ test('all registered bilingual cases independently grade the actual handlers and
   const wrongPage=structuredClone(record.envelope);wrongPage.fixtureReadback.clubAttendance.page=1;
   assert.ok(gradeClubAttendanceCase(record.row,wrongPage).failures.some(row=>row.id==='club.attendance.readback'));
   assert.throws(()=>clubAttendanceOracle({...record.row,route:'/elsewhere'}),/independent fixture/u);
+  const paired=results.find(({row})=>row.id.endsWith('partial-with-fees'));
+  const guessed=structuredClone(paired.envelope);guessed.body.answer+=' Your balance is NT$0.';
+  assert.ok(gradeClubAttendanceCase(paired.row,guessed).failures.some(row=>row.id==='club.attendance.unlinkedTuition'));
+  const unattested=structuredClone(paired.envelope);delete unattested.fixtureReadback.clubAttendance.tuitionUnlinked;
+  assert.ok(gradeClubAttendanceCase(paired.row,unattested).failures.some(row=>row.id==='club.attendance.unlinkedTuition'));
 });
 
 test('fixture has no public event, applies the attendance owner instead of applicant, and is mandatory in the coverage inventory',async()=>{

@@ -30,7 +30,7 @@ const selected=[
   {id:'empty-page',question:'Show me my club attendance page 3.',role:'A',page:3},
   {id:'last-valid-page',question:'Show my saved club attendance on page 1000.',role:'A',page:1000},
   {id:'reverse-caller',question:'Show my club activity attendance records.',role:'B',page:1,single:true},
-  {id:'partial-with-fees',question:'Show my club activity attendance records and tell me my tuition balance.',role:'A',page:2,card:true,partial:true},
+  {id:'partial-with-fees',question:'Show my club activity attendance records and tell me my tuition balance.',role:'A',page:2,card:true,tuitionUnlinked:true},
   {id:'partial-reverse-order',question:'What is my tuition balance this semester? Also show my club activity attendance records.',role:'A',page:2,card:true,partial:true},
   {id:'foreign',question:'Show another student’s club attendance history.',role:'A',page:1,behavior:'denial',text:'own account',link:false},
   {id:'foreign-officer-roster',question:'Who attended these events?',role:'A',page:1,behavior:'denial',text:'own account',link:false},
@@ -46,10 +46,12 @@ const cells=(row,zh)=>[row.title,clubName,taipei(row.starts_at),row.location,
   row.academic_year===null?(zh?'未登錄':'Not recorded'):String(row.academic_year),row.term===null?(zh?'未登錄':'Not recorded'):String(row.term),taipei(row.recorded_at)];
 
 function caseDefinition(input){
-  const {id,question,role,page,behavior,guest,latest,single,card,countOnly,partial,zh}=input;
+  const {id,question,role,page,behavior,guest,latest,single,card,countOnly,partial,tuitionUnlinked,zh}=input;
   const path=pageLink(page),link=guest?'/school-affairs/login?next='+encodeURIComponent(path):pageLink(input.linkPage??page);
-  const requiredLinks=input.link===false?[]:[link];
+  const balancePath='/school-affairs/services/39-1';
+  const requiredLinks=input.link===false?[]:[link,...(tuitionUnlinked?[balancePath]:[])];
   const records=Boolean(!behavior);
+  const tools=records?['clubAttendance',...(tuitionUnlinked?['charges']:[])]:[];
   const ownRows=role==='B'?otherRows:mainRows;
   const expectedPage=records?ownRows.slice((page-1)*25,page*25):[];
   const hasMore=records&&ownRows.length>page*25;
@@ -57,24 +59,28 @@ function caseDefinition(input){
   const countFact=countLabel&&expectedPage.length?{label:countLabel,kind:'number',values:[expectedPage.length]}:null;
   const rowFacts=latest||single?cells(expectedPage[0],zh):[];
   const hiddenRows=records&&!countOnly?ownRows.filter(row=>!expectedPage.slice(0,latest?1:12).includes(row)):ownRows;
-  const expected={behavior:behavior??'answer',requiredLinks,requiredTools:records?['clubAttendance']:[],allowedTools:records?['clubAttendance']:[],
-    requiredAttemptedTools:records?['clubAttendance']:[],requireToolExecution:records,noAction:true,forbidPublicResearch:true,localLinksOnly:true,
-    maxDistinctAttemptedTools:records?1:0,forbiddenAccountMarkers:[excludedTitle,'QA Officer Review Sentinel','QA Officer Completion Sentinel',
+  const expected={behavior:behavior??'answer',requiredLinks,requiredTools:tools,allowedTools:tools,
+    requiredAttemptedTools:tools,requireToolExecution:records,noAction:true,forbidPublicResearch:true,localLinksOnly:true,
+    maxDistinctAttemptedTools:tools.length,forbiddenAccountMarkers:[excludedTitle,'QA Officer Review Sentinel','QA Officer Completion Sentinel',
       ...(role==='B'?mainRows.map(row=>row.title):[otherRows[0].title]),
       ...hiddenRows.map(row=>row.title)],
     requiredText:[...(input.text?[input.text]:[]),...(partial?[zh?'其他資料需另外查詢':'other requested details need a separate lookup']:[]),
+      ...(tuitionUnlinked?['No linked local student record','fee balance is unknown']:[]),
       ...(latest?['latest entry by activity start time']:[]),...(hasMore?[zh?'後續頁面':'There are more pages']:[]),...rowFacts,
       ...(records&&!expectedPage.length?[zh?`第 ${page} 頁沒有傳回`:`No saved attendance entries were returned on page ${page}`]:[]),
       ...(records&&expectedPage.length&&zh?[`第 ${page} 頁有 ${expectedPage.length} 筆`]:[])],
-    ...(records?{verification:'verified',requiredSourceBindings:[{sourceId:'account:clubAttendance',url:path}]}:{}),
+    ...(records?{verification:'verified',requiredSourceBindings:[{sourceId:'account:clubAttendance',url:path},
+      ...(tuitionUnlinked?[{sourceId:'account:charges',url:balancePath}]:[])]}:{}),
     ...(!guest?{requireUnchangedOwnedRecords:true}:{}),
     ...(countFact?{facts:[countFact]}:{}),
   };
   const oracle={role:role??null,page,read:records,visibleRows:card?expectedPage.slice(0,12).map(row=>cells(row,zh)):null,
-    count:expectedPage.length,columns:labels[zh?'zh':'en'],link:requiredLinks[0]??null,guest:Boolean(guest)};
+    count:expectedPage.length,columns:labels[zh?'zh':'en'],link:requiredLinks[0]??null,guest:Boolean(guest),
+    ...(tuitionUnlinked?{tuitionUnlinked:true}:{}),
+  };
   return {id:prefix+id,domain:'clubAttendance',serviceId:'40-1',routeFamily:'student-club-attendance',route:input.route??path,
     endpoint:guest?'/api/research-assistant':'/api/affairs-assistant',fixtureKey:guest?'anonymous':`club-attendance:${role}`,fixtureRequirement:requirement,
-    language:zh?'zh':'en',mode:behavior?'boundary':expectedPage.length?(zh?'list':'record'):'empty',history:[],question,coveredTools:records?['clubAttendance']:[],
+    language:zh?'zh':'en',mode:behavior?'boundary':expectedPage.length?(zh?'list':'record'):'empty',history:[],question,coveredTools:tools,
     executionContract:'live-native',expected,clubAttendanceOracle:oracle};
 }
 
@@ -106,7 +112,10 @@ export function gradeClubAttendanceCase(testCase,envelope){
   if(!oracle.guest)check('club.attendance.readback',envelope.fixtureReadback?.clubAttendance?.page===oracle.page
     &&envelope.fixtureReadback?.clubAttendance?.role===oracle.role&&envelope.fixtureReadback?.clubAttendance?.twoOwnersVerified===true,
   'Both disposable caller receipts and the selected page for this question were independently compared before and after the request.');
-  check('club.attendance.exactLinks',extractAnswerLinks(body).every(link=>link===oracle.link),
-    'Every destination belongs to the selected attendance page or its exact sign-in return, when appropriate.');
+  check('club.attendance.exactLinks',extractAnswerLinks(body).every(link=>testCase.expected.requiredLinks.includes(link)),
+    'Every destination belongs to the selected attendance page, exact sign-in return, or requested tuition source.');
+  if(oracle.tuitionUnlinked)check('club.attendance.unlinkedTuition',envelope.fixtureReadback?.clubAttendance?.tuitionUnlinked===true
+    &&!/NT\$|TWD\s+\d|zero balance/iu.test(String(body.answer??'')),
+    'Independent readback confirms both accounts lack student links. The reply cannot infer an amount or a zero balance.');
   return graded;
 }

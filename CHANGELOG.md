@@ -7,6 +7,8 @@
 
 - Add protected Student Profile browser acceptance for confirmation status, the requested recorded year, and a verified empty account. Verify distinct sources, safe conversation restoration, crossed-account denial, and fixture cleanup. [#100]
 
+- Answer saved club attendance and tuition balance together from their separate signed-in records. Retry only a source that failed and keep the verified section if the other remains unavailable. [#100]
+
 - Answer standalone English and Traditional Chinese founding-year questions from the saved university About page. [#100]
 
 - Continue public answer verification with an unread school page after a temporary rewrite or review failure, when time remains to check the answer. Keep each completed check and the interruption in chat Activity. [#100]
