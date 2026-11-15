@@ -2,26 +2,12 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {academicGradeReadSources,academicGradesQuery,selectAcademicGradeCourses,standaloneAcademicGradeView} from '../../server/academicGrades.js';
-import {buildAccountCases} from './account-cases.mjs';
+import {academicGradesPreviewCases} from './academic-grades-preview.mjs';
 import {fixtureForCase} from './fixtures.mjs';
 import {gradeCase} from './grading.mjs';
 
-const claimsByCase={
-  'transcript-grade':['/records/records/0/courseTitle','/records/records/0/gradeText'],
-  'transcript-summary':['/records/termSummaries/0/earnedCredits','/records/termSummaries/0/averageGradeText'],
-  'warning-grades':['/records/records/0/courseTitle','/records/records/0/gradeText','/records/records/0/remarkText'],
-  'academic-rankings':['/records/rankings/0/departmentRankingText','/records/rankings/0/classRankingText'],
-  'academic-english':['/records/metadata/0/englishRequirementText'],
-  'academic-gpa-gap':['/rules'],
-  'academic-current-gap':['/rules'],
-  'academic-transfer-gap':['/rules'],
-  'academic-cycle-gap':['/rules'],
-  'academic-null-zero':['/records/records/0/courseTitle','/records/records/0/gradeText','/records/termSummaries/0/earnedCredits'],
-  'academic-other-account':['/records/records/0/courseTitle','/records/records/0/gradeText'],
-};
-const cases=buildAccountCases().filter(row=>Object.hasOwn(claimsByCase,row.id.slice('account:'.length)));
+const cases=academicGradesPreviewCases();
 const rawRow=row=>Object.fromEntries(Object.entries(row).map(([key,value])=>[key.replace(/[A-Z]/g,l=>`_${l.toLowerCase()}`),value]));
-const sourceId='account:academicGrades';
 const ownerMarker='TERM SCOPE DISTRACTOR';
 
 async function send(handler,question,route){
@@ -37,11 +23,11 @@ async function send(handler,question,route){
 }
 
 test('the actual academic grade handler passes the frozen grade questions with exact owned source fields',async t=>{
-  assert.equal(cases.length,Object.keys(claimsByCase).length);
+  assert.equal(cases.length,11);
   const key=process.env.OPENAI_API_KEY;
   process.env.OPENAI_API_KEY='OFFLINE_ACADEMIC_MODEL';
   t.after(()=>{if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;});
-  let current=null,payloads=[],operations=[],outboundErrors=[],tables,owner,reads;
+  let outboundErrors=[],tables,owner,reads;
   t.mock.method(globalThis,'fetch',async(input,init)=>{
     try{
       const url=new URL(input);
@@ -53,28 +39,11 @@ test('the actual academic grade handler passes the frozen grade questions with e
         assert.ok(tables.has(table));reads.push(table);
         return Response.json(tables.get(table).filter(row=>row.user_id===owner));
       }
-      assert.equal(String(input),'https://api.openai.com/v1/responses');
-      const request=JSON.parse(String(init.body)),operation=request.text.format.name;
-      operations.push(operation);
-      let result;
-      if(operation==='account_lookup_plan')result={tools:['academicGrades'],publicTopics:[],catalogQuery:null,action:null};
-      else {
-        assert.equal(operation,'answer_evidence_review','The runtime draft should answer directly from its selected scope.');
-        const review=JSON.parse(request.input[0].content[0].text);
-        assert.deepEqual(review.evidence.map(row=>row.id),['account-scope',sourceId]);
-        const content=JSON.parse(review.evidence[1].content);
-        payloads.push(content);
-        assert.doesNotMatch(JSON.stringify(content),/FOREIGN PRIVATE SENTINEL|TERM SCOPE DISTRACTOR|OTHER COURSE UNASKED/u);
-        result={supported:true,answersQuestion:true,claims:[{
-          claim:'The draft matches the selected saved academic fields or explicitly unsupported view.',
-          supported:true,evidenceId:sourceId,quotes:[],jsonPaths:claimsByCase[current.id.slice('account:'.length)],
-        }]};
-      }
-      return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(result)}]}]});
+      assert.fail('The selected grade cases require no external provider request.');
     }catch(error){outboundErrors.push(error);throw error;}
   });
   for(const testCase of cases){
-    current=testCase;payloads=[];operations=[];outboundErrors=[];
+    outboundErrors=[];
     const fixture=fixtureForCase(testCase);owner=fixture.profile.userId;
     const data=fixture.academicGrades;
     const anotherTerm={academicYear:114,semester:1};
@@ -98,8 +67,7 @@ test('the actual academic grade handler passes the frozen grade questions with e
     const view=standaloneAcademicGradeView(testCase.question,testCase.route);
     const keys={transcript:['records','termSummaries'],warning:['records','termSummaries'],ranking:['rankings'],english:['metadata']}[view]??[];
     assert.deepEqual([...reads].sort(),academicGradeReadSources.filter(source=>keys.includes(source.key)).map(source=>source.table).sort(),testCase.id);
-    assert.equal(payloads.length,1,testCase.id);
-    assert.deepEqual(operations,['answer_evidence_review'],testCase.id);
+    assert.equal(envelope.events.filter(event=>event.kind==='academic-grades-evidence-check'&&event.status==='complete').length,1,testCase.id);
     assert.deepEqual(envelope.body.verification,{status:'verified',attempts:1},testCase.id);
     assert.doesNotMatch(JSON.stringify(envelope.body),/FOREIGN PRIVATE SENTINEL|TERM SCOPE DISTRACTOR|OTHER COURSE UNASKED/u,testCase.id);
     const graded=gradeCase(testCase,{...envelope,fixtureKey:testCase.fixtureKey,execution:'deterministic'});
@@ -131,4 +99,47 @@ test('mixed requests and contextual follow-ups do not use the standalone academi
   for(const question of ['My transcript', 'Show my transcript grades for115semester1 and my tuition balance.',
     'Show my transcript grades for115semester1. Where is the bookstore?', 'Show my transcript grades in115semester1 and my tasks.'])
     assert.equal(standaloneAcademicGradeView(question,route),null,question);
+});
+
+test('exact academic verification distinguishes an empty scope from ambiguous, partial, or untrusted data',async t=>{
+  const fixture=fixtureForCase(cases[0]),owner=fixture.profile.userId;
+  const row=rawRow(fixture.academicGrades.records[0]);
+  const savedKey=process.env.OPENAI_API_KEY;
+  process.env.OPENAI_API_KEY='OFFLINE_ACADEMIC_MODEL';
+  t.after(()=>{if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;});
+  const scenarios={empty:[],ambiguous:[row,{...row,id:'39000000-0000-4000-8000-000000000002',grade_text:'41'}],
+    markup:[{...row,grade_text:'[redirect](https://example.invalid)'}],
+    partial:Array.from({length:25},(_,index)=>({...row,id:'39000000-0000-4000-8000-'+String(index+3).padStart(12,'0'),course_title:'Course '+index})),
+    foreign:[{...row,user_id:'39000000-0000-4000-8000-000000000099'}]};
+  let scenario='empty',modelCalls=0;
+  t.mock.method(globalThis,'fetch',async(input,init)=>{
+    const target=new URL(input);
+    if(target.hostname==='api.openai.com'){
+      modelCalls++;
+      return Response.json({error:{code:'insufficient_quota',type:'insufficient_quota'}},{status:429});
+    }
+    assert.equal(target.origin,'https://xiftudmvxphxcjtmfmib.supabase.co');
+    assert.equal(init.method,'GET');
+    return Response.json(target.pathname.endsWith('/affairs_academic_grade_records')?scenarios[scenario]:[]);
+  });
+  const handler=createAffairsAssistantHandler({
+    verifyToken:async()=>({url:'https://xiftudmvxphxcjtmfmib.supabase.co',token:'OFFLINE_ACADEMIC_TOKEN',key:'OFFLINE_PUBLISHABLE',user:{id:owner}}),
+    loadSnapshot:async()=>assert.fail('No broader workspace read.'),
+  });
+  for(scenario of Object.keys(scenarios)){
+    const before=modelCalls;
+    const result=await send(handler,'Show my transcript grades for115semester1.','/school-affairs/services/13-1/transcript');
+    const native=result.events.some(event=>event.kind==='academic-grades-evidence-check');
+    if(scenario==='empty'){
+      assert.equal(native,true);
+      assert.match(result.body.answer,/No academic grade records match these filters/u);
+      assert.equal(modelCalls,before);
+    }else{
+      assert.equal(native,false,scenario);
+      assert.notEqual(result.body.verification?.status,'verified',scenario);
+      if(scenario==='foreign'){assert.match(result.body.error,/School Affairs records could not be checked/u);assert.equal(modelCalls,before);}
+      else assert.ok(modelCalls>before,scenario);
+      assert.doesNotMatch(result.body.answer??'',/https:\/\/example\.invalid/u);
+    }
+  }
 });

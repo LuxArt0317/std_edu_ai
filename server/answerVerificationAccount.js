@@ -27,7 +27,7 @@ import { studentAidPath } from '../src/features/public/affairs/studentAidLinks.j
 import {accountRecordViews,nativeAccountQuery} from './accountRecordViews.js';
 import {studyCalendar} from './affairsSchedule.js';
 import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
-import {academicGradesPaths,isAcademicGradesQuestion} from './academicGrades.js';
+import {academicGradesPaths,answerAcademicGrades,isAcademicGradesQuestion,standaloneAcademicGradeView} from './academicGrades.js';
 import {graduationReviewPaths,isGraduationReviewQuestion} from './graduationReview.js';
 import {academicAttendancePaths,isAcademicAttendanceQuestion} from './academicAttendance.js';
 import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './accountEvidenceSelection.js';
@@ -877,7 +877,72 @@ async function answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadl
   return {...result,answer:unavailable+'\n\n['+title+']('+urls.charges+')',views:[],grounding:grounding(true),activity:[...observed.values()]};
 }
 
+async function answerExactAcademicGrades({question,snapshot,route,loadSnapshot,onProgress,deadline}){
+  const view=standaloneAcademicGradeView(question,route),userId=snapshot.profile?.userId;
+  if(!view||typeof userId!=='string'||!/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(userId)||snapshot.academicGradesView!==view)return null;
+  const context={question,route,scopedReadOnly:true},keys=['records','termSummaries','rankings','metadata'];
+  const limited=['gpa','current','transfer','cycle'].includes(view);
+  const observed=new Map();
+  const emit=step=>{observed.set(step.kind,step);onProgress?.(step);};
+  let current=snapshot;
+  const render=evidence=>{
+    const owned=current.academicGrades;
+    if(current.academicGradesOnly!==true||current.academicGradesView!==view||current.profile?.userId!==userId||!Number.isFinite(Date.parse(current.checkedAt))
+      ||!owned||Object.keys(owned).length!==keys.length||!keys.every(key=>Array.isArray(owned[key])
+        &&owned[key].every(row=>row?.userId===userId&&row.sourceMode==='local_demo')))return null;
+    const expected=accountEvidence(current,['academicGrades'],context),source=evidence[1];
+    if(!isDeepStrictEqual(evidence,expected)||source?.id!=='account:academicGrades')return null;
+    const payload=JSON.parse(source.content),selected=payload.records;
+    if(payload.checkedAt!==current.checkedAt||payload.selection?.view!==view||payload.excerpted!==false
+      ||selected?.coverage?.length!==1||selected.coverage[0].callerPresent!==true||selected.coverage[0].projectionPartial!==false
+      ||!Array.isArray(selected.counts)||!keys.every(key=>Array.isArray(selected[key])&&selected.counts.some(count=>count.collection===key&&count.partial===false
+        &&count.matchingRows===selected[key].length&&count.includedRows===selected[key].length)))return null;
+    const rows=keys.flatMap(key=>selected[key]);
+    if(selected.records.some(row=>typeof row.courseTitle!=='string'))return null;
+    const titles=selected.records.map(row=>row.academicYear+'/'+row.semester+'/'+row.courseTitle.normalize('NFKC').trim().toLowerCase());
+    // Exact rendering is limited to a complete selected scope whose literal
+    // cells cannot create markup or ambiguous same-term course results.
+    if(selected.records.length>20||selected.termSummaries.length>10||selected.rankings.length>20||selected.metadata.length>1
+      ||limited&&rows.length||new Set(titles).size!==titles.length||rows.some(row=>Object.entries(row).some(([key,value])=>
+        key!=='sourceMode'&&typeof value==='string'&&/[\p{Cc}\p{Cf}[\]<>`*~_\\]/u.test(value))))return null;
+    const academicGrades=Object.fromEntries(keys.map(key=>[key,selected[key].map(({sourceUrl:_url,...row})=>({...row,userId}))]));
+    const scoped={profile:{userId},checkedAt:current.checkedAt,academicGrades};
+    const rendered=answerAcademicGrades(question,scoped,normalizeRoute(route));
+    const original=answerAcademicGrades(question,current,normalizeRoute(route));
+    if(!rendered||!isDeepStrictEqual(rendered,original)||rendered.url!==source.url)return null;
+    const link=supplementalAnswerLanguage(question)==='zh-TW'?'開啟學業紀錄':'Open academic records';
+    const answer=rendered.answer+'\n\n['+link+']('+source.url+')';
+    if(!answerLinksSupported(answer,[source]))return null;
+    return {status:'answered',answer,citations:evidenceCitations([source]),views:accountRecordViews(scoped,['academicGrades'],context),
+      suggestedQuestions:[],grounding:{source:'account',webSearched:false,checkedAt:current.checkedAt,degraded:limited}};
+  };
+  const first=accountEvidence(current,['academicGrades'],context),initial=render(first);
+  if(!initial)return null;
+  let evidence=first;
+  const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,hasLocalCorrection:true,
+    async loadEvidence({attempt}){
+      if(attempt>1){current=await loadSnapshot();evidence=accountEvidence(current,['academicGrades'],context);}
+      emit({kind:'account-read:academicGrades:'+attempt,label:'Checked your saved academic records',
+        detail:limited?'Checked the supported scope of this academic view.':'Read only the selected view for your signed-in account.',status:'complete'});
+      return evidence;
+    },
+    verify({candidate,evidence}){
+      const matched=render(evidence);
+      if(!matched||!isDeepStrictEqual(candidate,matched))return {ok:false,reason:'evidence_unavailable'};
+      emit({kind:'academic-grades-evidence-check',label:'Verified the selected academic view',
+        detail:limited?'Matched the requested view to the saved capability limits.':'Matched the answer, table and link to the selected saved fields.',status:'complete'});
+      return {ok:true};
+    },
+    repair:()=>render(evidence)??{status:'abstained',answer:'',citations:[],views:[]},
+  });
+  return {...result,views:result.views??[],activity:[...observed.values()]};
+}
+
 export async function answerAccountWithVerification({question,snapshot,history=[],route='',loadSnapshot,onProgress,deadline=Date.now()+55000,supplementalReaders={},correlationId,leavePlan,internshipPlan,onProviderCompleted,onNativeLeaveVerified,onNativeInternshipVerified,onNativeTeachingVerified,allowNativeTeachingVerification=true}) {
+  if(snapshot.academicGradesOnly===true&&!history.length&&!leavePlan&&!internshipPlan){
+    const exact=await answerExactAcademicGrades({question,snapshot,route,loadSnapshot,onProgress,deadline});
+    if(exact)return exact;
+  }
   if(snapshot.feeBalanceScope===true&&snapshot.profile?.userId&&(isOwnFeeBalanceQuestion(question)||standaloneFeeBalanceLabel(question))&&!leavePlan&&!internshipPlan)
     return answerVerifiedOwnFeeBalance({question,snapshot,loadSnapshot,deadline,onProgress,correlationId});
   // Capture the complete route, including its query; native account routing below
