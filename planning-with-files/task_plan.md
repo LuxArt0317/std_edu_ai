@@ -886,6 +886,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Reproduce a temporary rewrite or second review failure with a queued primary source. Preserve the search and verification time, record the distinct interruption, and release only independently checked evidence.
 - [x] Verify the exact protected runtime with public factual, private-sign-in, and gated-notice checks. Keep the controlled proof of a recovered third check separate.
+- [x] Reproduce the missed standalone founding-year question and verify the repaired English and Traditional Chinese variants against the pinned About capture in protected Preview.
 - [ ] Complete the signed-in browser gate before using this protected candidate for production.
 - [x] Match the reported two-check activity to the exact public deployment.
 - [x] Follow a new source after evidence gaps and allow an additional review only after an independent read.
