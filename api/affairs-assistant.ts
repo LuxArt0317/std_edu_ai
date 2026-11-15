@@ -1,7 +1,7 @@
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
 import {answerCatalogDetail} from '../server/accountCatalogDetailAnswer.js';
 import {catalogDetailIntent} from '../server/catalogDetailIntent.js';
-import {venueRequestBoundary,venueRequestSelection} from '../server/venueRequestIntent.js';
+import {venueRequestBoundary,venueRequestPlan} from '../server/venueRequestIntent.js';
 import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
@@ -302,15 +302,15 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
   const venueClock=Date.now();
-  const venue=venueRequestSelection(question,route,history,venueClock);
+  const venue=venueRequestPlan(question,route,history,venueClock);
   if(venue){
-    if(venue.reason){stream.send(200,venueRequestBoundary(venue,question,true));return;}
+    if(venue.selection.reason){stream.send(200,venueRequestBoundary(venue.selection,question,true));return;}
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Ask about private venue requests using text, without an image.'});
       return;
     }
     try{
-      const result=await answerVenueRequests({account,selection:venue,question,route,history,asOf:venueClock,deadline,
+      const result=await answerVenueRequests({account,plan:venue,question,route,history,asOf:venueClock,deadline,
         onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
       stream.send(200,result);
     }catch{

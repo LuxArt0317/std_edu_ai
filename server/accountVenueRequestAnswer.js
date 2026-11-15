@@ -1,7 +1,10 @@
 import {isDeepStrictEqual} from 'node:util';
 import {runAnswerVerification} from './answerVerification.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
-import {venueRequestSelection} from './venueRequestIntent.js';
+import {venueRequestPlan} from './venueRequestIntent.js';
+import {loadOwnAffairsCharges} from './affairsWorkspace.js';
+import {accountEvidence} from './answerVerificationAccount.js';
+import {formatSelectedChargeEvidence,selectedChargeAnswerLimits} from './selectedChargeEvidenceAnswer.js';
 import {venueDate,venuePaths,venuePeriods} from '../src/features/public/affairs/venueContract.js';
 
 const sourceId='account:venueRequests';
@@ -94,9 +97,30 @@ function reply(question,selection,evidence){
       rows:cells,total,checkedAt,note:local}]}:{})};
 }
 
-export async function answerVenueRequests({account,selection,question,route,history,asOf,deadline,onProgress}){
-  const expected=venueRequestSelection(question,route,history,asOf);
-  if(!expected||expected.reason||!isDeepStrictEqual(selection,expected))throw deadlineError();
+function pairReply(question,plan,evidence){
+  const zh=/\p{Script=Han}/u.test(question);
+  const venue=evidence.venue?reply(question,plan.selection,[evidence.venue]):null;
+  if(!plan.feeQuestion)return venue;
+  const fees=evidence.fees?formatSelectedChargeEvidence(evidence.fees,{language:zh?'zh-TW':'en'}):null;
+  if(!venue&&!fees)return null;
+  const venueMissing=zh?'目前無法查核你的場地申請紀錄。':'I couldn’t verify your saved venue requests.';
+  const feeMissing=zh?'目前無法查核你的待繳費用。':'I couldn’t verify your saved fee balance.';
+  const [first,second]=plan.feeFirst?[[fees,feeMissing],[venue,venueMissing]]:[[venue,venueMissing],[fees,feeMissing]];
+  const sections=[first,second];
+  const citations=sections.flatMap(([item])=>item?.citations??[]);
+  const views=sections.flatMap(([item])=>item?.views??[]);
+  const full=sections.map(([item,missing])=>item?.answer??missing).join('\n\n');
+  const budget=selectedChargeAnswerLimits.answerCharacters;
+  const feeLink=zh?'請在已儲存的費用頁面查看完整資料。':'Open the saved fee records for the full amount breakdown.';
+  const answer=full.length<=budget?full:sections.map(([item,missing])=>item===fees&&fees?feeLink:item?.answer??missing).join('\n\n');
+  return {status:'answered',answer,citations,suggestedQuestions:[],views,
+    grounding:{source:'account',webSearched:false,checkedAt:venue?.grounding.checkedAt??JSON.parse(evidence.fees.content).checkedAt,
+      ...(!venue||!fees?{degraded:true}:{})}};
+}
+
+export async function answerVenueRequests({account,plan,question,route,history,asOf,deadline,onProgress}){
+  const expected=venueRequestPlan(question,route,history,asOf);
+  if(!expected||expected.selection.reason||!isDeepStrictEqual(plan,expected))throw deadlineError();
   const {url,key,token,user}=account;
   const caller=Object.freeze({url,key,token,user:Object.freeze({id:user.id})});
   const activity=[];
@@ -106,21 +130,47 @@ export async function answerVenueRequests({account,selection,question,route,hist
     else activity[index]=step;
     try{onProgress?.(step);}catch{/* The client may disconnect. */}
   };
+  const evidence={venue:null,fees:null};
+  const loadFees=async()=>{
+    const snapshot=await loadOwnAffairsCharges(caller,{deadline});
+    const source=accountEvidence(snapshot,['charges'],{question:expected.feeQuestion,route:'/school-affairs/services/39-1',scopedReadOnly:true})
+      .find(item=>item.id==='account:charges');
+    // Validate the independent amount evidence before treating this source as healthy.
+    formatSelectedChargeEvidence(source);
+    return source;
+  };
   const read=async attempt=>{
-    const saved=await readVenueEvidence(caller,expected,deadline).catch(()=>null);
-    progress({kind:'account-read:venueRequests:'+attempt,label:'Checked saved venue requests',status:saved?'complete':'unavailable',
-      detail:saved?'Checked the selected requests under this signed-in account.':'The selected requests could not be read.'});
-    return saved?[saved]:[];
+    const load=async (key,tool,label,reader)=>{
+      if(evidence[key])return;
+      evidence[key]=await reader().catch(()=>null);
+      progress({kind:'account-read:'+tool+':'+attempt,label,status:evidence[key]?'complete':'unavailable',
+        detail:evidence[key]?'Checked the selected records under this signed-in account.':'The selected records could not be read.'});
+    };
+    await Promise.all([
+      load('venue','venueRequests','Checked saved venue requests',()=>readVenueEvidence(caller,expected.selection,deadline)),
+      ...(expected.feeQuestion?[load('fees','charges','Checked saved fee balance',loadFees)]:[]),
+    ]);
+    return {...evidence};
   };
   const first=await read(1);
-  const format=result=>reply(question,expected,result);
-  const initial=first.length?format(first):{status:'abstained',answer:'',citations:[],grounding:{source:'account',webSearched:false}};
+  const format=result=>pairReply(question,expected,result);
+  const initial=format(first)??{status:'abstained',answer:'',citations:[],grounding:{source:'account',webSearched:false}};
+  let attempt=1;
   const result=await runAnswerVerification({
     question,initialAnswer:initial,deadline,onProgress:progress,
-    loadEvidence:async({attempt})=>attempt===1?first:read(attempt),
-    verify:async({candidate,evidence})=>evidence.length
-      ?{ok:isDeepStrictEqual(candidate,format(evidence))}:{ok:false,reason:'evidence_unavailable'},
-    repair:async({evidence})=>evidence.length?format(evidence):initial,
+    loadEvidence:async({attempt:next})=>{attempt=next;return attempt===1?first:read(attempt);},
+    verify:async({candidate,evidence:active})=>{
+      const supported=format(active);
+      if(!supported||attempt===1&&expected.feeQuestion&&(!active.venue||!active.fees))
+        return {ok:false,reason:'evidence_unavailable'};
+      return {ok:isDeepStrictEqual(candidate,supported)};
+    },
+    repair:async({evidence:active})=>format(active)??initial,
   });
+  // Verification of a supported section cannot certify the failed section.
+  if(expected.feeQuestion&&result.verification?.status==='verified'&&(!evidence.venue||!evidence.fees)){
+    const scope=evidence.venue?'fees':'venue';
+    return {...result,activity,verification:{status:'unverified',attempts:result.verification.attempts,reason:scope+'_evidence_unavailable'}};
+  }
   return {...result,activity};
 }

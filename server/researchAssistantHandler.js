@@ -1,6 +1,6 @@
-import {venueRequestBoundary,venueRequestSelection} from './venueRequestIntent.js';
 import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
 import {catalogDetailGuestRoute,catalogDetailIntent} from './catalogDetailIntent.js';
+import {venueRequestBoundary,venueRequestPlan} from './venueRequestIntent.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -453,8 +453,18 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,elearningCatalogBoundary(input.question,selectElearningCatalogPage(input.question,input.route),false));
             return;
         }
-        const venueRequest=venueRequestSelection(input.question,input.route,input.history);
-        if(venueRequest){stream.send(200,venueRequestBoundary(venueRequest,input.question,false));return;}
+        const venueRequest=venueRequestPlan(input.question,input.route,input.history);
+        if(venueRequest){
+            const result=venueRequestBoundary(venueRequest.selection,input.question,false);
+            if(venueRequest.feeQuestion){
+                const zh=/\p{Script=Han}/u.test(input.question);
+                const title=zh?'登入查看待繳費用':'Sign in to check your fee balance';
+                const url='/school-affairs/login?next='+encodeURIComponent('/school-affairs/services/39-1');
+                result.answer+='\n\n['+title+']('+url+')';
+                result.citations.push({title,url});
+            }
+            stream.send(200,result);return;
+        }
         const assignmentList=!input.images.length&&dtmAssignmentListSelection(input.question,input.route);
         if(assignmentList){stream.send(200,dtmAssignmentListBoundary(assignmentList,input.question,false));return;}
         const material=!input.images.length&&dtmMaterialIntent(input.question,input.route);

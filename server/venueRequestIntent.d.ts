@@ -3,7 +3,9 @@ type VenueRequestScope = {reason:null;id:string|null;room:string|null;range:{fro
   period:string|null;status:string|null;latest:boolean;countOnly:boolean;submittedAt:boolean};
 type VenueRequestBoundary = {reason:'foreign'|'scope'|'excluded'|'navigation'|'action'|'detail'|'mixed'};
 export type VenueRequestSelection = VenueRequestScope | VenueRequestBoundary;
+export type VenueRequestPlan = {selection:VenueRequestSelection;feeQuestion:string|null;feeFirst:boolean};
 type History = Array<{role:string;content:string}>;
 export function venueRequestSelection(question:string,route?:string,history?:History,now?:number):VenueRequestSelection|null;
+export function venueRequestPlan(question:string,route?:string,history?:History,now?:number):VenueRequestPlan|null;
 export function isVenueRequestQuestion(question:string,route?:string,history?:History):boolean;
 export function venueRequestBoundary(selection:VenueRequestSelection,question:string,signedIn:boolean):VerificationCandidate;
