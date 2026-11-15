@@ -1076,4 +1076,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Pass the integrated API and evaluator tests on the exact candidate. Verify both public smoke cases and all six graduation cases on protected `e3dff23` with exact disposal.
 - [x] Verify selected-term attendance, roll-call time, a missing current-term setting and an unsupported subterm hour total against the unchanged six questions in the actual handler.
 - [x] Exercise ten new 31-1 and 32-1 questions in the actual handler against migrated PostgreSQL. Verify paired own and crossed snapshots. Cover navigation, tracked notes, unverifiable official outcomes and unsupported submissions without changing the original 100 cases.
-- [ ] Replay the six Attendance cases and the named Student Affairs workflows on a protected revision. Keep the attendance tests and production gate separate from the prior exact Preview.
+- [x] Run the exact protected Attendance and international-service packets. Preserve the independent 19/20 result and both cleanup proofs.
+- [x] Repair the specific named-course term absence hours failure, the original compact November payment question, and the 12 frozen Course Selection questions in controlled and migrated tests.
+- [ ] Replay all ten Attendance cases, all 12 Course Selection cases and both funded and empty monthly payment cases on the same protected revision in separate leases.
+- [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting; complete live browser dispatch observations before production acceptance.

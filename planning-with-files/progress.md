@@ -28,3 +28,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Preserved the two slow-review baseline failures. All eight protected cases passed on `e3dff23` and both signed-in fixture leases verified disposal. Integrated the six frozen Attendance fixes locally, including the UTC timestamp input and Taipei display. Full local API and evaluator passed. Production remains on `076c79a`.
 
 - 2026-11-16 [#100] Integrated ten work permit and campus service questions after native two-owner PostgreSQL acceptance. Preserved all existing service note cases. Fixed two unrelated flaky tests with an explicit unsafe directory mode and a controlled deadline before the next protected run.
+
+- 2026-11-16 [#100] Exact `3a27235` passed international services 10/10 and Attendance 9/10, with 20 matching pins, Quality and both cleanup proofs. The claimed term absence hours for the named course now use direct scoped records in controlled tests. The original compact monthly payment phrase and all 12 frozen Course Selection prompts pass locally. Stage a separate cumulative protected revision.
