@@ -15,6 +15,13 @@ const columns=['user_id','questionnaire_version','ratings','comment','request_id
 const roles=['A','B'];
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+// PostgreSQL jsonb and the independent fixtures may enumerate the same
+// fields differently. Hash the validated DTO in this fixed schema order.
+function evaluationDigest(evaluation){
+  if(evaluation===null)return digest(null);
+  const {ratings,comment,submittedAt}=evaluation;
+  return digest({ratings,comment,submittedAt});
+}
 const offline=new Map(buildTutorEvaluationCases().map(item=>[item.id,item]));
 const sources={tutorEvaluation:'status','blank:tutorEvaluation':'blank-comment','empty:tutorEvaluation':'unsaved'};
 const mounted=new Set([
@@ -199,7 +206,7 @@ export async function observeTutorEvaluationCallers(plan,{users,publishable,orig
     const actual=await readResponse(await directFetch(rawUrl,{...init,headers:{...init.headers,apikey:publishable}}),rawUrl,16384);
     const owned=plan.rows.filter(row=>row.user_id===id);
     assertRows(actual,owned);
-    proofs.push({role,visibleRows:owned.length,projectionSha256:digest(projected)});
+    proofs.push({role,visibleRows:owned.length,projectionSha256:evaluationDigest(projected)});
   }
   return proofs;
 }
@@ -228,7 +235,7 @@ export function gradeHostedTutorEvaluation(testCase,envelope,before,after){
   const owned=offline.get(testCase.id);
   const fixtures=tutorEvaluationFixtureForCase(owned);
   const recordProof=roles.map(role=>({role,visibleRows:role==='A'&&fixtures.native.evaluation===null?0:1,
-    projectionSha256:digest(role==='A'?fixtures.native.evaluation:fixtures.foreign.evaluation)}));
+    projectionSha256:evaluationDigest(role==='A'?fixtures.native.evaluation:fixtures.foreign.evaluation)}));
   const rowsUnchanged=isDeepStrictEqual(before,after)&&isDeepStrictEqual(before.callers,recordProof);
   const enriched={...envelope,stateBefore:{ownedRecordsDigest:before.rowsDigest},stateAfterProposal:{ownedRecordsDigest:after.rowsDigest},
     fixtureReadback:{verified:rowsUnchanged,independentGolden:rowsUnchanged}};
