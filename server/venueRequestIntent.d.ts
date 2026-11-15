@@ -1,0 +1,9 @@
+import type {VerificationCandidate} from './answerVerification.js';
+type VenueRequestScope = {reason:null;id:string|null;room:string|null;range:{from:string|null;through:string|null}|null;
+  period:string|null;status:string|null;latest:boolean;countOnly:boolean;submittedAt:boolean};
+type VenueRequestBoundary = {reason:'foreign'|'scope'|'excluded'|'navigation'|'action'|'detail'|'mixed'};
+export type VenueRequestSelection = VenueRequestScope | VenueRequestBoundary;
+type History = Array<{role:string;content:string}>;
+export function venueRequestSelection(question:string,route?:string,history?:History,now?:number):VenueRequestSelection|null;
+export function isVenueRequestQuestion(question:string,route?:string,history?:History):boolean;
+export function venueRequestBoundary(selection:VenueRequestSelection,question:string,signedIn:boolean):VerificationCandidate;

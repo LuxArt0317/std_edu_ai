@@ -1,5 +1,4 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
-import type {AssistantResponse} from './researchAssistant';
 
 export type Venue={code:string;label:string;description:string};
 export type VenueSchedule={venue:string;week:string;label:string;description:string;occupied:string[];local:string[];checked_at:string;fresh:boolean};
@@ -46,7 +45,4 @@ export async function writeVenueRequest(userId:string,action:Action,signal:Abort
     (action.kind==='submit_venue_request'?result.version!==1:result.id!==action.payload.id||result.version!==action.payload.version+1))
     throw Error('場地申請結果無法確認。');
   return result;
-}
-export function readVenueAnswer(userId:string,question:string,signal?:AbortSignal){
-  return request<AssistantResponse>(path('venue-requests',{view:'mine',answer:/[\u3400-\u9fff]/u.test(question)?'zh':'en'}),signal,userId);
 }

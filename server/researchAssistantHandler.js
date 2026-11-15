@@ -1,3 +1,4 @@
+import {venueRequestBoundary,venueRequestSelection} from './venueRequestIntent.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -441,6 +442,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,elearningCatalogBoundary(input.question,selectElearningCatalogPage(input.question,input.route),false));
             return;
         }
+        const venueRequest=venueRequestSelection(input.question,input.route,input.history);
+        if(venueRequest){stream.send(200,venueRequestBoundary(venueRequest,input.question,false));return;}
         const assignmentList=!input.images.length&&dtmAssignmentListSelection(input.question,input.route);
         if(assignmentList){stream.send(200,dtmAssignmentListBoundary(assignmentList,input.question,false));return;}
         const material=!input.images.length&&dtmMaterialIntent(input.question,input.route);

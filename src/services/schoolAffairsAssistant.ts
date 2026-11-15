@@ -35,7 +35,7 @@ import {isTutorEvaluationEvidenceQuestion,tutorEvaluationNavigation} from '../..
 import {isServiceNoteEvidenceQuestion} from '../../server/serviceNoteIntent.js';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
-import {readVenueAnswer} from './venueBooking';
+import {isVenueRequestQuestion} from '../../server/venueRequestIntent.js';
 import {repairQuestion} from '../features/public/affairs/facilityRepair.js';
 import {isHousingBedScopeQuestion} from '../../server/housingBedEvidenceIntent.js';
 import {isHousingApplicationScopeQuestion} from '../../server/housingApplicationEvidenceIntent.js';
@@ -65,7 +65,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
   const {access_token:accessToken}=data.session;
-  if (isElearningCatalogPageQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
+  if (isElearningCatalogPageQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
     ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
@@ -110,11 +110,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   const repair=!images.length&&repairQuestion(question);
   if(repair&&repair!=='history')return askCampusAssistant(question,[],signal,[],route,onProgress);
   const venue=!images.length&&venueQuestion(question);
-  if(venue){
-    if(venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress);
-    onProgress?.({kind:'venue-booking',label:'Checking venue requests',detail:'Reading your saved request statuses.',status:'running'});
-    return readVenueAnswer(data.session.user.id,question,signal);
-  }
+  if(venue&&venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if (!images.length && permanentCourseQuestion(question)) return askCampusAssistant(question,[],signal,[],route,onProgress);
   if (!images.length && isProgramRegistrationQuestion(question)) {
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});

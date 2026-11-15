@@ -5,7 +5,7 @@ import {clubStudentQuestion,clubStudentScope} from '../../server/clubStudentCont
 import {certificateAwardQuestion,certificateAwardScope} from '../../server/certificateAwardsContract.js';
 import {announcementEmailQuestion,announcementEmailScope} from '../../server/announcementEmailContract.js';
 import {studentProfileQuestion,studentProfileScope} from '../../server/studentProfileContract.js';
-import {venueQuestion} from '../../src/features/public/affairs/venueContract.js';
+import {venueRequestSelection} from '../../server/venueRequestIntent.js';
 
 const dispatchPath='src/services/schoolAffairsAssistant.ts';
 const apiPath='api/affairs-data.ts';
@@ -41,13 +41,13 @@ const definitions=[
     secondPart:'Also show the year level recorded in my account.',secondTools:['profile'],
     support:'confirmation_status_only',
     limit:'The status-only RPC deliberately omits address, birthday, identity last-four, guardian and mobile data. It is separate from the general account profile tool.'},
-  {id:'venue-requests',call:'readVenueAnswer',file:'venueBooking',server:'venueBooking',scope:'venue-requests',
-    routes:['/school-affairs/services/44-1'],selector:{view:'mine',answer:'en'},fields:['rows[].venue','rows[].booking_date','rows[].period','rows[].status'],
-    question:'What is the status of my venue reservation requests?',
-    secondPart:'Also show the fee balance recorded on my account.',secondTools:['charges'],
-    support:'owned_request_status_summary',
-    limit:'A public venue schedule is not an owned booking, and a local request status is not university confirmation. No mutation is implied by a question.'},
+
 ];
+
+const graphVenueDefinition={id:'venue-requests',call:'answerVenueRequests',graphTool:'venueRequests',
+  routes:['/school-affairs/services/44-1'],fields:['venue','booking_date','period','status','total'],
+  question:'What is the status of my venue reservation requests?',
+  secondPart:'Also show the fee balance recorded on my account.',secondTools:['charges']};
 
 const navigationOnly=[
   {calls:['clubOfficerGuide','clubGuide'],scopes:['club-officer','student-clubs'],reason:'Client opens an authorized page; it does not read private officer/application/equipment rows.'},
@@ -62,7 +62,7 @@ export function probeNativePredicate(id,question,route=''){
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
     case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
     case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
-    case 'venue-requests':return venueQuestion(question)?.view==='mine'?'mine':null;
+    case 'venue-requests':{const selection=venueRequestSelection(question,route);return selection?selection.reason??'mine':null;}
     default:throw new Error('Unknown native client predicate.');
   }
 }
@@ -107,6 +107,7 @@ export function inspectClientDispatchSource(source){
     &&node.thenStatement.expression?.getStart(file)===first.at);
   const graphPredicates={isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
     isStudentLeaveEvidenceQuestion:['studentLeaveEvidenceIntent','question,route,history'],
+    isVenueRequestQuestion:['venueRequestIntent','question,route,history'],
     isDtmAssignmentEvidenceQuestion:['dtmAssignmentEvidenceIntent','question,route,history'],
     isAidPaymentsScopeQuestion:['aidPaymentsEvidenceIntent','question,route,history'],
     isForeignDtmGradesQuestion:['dtmGradeEvidenceIntent','question,route'],shouldReadNativeDtmGrades:['dtmGradeEvidenceIntent','question,route,history'],
@@ -145,6 +146,7 @@ export function inspectClientDispatchSource(source){
     {id:'dtm-assignment-list',graphTool:'dtmAssignmentList',source:dispatchPath,line:first.line},
     {id:'dtm-materials',graphTool:'dtmMaterials',source:dispatchPath,line:first.line},
     {id:'student-leave',graphTool:'leaveRecords',serviceKeys:['20-1','33-1'],source:dispatchPath,line:first.line},
+    {id:'venue-requests',graphTool:'venueRequests',serviceKeys:['44-1'],source:dispatchPath,line:first.line},
     {id:'internship',graphTool:'internshipRecords',serviceKeys:['53-1','55-1'],source:dispatchPath,line:first.line},
     {id:'dtm-assignment-detail',graphTool:'dtmAssignment',source:dispatchPath,line:first.line},
     {id:'aid-payments',graphTool:'aidPayments',source:dispatchPath,line:first.line},
@@ -169,9 +171,10 @@ export function inspectClientDispatchSource(source){
 }
 
 function questionCases(definition){
-  const common={domain:definition.id,route:definition.contextRoute??definition.routes[0],auth:'signed-in',endpoint:'/api/affairs-data',scope:definition.scope,
+  const common={domain:definition.id,route:definition.contextRoute??definition.routes[0],auth:'signed-in',
+    ...(definition.graphTool?{endpoint:'/api/affairs-assistant',graphTool:definition.graphTool}:{endpoint:'/api/affairs-data',scope:definition.scope}),
     fixtureRequirement:'independent_owned_native_records',executed:false,acceptance:'not_evaluated',
-    expected:{requiredReader:definition.call,requiredScope:definition.scope,requiredLinks:[definition.routes[0]],
+    expected:{requiredReader:definition.call,...(definition.scope?{requiredScope:definition.scope}:{}),requiredLinks:[definition.routes[0]],
       ownAccountOnly:true,noAction:true,noOfficialInference:true,independentFactsRequired:true}};
   return [
     {...common,id:'client:'+definition.id+':record',mode:'record',question:definition.question,
@@ -195,7 +198,7 @@ function questionCases(definition){
  * fixture creation, user-session import, model call or product code execution. */
 export async function discoverClientDispatchSurfaces({read=readSource}={}){
   const contracts=['clubStudent','certificateAwards','announcementEmail','studentProfile','graduationClearance'];
-  const sources=[...new Set([dispatchPath,apiPath,'server/elearningCatalogPageIntent.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
+  const sources=[...new Set([dispatchPath,apiPath,'server/elearningCatalogPageIntent.js','server/venueRequestIntent.js','server/accountVenueRequestAnswer.js','server/accountActionIntent.js','server/dtmAssignmentListIntent.js','server/dtmMaterialIntent.js','server/internshipEvidenceIntent.js','server/studentLeaveEvidenceIntent.js','server/aidPaymentsEvidenceIntent.js','server/dtmGradeEvidenceIntent.js','server/dtmAssignmentEvidenceIntent.js','server/elearningEvidenceIntent.js','server/facilityRepairEvidenceIntent.js','server/dormitoryConductEvidenceIntent.js','server/elearningOutlineEvidenceIntent.js','server/healthExaminationEvidenceIntent.js',...definitions.flatMap(row=>['src/services/'+row.file+'.ts','server/'+row.server+'.js']),
     ...contracts.map(name=>'server/'+name+'Contract.js'),'src/features/public/affairs/venueContract.js',
     'server/clubServicesContract.js','server/clubOfficerContract.js','server/healthExaminationContract.js','server/counselingContract.js','server/counselingEvidenceIntent.js','server/clearanceEvidenceIntent.js','server/tutorEvaluationEvidenceIntent.js','server/serviceNoteIntent.js',
     'src/features/public/PublicSite.tsx','src/features/public/affairs/SchoolAffairsEntry.tsx','src/features/public/affairs/SchoolAffairsPortal.tsx',
@@ -214,7 +217,7 @@ export async function discoverClientDispatchSurfaces({read=readSource}={}){
       capabilityGap:'No independent live native fixture/client-dispatch acceptance in this inventory.'};
   });
   return {version:1,layer:'browser-client-dispatch',graphBankIncluded:false,sourceManifest:entries.map(([path,text])=>({path,sha256:digest(text)})),
-    services,scopes:[...new Set(services.map(row=>row.scope))],questions:definitions.flatMap(questionCases),verifiedDispatch:dispatch.verifiedDispatch,
+    services,scopes:[...new Set(services.map(row=>row.scope))],questions:[...definitions,graphVenueDefinition].flatMap(questionCases),verifiedDispatch:dispatch.verifiedDispatch,
     navigationOnly:dispatch.navigationOnly,otherDirectReaders:dispatch.otherDirectReaders,
     limits:['Static code linkage is not browser execution, deployed reachability, successful private reads or verified answer quality.',
       'The graph reader registry does not include these direct browser dispatch readers. Direct API evaluation cannot silently count their coverage.',

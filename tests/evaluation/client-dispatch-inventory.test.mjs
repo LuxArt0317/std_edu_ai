@@ -5,18 +5,19 @@ import {discoverClientDispatchSurfaces,inspectClientDispatchSource,probeNativePr
 
 const dispatchSource=()=>readFile(new URL('../../src/services/schoolAffairsAssistant.ts',import.meta.url),'utf8');
 
-test('the five direct readers and verified graph dispatch remain separately visible',async()=>{
+test('the four direct readers and verified graph dispatch remain separately visible',async()=>{
   const inventory=await discoverClientDispatchSurfaces();
-  assert.equal(inventory.services.length,5);assert.equal(inventory.scopes.length,5);assert.equal(inventory.questions.length,25);
+  assert.equal(inventory.services.length,4);assert.equal(inventory.scopes.length,4);assert.equal(inventory.questions.length,25);
   assert.equal(inventory.graphBankIncluded,false);assert.equal(inventory.layer,'browser-client-dispatch');
   assert.deepEqual(inventory.scopes,['club-student',
-    'certificate-awards','announcement-email','student-profile','venue-requests']);
+    'certificate-awards','announcement-email','student-profile']);
   assert.equal(new Set(inventory.questions.map(row=>row.id)).size,25);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
     {id:'elearning-catalog-page',graphTool:'elearningCatalog'},
     {id:'dtm-assignment-list',graphTool:'dtmAssignmentList'},
     {id:'dtm-materials',graphTool:'dtmMaterials'},
     {id:'student-leave',graphTool:'leaveRecords'},
+    {id:'venue-requests',graphTool:'venueRequests'},
     {id:'internship',graphTool:'internshipRecords'},
     {id:'dtm-assignment-detail',graphTool:'dtmAssignment'},{id:'aid-payments',graphTool:'aidPayments'},{id:'dtm-grade-report',graphTool:'dtmGradeReport'},
     {id:'elearning-enrollments',graphTool:'elearningEnrollments'},{id:'facility-repairs',graphTool:'facilityRepairs'},
@@ -53,6 +54,11 @@ test('native questions require the fields the reader actually supplies and discl
     question=id=>inventory.questions.find(row=>row.id===id);
   assert.equal(service('aid-payments'),undefined);
   assert.equal(service('student-leave'),undefined);
+  assert.equal(service('venue-requests'),undefined);
+  assert.equal(question('client:venue-requests:record').endpoint,'/api/affairs-assistant');
+  assert.equal(question('client:venue-requests:record').staticProbe.predicate,'mine');
+  assert.equal(question('client:venue-requests:multipart').staticProbe.predicate,'mixed');
+  assert.ok(inventory.sourceManifest.some(row=>row.path==='server/accountVenueRequestAnswer.js'));
   assert.deepEqual(inventory.verifiedDispatch.find(row=>row.id==='student-leave').serviceKeys,['20-1','33-1']);
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/studentLeaveEvidenceIntent.js'));
   assert.ok(inventory.sourceManifest.some(row=>row.path==='server/internshipEvidenceIntent.js'));
@@ -99,7 +105,7 @@ test('independent natural-language probes expose unsupported wording without cou
 
 test('source drift cannot silently detach a declared native reader from auth, ownership or API ordering',async()=>{
   const source=await dispatchSource();
-  assert.equal(inspectClientDispatchSource(source).contracts.length,5);
+  assert.equal(inspectClientDispatchSource(source).contracts.length,4);
   assert.doesNotMatch(source,/readGraduationClearanceAnswer/u);
   const mutations=[
     source.replace('if (error || !data.session) throw new Error','if (false) throw new Error'),
@@ -107,6 +113,7 @@ test('source drift cannot silently detach a declared native reader from auth, ow
     source.replace("from './clubStudent'","from './unrelated'"),
     source.replace('isStudentLeaveEvidenceQuestion(question,route,history)','false'),
     source.replace('isStudentLeaveEvidenceQuestion(question,route,history)','isStudentLeaveEvidenceQuestion(question,route,[])'),
+    source.replace('isVenueRequestQuestion(question,route,history)','false'),
     source.replace('isHousingApplicationScopeQuestion(question,route,history)','false'),
     source.replace('isElearningEvidenceQuestion(question,route,history)','false'),
     source.replace('isFacilityRepairEvidenceQuestion(question,route,history)','true'),
