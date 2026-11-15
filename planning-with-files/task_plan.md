@@ -883,7 +883,7 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the substantive archived student-page summary, title, link and date on protected `ae5135f`.
 - [x] Verify substantive English and Traditional Chinese archive content, exact link/date and no web retrieval on `eddb586`.
 - [x] Localize the Chinese capture-date caption and distinguish a known notice link from unread content in controlled endpoint tests.
-- [ ] Confirm the caption and notice wording on the exact protected Preview.
+- [x] Confirm the Chinese caption and known-notice wording on three pinned requests to protected `f5b37da`. The OneDrive verdict used three actual checks.
 - [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
 - [x] Preserve the original DTM notice link outside answer evidence and verify the login redirect handling locally.
 - [x] Verify the exact DTM notice access handoff on protected `ae5135f`.
@@ -894,7 +894,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 ### Native grade and appointment actions [Issue #100]
 
 - [x] Mount ten signed-in Moodle grade-report cases with exact own/crossed readbacks, separate gradebook and tracker facts, and disposal.
-- [ ] Replay those cases on protected Preview and cover the remaining multi-course, empty-account and feedback cases.
+- [x] Mount a separate six-case Moodle overview packet with paired readbacks for multi-course, empty-account and all-feedback questions. Keep the read outage in the controlled suite.
+- [ ] Replay both native Moodle grade packets on protected Preview.
 - [x] Implement and locally verify explicit confirmation of one eligible caller-owned 29-1 appointment through the versioned workflow.
+- [x] Mount nine hosted Counseling cancellation cases and exercise the real handlers, native PostgreSQL with RLS, exact receipts and fixture cleanup locally.
 - [ ] Verify the confirmed Counseling cancellation against protected Preview fixture rows and operation receipts.
-- [ ] Replay the four authenticated service boundary families at 30-1, 30-2, 31-2 and 35-1.
+- [x] Mount twenty authenticated service boundary cases at 30-1, 30-2, 31-2 and 35-1. Correct the Traditional Chinese possessive routing found by the evaluation.
+- [ ] Replay the four service boundary families on protected Preview.
+- [ ] Evaluate the public case where a second partial reply verifies additional details and another distinct official source is still available.

@@ -961,3 +961,5 @@ an independent operator. Moodle grade worktree is
 `/private/var/tmp/stu100-dtm-grade-preview.QvcDjT/source`. Its scratch replay
 passed 9/10 and exposed a grade-report-tail dispatch gap. Keep this separate
 from the six accepted Moodle timing cases.
+
+Exact protected `f5b37da` passed the three public wording requests with matching release metadata. OneDrive used three observed reviews and retained the known sign-in source. The combined candidate adds six Moodle overview cases, nine Counseling confirmation cases, and twenty service scope cases for 30-1, 30-2, 31-2 and 35-1. Run each synthetic packet in sequence after independently verified cleanup. The Moodle outage case remains covered by a controlled 503.

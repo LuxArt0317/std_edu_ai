@@ -81,3 +81,5 @@
 - 2026-11-15 [#100] Integrated locally tested Counseling cancellation `a57fd2c`. The combined 57 endpoint tests and Chromium confirmations passed. Logged the exact public and signed-in protected evidence and the separate wider grade and Counseling replay work in Issue #100.
 
 - 2026-11-15 [#100] Integrated scoped exact Moodle grade selection and ten disposable paired native-report cases. Added Traditional Chinese capture-date formatting and rejected wording that asks for a known notice link while keeping inaccessible contents outside evidence.
+
+- 2026-11-15 [#100] Protected `f5b37da` finished all three pinned public probes. Both archive summaries used the matching page contents, local route and date. The OneDrive reply passed on check three and preserved the known DTM sign-in link with quota and publication date unresolved. Integrated the six remaining hostable Moodle overview cases and nine confirmed Counseling cancellation cases with native SQL evidence.
