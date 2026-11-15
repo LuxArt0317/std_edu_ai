@@ -4,6 +4,7 @@ import https from 'node:https'
 import { load } from 'cheerio'
 import { fileTypeFromBuffer } from 'file-type'
 import { chunkKnowledgeText, normalizeKnowledgeText, sha256 } from './knowledgePipeline.js'
+import { isOfficialLibraryHoursLead } from './publicLibrarySources.js'
 
 export const MAX_ACQUISITION_BYTES = 4_000_000
 export const MAX_REDIRECTS = 3
@@ -139,6 +140,25 @@ function markdownLinks($, element, baseUrl) {
   return cleanText(clone.text())
 }
 
+// The library's weekend and holiday schedules are visible by activating public
+// tab buttons. Their Elementor cards use divs and spans, not tables or lists.
+function libraryScheduleSections($, root) {
+  const panels = root.find('[role="tabpanel"][id][aria-labelledby]')
+  const sections = []
+  root.find('button[role="tab"][id][aria-controls]').each((_, button) => {
+    const label = cleanText($(button).text())
+    if (label !== '六日' && label !== '特殊假日') return
+    const panelId = $(button).attr('aria-controls')
+    const buttonId = $(button).attr('id')
+    const panelsForButton = panels.filter((_, panel) => $(panel).attr('id') === panelId && $(panel).attr('aria-labelledby') === buttonId)
+    if (panelsForButton.length !== 1) return
+    const cards = panelsForButton.find('[data-widget_type="html.default"]').map((_, widget) => cleanText($(widget).text())).get().filter(Boolean)
+    if (cards.length) sections.push({ headingPath: ['開館時間', label], content: normalizeKnowledgeText(cards.join('\n')),
+      sourceLocator: `html:library-tab:${label}` })
+  })
+  return sections
+}
+
 export function extractHtmlSections(html, sourceUrl) {
   const $ = load(html)
   $('script,style,noscript,template,svg,iframe,object,embed,[hidden],[aria-hidden="true"],input[type="hidden"]').remove()
@@ -168,6 +188,7 @@ export function extractHtmlSections(html, sourceUrl) {
     ordinal += 1
     sections.push({ headingPath: headingPath.filter(Boolean), content: text, sourceLocator: `html:${tag}:${ordinal}` })
   })
+  if (isOfficialLibraryHoursLead(sourceUrl)) sections.push(...libraryScheduleSections($, root))
   if (!sections.length) throw new Error('The HTML source did not contain readable main content.')
   return { title: cleanText($('title').first().text()), sections }
 }

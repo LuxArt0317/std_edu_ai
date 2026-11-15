@@ -3,6 +3,8 @@
 
 - Try a different school publication when a deeper, unsuccessful check has already reviewed distinct sources. Read unvisited leads first and verify again only when the alternate search adds usable evidence. [#100]
 
+- Check the university library’s opening-hours page before broader search. Use its dated public capture when needed and distinguish regular hours from listed holiday closures. [#100]
+
 - Let students review and confirm withdrawal of one owned learning-support request in chat. The withdrawal uses the native versioned receipt and preserves the exact command on retry. [#100]
 
 - Add a signed zero-read check for 14 Student Leave navigation and access questions while preserving the separate 18-case owned-record evaluation. [#100]

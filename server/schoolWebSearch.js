@@ -129,6 +129,7 @@ export async function searchSchoolWeb(question, options = {}) {
   const query = publicSchoolQuestion(question);
   if (!query || !process.env.OPENAI_API_KEY) return {result:null,attempted:false};
   const libraryScope = options.libraryScope===true ? findOfficialLibraryServiceLeads(query) : [];
+  const libraryDomains = [...new Set(libraryScope.map(source=>new URL(source.url).hostname.replace(/^www\./u,'')))];
   const chineseQuestion = libraryScope.length ? (options.responseLanguage??libraryAnswerLanguage(question))==='zh-Hant' : /[\u3400-\u9fff]/.test(question);
   const deadline = options.deadline || Date.now()+35000;
   const followUp = options.followUp === true;
@@ -147,7 +148,7 @@ export async function searchSchoolWeb(question, options = {}) {
         signal:AbortSignal.timeout(Math.min(officialOnly?19000:14000,remaining)),
         body:JSON.stringify({
           model:process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
-          tools:[{type:'web_search',search_context_size:'medium',...(officialOnly?{filters:{allowed_domains:libraryScope.length?['lib.stu.edu.tw']:['stu.edu.tw']}}:{})}],
+          tools:[{type:'web_search',search_context_size:'medium',...(officialOnly?{filters:{allowed_domains:libraryDomains.length?libraryDomains:['stu.edu.tw']}}:{})}],
           tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:deeperDiscovery?'medium':'low'},store:false,max_output_tokens:deeperDiscovery?2400:1600,
           instructions:[
             'You help visitors and students of Shu-Te University (樹德科技大學), Kaohsiung, Taiwan. STU here means Shu-Te, not another university.',
@@ -164,7 +165,7 @@ export async function searchSchoolWeb(question, options = {}) {
               'Use checkedSchoolSources only as navigation context. These school hosts and page categories were already checked without resolving the whole question. Vary the source type or responsible office and favor a specific publication that could establish the requested detail. These hints do not establish any facts.',
             ] : []),
             ...(libraryScope.length ? [
-              'Search the Shu-Te University library’s own FAQ or space-reservation page first: '+libraryScope.map(lead=>lead.url).join(' ')+'. Use 圖書館 入館, 討論室 預約, or 電子資源 校外連線 for the exact requested detail. A general university profile does not establish library rules. Treat access screens as unavailable pages.',
+              'Search the Shu-Te University library’s relevant service pages first: '+libraryScope.map(lead=>lead.url).join(' ')+'. Use 圖書館 開館時間 or 閉館 for hours, 圖書館 入館 for entry, 討論室 預約 for rooms, or 電子資源 校外連線 for databases. Keep regular hours separate from dated holiday or weekend exceptions. A general university profile does not establish library rules. Treat access screens as unavailable pages.',
             ] : []),
             'Use the web_search tool for factual school answers. If the task is completely unrelated (such as writing/debugging arbitrary software), return out_of_scope. Simple website/login/course-code navigation questions are in scope, not programming requests.',
             'Never search for or infer private student records, passwords, credentials or personal grades/schedules. Do not claim a school action or institutional decision happened. Use only actually retrieved sources. Do not invent contacts, fees, dates, policies or URLs. If sources conflict or lack a requested detail, explain what is known and the exact remaining uncertainty rather than guessing.',

@@ -21,7 +21,7 @@ Pending-fee suites verify complete pagination, caller/admin separation, strict A
 
 `course-selection.test.ts` verifies seven-column field mapping, all14 timetable periods, source-phase/term filtering, private ownership and complete pagination, validated manager transport, model-context exclusion and local history/timetable links. Class-location and next-class questions remain private queries; explicit page-opening questions use the directory. Current/relative-term questions do not silently reuse historical phase snapshots.
 
-`answer-verification-sources.test.ts` checks exact public-capture matching, dated provenance and checksum rejection when a source cannot be read.
+`answer-verification-sources.test.ts` checks exact public-capture matching, dated provenance and checksum rejection when a source cannot be read. `public-library-sources.test.ts` exercises the exact library-hours capture through the research handler, including independent weekday and holiday evidence, language, and discovery when the page cannot be read.
 
 `affairs-public-dispatch.test.ts` verifies that signed-in contact follow-ups can use an identified public service across languages. The public bridge receives only the constructed question, with no prior messages, route selectors, or old attachments. Mixed and private questions retain their account routing.
 

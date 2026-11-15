@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
+import {readFile} from 'node:fs/promises';
 import {test,type TestContext} from 'node:test';
 import {createResearchAssistantHandler} from '../../api/research-assistant.ts';
+import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {readVerificationSources} from '../../server/answerVerificationSources.js';
 import {findOfficialLibraryServiceLeads} from '../../server/publicLibrarySources.js';
 
 const faq='https://www.lib.stu.edu.tw/service/faq/';
 const rooms='https://www.lib.stu.edu.tw/service/roomequipmentreserve/';
+const hours='https://lis.stu.edu.tw/115-08-26-9/';
 const generic='https://about.stu.edu.tw/library-information/';
 const question='Check the latest Shu-Te University library information. What do people without a university ID need to enter, how many students are needed to reserve a discussion room and for how long, and how do students access library databases from off campus? Please link the sources you verify.';
 
@@ -32,13 +35,13 @@ function environment(t:TestContext){
 type Handler=ReturnType<typeof createResearchAssistantHandler>;
 type Activity={kind:string;status:string};
 let counter=0;
-async function request(handler:Handler,visibleQuestion:string,history:unknown[]=[]){
+async function request(handler:Handler,visibleQuestion:string,history:unknown[]=[],authorization?:string){
   let result:any;
   const events:Activity[]=[];
   const sink={status(status:number){assert.equal(status,200);return this;},setHeader(){},json(value:unknown){result=value;},
     write(raw:string){const [,name,value]=/^event: (\w+)\ndata: (.+)\n\n$/u.exec(raw)??[];
       if(name==='progress')events.push(JSON.parse(value));if(name==='result')result=JSON.parse(value);},end(){}};
-  await handler({method:'POST',headers:{'x-forwarded-for':'192.0.2.'+(201+counter++)},body:{question:visibleQuestion,history,stream:true}},sink);
+  await handler({method:'POST',headers:{'x-forwarded-for':'192.0.2.'+(201+counter++),authorization},body:{question:visibleQuestion,history,stream:true}},sink);
   assert.ok(result);
   return {result,events};
 }
@@ -60,6 +63,11 @@ test('the specific library subjects select bilingual official navigation before 
   assert.deepEqual(findOfficialLibraryServiceLeads('What is the STU library procedure off campus?').map(source=>source.url),[faq]);
   assert.deepEqual(findOfficialLibraryServiceLeads('Please find the STU library discussion room rules').map(source=>source.url),[rooms,faq]);
   assert.deepEqual(findOfficialLibraryServiceLeads('How old is the university library building?'),[]);
+  assert.deepEqual(findOfficialLibraryServiceLeads('When does the STU library archive exhibition open?'),[]);
+  for (const inquiry of ['When does the STU library open?','Is the STU library open this weekend?','樹德圖書館星期日有開嗎？'])
+    assert.deepEqual(findOfficialLibraryServiceLeads(inquiry).map(source=>source.url),[hours]);
+  assert.deepEqual(findOfficialLibraryServiceLeads('What are the library opening hours and discussion room rules?').map(source=>source.url),
+    [hours,rooms,faq]);
 });
 
 for(const localized of [false,true])test(`the real guest handler verifies accessible library contents before broad discovery (${localized?'Chinese':'English'})`,async t=>{
@@ -95,6 +103,94 @@ for(const localized of [false,true])test(`the real guest handler verifies access
   assert.equal(result.grounding.webSearched,false);
   assert.ok(events.some(step=>step.kind==='library-primary-source'&&step.status==='complete'));
   assert.equal(events.some(step=>step.kind==='school-source-lead'),false);
+});
+
+for (const scenario of ['guest English','guest Chinese','signed-in follow-up'] as const) test(`the published library schedule is read and checked independently (${scenario})`,async t=>{
+  environment(t);
+  const chinese=scenario==='guest Chinese',signedIn=scenario==='signed-in follow-up';
+  const sourceId='library:opening-hours',capturedOn='2026-11-03',stages:string[]=[];
+  const weekday='| 各樓層閱覽區 | 08:30 ～ 19:00 | 08:30 ～ 17:00 |';
+  const holiday='12/25 (五) 行憲紀念日(閉館)';
+  const regularEn='Library reading areas are open 08:30–19:00 Monday through Thursday and 08:30–17:00 Friday.';
+  const draft=chinese
+    ? '圖書館閱覽區週一至週四開放 08:30–19:00，週五開放 08:30–17:00。115 學年度上學期公告列出 12 月 25 日行憲紀念日閉館。'
+    : signedIn?regularEn:regularEn+' The first-semester 115 academic year notice lists a December 25 closure for Constitution Day.';
+  const capture=await readFile(new URL('../../public/school-pages/302bc419719c9772ed6b.html',import.meta.url));
+  mockProvider(t,wire=>{
+    const name=wire.text.format.name,packet=JSON.parse(wire.input[0].content[0].text);
+    stages.push(name);
+    assert.doesNotMatch(JSON.stringify(packet),/PRIVATE_/u);
+    if(signedIn)assert.equal(packet.question,'What are the opening hours for the Shu-Te University library?');
+    assert.deepEqual(packet.evidence.map((source:{id:string;url:string;capturedOn:string})=>
+      [source.id,source.url,source.capturedOn]),[[sourceId,hours,capturedOn]]);
+    const body=JSON.parse(packet.evidence[0].content).content;
+    assert.ok(body.includes(weekday));
+    assert.match(body,/115學年度上學期 特殊假日閉館公告/u);
+    assert.ok(body.includes(holiday),body);
+    if(name==='compose_grounded_answer'){
+      assert.match(wire.instructions,chinese?/all explanatory prose.*Traditional Chinese/u:/all explanatory prose.*English/u);
+      return provider({status:'answered',answer:draft,sourceIds:[sourceId]});
+    }
+    assert.equal(name,'answer_evidence_review');
+    return provider({supported:true,answersQuestion:true,missingRequestedDetails:[],claims:[
+      {claim:'Regular reading-area hours',supported:true,evidenceId:sourceId,quotes:[weekday],jsonPaths:[]},
+      ...(!signedIn?[{claim:'Holiday closure listed separately',supported:true,evidenceId:sourceId,quotes:[holiday],jsonPaths:[]}]:[]),
+    ]});
+  });
+  const research=createResearchAssistantHandler({readSources:(citations,deadline,deps)=>readVerificationSources(citations,deadline,{
+    ...deps,acquire:async url=>{
+      assert.equal(url,hours);
+      throw Error('The source returned HTTP 403.');
+    },
+    fetchCapture:async input=>{
+      assert.equal(input,'https://stu.best/school-pages/302bc419719c9772ed6b.html');
+      return new Response(capture);
+    },
+  })});
+  const auth='synthetic-auth';
+  const handler=signedIn?createAffairsAssistantHandler({publicResearch:research,verifyToken:async token=>{
+    assert.equal(token,auth);
+    return {user:{id:'PRIVATE_USER_ID'},token:auth,key:'PRIVATE_ACCOUNT_KEY',url:'https://synthetic.supabase.co'};
+  },loadSnapshot:async()=>assert.fail('Public follow-up must not read account records')}):research;
+  const {result,events}=await request(handler,signedIn?'And what are the opening hours?':chinese
+    ?'樹德科技大學圖書館平日的開館時間是幾點？12 月 25 日照常開館嗎？'
+    :'What are the opening hours for the Shu-Te University library on weekdays, and is it closed on December 25?',
+    signedIn?[{role:'user',content:'Where can I find the Shu-Te University library?'},{role:'assistant',content:'PRIVATE_HISTORY'}]:[],
+    signedIn?'Bearer '+auth:undefined);
+  assert.equal(result.verification.status,'verified',JSON.stringify(result));
+  assert.ok(result.answer.startsWith(draft),result.answer);
+  assert.match(result.answer,/2026-11-03/u);
+  assert.equal(result.grounding.webSearched,false);
+  assert.deepEqual(result.citations.map((item:{url:string;sourceName:string})=>[item.url,item.sourceName]),
+    [[hours,'Public page snapshot · 2026-11-03']]);
+  assert.deepEqual(stages,['compose_grounded_answer','answer_evidence_review']);
+  assert.ok(events.some(step=>step.kind==='library-primary-source'&&step.status==='complete'));
+});
+
+test('unreadable library hours keep the official library domain and link for fallback',async t=>{
+  environment(t);
+  const searches:any[]=[];
+  mockProvider(t,wire=>{
+    assert.equal(wire.text.format.name,'stu_web_answer');
+    searches.push(wire);
+    return empty();
+  });
+  const handler=createResearchAssistantHandler({readSources:(citations,deadline,deps)=>readVerificationSources(citations,deadline,{
+    ...deps,captures:[],acquire:async url=>{
+      assert.equal(url,hours);
+      return html(url,'<title>Human Verification</title><main><p>Bogus challenge hours 08:00–23:00.</p></main>');
+    },
+  })});
+  const {result}=await request(handler,'What are the opening hours for the Shu-Te University library?');
+  const domains=searches.flatMap(search=>search.tools[0].filters?.allowed_domains??[]);
+  assert.ok(domains.length>0);
+  assert.deepEqual([...new Set(domains)],['lis.stu.edu.tw']);
+  assert.ok(searches.every(search=>search.instructions.includes(hours)));
+  assert.equal(result.status,'abstained');
+  assert.match(result.answer,/I could not verify the library details/u);
+  assert.ok(result.answer.includes(`[STU Library opening hours](${hours})`));
+  assert.doesNotMatch(result.answer,/08:00|23:00|sign-in/u);
+  assert.deepEqual(result.citations,[]);
 });
 
 test('a 405 and an in-place browser challenge become English navigation leads, never evidence or school sign-in',async t=>{
