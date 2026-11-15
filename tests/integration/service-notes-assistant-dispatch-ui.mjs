@@ -13,11 +13,13 @@ const services=[
 ];
 const path='/school-affairs/services/27-1',servicePath=key=>'/school-affairs/services/'+key;
 const privateSentinel='PAGE-ONLY-SERVICE-NOTE-83174';
+const savedNote=key=>privateSentinel+'-'+key;
+const insuranceKey='35-1';
 const snapshot={checkedAt:'2026-11-15T00:00:00Z',officialUniversityData:false,
   profile:{userId:user.id,email:user.email,displayName:'QA Student',role:'student'},student:null,
   courses:[],charges:[],assignments:[],announcements:[],tasks:[],requests:[],dtm:{sourceMode:'personal',courses:[],notices:[]},
   serviceRecords:services.map(([key],index)=>({id:'36000000-0000-4000-8000-'+String(index+1).padStart(12,'0'),serviceKey:key,
-    recordType:'note',title:'PAGE-ONLY-NOTE-'+key,notes:privateSentinel,status:'draft',startsOn:null,endsOn:null,
+    recordType:'note',title:'PAGE-ONLY-NOTE-'+key,notes:savedNote(key),status:key===insuranceKey?'filed':'draft',startsOn:null,endsOn:null,
     leaveCategory:null,periods:null,updatedAt:'2026-11-15T00:00:00Z',reviewStatus:null}))};
 const steps={serviceRecords:{kind:'account-read:serviceRecords:1',label:'Checked selected local notes',detail:'Only the caller-owned note collection.',status:'complete'},
   charges:{kind:'account-read:charges:1',label:'Checked saved fee balance',detail:'Checked the saved local fee ledger.',status:'complete'},
@@ -40,10 +42,27 @@ const scenarios=[
   {question:'Where can I find the student insurance service?',answer:'Open the student insurance service.',link:servicePath('35-1')},
   {question:'What is my next class?',answer:'Your next saved class is QA Databases at 13:10 in R301.',tools:['courses']},
 ];
-let checks=0;
+let checks=0,nativeReadbacks=0;
 const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH??'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
-async function session(signedIn,entry=path){
-  const context=await browser.newContext({viewport:{width:1280,height:800},serviceWorkers:'block'});
+async function verifyNote(page,key){
+  const table=page.getByRole('region',{name:'Saved service records',exact:true});
+  const title='PAGE-ONLY-NOTE-'+key;
+  const row=table.getByRole('row').filter({has:page.getByRole('rowheader',{name:title,exact:true})});
+  const expected=key===insuranceKey?'自行標記已送出 · Marked filed':'草稿 · Draft';
+  await row.getByRole('cell',{name:expected,exact:true}).waitFor();
+  assert.equal(await table.getByRole('rowheader').count(),1,'A service page must only show that service’s rows.');
+  const edit=row.getByRole('button',{name:'編輯 · Edit',exact:true});
+  await edit.focus();await page.keyboard.press('Enter');
+  const notes=page.getByRole('textbox',{name:'備註 · Notes',exact:true});
+  await notes.waitFor();
+  assert.equal(await notes.inputValue(),savedNote(key));
+  assert.equal(await page.getByRole('textbox',{name:'標題 · Title',exact:true}).inputValue(),title);
+  await page.getByRole('button',{name:'取消 · Cancel',exact:true}).click();
+  await notes.waitFor({state:'detached'});
+  nativeReadbacks++;
+}
+async function session(signedIn,entry=path,viewport={width:1280,height:800}){
+  const context=await browser.newContext({viewport,serviceWorkers:'block'});
   const calls=[],pageReads=[],blocked=[],errors=[];let expected=null,failOnce=false;
   await context.route('**/*',async route=>{
     const url=new URL(route.request().url());
@@ -83,7 +102,8 @@ async function session(signedIn,entry=path){
   });
   const page=await context.newPage();page.setDefaultTimeout(12000);page.on('pageerror',error=>errors.push(error));
   await page.goto(origin+entry,{waitUntil:'domcontentloaded'});
-  if(signedIn&&entry.startsWith('/school-affairs/services/'))await page.getByRole('heading',{name:'我的紀錄 · My records',exact:true}).waitFor();
+  const service=services.find(([key])=>entry===servicePath(key));
+  if(signedIn&&service)await verifyNote(page,service[0]);
   if(!signedIn){await page.waitForURL(url=>url.pathname==='/school-affairs/login');assert.equal(new URL(page.url()).searchParams.get('next'),entry);}
   if(entry!=='/campus-assistant')await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
   const panel=page.getByRole('dialog');await panel.getByRole('heading',{name:'校園助理 · Assistant'}).waitFor();
@@ -98,7 +118,7 @@ async function session(signedIn,entry=path){
       for(const tool of value.tools)await details.getByText(steps[tool].label,{exact:true}).waitFor();assert.equal(await details.locator('li').count(),value.tools.length);}
     assert.equal(await panel.getByText(privateSentinel,{exact:false}).count(),0);if(errors.length)throw errors[0];checks++;
   }
-  return {context,page,ask,calls,errors,blocked};
+  return {context,page,ask,calls,pageReads,errors,blocked};
 }
 try{
   const own=await session(true);for(const item of scenarios)await own.ask(item);
@@ -119,10 +139,20 @@ try{
     const view=await session(true,servicePath(service[0]));await view.ask(noteCase(service));assert.deepEqual(view.errors,[]);assert.deepEqual(view.blocked,[]);await view.context.close();
   }
   const other=await session(true,'/campus-assistant');await other.ask(noteCase(services[0]));assert.deepEqual(other.errors,[]);assert.deepEqual(other.blocked,[]);await other.context.close();
+  const insurance=services.find(([key])=>key===insuranceKey),insurancePath=servicePath(insuranceKey);
+  const phone=await session(true,insurancePath,{width:390,height:740});
+  await phone.ask(noteCase(insurance));assert.deepEqual(phone.errors,[]);assert.deepEqual(phone.blocked,[]);await phone.context.close();
+  const insuranceGuest=await session(false,insurancePath,{width:390,height:740});
+  await insuranceGuest.ask({question:noteCase(insurance).question,answer:'Sign in to read your saved student insurance notes.',status:'handoff',
+    link:'/school-affairs/login?next='+encodeURIComponent(insurancePath)});
+  assert.deepEqual(insuranceGuest.pageReads,[]);
+  assert.equal(await insuranceGuest.page.getByRole('region',{name:'Saved service records'}).count(),0);
+  assert.deepEqual(insuranceGuest.errors,[]);assert.deepEqual(insuranceGuest.blocked,[]);await insuranceGuest.context.close();
   const guest=await session(false);await guest.ask({question:'Show my saved learning support notes.',answer:'Sign in to read your private local notes.',status:'handoff',link:'/school-affairs/login?next='+encodeURIComponent(path)});
   await guest.ask({question:'Show Alice’s student insurance notes.',answer:'I cannot read another student’s private notes.'});
   await guest.ask({question:'Where can I find the student insurance service?',answer:'Open the student insurance service.',link:servicePath('35-1')});
   assert.deepEqual(guest.errors,[]);assert.deepEqual(guest.blocked,[]);await guest.context.close();
   console.log(JSON.stringify({status:'passed',checks,scope:'local Chromium with synthetic Auth and mocked HTTP',
-    servicePages:services.length,fullQuestionsAndHistoryRetained:true,guestNoBearer:true,noDedicatedChatReadsOrWrites:true,liveBackendAcceptance:false}));
+    servicePages:services.length,nativeReadbacks,guestInsuranceReturn:true,fullQuestionsAndHistoryRetained:true,guestNoBearer:true,
+    noDedicatedChatReadsOrWrites:true,liveBackendAcceptance:false}));
 }finally{await browser.close();}
