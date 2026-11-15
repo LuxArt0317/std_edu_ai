@@ -885,7 +885,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 ### Public verification follow-through [Issue #100]
 
 - [x] Reproduce a temporary rewrite or second review failure with a queued primary source. Preserve the search and verification time, record the distinct interruption, and release only independently checked evidence.
-- [ ] Replay the latest source recovery on its exact protected candidate and verify the public revision before promotion.
+- [x] Verify the exact protected runtime with public factual, private-sign-in, and gated-notice checks. Keep the controlled proof of a recovered third check separate.
+- [ ] Complete the signed-in browser gate before using this protected candidate for production.
 - [x] Match the reported two-check activity to the exact public deployment.
 - [x] Follow a new source after evidence gaps and allow an additional review only after an independent read.
 - [x] Cover incomplete pages, repeated content, transient read failures, expired time and stored activity with endpoint and evaluator tests.

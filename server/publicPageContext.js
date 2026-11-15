@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import captures from '../src/features/public/mirror/pages.json' with {type:'json'};
 import {detectAndExtractSource} from './knowledgeAcquisition.js';
+import {universityFoundingYearQuestion} from './currentStudyOwnerScope.js';
 
 const captureOrigin='https://stu.best';
 const maxCaptureBytes=4_000_000;
@@ -82,13 +83,15 @@ export function institutionalPublicCapture(question) {
   const institution=/\b(?:shu[-\s]?te(?: university)?|stu)\b|樹德(?:科技大學|科大)/iu;
   const facts=/\b(?:found(?:er|ing|ed)s?|(?:school |educational |university )?mission|motto|educational philosophy|history|renamed)\b|創辦|創校|沿革|校史|校訓|治校理念|教育(?:使命|理念)|更名|改名/iu;
   const otherScope=/\b(?:my|compare|versus|recent(?:ly)?|updated|changed|changes|admissions?|tuition|scholarships?|grades?|attendance|timetable|assignments?|deadlines?|registration|foundations?|departments?|clubs?|associations?|library|dormitories|housing)\b|我的|本人|個人|學號|比較|最近|更新|改變|招生|學費|獎學金|成績|出勤|課表|作業|截止|報名|校友會|系所|社團|圖書館|宿舍/iu;
-  return institution.test(text)&&facts.test(text)&&!otherScope.test(text) ? publicPageForRoute('/關於樹德/') : null;
+  return institution.test(text)&&(facts.test(text)||institutionalFactRequest(text)==='founding-year')&&!otherScope.test(text)
+    ? publicPageForRoute('/關於樹德/') : null;
 }
 
 /** Exact questions whose complete answer can be projected from the About page. */
 export function institutionalFactRequest(question) {
   const text=String(question).normalize('NFKC').toLowerCase().trim().replace(/[?.。]+$/u,'');
   if(/^(?:what does shu[- ]te university say about its founding and educational mission|when was shu[- ]te university founded and what is its educational mission)$/u.test(text))return 'founding-and-mission';
+  if(universityFoundingYearQuestion(text))return 'founding-year';
   if(/^(?:what is (?:the motto of shu[- ]te university|shu[- ]te university['’]s motto)|(?:請問\s*)?樹德(?:科技大學|科大)的?校訓(?:是)?什麼)$/u.test(text))return 'motto';
   return null;
 }
@@ -112,10 +115,15 @@ export function institutionalFactAnswer(context,question) {
     answer=chinese?`樹德科技大學的校訓是「${motto}」。`:`Shu-Te University lists its motto as 「${motto}」.`;
   }else{
     const approvals=[...snapshot.excerpt.matchAll(/民國([1-9]\d{1,2})年奉准設校招生/gu)];
-    if(approvals.length!==1||!snapshot.excerpt.includes('培養兼具人文與科技、組織領導與問題解決能力的專業人才')
-      ||!snapshot.excerpt.includes('落實現代大學理論與實務之平衡發展'))return null;
+    if(approvals.length!==1)return null;
     const rocYear=Number(approvals[0][1]);
-    answer=`Shu-Te University says it received approval to establish the school and admit students in ${rocYear+1911} (ROC year ${rocYear}). Its educational mission emphasizes the humanities, technology, leadership, and problem-solving, and balancing theory with practice.`;
+    answer=chinese?`樹德科技大學於民國${rocYear}年（西元${rocYear+1911}年）獲准設校招生。`
+      :`Shu-Te University says it received approval to establish the school and admit students in ${rocYear+1911} (ROC year ${rocYear}).`;
+    if(request==='founding-and-mission'){
+      if(!snapshot.excerpt.includes('培養兼具人文與科技、組織領導與問題解決能力的專業人才')
+        ||!snapshot.excerpt.includes('落實現代大學理論與實務之平衡發展'))return null;
+      answer+=' Its educational mission emphasizes the humanities, technology, leadership, and problem-solving, and balancing theory with practice.';
+    }
   }
   const title=chinese?'關於樹德':'About Shu-Te University';
   const provenance=chinese?`擷取日期：${page.capturedOn}`:`Source snapshot: ${page.capturedOn}.`;

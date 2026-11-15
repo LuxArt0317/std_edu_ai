@@ -18,6 +18,8 @@
 
 `answerVerification.js` reserves time for a queued unread school page during a rewrite or review. After a timeout or temporary provider failure, `researchAssistantHandler.js` reads that page and verifies a fresh answer within the original request deadline. A duplicate page supplies no new evidence. Hard quota failures stop the lookup. Chat Activity records the interruption separately from evidence checks that actually ran.
 
+`publicPageContext.js` answers narrow university founding-year questions from the verified About page capture. It cites the captured date of approval to establish the school and admit students. These public questions need no student-record lookup or model call.
+
 
 ## Learning support actions
 

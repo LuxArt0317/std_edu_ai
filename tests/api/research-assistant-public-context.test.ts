@@ -3,6 +3,7 @@ import {readFile} from 'node:fs/promises';
 import {after,test} from 'node:test';
 import captures from '../../src/features/public/mirror/pages.json' with {type:'json'};
 import {createResearchAssistantHandler} from '../../api/research-assistant.ts';
+import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {boundedPublicPageEvidence,institutionalFactAnswer,isPublicPageSummaryQuestion,loadPublicPageContext,publicPageCandidate,type PublicPageContext} from '../../server/publicPageContext.js';
 
 const originalFetch=globalThis.fetch;
@@ -295,11 +296,14 @@ test('explicit English and Chinese institutional questions independently verify 
   for(const [question,fact,provenance] of [
     [foundingQuestion,/approval.*1997.*ROC year 86.*mission.*theory with practice/u,'Source snapshot: '],
     ['樹德科技大學的校訓是什麼？',new RegExp(motto,'u'),'擷取日期：'],
+    ['When was Shu-Te University founded?',/approval.*1997.*ROC year 86/u,'Source snapshot: '],
+    ['What year was Shu Te University established?',/approval.*1997.*ROC year 86/u,'Source snapshot: '],
+    ['樹德科技大學哪一年成立？',/民國86年（西元1997年）獲准設校招生/u,'擷取日期：'],
   ] as const){
     const result=await invoke({question,route:'/campus-assistant',
       history:[{role:'user',content:'My private student number is PRIVATE-HISTORY-SENTINEL.'}]},loadAbout);
     assert.equal(result.statusCode,200);
-    assert.deepEqual(result.body.verification,{status:'verified',attempts:1});
+    assert.deepEqual(result.body.verification,{status:'verified',attempts:1},question+' '+result.body.answer);
     assert.match(result.body.answer,fact);
     assert.ok(result.body.answer.includes(provenance+about.capturedOn));
     assert.doesNotMatch(result.body.answer,/PRIVATE-HISTORY-SENTINEL/);
@@ -319,7 +323,31 @@ test('an exact institutional answer requires the requested scope and every sourc
   const incomplete={...context,evidence:{...context.evidence,content:JSON.stringify({...metadata,
     excerpt:metadata.excerpt.replace('落實現代大學理論與實務之平衡發展','')})}};
   assert.equal(institutionalFactAnswer(incomplete,foundingQuestion),null);
+  assert.match(institutionalFactAnswer(incomplete,'When was Shu-Te University founded?')?.answer??'',/1997/u);
+  assert.equal(institutionalFactAnswer(context,'When was Shu-Te University founded, and when is tuition due?'),null);
   assert.equal(institutionalFactAnswer({...context,evidence:{...context.evidence,id:'public-page:another'}},foundingQuestion),null);
+});
+
+test('a signed-in founding-year lookup uses the public capture without account reads',async t=>{
+  t.mock.method(globalThis,'fetch',async()=>assert.fail('The saved About page needs no provider or database request'));
+  const readPublic=createResearchAssistantHandler({loadPublicPage:loadAbout});
+  const handler=createAffairsAssistantHandler({
+    verifyToken:async()=>({user:{id:'10000000-0000-4000-8000-000000000001'},url:'https://public-context-test.supabase.co',key:'synthetic-key',token:'synthetic-token'}),
+    loadSnapshot:async()=>assert.fail('Founding year must make no account reads'),
+    answerAccount:async()=>assert.fail('The public date must not use private account inference'),
+    publicResearch:async(request,response,context)=>{
+      assert.equal(request.headers.authorization,undefined);
+      assert.deepEqual((request.body as {history:string[]}).history,[]);
+      return readPublic(request,response,context);
+    },
+  });
+  let reply:any;
+  const response={status(code:number){assert.equal(code,200);return response;},json(body:unknown){reply=body;},setHeader(){}};
+  await handler({method:'POST',headers:{authorization:'Bearer synthetic-token'},body:{question:'What year was Shu Te University established?',
+    history:[{role:'user',content:'My student identifier is PRIVATE-HISTORY-SENTINEL.'}],route:'/school-affairs'}},response);
+  assert.match(reply.answer,/approval.*1997.*ROC year 86/u);
+  assert.deepEqual(reply.verification,{status:'verified',attempts:1});
+  assert.equal(reply.grounding.source,'public-page-context');
 });
 
 test('a rejected capture draft can read novel official content within the same verification budget',async()=>{

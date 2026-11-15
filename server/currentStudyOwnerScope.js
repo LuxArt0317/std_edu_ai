@@ -11,6 +11,10 @@ function text(value) {
     && ![...value].some(character=>/\p{Cc}/u.test(character)&&!['\t','\n','\r'].includes(character)) ? value.trim() : '';
 }
 function normalized(value) { return value.normalize('NFKC').replace(/[‘’]/gu,"'").toLowerCase(); }
+export function universityFoundingYearQuestion(question) {
+  const value=normalized(text(question)).replace(/[?.。]+$/u,'');
+  return /^(?:(?:when|what year) was (?:shu[- ]te university|stu) (?:founded|established)|(?:請問\s*)?樹德(?:科技大學|科大)(?:是)?(?:哪一年|幾年|何時)(?:成立|創校|創辦)(?:的)?|(?:請問\s*)?樹德(?:科技大學|科大)(?:成立|創校|創辦)於(?:哪一年|幾年|何時))$/u.test(value);
+}
 function clauses(value) {
   return value.split(/\s+(?:and|also|plus|alongside)\s+|[;；?!？！。\n，,]|\.(?=\s|$)|以及|還有|並且|而且|和|與/iu).map(part=>part.trim()).filter(Boolean);
 }
@@ -107,7 +111,7 @@ export function currentStudyOwnYearClause(question) {
  */
 export function currentStudyForeignYearQuestion(question) {
   const input=text(question);
-  if (!input) return null;
+  if (!input||universityFoundingYearQuestion(input)) return null;
   const parts=clauses(input),courseParts=[];
   let foreign=false,foreignCourse=false;
   for (const part of parts) {

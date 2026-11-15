@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer standalone English and Traditional Chinese founding-year questions from the saved university About page. [#100]
+
 - Continue public answer verification with an unread school page after a temporary rewrite or review failure, when time remains to check the answer. Keep each completed check and the interruption in chat Activity. [#100]
 
 - Answer the signed-in Student Profile confirmation and recorded year together when requested. Distinguish an empty record, an unavailable source and an attempt to read somebody else’s profile. [#100]
