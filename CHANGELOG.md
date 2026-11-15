@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Read the school page behind a verified knowledge excerpt when discovery finds it again and the answer still has gaps. Repeated page contents leave the original answer in place. [#100]
+
 - Verify complete standalone teaching-feedback records and clearly scoped empty results directly against the saved fields. Retain their existing links and the student's comment choice. [#100]
 
 - Follow public sources when a verified managed answer still has unanswered details. Keep the checked text and citations whenever the additional lookup cannot verify more. [#100]

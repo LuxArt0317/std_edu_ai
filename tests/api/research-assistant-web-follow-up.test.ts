@@ -1157,3 +1157,67 @@ test('managed public recovery keeps verified text and citations through stalls, 
     assert.equal(saved[0].activity.filter(({kind}:Progress)=>kind==='verification-kept-partial').length,kept.length);
   }
 });
+
+test('a managed excerpt permits one original-page read and reviews only genuinely new readable content',async()=>{
+  const question=knowledgeQuestion+' Include how to contact the exhibition staff.';
+  const baseline='The library visitor directory explains how to contact staff. The opening time is unverified.';
+  const full=directoryContent+' '+noticeContent;
+  for(const mode of ['expanded','identical','older-capture','external-original'] as const){
+    const pageUrl=mode==='external-original'?'https://outside.example.org/visitor-information/':officialDirectory;
+    managedHarness('verified-knowledge');
+    const controlledFetch=globalThis.fetch;
+    const pages:string[]=[];
+    const handler=createResearchAssistantHandler({readSources:async citations=>citations.map(source=>{
+      pages.push(source.url);
+      const content=mode==='expanded'?full:mode==='older-capture'
+        ?JSON.stringify({content:directoryContent,capturedOn:'2026-01-02'}):'  '+directoryContent.replaceAll(' ','  ')+'  ';
+      return {id:source.chunkId,url:source.url,content,...(mode==='older-capture'?{capturedOn:'2026-01-02'}:{})};
+    })});
+    const progress:Progress[]=[];
+    let reviews=0,repairs=0;
+    globalThis.fetch=async (input,init)=>{
+      const url=String(input);
+      if(mode==='external-original'&&url.includes('/rpc/search_public_knowledge'))
+        return Response.json([{...managedExcerpt,source_url:pageUrl}]);
+      if(!url.endsWith('/v1/responses'))return controlledFetch(input,init);
+      const call=JSON.parse(String(init?.body)),name=call.text.format.name;
+      if(name==='stu_web_answer'){
+        assert.equal(JSON.parse(call.input).question,question);
+        assert.doesNotMatch(call.input,/PRIVATE_|opening time is unverified|my attendance/u);
+        return Response.json(searchPayload([pageUrl],unsafeDraft));
+      }
+      if(name==='public_grounded_answer')return provider({status:'answered',answer:baseline,
+        citations:[{chunkId:managedExcerpt.chunk_id,claim:'Verified staff contacts'}],suggestedQuestions:[]});
+      const context=JSON.parse(call.input[0].content[0].text);
+      const original=context.evidence.find((source:{id:string})=>source.id!==managedExcerpt.chunk_id);
+      if(name==='correct_grounded_answer'){
+        repairs++;
+        assert.equal(context.previousAnswer,baseline);
+        assert.equal(original.content,full);
+        assert.equal(original.url,officialDirectory);
+        assert.equal(context.evidence.length,2);
+        return provider({status:'answered',answer:full,sourceIds:context.evidence.map((source:{id:string})=>source.id)});
+      }
+      assert.equal(name,'answer_evidence_review');
+      reviews++;
+      if(original)assert.deepEqual(context.previousMissingRequestedDetails,['opening time private_gap_label']);
+      return provider({supported:true,answersQuestion:true,missingRequestedDetails:original?[]:['opening time PRIVATE_GAP_LABEL'],
+        claims:[
+          {claim:'Verified staff contact guidance',supported:true,evidenceId:managedExcerpt.chunk_id,jsonPaths:['/content'],quotes:[]},
+          ...(original?[{claim:'Verified exhibition opening time',supported:true,evidenceId:original.id,jsonPaths:[],quotes:[noticeContent]}]:[]),
+        ]});
+    };
+    const answer=await invoke({question,history:[
+      {role:'user',content:'What are my attendance records at STU?'},
+      {role:'assistant',content:'PRIVATE_HISTORY_SENTINEL'},
+    ]},handler,'managed-original-page-'+mode,progress);
+    assert.deepEqual(pages,mode==='external-original'?[]:[officialDirectory],mode);
+    assert.equal(repairs,mode==='expanded'?1:0,mode);
+    assert.equal(reviews,mode==='expanded'?2:1,mode);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:reviews},mode);
+    assert.equal(answer.answer,mode==='expanded'?full:baseline,mode);
+    assert.equal(answer.citations.some(({chunkId}:{chunkId:string})=>chunkId===managedExcerpt.chunk_id),true,mode);
+    assert.equal(answer.citations.some(({chunkId,url}:{chunkId:string;url:string})=>chunkId!==managedExcerpt.chunk_id&&url===officialDirectory),mode==='expanded',mode);
+    assert.equal(answer.activity.some(({kind}:Progress)=>kind==='verification-kept-partial'),mode!=='expanded',mode);
+  }
+});
