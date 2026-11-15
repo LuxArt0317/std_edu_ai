@@ -84,9 +84,11 @@ saved local history, empty reads and restricted actions. Published survey
 windows, survey completion, eligibility, companion sources, caps and service
 failures retain their original evaluation requirements.
 
-### Original survey questions in scratch PostgreSQL
+### Original teaching-feedback questions in scratch PostgreSQL
 
-The five original cases for survey status, course completion, dates, phase comparison and Traditional Chinese status run through the actual assistant handler and migrated PostgreSQL function. A private in-memory database uses a test-process clock pinned to the authored midterm-open and final-scheduled interval. The replay checks exact RPC arguments, native response order, typed projection counts, caller and crossed-receipt ownership, the independent answer rubric, and unchanged stored rows. Model and network calls are forbidden by the test. Its verdict applies to these deterministic local checks.
+Twenty-six unchanged original cases run through the actual assistant handler and the migrated PostgreSQL RPC. These cover survey status, course completion, dates, phase comparison, Traditional Chinese, immediate status and timestamps, literal comments, survey exclusion, separate views, review status versus delivery, empty records, navigation, caller denials, and unsupported submissions. The harness pins its test-process clock inside the authored midterm-open and final-scheduled interval. It checks the exact caller-bound RPC requests, raw response order, typed projection counts and fields, the independent answer rubric, and unchanged stored rows. Model, external network, writes and public research are outside this replay.
+
+The remaining 14 original cases still need separate evidence. The signed-out handler provides a return link to the requested feedback page. The frozen anonymous case expects the bare login URL. Real PostgreSQL results for cap and failure variants, independent companion evidence for mixed subjects, and the other untouched cases retain their original evaluation requirements. These local runs do not establish deployed or live-provider results.
 
 Use a locally installed PGlite runtime entry. The test skips without the explicit path and never downloads a package.
 

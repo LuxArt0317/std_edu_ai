@@ -13,7 +13,7 @@ import {feeRemissionFields,feeRemissionPath} from './feeRemissionContract.js';
 import {healthExaminationPath,healthPageSize} from './healthExaminationContract.js';
 import {tutorEvaluationEvidenceMaxBytes,tutorEvaluationPath} from './tutorEvaluationContract.js';
 import {teachingFeedbackPaths} from './teachingFeedbackContract.js';
-import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence,teachingFeedbackSurveyPresentation} from './teachingFeedbackEvidenceIntent.js';
+import {teachingFeedbackImmediateFields,selectTeachingFeedbackEvidence,teachingFeedbackPairedStatus,teachingFeedbackReviewMeaning,teachingFeedbackSurveyPresentation} from './teachingFeedbackEvidenceIntent.js';
 import {validateTeachingFeedbackAnswerEvidence} from './teachingFeedbackAnswerEvidence.js';
 import {studentConductMaxRecords} from './studentConductContract.js';
 export const supplementalAnswerLimits=Object.freeze({answerCharacters:8000,resultBytes:24000,views:3,viewRows:12});
@@ -698,6 +698,7 @@ function literalRecordText(value){
   const fence='`'.repeat(Math.max(0,...(text.match(/`+/g)||[]).map(run=>run.length))+1);
   return `${fence} ${text} ${fence}`;
 }
+const teachingTimestamp=value=>value?.replace(/\+00:00$/u,'Z')??null;
 
 export function formatExactClearanceAnswer(result,question,refusal){
   if(result?.evidence?.id!=='account:graduationClearance')return null;
@@ -712,13 +713,13 @@ export function formatExactClearanceAnswer(result,question,refusal){
 }
 
 export function formatExactTeachingFeedbackAnswer(result,question,selected){
-  if(result?.evidence?.id!=='account:teachingFeedback'||selected?.views.length!==1
+  if(result?.evidence?.id!=='account:teachingFeedback'||!(selected?.views.length===1||selected?.views.length===2&&teachingFeedbackPairedStatus(selected.question))
     ||result.reason!==null||!['ok','empty'].includes(result.readState))return null;
   const {evidence,payload}=parse(result),actual=payload.selection,course=selected.course??null;
-  if(!payload.complete||!actual||actual.views.length!==1||actual.views[0]!==selected.views[0]
+  if(!payload.complete||!actual||actual.views.length!==selected.views.length||actual.views.some((view,index)=>view!==selected.views[index])
     ||actual.commentRequested!==selected.commentRequested||(actual.course===null)!==(course===null)
     ||course&&(!exact(actual.course,Object.keys(course))||Object.entries(course).some(([field,value])=>actual.course[field]!==value)))return null;
-  const survey=selected.views[0]==='survey'&&teachingFeedbackSurveyPresentation(selected.question);
+  const survey=selected.views.length===1&&selected.views[0]==='survey'&&teachingFeedbackSurveyPresentation(selected.question);
   if(survey){
     if(survey.kind==='comparison'&&result.surveyIdentityUnambiguous!==true)return null;
     return exactTeachingSurveyAnswer(evidence,payload,question,survey);
@@ -736,7 +737,6 @@ function exactTeachingSurveyAnswer(evidence,payload,question,scope){
   const title=t('Saved teaching evaluation','已儲存的教學評量');
   const phase=key=>key==='midterm'?t('Midterm','期中'):t('Final','期末');
   const done=value=>value?t('completed','已完成'):t('not completed','未完成');
-  const iso=value=>value.replace(/\+00:00$/u,'Z');
   const surveys=payload.views[0].surveys.filter(row=>scope.kind==='comparison'||!scope.phases.length||scope.phases.includes(row.phase));
   const lines=[t('These are your saved stu.best teaching evaluation records.','以下是你在 stu.best 已儲存的教學評量紀錄。')];
   let fields=[],rows=[];
@@ -767,7 +767,7 @@ function exactTeachingSurveyAnswer(evidence,payload,question,scope){
   }else if(scope.kind==='dates'){
     fields=[t('Phase','階段'),t('Term','學期'),t('Opens at','開放時間'),t('Closes at','截止時間')];
     for(const row of surveys){
-      const label=phase(row.phase),opens=iso(row.opensAt),closes=iso(row.closesAt),term=literalRecordText(row.term);
+      const label=phase(row.phase),opens=teachingTimestamp(row.opensAt),closes=teachingTimestamp(row.closesAt),term=literalRecordText(row.term);
       lines.push(`- ${term} · ${label} — ${fields[2]}: ${opens}; ${fields[3]}: ${closes}.`);
       rows.push([label,row.term,opens,closes]);
     }
@@ -1061,6 +1061,8 @@ function sectionFor(parsed,question,zh){
       submitted:t('submitted','已送出'),reviewed:t('reviewed','已檢閱')};
     const name=mode=>mode==='survey'?t('Teaching evaluation','教學評量'):t('Immediate teaching feedback','即時教學意見');
     const requested=teachingFeedbackImmediateFields(selectTeachingFeedbackEvidence(question)?.question??question);
+    const pairedStatus=p.views.length===2&&teachingFeedbackPairedStatus(question);
+    const reviewMeaning=teachingFeedbackReviewMeaning(question);
     let shownRows=0;
     for(const source of p.views){
       const label=name(source.view);
@@ -1070,9 +1072,11 @@ function sectionFor(parsed,question,zh){
         continue;
       }
       if(source.readState==='partial')section.lead.push(t('The retrieved records are incomplete. The omitted history remains unknown.','本次只查到部分紀錄，尚無法確認略去的歷史資料。'));
-      if(source.readState==='empty')section.lead.push(t(
-        p.selection.course?'No matching saved records were found for the selected course.':'No saved records were found in this view.',
-        p.selection.course?'未找到所選課程的已儲存紀錄。':'此類別尚無已儲存紀錄。'));
+      if(source.readState==='empty')section.lead.push(p.selection.course
+        ?t('No matching saved records were found for the selected course.','未找到所選課程的已儲存紀錄。')
+        :source.view==='survey'
+          ?t('No saved records were found. There are no applicable saved surveys for your courses.','未找到已儲存的紀錄。你的課程沒有適用的已儲存問卷。')
+          :t('No saved records were found in this immediate feedback view.','此即時教學意見類別尚無已儲存紀錄。'));
       if(source.view==='survey'){
         const count=source.counts.surveys;
         section.lead.push(t(`Surveys returned: ${count.returned}. `+(count.total===null?'The total is unknown.':''),`已查回問卷：${count.returned} 份。`+(count.total===null?'總數未知。':'')));
@@ -1080,7 +1084,8 @@ function sectionFor(parsed,question,zh){
         for(const survey of source.surveys){
           const phase=survey.phase==='midterm'?t('Midterm','期中'):t('Final','期末');
           group(t('Questionnaire','問卷'),survey.term+' · '+phase);
-          item(t('Saved window status','儲存的開放狀態'),status[survey.state]);
+          item(pairedStatus?t('State','狀態'):t('Saved window status','儲存的開放狀態'),status[survey.state]);
+          if(pairedStatus)continue;
           item(t('Opens at','開放時間'),survey.opensAt);
           item(t('Closes at','截止時間'),survey.closesAt);
           for(const course of survey.courses){
@@ -1106,15 +1111,18 @@ function sectionFor(parsed,question,zh){
         }
         if(!requested.feedback)continue;
         if(!source.counts.feedback.matching&&(source.readState==='ok'||source.readState==='empty'))
-          section.lead.push(t('No saved immediate feedback matched this lookup.','這次查詢沒有符合的已儲存即時教學意見。'));
+          section.lead.push(t('No saved immediate teaching feedback matched this lookup.','這次查詢沒有符合的已儲存即時教學意見。'));
+        if(reviewMeaning)section.lead.push(t(
+          'A saved reviewed status does not establish that your teacher read the feedback or changed the lesson.',
+          '已儲存的檢閱狀態無法確認老師曾閱讀意見或調整課程。'));
         for(const feedback of source.feedback){
           const courseLabel=feedback.code+' '+feedback.course;
           group(t('Saved immediate feedback','儲存的即時教學意見'),courseLabel+' · '+feedback.term);
           item(t('Saved status','儲存狀態'),status[feedback.status]);
-          item(t('Submitted at','送出時間'),feedback.submittedAt);
-          item(t('Reviewed at','檢閱時間'),feedback.reviewedAt);
+          item(t('Submitted at','送出時間'),teachingTimestamp(feedback.submittedAt));
+          item(t('Reviewed at','檢閱時間'),teachingTimestamp(feedback.reviewedAt));
           if(Object.hasOwn(feedback,'comment'))item(t('Saved comment','儲存的意見'),feedback.comment,false,2000);
-          if(feedback.status==='reviewed'&&/delivered|teacher read|teacher saw|送達|老師.{0,6}(?:閱讀|看過)/iu.test(question))
+          if(feedback.status==='reviewed'&&!reviewMeaning&&/delivered|teacher read|teacher saw|送達|老師.{0,6}(?:閱讀|看過)/iu.test(question))
             section.lead.push(t('The saved review status does not show whether the teacher read it.','已儲存的檢閱狀態無法確認老師是否已讀。'));
           section.viewCandidates.push(row(label,courseLabel,feedback.term,status[feedback.status]));
           shownRows++;

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
+import {readTeachingFeedbackEvidence} from '../../server/accountTeachingFeedbackEvidence.js';
 import {createTeachingProbe,openTeachingObservation,teachingObservationHeader,verifyTeachingObservation} from '../../server/teachingFeedbackObservation.js';
 import {buildTeachingSampleFixture,expectedTeachingSampleDto} from './teaching-feedback-sample-fixture.mjs';
 import {requestTeachingSampleCase,teachingSampleCases} from './teaching-feedback-sample-hosted.mjs';
@@ -147,6 +148,26 @@ test('every additional sample prompt uses the actual protected assistant handler
       assert.match(answer.answer,/SAMP101[\s\S]+SAMP102/u);
       assert.doesNotMatch(answer.answer,/Sample evaluation note/u);
     }
+
+    const pairedRequest={...request,question:'Show my teaching evaluation window status and immediate teaching feedback status separately.'};
+    const paired=createTeachingProbe({ownerId:owners.A.id,nonce:randomUUID(),runId,origin,sourceRevision},pairedRequest,key);
+    sent=[];
+    const pairedResponse=await fetchImpl(endpoint,post(paired.body));
+    const pairedAnswer=await pairedResponse.json();
+    const pairedProof=verifyTeachingObservation({receipt:pairedResponse.headers.get(teachingObservationHeader),binding:paired.binding,
+      correlationId:pairedResponse.headers.get('x-assistant-request-id'),body:pairedAnswer},key);
+    assert.equal(pairedProof?.verificationMethod,'native-exact');
+    assert.deepEqual(sent,['survey','immediate']);
+    assert.deepEqual(pairedProof.attempts[0].reads.map(read=>read.view),sent);
+    assert.deepEqual(pairedProof.modelOperations,[]);
+
+    const partial=openTeachingObservation({body:paired.body,identity:{...owners.A,runMarker:runId},correlationId:randomUUID()},env);
+    assert.ok(partial);
+    await partial.observe(dependency=>readTeachingFeedbackEvidence({
+      user:owners.A,url:db,key:'synthetic-publishable-key',token:tokens.A,
+    },{views:['survey']},{...dependency,read:async()=>expectedTeachingSampleDto(plan,'A','survey')}));
+    partial.nativeCheckCompleted();
+    assert.equal(partial.finish(pairedAnswer,true),null);
   }finally{
     globalThis.fetch=original;
     for(const [name,value] of Object.entries(previous)){

@@ -5,7 +5,7 @@ export function teachingFeedbackGuide(question,{views=[],navigation=null,reason=
   const zh=/[\p{Script=Han}]/u.test(question);
   const t=(en,zhText)=>zh?zhText:en;
   const result={status:'handoff',answer:'',citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
-  if(reason==='foreign_request')return {...result,answer:t('I can check teaching feedback saved to your own stu.best account. I can’t show another student’s records.','我可以查詢你自己的 stu.best 教學意見紀錄，無法查看其他學生的紀錄。')};
+  if(reason==='foreign_request')return {...result,answer:t('I can check teaching feedback saved to your own stu.best account. I can’t show another student’s records.','你可以查詢自己的 stu.best 教學意見。這裡沒有其他帳號的存取權限，因此無法查看其他學生的紀錄。')};
   if(excluded)return {...result,answer:t('I skipped the teaching feedback records you asked me to leave out.','已略過你要求不要查詢的教學意見紀錄。')};
   const navigationViews=Array.isArray(navigation)?navigation:navigation?[navigation]:[];
   const selected=Array.from(new Set(navigationViews.length?navigationViews:views)).filter(view=>Object.hasOwn(teachingFeedbackPaths,view));
@@ -19,13 +19,13 @@ export function teachingFeedbackGuide(question,{views=[],navigation=null,reason=
     return {chunkId:'directory:teaching-feedback-'+view,title,url,claim:title,sourceName:'School Affairs',locator:null,effectiveAt:null,reviewedAt:null};
   });
   const detail=reason==='unsupported_operation'
-    ?t('Open the School Affairs form to submit your response. No submission was made.','請在校務系統表單送出你的回應。目前尚未送出。')
+    ?t('I cannot submit your teaching feedback here. No submission was made. Open the School Affairs form to send your response.','我無法提交你的教學意見。請在校務系統表單送出你的回應。')
     :reason==='invalid_route'
       ?t('Open your own School Affairs teaching feedback page and ask again.','請開啟你自己的校務教學意見頁面後再詢問。')
       :reason==='ambiguous_selector'
         ?t('Which saved course or questionnaire do you mean? Send the exact course code or title.','請提供要查詢的課程代碼或課程名稱。')
         :reason==='outside_scope'
-          ?t('The questionnaire can show your saved completion status. Anonymous ratings, questionnaire responses and staff results are unavailable here.','可查看你自己的問卷完成狀態。匿名評分、填答內容和教職員統計無法在此查詢。')
+          ?t('You can see your own questionnaire completion status. Anonymous responses are unavailable for individual lookup, and students cannot access administrator results.','你可以查看自己的問卷完成狀態。無法查詢個別匿名填答，學生也無法存取管理員的統計結果。')
           :'';
   const answer=[detail,...citations.map(({title,url})=>'['+title+']('+url+')')].filter(Boolean).join('\n\n');
   return {...result,status:navigationViews.length?'answered':reason==='ambiguous_selector'?'clarification':'handoff',
