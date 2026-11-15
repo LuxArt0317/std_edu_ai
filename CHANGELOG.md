@@ -22,6 +22,7 @@
 - Route private tracking note links to their local service pages and give an explicit handoff when a chat request combines editing a note with submitting it. [#100]
 - Keep injury reports, Student Health equipment, rental reporting and group-insurance questions on their School Affairs pages. Treat school outcomes separately from private notes. [#100]
 - Route direct tuition payment requests to the pending-fees page with a clear capability limit and no account record lookup. [#100]
+- Add a signed-in payment history page for dated tuition payments and reversals, with date filters and a separate notice for undated amounts. [#100]
 
 - Verify direct saved-note answers from the exact scoped records and keep each note title, text and tracking status together. [#100]
 - Add a protected Preview evaluator for 18 caller-owned Student Leave questions, with signed native read, completed provider review and response proofs. [#100]

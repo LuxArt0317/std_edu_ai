@@ -7,6 +7,8 @@ import { healthExaminationPath } from '../../../../server/healthExaminationContr
 import { aidPaymentsMaxPage,aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
 import { elearningCatalogPageRoute } from '../../../../server/elearningCatalogPageIntent.js';
 import { clubAttendancePath, clubAttendancePagePattern } from '../../../../server/clubAttendanceIntent.js';
+import {chargePaymentHistoryPath} from '../../../../server/chargePaymentContract.js';
+import {chargePaymentHistorySelection,chargePaymentHistoryUrl} from './chargePaymentHistoryRoute';
 import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
@@ -20,6 +22,10 @@ export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs
   if(value?.startsWith('/elearning/')){
     const catalog=elearningCatalogPageRoute(value);
     if(catalog)return catalog.path;
+  }
+  if(value?.startsWith(chargePaymentHistoryPath+'?')&&value.length<=240&&!value.includes('#')){
+    const selection=chargePaymentHistorySelection(new URLSearchParams(value.slice(chargePaymentHistoryPath.length+1)));
+    if(selection)return chargePaymentHistoryUrl(selection);
   }
   if(value?.includes('?')){
     const [path,query]=value.split('?');

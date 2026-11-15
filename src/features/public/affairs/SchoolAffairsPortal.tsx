@@ -112,6 +112,8 @@ import { SyllabusSearchRoute } from "./SyllabusSearchWorkspace";
 import { syllabusSearchPath } from "@/services/syllabusSearchClient";
 import { HousingWorkspace } from "./HousingWorkspace";
 import { PendingFees } from "./PendingFees";
+import { ChargePaymentHistory } from "./ChargePaymentHistory";
+import { chargePaymentHistoryPath } from "../../../../server/chargePaymentContract.js";
 import { CreditLoadHistory } from "./CreditLoadHistory";
 import { CourseSelection } from "./CourseSelection";
 import { CreditLoadApplication } from "./CreditLoadApplication";
@@ -681,6 +683,7 @@ export default function SchoolAffairsPortal({user}: {user: User}) {
   if (servicePage && route[1] === "11-3") {
     return <CreditLoadHistory key={pathname} userId={user.id} />;
   }
+  if (normalizedPath === chargePaymentHistoryPath) return <ChargePaymentHistory userId={user.id} />;
   if (servicePage && route[1] === "39-1") {
     return <PendingFees key={pathname} userId={user.id} />;
   }

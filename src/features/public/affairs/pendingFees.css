@@ -57,3 +57,31 @@
   .pending-fees-nav { padding-inline:6.5px; }
   .pending-fees-footer { min-height:13px; }
 }
+.pending-fees-history-link { text-decoration:underline; text-underline-offset:.15em; }
+.pending-fees-history-link[aria-current="page"] { background:#00517a; }
+.pending-fees-history .pending-fees-brand { background:#737373; }
+.pending-fees-history .pending-fees-breadcrumb>.pending-fees-current { color:#393939; }
+.pending-fees-history .pending-fees-heading { margin-bottom:19.5px; }
+.pending-fees-history .pending-fees-main { margin-bottom:19.5px; }
+.payment-history-filters { display:flex; flex-wrap:wrap; align-items:end; gap:8px 13px; margin-bottom:16px; }
+.payment-history-filters label { display:flex; flex-direction:column; min-width:0; }
+.payment-history-filters label>span { color:#555; }
+.payment-history-filters input,.payment-history-filters button { min-height:34px; padding:4px 8px; border:1px solid #797979; border-radius:2px; font:inherit; color:#393939; background:#fff; }
+.payment-history-filters button { background:#01546a; border-color:#01546a; color:#fff; cursor:pointer; }
+.payment-history-filters a { align-self:end; padding:7px 0; }
+.pending-fees-history :is(.payment-history-filters,.payment-history-pages,.pending-fees-empty) a { color:#245c97; text-decoration:underline; }
+.pending-fees-history :is(a,button,input,[tabindex]):focus-visible { outline:2px solid #245c97; outline-offset:2px; }
+.payment-history-undated { padding:8px 10px; border-left:3px solid #a16b11; background:#fff9ec; }
+.pending-fees-history .pending-fees-table-wrap table { min-width:365px; }
+.pending-fees-history .pending-fees-table-wrap th:nth-child(1) { width:7rem; }
+.pending-fees-history .pending-fees-table-wrap th:nth-child(3) { width:8rem; }
+.pending-fees-history .pending-fees-table-wrap th:nth-child(4) { width:7rem; }
+.pending-fees-history .pending-fees-table-wrap td.pending-fees-amount { white-space:normal; }
+.payment-history-category { display:block; color:#555; margin-top:2px; }
+.payment-history-reversal { color:#8c2020; }
+.payment-history-pages { display:flex; flex-wrap:wrap; align-items:center; gap:6.5px 13px; margin:10px 0; }
+@media(max-width:575px) {
+  .pending-fees-history .pending-fees-table-wrap th:nth-child(1) { width:6rem; }
+  .pending-fees-history .pending-fees-table-wrap th:nth-child(3) { width:6.5rem; }
+  .pending-fees-history .pending-fees-table-wrap th:nth-child(4) { width:5.5rem; }
+}

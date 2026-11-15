@@ -46,6 +46,8 @@ The signed-in index follows the university's notice and menu layout. **請假填
 
 `/services/39-1` has the measured eight-column pending-fees table with stored occurrence date, category, contact and payment units. Positive outstanding balances remain read-only; manager edits use the existing audited charge RPC. `/services/11-3` has the measured six-column credit-load history with account-owned records and a versioned admin editor. The open-period7-1 application is not implemented by this history page.
 
+`/services/39-1/payment-history` shows signed-in students their saved dated payments and reversals. The pending fee menu links to it. Inclusive dates and pagination use the scoped payment-history endpoint, and an undated amount notice appears only when the account read returns that flag.
+
 `/services/11-1` and `/services/11-2` use separate academic-year/semester/selection-phase snapshots. The source-shaped query form displays seven history columns or all fourteen weekly periods, including multiple meetings and unscheduled courses. Administrators explicitly maintain timetable membership; source remarks are preserved without deriving selection success from them. Legacy assistant enrollment citations to `/records` now reach the portal index; this presentation change does not alter the assistant's stored evidence or paused evaluation work.
 
 `/services/6-1` reads the dated initial-selection schedule and opens a separate `/fees` notice. The final control shows the observed return-to-portal behavior. The open enrollment form was unavailable. Previously saved notes remain at `/services/6-1/notes`. See [initial selection QA](../../../../docs/qa/FIRST_SELECTION.md).
