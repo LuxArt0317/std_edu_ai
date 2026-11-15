@@ -8,6 +8,7 @@ import {venueProtectedFixtureMode} from './venue-protected-fixture.mjs';
 import {facilityRepairCancellationMode} from './facility-repair-cancellation-preview.mjs';
 import {internshipFixtureMode} from './internship-native-fixture.mjs';
 import {dtmTimingFixtureMode} from './dtm-submission-timing-preview.mjs';
+import {dtmMaterialPreviewMode} from './dtm-material-preview.mjs';
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
@@ -144,7 +145,7 @@ function harness({badSeed=false,extraSeed=false,feeWrongOwner=false,commitUncert
       assert.ok(ledger().identityRequests.some(row=>row.id===id&&row.runId===runId));identities.delete(id);profiles.delete(id);
       for(const [key,row]of students)if(row.user_id===id)students.delete(key);events.push({kind:'auth-delete',id});return {error:null};},
   }}};
-  const dependencies={venueProtectedFixtureMode,facilityRepairCancellationMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,ROOT:root,PROJECT:project,PRIVATE_DIR:privateDir,UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu,
+  const dependencies={venueProtectedFixtureMode,facilityRepairCancellationMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,ROOT:root,PROJECT:project,PRIVATE_DIR:privateDir,UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/iu,
     LiveFixtureError,fail,resolve,URL,process:{cwd:()=>root},randomBytes,randomUUID,attachFixtureSession,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest,ownTables:[],
     readProtectedOwnerFingerprint:async()=>{events.push({kind:'protected-owner'});return fingerprint();},
     readFile:async path=>{if(path===root+'/deployment.json')return JSON.stringify({repository:'LuxArt0317/std_edu_ai',supabase:{projectRef:project,ownerEmail:'protected@example.invalid'},vercel:{productionUrl:'https://stu.best'}});
