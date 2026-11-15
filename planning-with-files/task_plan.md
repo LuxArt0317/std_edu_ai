@@ -878,3 +878,6 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Allow a deeper check for the same archived page, with a regression proving identical capture contents and no web search.
 - [x] Replay five public queries on protected `6f9fb5e`, including the captured student page and a fresh evidence read after a rejected storage draft.
 - [ ] Complete broader protected acceptance before promotion. The public manifest still serves `076c79a`.
+
+- [ ] Require the archived-page answer to summarize requested content from the same capture and independently grade it.
+- [ ] Preserve a specific sign-in-required school lead when its contents are unavailable, and check whether verified partial answers can make useful progress on another eligible public source.
