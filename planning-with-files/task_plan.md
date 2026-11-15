@@ -846,6 +846,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [ ] Verify the hosted finance manager path using an approved synthetic manager identity.
 - [x] Verify scoped club equipment reads and exact confirmed cancellation locally through the assistant, including zero pre-confirmation writes and a stable retry ID.
 - [ ] Complete the protected equipment read and cancellation replays with independent record readback and fixture cleanup.
+- [x] Verify exact Moodle submission timing locally, including prior deadline, date boundaries and ambiguous revision questions.
+- [ ] Replay signed-in Moodle submission timing on the protected deployment.
 
 - [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
 - [x] Journal request and conversation commitments and reconcile disposable account cleanup.
@@ -857,8 +859,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the six signed-in Digital Academy category and notice cases with trusted hosted readbacks on `9e43792`.
 - [x] Execute the four exact prompts on the previous protected baseline, read back every saved reply and verify the scoped fixture cleanup.
 - [x] Repair the current-course and year response, preserve fee source labels, and recover useful record-free interview guidance in the combined local candidate.
-- [ ] Execute the exact protected candidate with real model responses and automatic fixture cleanup.
-- [ ] Record independent helpfulness decisions and resolve failures before progressing to full-suite acceptance.
+- [x] Execute the exact protected candidate with real model responses and automatic fixture cleanup.
+- [x] Grade all four exact protected `da77afd` replies. Both separate reviewers and automated rubrics passed.
+- [ ] Complete remaining full-suite protected acceptance before release.
 
 - [x] Add semantic coverage for School Affairs keyword search and General Affairs input and query menu context.
 - [ ] Validate the remaining menu detail and authorized record routes.

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer whether the selected Moodle submission was late using the saved submission time and the deadline recorded with that upload. [#100]
+
 - Keep looking after a failed public source read when an unread lead or retry can still fit the deadline. Recheck questions about archived pages against the same capture. [#100]
 
 - Review and confirm an exact saved club equipment cancellation in the School Affairs assistant. The chat verifies the revision and receipt before showing the updated record. [#100]

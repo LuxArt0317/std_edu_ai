@@ -918,3 +918,10 @@ conversation on `da77afd` before leasing the fixture database to the club
 read operator. Club equipment cancellation reuses the existing owner-scoped
 RPC and only writes after the user confirms an exact request revision. Local
 HTTP and the Chromium confirmation and retry checks pass.
+
+The exact four-turn `da77afd` run passed 4/4 after separately bound overview
+and interview reviews. All four saved replies, 13 pinned requests and exact
+disposal passed. Combined protected `6f9fb5e` includes the failed public lead
+recovery, captured-page recheck, exact club action, and native Moodle timing.
+Keep the disposable club read replay serialized. Public production was
+reverified at `076c79a`.
