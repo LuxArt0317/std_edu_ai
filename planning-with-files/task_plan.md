@@ -258,6 +258,7 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Prevent an in-flight first save from recreating a deleted conversation and verify both transaction orderings in scratch PostgreSQL.
 - [x] Verify an already open legacy browser tab through the upgraded API and a simulated database cutover.
 - [ ] Apply the conversation migration after client preflight and verify the deployed save/delete behavior.
+- [ ] Run the UUIDv7 conversation replay on the protected compiler-corrected Preview and check the legacy conversation protocol during coexistence.
 - [x] Replace the venue history shortcut with a caller-scoped reader and LangGraph verification.
 - [x] Check venue history and tuition independently when a question uses both sources.
 - [ ] Bind venue history live fixtures and complete remaining venue compound questions.
