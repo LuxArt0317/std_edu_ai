@@ -5,6 +5,7 @@ import {createResearchAssistantHandler} from '../../server/researchAssistantHand
 import {aidPaymentsFields,aidPaymentsPaths} from '../../server/aidPaymentsContract.js';
 import {planAccountLookup} from '../../server/answerVerificationAccount.js';
 import {buildAccountCases} from '../evaluation/account-cases.mjs';
+import {buildServiceCases} from '../evaluation/service-cases.mjs';
 import {aidPaymentFixtureManifest} from '../evaluation/aid-payment-fixture-plan.mjs';
 import {gradeCase} from '../evaluation/grading.mjs';
 
@@ -74,6 +75,20 @@ test('the actual handler passes the independent period, net pay, tax, bank and a
       ]);
       if(id==='both')assert.deepEqual(body.views.map((view:{columns:string[]})=>view.columns),[['Reason'],['Saved period','Net pay']]);
     }
+    const claimCases=buildServiceCases().filter(row=>row.serviceId==='37-1'&&row.mode!=='navigation');
+    for(const testCase of claimCases){
+      empty=testCase.mode==='empty';
+      const events:unknown[]=[],before=calls.length;
+      const body=await ask(testCase.question,{handler,route:testCase.route,events});
+      const {requireUnchangedOwnedRecords:_hostedReadback,...expected}=testCase.expected;
+      const result=gradeCase({...testCase,expected},{statusCode:200,execution:'deterministic',fixtureKey:testCase.fixtureKey,events,body});
+      assert.deepEqual(result.failures,[],JSON.stringify({id:testCase.id,answer:body.answer}));
+      assert.deepEqual(calls.slice(before),['claims'],testCase.id);
+    }
+    const navigation=buildServiceCases().find(row=>row.id==='service:37-1:navigation')!;
+    const before=calls.length,body=await ask(navigation.question,{handler,route:navigation.route});
+    assert.equal(body.citations[0].url,aidPaymentsPaths.claims);
+    assert.equal(calls.length,before);
   }finally{globalThis.fetch=original;}
 });
 

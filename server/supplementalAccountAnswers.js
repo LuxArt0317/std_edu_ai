@@ -791,9 +791,8 @@ export function formatExactDtmGradeAnswer(result,question){
   return answer.length<=supplementalAnswerLimits.answerCharacters&&bytes(candidate)<=supplementalAnswerLimits.resultBytes?candidate:null;
 }
 
-// Report an exact projection for ordinary period, net pay and tax queries.
-// Questions about a named time range or other payroll fields still need the
-// regular evidence composer, since this view selects pages rather than dates.
+// Report exact requested payroll and claim columns from the selected page.
+// The regular composer still handles named time ranges and other fields.
 export function formatRequestedAidPaymentDetails(result,question,selection){
   const {id,payload}=parse(result);
   if(id!=='account:aidPayments'||!selection||selection.reason||!payload.views.length
@@ -806,13 +805,18 @@ export function formatRequestedAidPaymentDetails(result,question,selection){
   const net=/\bnet (?:pay|amounts?|salary|earnings)\b|淨額|實領/iu.test(text);
   const period=/\b(?:periods?|dates?)\b|給付期間|給付起迄/iu.test(text);
   const reason=/\breason\b|事由|原因/iu.test(text);
+  const claimAmount=/\bamounts?\b|請領金額|請款金額/iu.test(text);
+  const claimResult=/\b(?:signature|approval|review) result\b|簽核結果/iu.test(text);
+  const claimStatus=/\b(?:unit approval status|approval status|review status)\b|各單位簽核狀態|簽核狀態/iu.test(text);
   const count=/\b(?:how many|record count|number of)\b|幾筆|筆數/iu.test(text);
   const zeroOrMissing=tax&&/\b(?:zero tax|no tax value|missing tax)\b|零稅|沒有稅額|未記錄稅額/iu.test(text)&&/\b(?:which|list)\b|哪些|列出/iu.test(text);
-  const narrow=/\b(?:current|latest|earliest|before|between|after|today|yesterday|last month|this month|last year|this year|January|February|March|April|May|June|July|August|September|October|November|December|gross|subtotal|deductions?|rate|contribution|units?|average|sum|total net|currency|bank suffix)\b|最新|最早|上月|本月|去年|今年|小計|扣款|提繳|加總|幣別|銀行末碼|\b20\d{2}\b/iu.test(text);
+  const narrow=/\b(?:current|latest|earliest|before|between|after|today|yesterday|last month|this month|last year|this year|January|February|March|April|May|June|July|August|September|October|November|December|gross|subtotal|deductions?|rate|contribution|units?|average|sum|total net|currency|bank suffix)\b|最新|最早|上月|本月|去年|今年|小計|扣款|提繳|加總|幣別|銀行末碼|\b20\d{2}\b/iu.test(text.replace(/\bunit approval status\b/giu,''));
   const hasClaims=payload.selection.views.includes('claims');
+  const claimOutcome=/\b(?:was it approved|did they approve|(?:how much|amount)\b.{0,24}\b(?:received|paid|approved)|paid amount|approved amount)\b|實際給付|實際入帳|核准金額/iu.test(text);
+  const exactClaimFields=hasClaims&&payload.selection.views.length===1&&!tax&&!net&&!period&&!claimOutcome&&(reason||claimAmount||claimResult||claimStatus);
   if(bank&&(payload.selection.views.length!==1||tax||net||period))return null;
-  if(!bank&&payload.readState!=='empty'&&(narrow||(!tax&&!net&&!period)
-    ||hasClaims&&(!reason||/\b(?:approval|claim amount|approved|status)\b|簽核|請領金額/iu.test(text))))return null;
+  if(!bank&&payload.readState!=='empty'&&(narrow||!exactClaimFields&&((!tax&&!net&&!period)
+    ||hasClaims&&(!reason||/\b(?:approval|claim amount|approved|status)\b|簽核|請領金額/iu.test(text)))))return null;
   const citations=payload.views.map(({view,url})=>{
     const title=view==='salary'?t('Student salary records','學生薪資紀錄'):t('Student aid claims','助學請款紀錄');
     return {chunkId:id,claim:title,title,sourceName:'School Affairs',url,locator:null,effectiveAt:null,reviewedAt:null};
@@ -831,13 +835,15 @@ export function formatRequestedAidPaymentDetails(result,question,selection){
       const rows=view.records.filter(row=>!salary||!zeroOrMissing||row.tax===0||row.tax===null);
       const fields=salary?[
         ['payment_period',t('Saved period','已儲存期間')],...(tax?[['tax',t('Tax','所得稅')]]:[]),...(net?[['net',t('Net pay','淨額')]]:[]),
-      ]:[['reason',t('Reason','事由')]];
+      ]:[...(reason?[['reason',t('Reason','事由')]]:[]),...(exactClaimFields&&claimAmount?[['amount',t('Claim amount','請領金額')]]:[]),
+        ...(exactClaimFields&&claimResult?[['approval_result',t('Approval result','簽核結果')]]:[]),
+        ...(exactClaimFields&&claimStatus?[['approval_status',t('Unit approval status','各單位簽核狀態')]]:[])];
       const cell=value=>Array.from(value===null?t('not recorded','未記錄'):String(value)).slice(0,160).join('');
       if(rows.length)views.push({id:`aidPayments:${view.view}`,title:name,url:view.url,columns:fields.map(([,label])=>label),
         rows:rows.slice(0,supplementalAnswerLimits.viewRows).map(row=>fields.map(([key])=>cell(row[key]))),
         total:rows.length,checkedAt:payload.checkedAt,note:t(`Matching saved rows included from page ${view.page}.`,`第 ${view.page} 頁納入的相符紀錄。`)});
       const lines=rows.map(row=>{
-        if(!salary)return `- ${t('Reason','事由')}: ${format(row.reason)}`;
+        if(!salary)return '- '+fields.map(([key,label])=>`${label}: ${format(row[key])}`).join('. ');
         const details=fields.slice(1).map(([key,label])=>`${label}: ${format(row[key])}`);
         return `- ${format(row.payment_period)}${details.length?' — '+details.join('. '):''}`;
       });
