@@ -12,6 +12,7 @@ const categories=new Set([
   'save message shape mismatch','save answer mismatch','save verification mismatch','save no completed activity',
   'save activity mismatch','save terminal activity mismatch','save fixture owner mismatch','save reserved row already present',
   'save journal write failed','save receipt not journaled','save receipt mismatch',
+  'egress observation limit','invalid certificate response',
 ]);
 const codes=new Set([...categories].map(category=>category.toLowerCase().replaceAll(' ','-')));
 const paths=new Set(['/api/affairs-data','/api/affairs-assistant','/api/affairs-conversations']);

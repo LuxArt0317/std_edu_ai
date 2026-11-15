@@ -1,10 +1,10 @@
 import {load} from 'cheerio';
 import ts from 'typescript';
 import {createPinnedDeploymentVerifier} from './pinned-deployment.mjs';
-import {validateProtectedConversationBrowserResources} from './vercel-preview-browser-transport.mjs';
+import {certificateBrowserHeading,certificateBrowserProfile,validateProtectedConversationBrowserResources} from './vercel-preview-browser-transport.mjs';
 import {isEvaluationPreviewOrigin} from './vercel-preview-transport.mjs';
+import {certificateAwardPath} from '../../server/certificateAwardsContract.js';
 
-const shell='/dtm';
 const assetLimit=256, fileLimit=4_000_000, totalLimit=24_000_000;
 const generated=/^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css)$/u;
 const publicMedia=/^\/(?:assets|dtm-theme|school-assets|stu-reference)\/[a-zA-Z0-9._/-]+\.(?:woff2?|ttf|png|jpe?g|webp|gif|svg|avif)$/iu;
@@ -13,13 +13,14 @@ const validTypes={
   js:/^(?:application|text)\/(?:java|ecma)script(?:\s*;|$)/iu,
   css:/^text\/css(?:\s*;|$)/iu,
 };
-// From the DTM home and assistant flow. Other route branches are not executed.
-const lazyEdges=new Set([
-  'index:PublicSite','PublicSite:DigitalMaterials','DigitalMaterials:authClient',
-  'useAffairsRecords:authClient','researchAssistant:supabase',
+// Select only the lazy entry for the fixed page and its assistant/auth dependencies.
+const browserAssetsProfiles=new Map([
+  ['dtm',{shell:'/dtm',requiredEdges:['index:PublicSite','PublicSite:DigitalMaterials'],
+    extraEdges:['DigitalMaterials:authClient','useAffairsRecords:authClient','researchAssistant:supabase'],
+    homeMedia:['/dtm-theme/page.svg','/dtm-theme/url.svg','/dtm-theme/user-small.png']}],
+  [certificateBrowserProfile,{shell:certificateAwardPath,requiredEdges:['index:PublicSite','PublicSite:SchoolAffairsEntry'],
+    extraEdges:['useAffairsRecords:authClient','researchAssistant:supabase'],homeMedia:[certificateBrowserHeading]}],
 ]);
-const requiredEdges=['index:PublicSite','PublicSite:DigitalMaterials'];
-const homeMedia=['/dtm-theme/page.svg','/dtm-theme/url.svg','/dtm-theme/user-small.png'];
 class AssetDiscoveryError extends Error{
   constructor(reason){super('Protected browser assets: '+reason+'.');}
 }
@@ -77,7 +78,7 @@ function preloadMap(tree){
   return tables[0].map(item=>item.text);
 }
 
-function javascriptAssets(source,file,origin,add,seenEdges){
+function javascriptAssets(source,file,origin,add,seenEdges,lazyEdges){
   const tree=ts.createSourceFile(file,source,ts.ScriptTarget.ESNext,true,ts.ScriptKind.JS);
   check(tree.parseDiagnostics.length===0,'invalid compiled JavaScript');
   let map;
@@ -168,9 +169,12 @@ async function textResource(fetchImpl,origin,path,type,signal,charge){
 
 /** Discover paths from the actual pinned build. This module reads no credentials
  * and has no default network, file-write, browser, or fixture behavior. */
-export async function deriveProtectedConversationBrowserAssets({origin,approvedPreviewOrigin,revision,fetchImpl,signal}={}){
+export async function deriveProtectedConversationBrowserAssets({origin,approvedPreviewOrigin,revision,fetchImpl,signal,profile='dtm'}={}){
   check(isEvaluationPreviewOrigin(origin)&&approvedPreviewOrigin===origin&&typeof fetchImpl==='function'
     &&(signal===undefined||signal instanceof AbortSignal),'invalid discovery target');
+  const settings=browserAssetsProfiles.get(profile);
+  check(settings,'invalid discovery target');
+  const {shell,requiredEdges,extraEdges,homeMedia}=settings,lazyEdges=new Set([...requiredEdges,...extraEdges]);
   const budget=AbortSignal.timeout(45_000);
   const active=signal?AbortSignal.any([signal,budget]):budget;
   const pin=createPinnedDeploymentVerifier({origin,approvedPreviewOrigin,expectedRevision:revision,fetchImpl,signal:active});
@@ -193,11 +197,11 @@ export async function deriveProtectedConversationBrowserAssets({origin,approvedP
   for(let index=0;index<pending.length;index++){
     const file=pending[index],type=file.endsWith('.js')?'js':'css';
     const source=await textResource(fetchImpl,origin,file,type,active,charge);
-    if(type==='js')javascriptAssets(source,file,origin,add,seenEdges);
+    if(type==='js')javascriptAssets(source,file,origin,add,seenEdges,lazyEdges);
     else stylesheetAssets(source,file,origin,add,record);
   }
-  check(requiredEdges.every(edge=>seenEdges.has(edge)),'missing required DTM route');
-  validateProtectedConversationBrowserResources({origin,assets:[...assets]});
+  check(requiredEdges.every(edge=>seenEdges.has(edge)),profile==='dtm'?'missing required DTM route':'missing required certificate route');
+  validateProtectedConversationBrowserResources({origin,assets:[...assets],profile});
   await pin.finish();
   return {revision,assets:[...assets].sort()};
 }

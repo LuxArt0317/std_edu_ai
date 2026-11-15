@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import test from 'node:test';
 import {newConversationId} from '../../src/services/assistantConversationId.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
-import {createProtectedConversationBrowserRelay} from './vercel-preview-browser-transport.mjs';
+import {certificateBrowserHeading,certificateBrowserProfile,createProtectedConversationBrowserRelay} from './vercel-preview-browser-transport.mjs';
 import {previewTrustedHeader} from './vercel-preview-transport.mjs';
 import {ProtectedBrowserDiagnostic} from './protected-browser-diagnostics.mjs';
 
@@ -44,6 +44,110 @@ function harness({respond,authorizeSave=async()=>true,verifyPin,readToken=()=>jw
     },...overrides};
   return {...createProtectedConversationBrowserRelay(config),calls,authorized,events};
 }
+
+const certificateRoute='/school-affairs/services/52-1';
+const certificateBootstrap='/api/affairs-data?scope=certificate-awards&view=mine';
+const certificateAnswer=certificateBootstrap+'&answer=en';
+const certificateCompound=certificateAnswer+'&bank_receipt=requested';
+const certificateQuestion='What is the status of my professional certificate subsidy application?';
+const certificateCompoundQuestion=certificateQuestion+' Also tell me whether its payout has reached my bank.';
+const certificateGet=(path,actor=ownerId,route=certificateRoute)=>({...get(path,ownedHeaders(actor)),frameUrl:origin+route});
+const directAnswer={...answer,grounding:{source:'account',webSearched:false}};
+function certificateHarness(overrides={}){
+  return harness({profile:certificateBrowserProfile,assets:[assets[0],certificateBrowserHeading],
+    respond:url=>{
+      if(url.pathname==='/api/affairs-conversations')return Response.json({conversations:[]});
+      if(url.pathname==='/api/affairs-data')
+        return Response.json(url.searchParams.has('answer')?directAnswer:{userId:ownerId,rows:[],files:[]});
+      return new Response('Pinned certificate page',{headers:{'Content-Type':'text/html'}});
+    },...overrides});
+}
+
+for(const [question,path] of [[certificateQuestion,certificateAnswer],[certificateCompoundQuestion,certificateCompound]]){
+  test('certificate browser admits one exact answer after its distinct bootstrap for '+path,async()=>{
+    const h=certificateHarness();
+    const reservation={id:id(),mode:'turn',route:certificateRoute,question};
+    assert.throws(()=>h.reserve(reservation),/invalid conversation reservation/u);
+    await assert.rejects(h.dispatch(certificateGet(certificateBootstrap)),/unapproved request operation/u);
+    await h.dispatch(get(certificateRoute));
+    await h.dispatch(get(certificateBrowserHeading));
+    await h.dispatch(certificateGet('/api/affairs-conversations'));
+    await assert.rejects(h.dispatch(certificateGet(path)),/unapproved request operation/u);
+    await h.dispatch(certificateGet(certificateBootstrap));
+    assert.throws(()=>h.reserve({...reservation,question:'A different prompt'}),/invalid conversation reservation/u);
+    h.reserve(reservation);
+    await assert.rejects(h.dispatch(certificateGet(certificateBootstrap)),/unapproved request operation/u);
+    await assert.rejects(h.dispatch(certificateGet(path,otherId)),/wrong fixture caller/u);
+    await assert.rejects(h.dispatch(certificateGet(path,ownerId,'/dtm')),/unapproved request operation/u);
+    await assert.rejects(h.dispatch(certificateGet(path===certificateAnswer?certificateCompound:certificateAnswer)),/unapproved request operation/u);
+    await assert.rejects(h.dispatch(certificateGet(path+'&id='+otherId)),/unapproved request operation/u);
+    const response=await h.dispatch(certificateGet(path));
+    assert.deepEqual(JSON.parse(response.body),directAnswer);
+    await assert.rejects(h.dispatch(certificateGet(path)),/unapproved request operation/u);
+    await assert.rejects(h.dispatch(assistant(bodyFor(),certificateRoute)),/unapproved request operation/u);
+    await assert.rejects(h.dispatch({...save(saveFor(reservation.id)),frameUrl:origin+certificateRoute}),/unapproved request operation/u);
+    assert.deepEqual(h.calls.map(({url})=>url),[certificateRoute,certificateBrowserHeading,'/api/affairs-conversations',certificateBootstrap,path].map(path=>origin+path));
+    assert.equal(h.authorized.length,0);
+    assert.deepEqual(h.egress().observations.filter(row=>row.request==='certificate-answer'&&row.forwarded),
+      [{sequence:12,phase:'turn',request:'certificate-answer',method:'GET',forwarded:true,result:'accepted',status:200}]);
+  });
+}
+
+test('certificate egress reports denied cross-origin and unbounded attempts without recording their values',async()=>{
+  const h=certificateHarness();
+  await assert.rejects(h.dispatch({url:'https://example.invalid/private-marker',method:'PURGE'}),/unapproved request origin/u);
+  await assert.rejects(h.dispatch({url:project+'/auth/v1/user',method:'GET',headers:ownedHeaders(otherId)}),/wrong fixture caller/u);
+  await assert.rejects(h.dispatch({url:project+'/auth/v1/token?grant_type=refresh_token',method:'POST'}),/unapproved request origin/u);
+  await h.dispatch({url:project+'/auth/v1/user',method:'GET',headers:ownedHeaders()});
+  const evidence=h.egress();
+  assert.deepEqual(evidence.observations.map(({request,method,result,forwarded})=>[request,method,result,forwarded]),[
+    ['other','other','rejected',false],['auth','GET','rejected',false],
+    ['other','POST','rejected',false],['auth','GET','pass-through',false],
+  ]);
+  assert.ok(!JSON.stringify(evidence).includes('private-marker'));
+  evidence.observations[0].result='accepted';
+  assert.equal(h.egress().observations[0].result,'rejected');
+  for(let i=4;i<256;i++)await assert.rejects(h.dispatch({url:'https://example.invalid',method:'GET'}));
+  await assert.rejects(h.dispatch(get(certificateRoute)),/egress observation limit/u);
+  assert.equal(h.egress().overflow,true);
+  assert.equal(h.calls.length,0);
+});
+
+test('certificate profiles cannot broaden data paths and malformed replies cannot hide forwarded reads',async()=>{
+  assert.throws(()=>certificateHarness({dataPaths:[certificateBootstrap]}),/invalid data route allowlist/u);
+  assert.throws(()=>certificateHarness({assets:[assets[0],certificateBrowserHeading,'/stu-reference/other.js']}),/invalid resource allowlist/u);
+  const h=certificateHarness({respond:url=>url.pathname===certificateRoute
+    ?new Response('Pinned certificate page',{headers:{'Content-Type':'text/html'}})
+    :Response.json(url.searchParams.has('answer')
+      ?{...directAnswer,grounding:{source:'public',webSearched:true}}:{userId:ownerId,rows:[],files:[]})});
+  await h.dispatch(get(certificateRoute));
+  await h.dispatch(certificateGet(certificateBootstrap));
+  h.reserve({id:id(),mode:'turn',route:certificateRoute,question:certificateQuestion});
+  await assert.rejects(h.dispatch(certificateGet(certificateAnswer)),/invalid certificate response/u);
+  assert.deepEqual(h.egress().observations.at(-1),{
+    sequence:3,phase:'turn',request:'certificate-answer',method:'GET',forwarded:true,result:'rejected',status:200,
+  });
+});
+
+test('an in-flight certificate bootstrap remains visible and cannot admit a turn or retry',async()=>{
+  const bootstrap=Promise.withResolvers(),started=Promise.withResolvers();
+  const h=certificateHarness({respond:url=>{
+    if(url.pathname===certificateRoute)return new Response('Pinned page',{headers:{'Content-Type':'text/html'}});
+    started.resolve();
+    return bootstrap.promise;
+  }});
+  await h.dispatch(get(certificateRoute));
+  const read=h.dispatch(certificateGet(certificateBootstrap));
+  await started.promise;
+  assert.equal(h.egress().observations.at(-1).result,'pending');
+  const reservation={id:id(),mode:'turn',route:certificateRoute,question:certificateQuestion};
+  assert.throws(()=>h.reserve(reservation),/invalid conversation reservation/u);
+  await assert.rejects(h.dispatch(certificateGet(certificateBootstrap)),/unapproved request operation/u);
+  bootstrap.resolve(Response.json({userId:ownerId,rows:[],files:[]}));
+  await read;
+  h.reserve(reservation);
+  assert.equal(h.egress().observations[1].result,'accepted');
+});
 
 test('only registered navigation and build assets receive the separate Preview credential',async()=>{
   const h=harness();

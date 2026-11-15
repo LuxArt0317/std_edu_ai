@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add a read-only protected browser relay profile for the two English certificate award questions, with separate workspace and answer requests and bounded egress diagnostics. [#100]
+
 - Verify named-course term absence hours directly against the caller's saved attendance statistics. [#100]
 
 - Answer natural monthly payment questions with the exact dated ledger, including compact month and year wording and verified empty periods. [#100]

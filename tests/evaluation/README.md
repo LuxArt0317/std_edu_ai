@@ -10,6 +10,8 @@ System-wide question bank, independent grading, discovered coverage and per-case
 - `run.mjs`: inventory, retrieval, draft, live endpoint evaluation and independent review of saved responses. Reports stay in ignored private paths.
 - `client-dispatch-inventory.mjs`: source-derived questions that require execution through the signed-in browser dispatcher.
 
+The protected relay and asset discovery accept a fixed `certificate-award` profile for the two frozen English 52-1 status questions. It admits the pinned 52-1 shell and derived assets, the caller-owned workspace bootstrap GET, then one reserved, caller-bound answer GET in the same frame. The payout question adds the exact bank receipt selector. The relay records bounded egress metadata, including denied attempts and requests forwarded before a response check failed. The certificate profile blocks graph calls and conversation writes. It is a transport prerequisite for a future browser operator with disposable sessions, verified rendering and cleanup.
+
 `*.test.mjs` tests grade integrity and retrieval behavior. No evaluation imports private university captures or uses a real student's records. A model's own verification result is never sufficient for passing.
 
 `academic-grades-handler.test.mjs` replays 11 frozen Academic Services questions through the streaming handler and native row validator with controlled transport. It checks compact semester selectors, named courses, saved summaries and rankings, null versus zero, English requirement metadata, and records owned by another student. Standalone requests read only the tables for the selected view. Unsupported grade views use the capability description without a database read.
