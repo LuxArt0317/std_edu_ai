@@ -10,7 +10,7 @@ import {clearanceTimetableQuestion} from './clearanceEvidenceIntent.js';
 import {schoolSubjectRecordsPath} from '../src/features/public/affairs/studentServices.js';
 import {isOwnCounselingTrackingNoteQuestion} from './counselingEvidenceIntent.js';
 import {isOwnFeeBalanceQuestion,ownFeeBalanceLabel,savedFeeBalanceFollowup} from './pendingFeesAnswer.js';
-import { answerPrivateAffairsQuestion, accountQuestionIntent,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
+import { answerPrivateAffairsQuestion, accountQuestionIntent,composeCurrentStudyEvidence,isAccountOverviewQuestion,isCurrentStudyRecordQuestion } from './affairsAnswer.js';
 import { runAnswerVerification } from './answerVerification.js';
 import { verificationModelCall, verifyEvidenceAnswer, repairEvidenceAnswer, composeEvidenceAnswer } from './answerVerificationModel.js';
 import { searchAssistantKnowledge } from './assistantKnowledge.js';
@@ -513,7 +513,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
     role:context.scopedReadOnly?undefined:snapshot.profile?.role,selectedTools,
     availableTools:Object.fromEntries(selectedTools.map(key=>[key,accountTools[key]||supplementalAccountTools[key]])),
     catalogScope:context.scopedReadOnly?'selected_for_this_request':undefined,
-    rules:context.scopedReadOnly?'Only the selected readers for this authenticated account contribute facts. Collections absent from this evidence were not selected. Omitted or unread records cannot prove absence or completeness. Use the provenance, scope, record counts and capabilities in each selected source. No action has run.':'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Personal records are saved/imported by the account, not a live university sync. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
+    rules:context.scopedReadOnly?'Only the selected readers for this authenticated account contribute facts. Collections absent from this evidence were not selected. Omitted or unread records cannot prove absence or completeness. Sample and local_demo records are demonstration data. Use the provenance, scope, record counts and capabilities in each selected source. No action has run.':'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Personal records are saved/imported by the account, not a live university sync. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
     completeness:context.scopedReadOnly?undefined:snapshot.completeness || 'Legacy snapshot: catalog, enrollments, released grades, attendance, notices, tasks and requests may be capped. Do not claim a complete history or overall absence for those collections.',
     actions:context.scopedReadOnly?[]:['create_task','complete_task','create_service_request','update_display_name','set_assignment_status (personal DTM tracker only)',...(snapshot.profile?.role==='admin'?['publish_announcement']:[])],
   })}];
@@ -819,6 +819,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     :snapshot.currentStudyScope==='courses'&&studyIntent.recognized&&studyIntent.currentCourses&&studyIntent.baseTools.length===1&&studyIntent.baseTools[0]==='courses'
       ?['courses',...(teachingSelected?['teachingFeedback']:[])]:null;
   const scopedStudy=Boolean(studyTools);
+  const directStudy=studyTools?.length===2&&studyTools.includes('profile')&&studyTools.includes('courses')&&!servicePlan;
   const scopedOverview=snapshot.overviewScope===true&&isAccountOverviewQuestion(intent,question);
   const publicPageRoute=!servicePlan&&!dtmCompound&&!scopedStudy&&!scopedTeaching&&!housingSelected&&!applicationSelected&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
   const serviceNoteScope=serviceNoteLookup(question,fullRoute,history);
@@ -944,6 +945,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     return sources;
   };
   evidence=assembleEvidence();
+  if(directStudy){
+    initial.answer=composeCurrentStudyEvidence(question,evidence)??'';
+    initial.status=initial.answer?'answered':'abstained';
+  }
   if(dtmCompound?.denied.length){
     initial.answer=[initial.answer,dtmNativeClauseNotice(dtmCompound,question)].filter(Boolean).join('\n\n');
   }
@@ -1034,13 +1039,25 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       return evidence;
     },
     verify:async context=>{
+      if(directStudy){
+        const supported=composeCurrentStudyEvidence(question,context.evidence);
+        if(!supported||context.candidate.answer!==supported)return {ok:false,reason:'evidence_unavailable'};
+        if(evidenceAttempt>1){
+          emit({kind:'current-study-evidence-check',label:'Verified your saved course and year fields',detail:'Matched the corrected answer to the refreshed School Affairs records and the campus term dates.',status:'complete'});
+          return {ok:true};
+        }
+      }
       if(needsComposition){needsComposition=false;return {ok:false,reason:'needs_grounded_composition',feedback:['Compose all requested parts from the selected evidence, explicitly identify unavailable details and keep suggestions distinct from factual claims. Do not substitute tracker status for file reviews, charges for statements, or catalog offerings for enrollment.']};}
       const requiredEvidenceReferences=scopedOverview?overviewReviewReferences(context.evidence)
         :servicePlan||scopedAssignment||scopedStudy||scopedTeaching||housingSelected||applicationSelected
           ?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question,Boolean(dtmCompound||leavePlan?.gradeQuestion))
           :activeTools.includes('dtmAssignment')?scopedReviewReferences(context.evidence,['dtmAssignment']):undefined;
       return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,diagnosticContext:diagnosticContext()});
-    },repair:context=>repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()}),
+    },repair:context=>{
+      if(!directStudy)return repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,diagnosticContext:diagnosticContext()});
+      const answer=composeCurrentStudyEvidence(question,context.evidence);
+      return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
+    },
   });
   const verified=result.verification?.status==='verified';
   const viewSources=verified?supplemental:supplemental.filter(source=>

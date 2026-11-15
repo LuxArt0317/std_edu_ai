@@ -49,7 +49,8 @@ test('the reported balance question reads only its own charge source, even on re
       let reply;
       if(operation==='correct_grounded_answer'){
         corrections++;
-        reply={status:'answered',answer:'The saved sample tuition charge has NT$22,000 remaining.',sourceIds:['account:charges']};
+        assert.match(request.instructions,/For account:charges, state that the amounts come from the caller’s saved stu\.best fee records/u);
+        reply={status:'answered',answer:'The saved stu.best sample tuition charge has NT$22,000 remaining.',sourceIds:['account:charges']};
       }else{
         reviews++;
         reply={supported:reviews===2,answersQuestion:reviews===2,claims:reviews===1?[]:[{
@@ -87,6 +88,7 @@ test('the reported balance question reads only its own charge source, even on re
     assert.equal(result.verification.status,'verified');
     assert.equal(result.verification.attempts,2);
     assert.match(result.answer,/22,000/u);
+    assert.match(result.answer,/stu\.best sample/u);
     assert.ok(result.citations.some(item=>item.url==='/school-affairs/services/39-1'));
     assert.equal(corrections,1);
     assert.deepEqual(readPaths,['/rest/v1/affairs_students','/rest/v1/affairs_charges','/rest/v1/affairs_students','/rest/v1/affairs_charges']);

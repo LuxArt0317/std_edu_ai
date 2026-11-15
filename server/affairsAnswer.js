@@ -145,6 +145,54 @@ export function isCurrentStudyRecordQuestion(intent,question){
 
 const inlineRecord=value=>String(value).replace(/\s+/gu,' ').trim().replace(/[\\`*_[\]<>]/gu,'\\$&');
 const hasLiteral=value=>value!==null&&value!==undefined&&(typeof value==='number'?Number.isFinite(value):typeof value==='string'&&Boolean(value.trim()));
+
+/** Render only the selected School Affairs evidence, including its read state. */
+export function composeCurrentStudyEvidence(question,evidence){
+  const source=key=>{
+    const item=evidence.find(row=>row.id==='account:'+key);
+    if(!item)return null;
+    const data=JSON.parse(item.content);
+    return data.collection===key?data:null;
+  };
+  const year=source('profile'),courses=source('courses');
+  const student=year?.records?.student,rows=courses?.records;
+  const validSource=mode=>mode==='sample'||mode==='verified';
+  const hasYear=!year?.unavailableReason&&year?.studentRecordFound===true&&Number.isInteger(student?.yearLevel)
+    &&student.yearLevel>=1&&student.yearLevel<=8&&validSource(student.sourceMode);
+  const unlinkedYear=!year?.unavailableReason&&year?.studentRecordFound===false&&student===null;
+  const unlinkedCourses=!courses?.unavailableReason&&courses?.studentRecordFound===false&&Array.isArray(rows)&&rows.length===0;
+  const matching=courses?.selection?.matchingRows;
+  const hasCourses=!courses?.unavailableReason&&courses?.studentRecordFound===true&&Array.isArray(rows)
+    &&courses.selection?.scope==='current_enrolled_term'&&Number.isSafeInteger(matching)&&matching>=rows.length
+    &&Number.isFinite(Date.parse(courses.checkedAt))&&rows.every(row=>[row?.code,row?.title,row?.term].every(value=>typeof value==='string'&&hasLiteral(value))
+      &&validSource(row.sourceMode))&&studyCalendar(rows,courses.checkedAt).current.length===rows.length;
+  if(!hasYear&&!unlinkedYear&&!hasCourses&&!unlinkedCourses)return null;
+
+  const chinese=/[\u3400-\u9fff]/u.test(question),t=(zh,en)=>chinese?zh:en;
+  const sample=t('（示範資料）',' (sample data)');
+  const yearLine=hasYear?t(`年級：${student.yearLevel} 年級`,`Year level: ${student.yearLevel}`)+(student.sourceMode==='sample'?sample:'')+'.'
+    :unlinkedYear?t('此帳戶沒有連結可查詢年級的學生紀錄。','No student record is linked to this account for checking year level.')
+    :t('無法查證已儲存的年級。','I couldn’t verify your recorded year level.');
+  const courseLines=[];
+  if(hasCourses){
+    if(matching===0)courseLines.push(t('這學期的已儲存課表沒有符合的修課。','I found no current enrollments in your saved timetable.'));
+    else{
+      const shown=[];
+      let length=0;
+      for(const row of rows.slice(0,12)){
+        const line=`- ${inlineRecord(row.code)} · ${inlineRecord(row.title)} (${inlineRecord(row.term)})${row.sourceMode==='sample'?sample:''}`;
+        if(length+line.length>5500)break;
+        shown.push(line);length+=line.length+1;
+      }
+      if(shown.length)courseLines.push(t('**本學期已儲存的校務課程**','**Your saved School Affairs courses this semester**')+'\n\n'+shown.join('\n'));
+      if(shown.length<matching)courseLines.push(t(`顯示 ${matching} 筆符合修課中的 ${shown.length} 筆。`,`Showing ${shown.length} of ${matching} matching saved enrollments.`));
+    }
+  }else courseLines.push(unlinkedCourses?t('此帳戶沒有連結可查詢修課的學生紀錄。','No student record is linked to this account for checking subjects.')
+    :t('無法查證本學期的修課，因為無法讀取已儲存的課表。','I couldn’t verify this semester’s subjects because the saved timetable couldn’t be read.'));
+  const link=t(`[查看校務修課紀錄](${schoolSubjectRecordsPath})`,`[Open your School Affairs subjects](${schoolSubjectRecordsPath})`);
+  return [...courseLines,yearLine,link].join('\n\n');
+}
+
 function composeSchoolScheduleAnswer(intent, snapshot) {
   const weekday = intent.scheduleWeekday;
   const chinese = /[\u3400-\u9fff]/u.test(intent.contextQuestion);
