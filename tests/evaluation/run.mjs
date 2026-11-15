@@ -21,7 +21,8 @@ import {teachingFeedbackRunnerCases,teachingFeedbackCaseAdmission,assertTeaching
 import {assessCoverage} from './coverage.mjs';
 import {markLegacyDtmAssignmentListFixture} from './dtm-assignment-list-cases.mjs';
 import {nativeDtmRunnerCases,nativeDtmSetupRequired,assertNativeDtmCaseReady} from './dtm-native-runner.mjs';
-import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,elearningCatalogSetupSummary,gradeElearningCatalogCase} from './elearning-catalog-runner.mjs';
+import {elearningCatalogRunnerCases,assertElearningCatalogCaseReady,elearningCatalogSetupRequired,elearningCatalogSetupSummary,gradeElearningCatalogCase,isElearningMetadataCase} from './elearning-catalog-runner.mjs';
+import {metadataDispatchObservation} from './elearning-metadata-live.mjs';
 import {internshipRunnerCases,markLegacyInternshipFixture,nativeInternshipSetupRequired,assertNativeInternshipCaseReady,internshipSetupSummary} from './internship-native-runner.mjs';
 import {venueRunnerCases,markLegacyVenueFixture,nativeVenueSetupRequired,assertNativeVenueCaseReady,venueSetupSummary} from './venue-native-runner.mjs';
 import {clubAttendanceRunnerCases,clubAttendanceOracle,isClubAttendanceCase,gradeClubAttendanceCase} from './club-attendance-cases.mjs';
@@ -311,10 +312,9 @@ export function assessRun(report,{cases,inventory,requestedSuite,sourceRevision,
     integrity.push({id:'run.nativeDtmFixtureUnbound',detail:'Native DTM record cases require caller-bound fixture and request observations before live execution.'});
   }
   const catalogSetup=elearningCatalogSetupSummary(cases);
-  if(catalogSetup.registered){
-    assessment.elearningCatalogSetup=catalogSetup;
-    integrity.push({id:'run.elearningCatalogFixtureUnbound',detail:'Digital Academy catalog and metadata cases require deployed scoped sources and request-bound fixture observations.'});
-  }
+  if(catalogSetup.registered)assessment.elearningCatalogSetup=catalogSetup;
+  if(catalogSetup.unboundCaseIds.length)
+    integrity.push({id:'run.elearningCatalogFixtureUnbound',detail:'The remaining Digital Academy catalog cases require deployed scoped sources and request-bound fixture observations.'});
   const leaveSetup=studentLeaveSetupSummary(cases);
   if(leaveSetup.registered){
     assessment.studentLeaveSetup=leaveSetup;
@@ -493,6 +493,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       const config=JSON.parse(await readFile(resolve(root,'deployment.json'),'utf8'));
       if(opt.origin!==config.vercel.productionUrl&&opt.approvedPreviewOrigin!==opt.origin)throw new Error('Live evaluation requires the configured production origin or an explicitly approved exact Preview origin.');
       if(identity.dirty!==false)throw new Error('Live evaluation requires a clean, exact source revision before creating fixtures.');
+      if(fixtureCases.some(isElearningMetadataCase)&&!opt.previewAuth)
+        throw new Error('Digital Academy metadata requires an explicitly approved, exact Preview with OIDC access.');
       if(opt.previewAuth){
         if(config.repository!=='LuxArt0317/std_edu_ai'||config.vercel.teamSlug!=='v1-d286'||config.vercel.projectName!=='std_edu_ai')
           throw new Error('Preview OIDC requires the exact client project checkout.');
@@ -518,6 +520,9 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         if(fixtureCases.some(row=>isServiceNoteCase(row)&&row.fixtureKey!=='anonymous')
           &&(adapter.serviceNoteFixtureVersion!==1||typeof adapter.afterCase!=='function'))
           throw new Error('Service notes require the exact two-caller fixture adapter and after-request verification.');
+        if(fixtureCases.some(isElearningMetadataCase)
+          &&(adapter.elearningMetadataFixtureVersion!==1||typeof adapter.afterCase!=='function'))
+          throw new Error('Digital Academy metadata requires paired disposable caller readbacks.');
         const previewReadbackFetch=opt.previewAuth?async(input,init={})=>{
           if((init.method??'GET')!=='GET')throw new Error('Protected fixture transport is read-only.');
           return fetchImpl(input,init);
@@ -540,16 +545,17 @@ export async function main(args=process.argv.slice(2),dependencies={}){
     const modules=opt.mode==='draft'||opt.mode==='retrieval'?await Promise.all([import('../../server/affairsAnswer.js'),import('../../server/answerVerificationAccount.js'),import('../../server/schoolAffairsDirectory.js')]):null;
     for(const testCase of selected){
       const feeOnly=opt.caseFamily==='fee-remission';
-      const nativeClub=isClubAttendanceCase(testCase),serviceNotes=isServiceNoteCase(testCase);
+      const nativeClub=isClubAttendanceCase(testCase),serviceNotes=isServiceNoteCase(testCase),nativeMetadata=isElearningMetadataCase(testCase);
       const liveExecution=testCase.executionContract==='live-native'?'live-native':'live-model';
       if(controller.signal.aborted)break;
-      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket;
+      const started=Date.now();let envelope,fixtureReady=false,executed=false,phase='setup',pacingWaitMs=0,requestTicket,metadataDispatch;
       try{
         assertTeachingFeedbackCaseReady(testCase);
         assertNativeDtmCaseReady(testCase);
         assertNativeStudentLeaveCaseReady(testCase);
         assertNativeInternshipCaseReady(testCase);
         assertElearningCatalogCaseReady(testCase);
+        if(nativeMetadata&&opt.mode!=='live')throw new Error('Digital Academy metadata acceptance requires the exact protected Preview and caller readbacks.');
         assertNativeVenueCaseReady(testCase);
         assertAccountStatusCaseReady(testCase);
         assertLearningEntryCaseReady(testCase);
@@ -578,21 +584,27 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           if(feeOnly&&testCase.fixtureKey==='anonymous'&&context.token!==undefined)throw new Error('Anonymous fee remission must not receive a session token.');
           const endpoint=testCase.endpoint||(testCase.fixtureKey==='anonymous'?'/api/research-assistant':'/api/affairs-assistant');
           if(!['/api/research-assistant','/api/affairs-assistant'].includes(endpoint))throw new Error('Unsupported evaluation endpoint.');
+          const requestBody=JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,
+            stream:true,consentedResearchUse:false});
           phase='infrastructure';
           const response=await pace(waited=>{
             if(testCase.publishedNextClass){
               try{assertPublishedNextClassClock(testCase.publishedNextClass,{now:new Date().toISOString()});}
               catch(error){phase='setup';throw error;}
             }
-            pacingWaitMs=waited;executed=true;return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
-            body:JSON.stringify({question:testCase.question,history:testCase.history||[],route:testCase.route,stream:true,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});},controller.signal,async()=>{
+            pacingWaitMs=waited;executed=true;
+            if(nativeMetadata)metadataDispatch=metadataDispatchObservation(endpoint,requestBody);
+            return fetchImpl(new URL(endpoint,opt.origin),{method:'POST',redirect:'error',credentials:'omit',headers:{'Content-Type':'application/json',...(context.token?{Authorization:'Bearer '+context.token}:{})},
+              body:requestBody,signal:AbortSignal.any([controller.signal,AbortSignal.timeout(65000)])});
+          },controller.signal,async()=>{
               requestTicket=await deploymentGate.beforeRequest();report.deploymentPin=deploymentGate.status();await persist(out,report);
             });
           if(response.redirected||response.url&&response.url!==new URL(endpoint,opt.origin).href)throw new Error('Assistant response changed the exact target URL.');
           const requestId=response.headers.get('X-Assistant-Request-Id');
           const correlationId=requestId&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(requestId)?requestId:undefined;
           envelope={statusCode:response.status,...await readReply(response),...(correlationId?{correlationId}:{}),
-            execution:liveExecution,fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision};
+            execution:liveExecution,fixtureKey:testCase.fixtureKey,sourceRevision:report.deployment.sourceRevision,
+            ...(metadataDispatch?{metadataDispatch}:{})};
           const expectedStatus=testCase.expected.expectedStatusCode||testCase.expected.statusCode;
           if(response.status>=500||response.status===429||envelope.body?.error&&response.status!==expectedStatus)envelope.failureKind='infrastructure';
         }else{
@@ -608,7 +620,7 @@ export async function main(args=process.argv.slice(2),dependencies={}){
           envelope={statusCode:200,body:body||{status:'abstained',answer:'No deterministic answer'},events:[],execution:'deterministic',fixtureKey:testCase.fixtureKey,sourceRevision:identity.sourceRevision};
         }
       }catch(error){
-        const execution=phase==='setup'&&(nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
+        const execution=phase==='setup'&&(nativeMetadata||nativeClub||serviceNotes||nativeStudentLeaveSetupRequired(testCase)||nativeInternshipSetupRequired(testCase)||nativeDtmSetupRequired(testCase)||elearningCatalogSetupRequired(testCase)||nativeVenueSetupRequired(testCase)||accountStatusSetupRequired(testCase)||learningEntrySetupRequired(testCase)||campusEntrySetupRequired(testCase))?'not-run':opt.mode==='live'?liveExecution:'deterministic';
         envelope={statusCode:0,body:{error:error instanceof Error?error.message:'Evaluation request failed'},events:[],failureKind:phase,execution,
           fixtureKey:testCase.fixtureKey,sourceRevision:opt.mode==='live'?report.deployment?.sourceRevision||'unknown':identity.sourceRevision};
       }
@@ -654,8 +666,10 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(clubSetupFailed)report.runFailure='Club attendance fixture setup failed; the runner stopped before another assistant request.';
       const noteSetupFailed=serviceNotes&&!serviceNoteSetupRequired(testCase)&&opt.mode==='live'&&envelope.failureKind==='setup';
       if(noteSetupFailed)report.runFailure='Service-note setup failed before dispatch; the runner stopped before another request.';
+      const metadataSetupFailed=nativeMetadata&&opt.mode==='live'&&envelope.failureKind==='setup';
+      if(metadataSetupFailed)report.runFailure='Digital Academy metadata setup failed before dispatch; the runner stopped before another request.';
       await persist(out,report);
-      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed)break;
+      if(envelope.deploymentIntegrityFailed||envelope.fixtureIntegrityFailed||feeSetupFailed||clubSetupFailed||noteSetupFailed||metadataSetupFailed)break;
     }
   }catch(error){
     report.runFailure=error instanceof Error?error.message:'Evaluation initialization failed';

@@ -39,6 +39,8 @@ import {createTranscriptConversationFixture} from './transcript-conversation-fix
 import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
 import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
 import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {assertElearningMetadataCase,isElearningMetadataCase} from './elearning-catalog-runner.mjs';
+import {bindMetadataObservation,readMetadataObservations} from './elearning-metadata-live.mjs';
 import {createStudentLeaveDatabaseFixture} from './student-leave-database-fixture.mjs';
 import {openStudentLeaveFixtureJournal} from './student-leave-fixture-journal.mjs';
 import {studentLeaveJournalBinding} from './student-leave-fixture-lifecycle.mjs';
@@ -63,6 +65,7 @@ const FEE_FIXTURE_MODE='fee-remission-only';
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE]);
 export const clubAttendanceFixtureVersion=1;
 export const protectedPreviewReadbackVersion=1;
+export const elearningMetadataFixtureVersion=1;
 export const serviceNoteFixtureVersion=1;
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
@@ -360,7 +363,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.clubOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.clubOnly||s.elearningMetadataOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -399,6 +402,12 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     ||!/^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-v1-d286\.vercel\.app$/u.test(origin)))
     fail('fixture-target','Service-note fixtures require the exact approved project Preview.');
   const noteOnly=cases.length>0&&noteCases.length===cases.length;
+  const metadataCases=cases.filter(isElearningMetadataCase);
+  for(const testCase of metadataCases)assertElearningMetadataCase(testCase);
+  const elearningMetadataOnly=metadataCases.length>0&&metadataCases.length===cases.length;
+  if(metadataCases.length&&(origin!==approvedPreviewOrigin||!isEvaluationPreviewOrigin(origin)
+    ||typeof previewReadbackFetch!=='function'))
+    fail('fixture-target','Digital Academy metadata requires the exact protected Preview.');
   if(cases.some(nativeVenueSetupRequired))
     fail('fixture-unsupported','Native venue requests require exact caller fixtures and independent request observations.');
   let transcriptCaseIds;
@@ -449,7 +458,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const ignore=await readFile(resolve(ROOT,'.gitignore'),'utf8');if(!/^\/?artifacts\/$/m.test(ignore))fail('fixture-ledger','Private fixture ledger directory must be ignored by Git.');
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
-  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,
+  state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,clubOnly,elearningMetadataOnly,previewGate,
     ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -474,6 +483,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       await prepareFeeFixture(state);
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['feeRemission','charges']};
+    }
+    if(elearningMetadataOnly){
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['elearningMetadata']};
     }
     if(clubOnly){
       state.prepared=true;
@@ -1813,6 +1826,19 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     return anonymous?{}:{token:s.users[0].token};
   }
   if(fixtureMode!==undefined||fixtureFamily!==undefined)fail('fixture-case','Fixture mode changed after preparation.');
+  if(isElearningMetadataCase(testCase)){
+    assertElearningMetadataCase(testCase);
+    if(!s.caseIds.has(testCase.id)||!s.previewGate)fail('fixture-case','The Digital Academy metadata case is outside its exact Preview binding.');
+    await assertRecordedFixtureLease(s,'Digital Academy metadata');
+    const active=signal||s.signal;
+    await s.previewGate.assertCurrent();
+    for(const user of s.users)await user.renewSession({signal:active});
+    const before=await readMetadataObservations(testCase,{users:s.users,publishable:s.publishable,
+      fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:active});
+    s.current={caseId:testCase.id,elearningMetadata:before};
+    return {token:s.users[0].token};
+  }
+  if(s.elearningMetadataOnly)fail('fixture-state','The Digital Academy metadata fixture cannot serve an unrelated case.');
   if(testCase?.fixtureRequirement==='service_notes_disposable'){
     serviceNoteRunnerOracle(testCase);
     if(!s.caseIds.has(testCase.id)||testCase.auth==='anonymous')
@@ -1959,6 +1985,22 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
   const s=ready();if(s.current?.caseId!==testCase.id)fail('fixture-state','afterCase() does not match the prepared case.');
   const current=s.current;
   try{
+    if(current.elearningMetadata){
+      assertElearningMetadataCase(testCase);
+      const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
+      const identityMarkers=s.users.flatMap(user=>[user.id,user.token]).concat(s.identityRequests.map(request=>request.email));
+      if(identityMarkers.some(marker=>marker&&output.includes(marker.toLowerCase()))){
+        envelope.body={error:'Digital Academy metadata identity isolation failed.'};envelope.events=[];
+        fail('fixture-isolation','The response disclosed a disposable caller identity or credential.');
+      }
+      await assertRecordedFixtureLease(s,'Digital Academy metadata');
+      const active=signal||s.signal;
+      const after=await readMetadataObservations(testCase,{users:s.users,publishable:s.publishable,
+        fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:active});
+      envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
+        elearningMetadata:bindMetadataObservation(testCase,envelope,{before:current.elearningMetadata,after})};
+      return;
+    }
     if(current.serviceNotes){
       serviceNoteRunnerOracle(testCase);
       const after=await currentServiceNoteFixture(s,signal);

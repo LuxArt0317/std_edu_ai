@@ -6,6 +6,9 @@ import {AffairsWorkspaceError} from '../../server/affairsWorkspace.js';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
 import {isElearningMetadataQuestion,selectElearningMetadata,elearningMetadataGuestRoute} from '../../server/elearningMetadataIntent.js';
 import {gradeElearningCatalogCase,elearningCatalogRunnerCases,assertElearningCatalogCaseReady} from './elearning-catalog-runner.mjs';
+import {bindMetadataObservation,metadataDispatchObservation,metadataEndpoint,metadataProject,metadataProjectionOracle,
+  readMetadataObservations,verifyMetadataProjection} from './elearning-metadata-live.mjs';
+import {readReply} from './run.mjs';
 
 const origin='https://unit-test.invalid';
 const owner='78000000-0000-4000-8000-000000000101';
@@ -22,7 +25,7 @@ for(const row of captureCategories(catalog)){
   const existing=categoryRows.get(row.id);
   categoryRows.set(row.id,existing?{...existing,title:row.title,sourceCount:row.sourceCount}:row);
 }
-const categories=[...categoryRows.values()].sort((left,right)=>left.position-right.position);
+const categories=[...categoryRows.values()].sort((left,right)=>left.position-right.position||left.id-right.id);
 const notices=[...extract(base,'elearning_notices').matchAll(/\((\d+),'\w+','((?:[^']|'')*)',(null|'(?:[^']|'')*'),\d+\)/gu)]
   .map(([,id,title,body])=>({id:Number(id),title:title.replace(/''/gu,"'"),body:body==='null'?null:body.slice(1,-1).replace(/''/gu,"'")}));
 function source([view,id]){
@@ -68,7 +71,7 @@ test('the six metadata cases pass independent grading through the exact authenti
   const cases=elearningCatalogRunnerCases().filter(row=>row.metadataOracle);
   assert.equal(cases.length,6);
   for(const row of cases)await t.test(row.id,async context=>{
-    assert.throws(()=>assertElearningCatalogCaseReady(row),/await hosted verification/u);
+    assert.doesNotThrow(()=>assertElearningCatalogCaseReady(row));
     const rpc=transport(context,row.metadataOracle);
     const reply=await invoke(handler,row.question,row.route);
     const result=gradeElearningCatalogCase(row,{...reply,execution:'deterministic',fixtureKey:row.fixtureKey});
@@ -77,6 +80,106 @@ test('the six metadata cases pass independent grading through the exact authenti
     assert.equal(rpc.mock.callCount(),1);
     assert.equal(JSON.stringify(reply).includes(token),false);
   });
+});
+
+test('each mounted metadata case grades actual handler SSE and independent paired golden readbacks',async t=>{
+  const accounts=[{id:owner,token},{id:'78000000-0000-4000-8000-000000000102',token:'offline-metadata-other-token'}];
+  const cases=elearningCatalogRunnerCases().filter(row=>row.metadataOracle);
+  const sourceRevision='a'.repeat(40);
+  for(const testCase of cases)await t.test(testCase.id,async context=>{
+    const rpc=transport(context,testCase.metadataOracle);
+    const requestBody=JSON.stringify({question:testCase.question,history:[],route:testCase.route,stream:true,consentedResearchUse:false});
+    const raw=[];
+    const headers=new Headers();
+    let statusCode;
+    const response={
+      setHeader(name,value){headers.set(name,value);},
+      status(code){statusCode=code;return response;},
+      write(chunk){raw.push(chunk);},end(){},
+      json(){assert.fail('A mounted metadata case must stream its result.');},
+    };
+    const fixtureCalls=[];
+    const readback=()=>readMetadataObservations(testCase,{users:accounts,publishable:key,
+      fetchImpl:async(url,init)=>{
+        assert.equal(url.href,'https://'+metadataProject+'.supabase.co/rest/v1/rpc/elearning_page_metadata');
+        assert.equal(init.method,'POST');
+        assert.equal(init.redirect,'error');
+        assert.equal(init.credentials,'omit');
+        assert.equal(init.headers.apikey,key);
+        const caller=accounts.find(user=>init.headers.Authorization==='Bearer '+user.token);
+        assert.ok(caller);
+        const selector=JSON.parse(init.body);
+        assert.deepEqual(selector,{p_view:testCase.metadataOracle.rpc[0],p_id:testCase.metadataOracle.rpc[1]});
+        fixtureCalls.push(caller.id);
+        return Response.json({...source([selector.p_view,selector.p_id]),userId:caller.id});
+      },
+      readResponse:response=>response.json(),
+    });
+    const before=await readback();
+    await handler({method:'POST',headers:{authorization:'Bearer '+token,'x-forwarded-for':'192.0.2.191'},body:requestBody},response);
+    const after=await readback();
+    const envelope={statusCode,...await readReply(new Response(raw.join(''),{headers})),fixtureKey:testCase.fixtureKey,
+      sourceRevision,execution:'live-native',correlationId:headers.get('X-Assistant-Request-Id'),
+      deploymentCheck:{verified:true,sourceRevision,requestIndex:1},metadataDispatch:metadataDispatchObservation(metadataEndpoint,requestBody)};
+    assert.equal(gradeElearningCatalogCase(testCase,envelope).passed,false,'Endpoint observations alone cannot pass.');
+    envelope.fixtureReadback={verified:true,projectRef:metadataProject,independentGolden:true,
+      elearningMetadata:bindMetadataObservation(testCase,envelope,{before,after})};
+    const graded=gradeElearningCatalogCase(testCase,envelope);
+    assert.equal(graded.passed,true,JSON.stringify(graded.failures));
+    assert.equal(rpc.mock.callCount(),1);
+    assert.deepEqual(fixtureCalls,accounts.concat(accounts).map(user=>user.id));
+    assert.deepEqual(after,[metadataProjectionOracle(testCase),metadataProjectionOracle(testCase)]);
+    if(testCase.id.endsWith('notice-title-only')){
+      const copy=structuredClone(envelope);
+      copy.body.answer+=' Contact us by 12/08.';
+      assert.ok(gradeElearningCatalogCase(testCase,copy).failures.some(failure=>failure.id==='metadata.deadline-absent'));
+    }
+    assert.ok(accounts.every(user=>!JSON.stringify(envelope).includes(user.id)&&!JSON.stringify(envelope).includes(user.token)));
+    for(const corrupt of [
+      copy=>{copy.fixtureReadback.elearningMetadata.after.pop();},
+      copy=>{copy.events.pop();},
+      copy=>{copy.events.push({kind:'web-search',status:'complete'});},
+      copy=>{copy.deploymentCheck.requestIndex++;},
+      copy=>{copy.deploymentCheck.sourceRevision='b'.repeat(40);},
+      copy=>{copy.metadataDispatch.bodySha256='f'.repeat(64);},
+      copy=>{copy.correlationId=owner;},
+      copy=>{copy.fixtureReadback.projectRef='another-project';},
+    ]){
+      const copy=structuredClone(envelope);
+      corrupt(copy);
+      const result=gradeElearningCatalogCase(testCase,copy);
+      assert.ok(result.failures.some(failure=>failure.id==='metadata.request-bound-observation'),JSON.stringify(result.checks));
+    }
+  });
+});
+
+test('metadata admission rejects changed route, question, tool, selector and privilege scope',async()=>{
+  const row=elearningCatalogRunnerCases().find(candidate=>candidate.id.endsWith('tree-exact-hierarchy'));
+  for(const alter of [
+    copy=>{copy.route='/elearning/category/17';},
+    copy=>{copy.question+=' More.';},
+    copy=>{copy.expected.requireToolExecution=false;},
+    copy=>{copy.metadataOracle.rpc=['category',17];},
+    copy=>{copy.auth='anonymous';},
+  ]){
+    const copy=structuredClone(row);alter(copy);
+    assert.throws(()=>assertElearningCatalogCaseReady(copy),/frozen request definition/u);
+  }
+  const valid=source(row.metadataOracle.rpc);
+  for(const mutate of [
+    copy=>{copy.userId='unexpected-caller';},
+    copy=>{copy.categories.reverse();},
+    copy=>{copy.categories[0].sourceCount++;},
+    copy=>{copy.categories[0].enrollment=true;},
+    copy=>{copy.categories[0].parentId=999;},
+    copy=>{copy.notice={id:305241,title:'Other',body:null};},
+    copy=>{copy.workspace={};},
+  ]){
+    const copy=structuredClone(valid);mutate(copy);
+    assert.throws(()=>verifyMetadataProjection(copy,owner,row),/Digital Academy/u);
+  }
+  await assert.rejects(()=>readMetadataObservations(row,{users:[{id:owner,token},{id:owner,token:'another'}],
+    publishable:key,fetchImpl:forbid}),/Two distinct disposable/u);
 });
 
 const noticeScenario={question:'Summarize this notice.',route:'/elearning/notice/325504',rpc:['notice',325504]};

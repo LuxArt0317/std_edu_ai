@@ -1,5 +1,5 @@
 /** Gold vectors transcribed from the frozen course seed and UI, independent
- * of the runtime selector. This isolated bank has no hosted evaluator mount. */
+ * of the runtime selector. The course-list and search cases are offline. */
 const list='Which courses are shown on this page?';
 const listZh='本頁有哪些課程？';
 const ownedTitle='Portable Student Record 83420';

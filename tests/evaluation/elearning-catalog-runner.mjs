@@ -1,10 +1,11 @@
+import {isDeepStrictEqual} from 'node:util';
+import {hasBoundMetadataObservation,metadataCasePrefix,metadataEndpoint,metadataFixtureRequirement} from './elearning-metadata-live.mjs';
 import {catalogCases,catalogMetadataCases,forbiddenCatalogEvidence} from './elearning-catalog-native-cases.mjs';
 import {gradeCase,extractAnswerLinks} from './grading.mjs';
 
 const tool='elearningCatalog';
 const prefix='account:elearning-catalog-';
 const offline='offline_elearning_catalog_page';
-const metadata='offline_elearning_page_metadata';
 const metadataTool='elearningMetadata';
 
 export function elearningCatalogRunnerCases(){
@@ -39,9 +40,10 @@ export function elearningCatalogRunnerCases(){
       requiredLinks:['/elearning/login?next='+encodeURIComponent(original.route)],allowedTools:[],requiredAttemptedTools:[],
       localLinksOnly:true,forbidPublicResearch:true,noAction:true}};
   const metadataCases=catalogMetadataCases.map(row=>{
-    return {id:prefix+'pending-'+row.id,domain:metadataTool,route:row.route,question:row.question,
-      mode:row.limited?'empty':'record',language:row.language??(/\p{Script=Han}/u.test(row.question)?'zh-Hant':'en'),fixtureKey:'offline:elearning-catalog:pending-'+row.id,
-      fixtureRequirement:metadata,fixtureSetupDetail:'The scoped metadata migration and independent request-bound fixtures await hosted verification.',
+    return {id:metadataCasePrefix+row.id,domain:metadataTool,route:row.route,question:row.question,
+      executionContract:'live-native',endpoint:metadataEndpoint,
+      mode:row.limited?'empty':'record',language:row.language??(/\p{Script=Han}/u.test(row.question)?'zh-Hant':'en'),fixtureKey:'elearning-metadata:'+row.id,
+      fixtureRequirement:metadataFixtureRequirement,
       coveredTools:[metadataTool],metadataOracle:{links:row.links,rpc:row.rpc,displayedCount:row.displayedCount},
       expected:{behavior:row.limited?'unavailable':'answer',...(row.limited?{limitation:true}:{}),
         requiredText:row.required,facts:row.facts,verification:'verified',requireToolExecution:true,
@@ -53,17 +55,28 @@ export function elearningCatalogRunnerCases(){
   return [...positive,retried,failed,guest,...metadataCases];
 }
 
-export const elearningCatalogSetupRequired=row=>[offline,metadata].includes(row?.fixtureRequirement)
+export const isElearningMetadataCase=row=>row?.fixtureRequirement===metadataFixtureRequirement
+  ||typeof row?.id==='string'&&row.id.startsWith(metadataCasePrefix);
+
+export function assertElearningMetadataCase(row){
+  const expected=elearningCatalogRunnerCases().find(candidate=>candidate.id===row?.id&&isElearningMetadataCase(candidate));
+  if(!expected||!isDeepStrictEqual(row,expected))throw new Error('Digital Academy metadata case is outside its frozen request definition.');
+}
+
+export const elearningCatalogSetupRequired=row=>!isElearningMetadataCase(row)&&(row?.fixtureRequirement===offline
   ||typeof row?.id==='string'&&row.id.startsWith(prefix)
-  ||typeof row?.fixtureKey==='string'&&row.fixtureKey.startsWith('offline:elearning-catalog:');
+  ||typeof row?.fixtureKey==='string'&&row.fixtureKey.startsWith('offline:elearning-catalog:'));
 export function assertElearningCatalogCaseReady(row){
-  if(elearningCatalogSetupRequired(row))throw new Error(row.fixtureSetupDetail??'Digital Academy catalog fixtures and independent observations are unmounted.');
+  if(isElearningMetadataCase(row))assertElearningMetadataCase(row);
+  else if(elearningCatalogSetupRequired(row))throw new Error('Digital Academy course catalog fixtures and independent observations are unmounted.');
 }
 
 export function elearningCatalogSetupSummary(cases){
-  const selected=cases.filter(elearningCatalogSetupRequired);
-  return {registered:selected.length,liveEligible:0,caseIds:selected.map(row=>row.id),
-    metadataCaseIds:selected.filter(row=>row.fixtureRequirement===metadata).map(row=>row.id)};
+  const metadataCases=cases.filter(isElearningMetadataCase);
+  const unbound=cases.filter(elearningCatalogSetupRequired);
+  const caseIds=cases.filter(row=>isElearningMetadataCase(row)||elearningCatalogSetupRequired(row)).map(row=>row.id);
+  return {registered:caseIds.length,liveEligible:metadataCases.length,caseIds,
+    metadataCaseIds:metadataCases.map(row=>row.id),unboundCaseIds:unbound.map(row=>row.id)};
 }
 
 export function gradeElearningCatalogCase(testCase,envelope,options){
@@ -80,6 +93,15 @@ export function gradeElearningCatalogCase(testCase,envelope,options){
       {id:'metadata.literal-count',passed:literalId===undefined||answer.includes(`/elearning/category/${literalId}) (${literalCount})`),
         detail:'The displayed count remains the literal saved count for that category.'},
     ];
+    if(testCase.id===metadataCasePrefix+'notice-title-only'){
+      const withoutLinks=answer.replace(/\[[^\]]*\]\([^)]*\)/gu,'');
+      checks.push({id:'metadata.deadline-absent',passed:!/[0-9０-９]/u.test(withoutLinks),
+        detail:'The title-only notice has no numeric deadline in the saved source.'});
+    }
+    if(['live-native','live-model'].includes(envelope.execution)){
+      checks.push({id:'metadata.request-bound-observation',passed:hasBoundMetadataObservation(testCase,envelope),
+        detail:'Paired caller metadata projections and endpoint progress match the exact pinned assistant request.'});
+    }
     result.checks.push(...checks);
     result.failures.push(...checks.filter(check=>!check.passed));
     result.passed=result.failures.length===0;

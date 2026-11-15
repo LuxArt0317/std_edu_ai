@@ -176,7 +176,8 @@ async function invoke(handler,{question,route,token=account.token,history=[],ima
 
 test('registered catalog cases run through authenticated handler, shared graph and independent oracle',async t=>{
   for(const scenario of elearningCatalogRunnerCases()){
-    assert.throws(()=>assertElearningCatalogCaseReady(scenario),/unmounted|authority|metadata|catalog|saved|reader|title|body|tree/i,scenario.id);
+    if(scenario.metadataOracle)assert.doesNotThrow(()=>assertElearningCatalogCaseReady(scenario));
+    else assert.throws(()=>assertElearningCatalogCaseReady(scenario),/unmounted/u,scenario.id);
     if(!scenario.catalogOracle)continue;
     await t.test(scenario.id,async context=>{
       const guest=scenario.auth==='anonymous';
