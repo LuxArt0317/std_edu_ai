@@ -1,4 +1,5 @@
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
+import {openVenueObservation,venueObservationHeader} from '../server/venueObservation.js';
 import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
 import {clubAttendanceBoundary,clubAttendanceSelection} from '../server/clubAttendanceIntent.js';
 import {answerClubEquipment} from '../server/accountClubEquipmentAnswer.js';
@@ -94,7 +95,7 @@ import {answerChargePaymentHistory,chargePaymentHistoryBoundary,selectChargePaym
 import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuestion, ownFeeBalanceLabel, savedFeeBalanceFollowup } from '../server/pendingFeesAnswer.js';
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
-import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken } from '../server/affairsWorkspace.js';
+import { AffairsWorkspaceError, loadAffairsSnapshot, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -241,11 +242,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const hasLeaveProbe=Boolean(input&&Object.hasOwn(input,'evaluationLeaveProbe'));
   const hasInternshipProbe=Boolean(input&&Object.hasOwn(input,'evaluationInternshipProbe'));
   const hasTeachingProbe=Boolean(input&&Object.hasOwn(input,'evaluationTeachingProbe'));
-  const probeCount=Number(hasLeaveProbe)+Number(hasInternshipProbe)+Number(hasTeachingProbe);
+  const hasVenueProbe=Boolean(input&&Object.hasOwn(input,'evaluationVenueProbe'));
+  const probeCount=[hasLeaveProbe,hasInternshipProbe,hasTeachingProbe,hasVenueProbe].filter(Boolean).length;
   const hasProbe=probeCount>0;
-  const rejectProbe=()=>response.status(404).json({error:hasTeachingProbe?'Teaching feedback observation unavailable.':
-    hasInternshipProbe?'Internship observation unavailable.':'Student Leave observation unavailable.'});
-  if(hasProbe&&(probeCount>1||process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){
+  const rejectProbe=()=>response.status(404).json({error:hasVenueProbe?'Venue observation unavailable.'
+    :hasTeachingProbe?'Teaching feedback observation unavailable.':hasInternshipProbe?'Internship observation unavailable.':'Student Leave observation unavailable.'});
+  if(hasProbe&&(probeCount!==1||process.env.VERCEL_ENV!=='preview'||value(request.headers.host)!==process.env.VERCEL_URL)){
     rejectProbe();return;
   }
   const requestedQuestion=typeof input?.question==='string'?input.question.trim():'';
@@ -253,7 +255,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(question.length<2||question.length>2000) {if(hasProbe)rejectProbe();else response.status(400).json({error:'Provide a question between 2 and 2,000 characters.'});return;}
   let route:string;
   try{route=validateAffairsAssistantRoute(input?.route);}catch{if(hasProbe)rejectProbe();else response.status(400).json({error:'Provide a local page route of at most 3,100 characters, without a fragment.'});return;}
-  let account;
+  let account:AffairsAccount;
   let probeIdentity;
   try {
     const authorization=value(request.headers.authorization);
@@ -294,11 +296,32 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     !(observedTeaching.selection||observedTeaching.foreign||observedTeaching.excluded||observedTeaching.navigation.length))){
     rejectProbe();return;
   }
-  const now=Date.now(),active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
+  const venueObservation=hasVenueProbe?openVenueObservation({body,identity:probeIdentity,correlationId}):null;
+  const now=Date.now();
+  const observedVenue=venueObservation?venueRequestPlan(question,route,history,now):null;
+  if(hasVenueProbe&&(!observedVenue||observedVenue.feeQuestion!==null
+    ||observedVenue.selection.reason!==null&&!['foreign','mixed'].includes(observedVenue.selection.reason))){
+    rejectProbe();return;
+  }
+  const active=(requestWindows.get(account.user.id)||[]).filter(time=>time>now-60_000);
   active.push(now);requestWindows.set(account.user.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  async function replyVenue(venue:NonNullable<ReturnType<typeof venueRequestPlan>>,asOf:number,observation?:NonNullable<typeof venueObservation>){
+    if(!venue.selection.reason&&Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about private venue requests using text, without an image.'});
+      return;
+    }
+    try{
+      const result=venue.selection.reason?venueRequestBoundary(venue.selection,question,true)
+        :await answerVenueRequests({account,plan:venue,question,route,history,asOf,deadline,observation,
+          onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      const receipt=observation?.finish(result,!venue.selection.reason);
+      if(receipt)response.setHeader(venueObservationHeader,receipt);
+      stream.send(200,result);
+    }catch{stream.send(503,{error:'The saved venue requests could not be checked.'});}
+  }
   const payment=answerDirectTuitionPayment(requestedQuestion);
   if(payment){stream.send(200,payment);return;}
   const paymentHistory=selectChargePaymentHistory(requestedQuestion,route,history,now);
@@ -406,23 +429,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }
     return;
   }
-  const venueClock=Date.now();
+  const venueClock=observedVenue?now:Date.now();
   const venue=venueRequestPlan(question,route,history,venueClock);
-  if(venue){
-    if(venue.selection.reason){stream.send(200,venueRequestBoundary(venue.selection,question,true));return;}
-    if(Array.isArray(input?.images)&&input.images.length){
-      stream.send(400,{error:'Ask about private venue requests using text, without an image.'});
-      return;
-    }
-    try{
-      const result=await answerVenueRequests({account,plan:venue,question,route,history,asOf:venueClock,deadline,
-        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
-      stream.send(200,result);
-    }catch{
-      stream.send(503,{error:'The saved venue requests could not be checked.'});
-    }
-    return;
-  }
+  if(venue){await replyVenue(venue,venueClock,venueObservation??undefined);return;}
   const submissionTiming=selectDtmSubmissionTiming(question,route,history);
   if(submissionTiming){
     if(submissionTiming.reason){stream.send(200,dtmSubmissionTimingBoundary(submissionTiming,question));return;}

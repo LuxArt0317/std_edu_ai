@@ -26,3 +26,16 @@ Issue [#100](https://github.com/LuxArt0317/std_edu_ai/issues/100). The signed-in
 A question can narrow the lookup by exact request ID, room code, period, status, or date. It can also request only a count or the newest matching submission. The record reader checks ownership, scope, ordering, and exact pagination before showing a reply or table. A failed read triggers one LangGraph retry of the same caller-bound request. A second failure withholds the draft. The verified empty result applies only to matching saved stu.best requests. Guests can sign in and return to the venue requests page. Personal request metadata and public availability are separate queries.
 
 Run `node --test tests/api/venue-request-assistant.test.ts` with Node 24. The suite runs the real handlers and LangGraph with injected PostgREST responses, including wrong-owner and out-of-scope rows, exact retry, incomplete results, guest and compiled browser dispatch. No hosted I/O or production acceptance is represented by these tests.
+
+### Protected Preview ownership replay
+
+```sh
+node tests/evaluation/run-venue-protected-preview.mjs --preflight
+node tests/evaluation/run-venue-protected-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVISION"
+```
+
+Use a clean checkout at the exact protected Preview revision, the configured client fixture environment, and a Development `VERCEL_OIDC_TOKEN`. The seven requests cover two separately owned pending records, a filtered count, an exact crossed ID with no owned match, and guest, foreign-account, and unsupported-companion boundaries.
+
+The disposable accounts each own a pending request in a fictional room dated in 2001. This keeps the fixtures outside reservable dates. Setup rejects any published schedule for those codes, existing reserved row, request receipt, or audit data. The paired native API and direct row-level checks run before and after every request. Both accounts are denied the management view. The signed response receipt binds the Preview release, caller, question, native read, projected evidence and terminal reply. The final report verifies exact removal of both fixture rows and identities and preservation of the protected owner.
+
+The four original approved-record and fee-companion cases retain the T0308 and tuition oracles for scratch PostgreSQL verification. An approved row on the shared project would affect public capacity. The two outage cases use the controlled handler tests, and the three generic-note legacy cases still need their own rebind. The operator preflight lists these gaps without contacting the Preview or database.

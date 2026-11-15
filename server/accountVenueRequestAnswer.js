@@ -25,7 +25,7 @@ function instant(value){
   return BigInt(parsed)*1000n+BigInt((match[2]??'').padEnd(6,'0').slice(3));
 }
 
-async function readVenueEvidence({user:{id:owner},key,token,url},selection,deadline){
+async function readVenueEvidence({user:{id:owner},key,token,url},selection,deadline,observation){
   if(typeof owner!=='string'||!uuid.test(owner)||url!==origin||typeof key!=='string'||!key.trim()
     ||typeof token!=='string'||!token.trim()||!Number.isFinite(deadline))throw deadlineError();
   const limit=selection.countOnly||selection.id||selection.latest?1:12;
@@ -68,7 +68,9 @@ async function readVenueEvidence({user:{id:owner},key,token,url},selection,deadl
     if(!selection.countOnly)results.push({venue:row.venue,date:row.booking_date,period:row.period,status:row.status,
       ...(selection.submittedAt?{submittedAt:row.created_at}:{})});
   }
-  return {sourceId,selection,total,rows:results,checkedAt:new Date().toISOString()};
+  const evidence={sourceId,selection,total,rows:results};
+  observation?.record({method:'GET',url:target.href,ownerId:owner,total,rows},evidence);
+  return {...evidence,checkedAt:new Date().toISOString()};
 }
 
 function reply(question,selection,evidence){
@@ -118,7 +120,7 @@ function pairReply(question,plan,evidence){
       ...(!venue||!fees?{degraded:true}:{})}};
 }
 
-export async function answerVenueRequests({account,plan,question,route,history,asOf,deadline,onProgress}){
+export async function answerVenueRequests({account,plan,question,route,history,asOf,deadline,onProgress,observation}){
   const expected=venueRequestPlan(question,route,history,asOf);
   if(!expected||expected.selection.reason||!isDeepStrictEqual(plan,expected))throw deadlineError();
   const {url,key,token,user}=account;
@@ -147,7 +149,7 @@ export async function answerVenueRequests({account,plan,question,route,history,a
         detail:evidence[key]?'Checked the selected records under this signed-in account.':'The selected records could not be read.'});
     };
     await Promise.all([
-      load('venue','venueRequests','Checked saved venue requests',()=>readVenueEvidence(caller,expected.selection,deadline)),
+      load('venue','venueRequests','Checked saved venue requests',()=>readVenueEvidence(caller,expected.selection,deadline,observation)),
       ...(expected.feeQuestion?[load('fees','charges','Checked saved fee balance',loadFees)]:[]),
     ]);
     return {...evidence};
@@ -163,7 +165,9 @@ export async function answerVenueRequests({account,plan,question,route,history,a
       const supported=format(active);
       if(!supported||attempt===1&&expected.feeQuestion&&(!active.venue||!active.fees))
         return {ok:false,reason:'evidence_unavailable'};
-      return {ok:isDeepStrictEqual(candidate,supported)};
+      const matches=isDeepStrictEqual(candidate,supported);
+      if(matches)observation?.nativeVerified();
+      return {ok:matches};
     },
     repair:async({evidence:active})=>format(active)??initial,
   });

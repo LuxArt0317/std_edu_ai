@@ -34,6 +34,9 @@ import {buildFacilityRepairFixturePlan,changeFacilityRepairFixtureRows,facilityR
 import {buildFacilityRepairCancellationPlan,deleteFacilityRepairCancellation,FacilityRepairCancellationAssertion,facilityRepairCancellationMode,
   hasFacilityRepairCancellationProof,observeFacilityRepairCancellation,requestFacilityRepairCancellation,seedFacilityRepairCancellation,
   verifyFacilityRepairCancellation,verifyFacilityRepairCancellationAbsent} from './facility-repair-cancellation-preview.mjs';
+import {buildVenueProtectedPlan,deleteVenueProtectedFixture,observeVenueProtectedFixture,seedVenueProtectedFixture,
+  venueProtectedCases,venueProtectedFixtureMode,venueProtectedGaps,verifyVenueProtectedFixtureAbsent} from './venue-protected-fixture.mjs';
+import {hasVenueProtectedProof,observeVenueProtectedCallers,requestVenueProtectedCase} from './venue-protected-preview.mjs';
 import {aidPaymentFixtureManifest,aidPaymentFixtureReadContract,assertAidPaymentFixtureEmpty,assertAidPaymentFixtureIdentities,assertAidPaymentFixtureRowTargets,buildAidPaymentFixturePlan,verifyAidPaymentFixtureReadback} from './aid-payment-fixture-plan.mjs';
 import {dtmGradeReportFixtureManifest,dtmGradeReportFixtureReadContract,assertDtmGradeReportFixtureEmpty,assertDtmGradeReportFixtureIdentities,assertDtmGradeReportFixtureCourseBindings,assertDtmGradeReportFixtureRowTargets,buildDtmGradeReportFixturePlan,verifyDtmGradeReportFixtureReadback} from './dtm-grade-report-fixture-plan.mjs';
 import {buildFeeRemissionFixturePlan,feeRemissionLiveFamilyForCase,feeRemissionLivePlanManifest} from './fee-remission-live-plan.mjs';
@@ -346,6 +349,7 @@ async function saveLedger(){
       ...(s.dtmTimingPlan?{dtmSubmissionTimingFixture:s.dtmTimingPlan}:{}),
       ...(s.dtmGradePreview?{dtmGradePreview:{courses:s.dtmGradePreview.courses,trackers:s.dtmGradePreview.trackers,
         ...(s.dtmGradeOverview?{profiles:s.dtmGradePreview.profiles,reports:s.dtmGradePreview.reports}:{})}}:{}),
+      ...(s.venueProtectedPlan?{venueProtectedPlan:s.venueProtectedPlan}:{}),
       ...(s.facilityRepairCancellation?{facilityRepairCancellation:s.facilityRepairCancellation}:{}),
       ...(s.feeFixture?{feeRemissionFixture:{students:s.feeFixture.students,journal:s.feeFixture.journal}}:{}),
       ...(s.studentLeaveData?{studentLeaveDataFixture:studentLeaveJournalBinding(s.studentLeaveData.binding)}:{}),
@@ -427,7 +431,7 @@ async function createFixtureUser(index){
   let signed;try{signed=await auth.auth.signInWithPassword({email,password});}catch{fail('fixture-signin','Synthetic account sign-in did not complete.');}
   if(signed.error||signed.data?.session?.user?.id!==user.id)fail('fixture-signin','Synthetic account session could not be verified.');
   attachFixtureSession(user,signed.data.session,{url:s.url,publishable:s.publishable,signal:s.signal,fetchImpl:s.boundedFetch});
-  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.teachingSampleOnly)return user;
+  if(s.fixtureMode===FEE_FIXTURE_MODE||s.counselingOnly||s.clubOnly||s.elearningPublishedReadbackOnly||s.healthMetadataOnly||s.tutorEvaluationOnly||s.clubEquipmentOnly||s.dtmGradeOverview||s.internshipNativeOnly||s.facilityRepairCancellationOnly||s.teachingSampleOnly||s.venueProtectedOnly)return user;
   const initial=await readSnapshot(user);user.studentId=initial.student?.id;
   if(!UUID.test(user.studentId||''))fail('fixture-readback','Synthetic School Affairs student initialization failed.');
   return user;
@@ -445,9 +449,10 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   const internshipNativeOnly=fixtureMode===internshipFixtureMode;
   const teachingSampleOnly=fixtureMode==='teaching-sample-only';
   const facilityRepairCancellationOnly=fixtureMode===facilityRepairCancellationMode;
+  const venueProtectedOnly=fixtureMode===venueProtectedFixtureMode;
   if(typeof dtmGradeOverview!=='boolean'||dtmGradeOverview&&!dtmGradePreviewOnly)
     fail('fixture-config','Moodle grade overview requires its isolated fixture.');
-  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
+  if(!UUID.test(runId||'')||!Array.isArray(cases)||(!cases.length&&!leaveDataOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&!venueProtectedOnly)||!Number.isFinite(Date.parse(now)))fail('fixture-config','A unique run ID, selected case list and valid evaluation clock are required.');
   if(taskActionOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Confirmed task checks require the exact protected Preview and isolated disposable owners.');
@@ -463,6 +468,9 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   if(internshipNativeOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Internship checks require the exact protected Preview and isolated disposable owners.');
+  if(venueProtectedOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
+    ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
+    fail('fixture-config','Venue reads require the exact protected Preview and isolated disposable owners.');
   if(facilityRepairCancellationOnly&&(cases.length||caseFamily!==undefined||applicationFetch!==undefined||origin!==approvedPreviewOrigin
     ||!isEvaluationPreviewOrigin(origin)||typeof previewReadbackFetch!=='function'))
     fail('fixture-config','Facility repair cancellation requires the exact protected Preview and isolated disposable owners.');
@@ -550,7 +558,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       ||!approvedPreviewOrigin||origin!==approvedPreviewOrigin)fail('fixture-config','The injected transport requires the exact approved Preview four-turn packet.');
     transcriptCaseIds=cases.map((testCase,index)=>assertTranscriptFixtureCase(testCase,index));
   }
-  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
+  if(!leaveDataOnly&&!assignmentListOnly&&!taskActionOnly&&!tuitionLedgerOnly&&!dtmTimingOnly&&!dtmGradePreviewOnly&&!healthMetadataOnly&&!counselingOnly&&!tutorEvaluationOnly&&!clubEquipmentOnly&&!internshipNativeOnly&&!facilityRepairCancellationOnly&&!teachingSampleOnly&&!venueProtectedOnly&&(fixtureMode!==undefined||caseFamily!==undefined)){
     const expected=feeRemissionLivePlanManifest.eligibleCaseIds;
     if(fixtureMode!==FEE_FIXTURE_MODE||caseFamily!=='fee-remission'||!approvedPreviewOrigin||cases.length!==expected.length
       ||new Set(cases.map(row=>row?.id)).size!==expected.length||!expected.every(id=>cases.some(row=>row?.id===id)))
@@ -593,7 +601,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
   await mkdir(PRIVATE_DIR,{recursive:true,mode:0o700});await chmod(PRIVATE_DIR,0o700);
   const boundedFetch=(input,init={})=>fetch(input,{...init,signal:signals(init.signal,15000)});
   state={runId,now,origin:target.origin,url,publishable,signal,boundedFetch,previewReadbackFetch,...(scopedApplicationFetch?{applicationFetch:scopedApplicationFetch}:{}),startedAt:new Date().toISOString(),users:[],identityRequests:[],recordIds:new Set(),supplementalTables:new Set(),caseIds:new Set(transcriptCaseIds??cases.map(row=>row.id)),prepared:false,closing:false,closed:false,current:null,ledgerOwned:false,ledgerTempOwned:false,fixtureMode,counselingOnly,clubOnly,healthMetadataOnly,tutorEvaluationOnly,clubEquipmentOnly,elearningPublishedReadbackOnly,previewGate,dtmGradeOverview,internshipNativeOnly,
-    facilityRepairCancellationOnly,teachingSampleOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
+    facilityRepairCancellationOnly,teachingSampleOnly,venueProtectedOnly,ledger:resolve(PRIVATE_DIR,'active-fixtures-'+runId+'.json'),
     admin:createClient(url,serviceKey,{auth:{persistSession:false,autoRefreshToken:false},global:{fetch:boundedFetch}})};
   try{
     state.sql=postgres(connection,{max:1,connect_timeout:10,idle_timeout:10,max_lifetime:0,
@@ -631,6 +639,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       state.internshipObservationKey=serviceKey;
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['internshipRecords']};
+    }
+    if(venueProtectedOnly){
+      state.venueObservationKey=serviceKey;
+      state.prepared=true;
+      return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['venueRequests']};
     }
     if(facilityRepairCancellationOnly){
       state.prepared=true;
@@ -710,6 +723,11 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
     if(dtmGradePreviewOnly){
       const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Moodle grade fixture preparation failed.');
       reason.dtmGradePreviewCleanupProof=await captureFixtureCleanup();
+      throw reason;
+    }
+    if(venueProtectedOnly){
+      const reason=error instanceof LiveFixtureError?error:new LiveFixtureError('fixture-prepare','Venue fixture preparation failed.');
+      reason.venueCleanupProof=await captureFixtureCleanup();
       throw reason;
     }
     if(facilityRepairCancellationOnly){
@@ -1503,6 +1521,84 @@ export async function runCounselingCancellationPreview({origin,sourceRevision,pr
   }finally{
     try{cleanupProof=await cleanup();}
     finally{await onCheckpoint?.(report(true));}
+  }
+  return report(true);
+}
+
+export async function runVenueProtectedPreview({origin,sourceRevision,previewToken,signal,onCheckpoint}={}){
+  if(!isEvaluationPreviewOrigin(origin)||!/^[a-f0-9]{40}$/u.test(sourceRevision??'')||onCheckpoint!==undefined&&typeof onCheckpoint!=='function')
+    fail('fixture-config','Venue reads require an exact protected Preview and source revision.');
+  const runId=randomUUID(),cases=venueProtectedCases(),results=[],correlations=new Set();
+  let previewGate,prepared=false,finished=false,failure,phase='preflight',cleanupProof={verified:false,status:'not-started'};
+  const report=terminal=>structuredClone({runId,origin,sourceRevision,terminal,results,gaps:venueProtectedGaps(),
+    deployment:previewGate?.status()??null,cleanup:cleanupProof,...(failure?{failure}:{}),
+    liveAcceptance:terminal&&finished&&!failure&&hasVenueProtectedProof(results)&&cleanupProof.verified===true
+      &&cleanupProof.venueProtectedCleanup===true&&cleanupProof.protectedOwnerUnchanged===true});
+  try{
+    const {createLiveRequestPacer,sourceIdentity}=await import('./run.mjs');
+    const identity=await sourceIdentity();
+    if(identity.dirty||identity.sourceRevision!==sourceRevision)fail('fixture-target','Venue requires the exact clean deployed source.');
+    const readback=createTrustedPreviewFetch({origin,token:previewToken}),pace=createLiveRequestPacer();
+    phase='prepare';
+    await prepare({runId,cases:[],now:new Date().toISOString(),origin,approvedPreviewOrigin:origin,
+      expectedReleaseRevision:sourceRevision,signal,fixtureMode:venueProtectedFixtureMode,previewReadbackFetch:readback});
+    prepared=true;
+    const s=ready();
+    ({previewGate}=s);
+    phase='seed';
+    await assertRecordedFixtureLease(s,'Venue setup');
+    await previewGate.assertCurrent();
+    assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+    if(s.users.length!==2)fail('fixture-isolation','Venue requires two separate disposable owners.');
+    const owners=Object.fromEntries(s.users.map(({id},i)=>{
+      const matches=s.identityRequests.filter(row=>row.id===id&&row.runId===runId&&row.state==='created');
+      if(matches.length!==1||id===s.protectedOwnerBefore.id)fail('fixture-isolation','Venue caller is outside the disposable lease.');
+      return [i===0?'A':'B',{id,email:matches[0].email,runMarker:runId}];
+    }));
+    const plan=buildVenueProtectedPlan(runId,owners);
+    s.venueProtectedPlan=plan;
+    await saveLedger();
+    await query(()=>feeTransaction(s,()=>seedVenueProtectedFixture(s.sql,plan)), 'Could not stage exact pending venue records.');
+    const observe=async()=>{
+      await assertRecordedFixtureLease(s,'Venue account readback');
+      await previewGate.assertCurrent();
+      const rowsDigest=await observeVenueProtectedFixture(s.sql,plan);
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await observeVenueProtectedCallers(plan,{users:s.users,publishable:s.publishable,origin,previewFetch:readback,
+        directFetch:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
+      return {rowsDigest,callers};
+    };
+    for(const boundCase of cases){
+      phase=boundCase.testCase.id;
+      const before=await observe(),caller=boundCase.role==='guest'?null:s.users[boundCase.role==='A'?0:1];
+      let ticket,result;
+      try{
+        result=await pace(async()=>{
+          await assertRecordedFixtureLease(s,'Venue assistant request');
+          await caller?.renewSession({signal});
+          const privateMarkers=[runId,...s.users.flatMap(user=>[user.id,user.token]),...Object.values(owners).map(owner=>owner.email),
+            ...plan.rows.flatMap(row=>[row.id,row.purpose,row.review_note])];
+          return requestVenueProtectedCase({boundCase,plan,origin,sourceRevision,token:caller?.token,key:s.venueObservationKey,
+            signal:signals(signal,65000),fetchImpl:readback,readResponse:readBoundedFixtureResponse,correlations,privateMarkers});
+        },signal,async()=>{ticket=await previewGate.beforeRequest();});
+      }finally{if(ticket)await previewGate.afterRequest(ticket);}
+      const after=await observe();
+      if(JSON.stringify(before)!==JSON.stringify(after)){result.passed=false;result.failures.push('venue.persisted_state_changed');}
+      results.push({...result,requestIndex:ticket.requestIndex,before,after});
+      await onCheckpoint?.(report(false));
+    }
+    phase='release-verification';
+    await previewGate.finish();
+    const final=await sourceIdentity();
+    if(final.dirty||final.sourceRevision!==sourceRevision||final.workingTreeHash!==identity.workingTreeHash)
+      fail('fixture-target','Venue source changed during evaluation.');
+    finished=true;
+  }catch(error){
+    if(error instanceof LiveFixtureError&&error.venueCleanupProof)cleanupProof=error.venueCleanupProof;
+    failure={phase,code:error instanceof LiveFixtureError?error.code:'unexpected'};
+  }finally{
+    if(prepared)cleanupProof=await captureFixtureCleanup();
+    await onCheckpoint?.(report(true));
   }
   return report(true);
 }
@@ -3633,6 +3729,13 @@ export async function cleanup(){
       },'Could not remove the exact disposable outline access rows.');
       await saveLedger();
     }
+    if(s.venueProtectedPlan){
+      s.venueObservationKey=undefined;
+      await assertRecordedFixtureLease(s,'Venue fixture cleanup');
+      assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
+      await query(()=>feeTransaction(s,()=>deleteVenueProtectedFixture(s.sql,s.venueProtectedPlan)),
+        'Could not remove the exact disposable venue rows.');
+    }
     if(s.facilityRepairCancellation){
       await assertRecordedFixtureLease(s,'Facility repair cancellation cleanup');
       assertProtectedOwnerUnchanged(s.protectedOwnerBefore,await readProtectedOwnerFingerprint(s.sql,s.protectedOwnerEmail));
@@ -3774,6 +3877,10 @@ export async function cleanup(){
       if(identities.length)fail('fixture-cleanup','A counseling cancellation fixture identity remains.');
       s.counselingCancellationCleanup=true;
     }
+    if(s.venueProtectedPlan){
+      await query(()=>verifyVenueProtectedFixtureAbsent(s.sql,s.venueProtectedPlan),'Could not prove exact venue cleanup.');
+      s.venueProtectedCleanup=true;
+    }
     if(s.facilityRepairCancellation){
       const {plan,command}=s.facilityRepairCancellation;
       await query(()=>verifyFacilityRepairCancellationAbsent(s.sql,plan,command),'Could not prove exact facility repair cancellation cleanup.');
@@ -3848,6 +3955,7 @@ export async function cleanup(){
     ...(s.tutorEvaluationCleanup?{tutorEvaluationCleanup:true}:{}),
     ...(s.clubEquipmentCleanup?{clubEquipmentCleanup:true}:{}),
     ...(s.counselingCancellationCleanup?{counselingCancellationCleanup:true}:{}),
+    ...(s.venueProtectedCleanup?{venueProtectedCleanup:true}:{}),
     ...(s.facilityRepairCancellationCleanup?{facilityRepairCancellationCleanup:true}:{}),
     ...(s.internshipFixture?{internshipCleanup:true}:{}),
     ...(s.internshipChargeCleanup?{internshipChargeCleanup:true}:{}),

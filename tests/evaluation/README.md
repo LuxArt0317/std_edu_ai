@@ -134,6 +134,10 @@ The protected operator mounts 26 of these questions. Run `node tests/evaluation/
 
 The protected Internship operator includes both question orders that ask for saved contracts and the tuition balance. It binds the charge companion in the signed request, verifies the caller’s student lookup and charge projection independently before and after each answer, and checks that each disposable account can read only its own rows. The compound tuition cases require a native verification event and no provider operations. The grader checks the exact recalculated balance in the answer alongside each Internship record’s state. The two transport-failure cases remain controlled. The two frozen next-class cases still need a safe catalog binding for the exact dated meeting.
 
+### Native venue requests
+
+The [Venue booking evaluator](../../docs/qa/VENUE_BOOKING.md#protected-preview-ownership-replay) covers seven protected signed-in and guest cases. Its two disposable accounts hold isolated historical pending requests. The approved T0308 and fee-companion cases require a separate scratch database. Controlled outage and legacy note cases remain listed by the operator preflight.
+
 ### Confirmed facilities repair cancellation
 
 ```sh

@@ -28,14 +28,18 @@ const readExpected={...baseExpected,behavior:'answer',requiredTools:['venueReque
 const custom=(id,question,mode,expected)=>({id:protectedPrefix+id,domain:'venueRequests',routeFamily:'school-services',
   route,endpoint:'/api/affairs-assistant',mode,language:'en',fixtureKey:'live:venue-pending:'+id,question,history:[],expected});
 const exactRequest=(role,expectedRows)=>({id:target[role],room:null,range:null,status:null,rows:expectedRows,countOnly:false});
-const own=(role)=>bound(role,custom('pending-'+role.toLowerCase(),'Show the status of my venue request ID '+target[role]+'.','record',
-  {...readExpected,facts:[fact('Room',room[role]),fact('Booking date',date[role],'date'),fact('Saved local status','Submitted')]}),exactRequest(role,1));
+function own(role){
+  const other=role==='A'?'B':'A';
+  return bound(role,custom('pending-'+role.toLowerCase(),'Show the status of my venue request ID '+target[role]+'.','record',
+    {...readExpected,facts:[fact('Room',room[role]),fact('Booking date',date[role],'date'),fact('Saved local status','Submitted')],
+      forbiddenText:[room[other],date[other]]}),exactRequest(role,1));
+}
 
 export function venueProtectedCases(){
   return structuredClone([
     own('A'),own('B'),
     bound('A',custom('pending-count','How many pending venue requests do I have for room code '+room.A+' on '+date.A+'?','record',
-      {...readExpected,facts:[fact('Matching saved venue requests',1,'number')]}),
+      {...readExpected,facts:[fact('Matching saved venue requests',1,'number')],forbiddenText:[room.A,room.B,date.A,date.B]}),
     {id:null,room:room.A,range:{from:date.A,through:date.A},status:'submitted',rows:1,countOnly:true}),
     bound('B',existing('empty'),exactRequest('A',0)),
     bound('A',existing('foreign'),null),
