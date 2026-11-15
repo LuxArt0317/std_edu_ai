@@ -263,11 +263,11 @@ test('route coverage retains only unresolved semantic cases after adding public 
     route.replace('?page=:page','?page=%3Apage'));
   const unresolved=[...expected,...added,...missingServiceViews,...schoolServiceNotices.map(row=>row.route),
     '/school-affairs/course-selection','/school-affairs/course-selection/review/tutor','/school-affairs/course-selection/review/dean',
-    '/school-affairs/course-selection/review/academic','/dtm/course/:id/grades/overview'];
-  assert.equal(report.coverage.routes.total,674);
+    '/school-affairs/course-selection/review/academic','/school-affairs/admin/records','/dtm/course/:id/grades/overview'];
+  assert.equal(report.coverage.routes.total,675);
   assert.equal(expected.length,20);assert.equal(added.length,5);
   assert.deepEqual([...report.coverage.routes.missing].sort(),unresolved.sort());
-  assert.equal(report.browserAcceptance.total,674);assert.equal(report.browserAcceptance.requiredScenarios,684);
+  assert.equal(report.browserAcceptance.total,675);assert.equal(report.browserAcceptance.requiredScenarios,685);
   assert.equal(report.coverage.routeFamilies.total,57);
   assert.deepEqual(report.coverage.routeFamilies.missing,['school-service-acknowledgements','student-club-equipment','dtm-submissions',
     'elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);

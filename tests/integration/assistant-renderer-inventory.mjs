@@ -127,7 +127,9 @@ async function wire(context,mode,origin){
 }
 async function waitMounted(page,selector){
   assert.ok(selector,'workspace-marker-unbound');
-  await page.locator(selector).first().waitFor({state:'visible'});
+  // A cold loopback Vite process compiles the routed workspace lazily. Keyboard
+  // actions retain their shorter timeout after the workspace has mounted.
+  await page.locator(selector).first().waitFor({state:'visible',timeout:12000});
 }
 async function settledFocus(page,selector){
   await page.waitForFunction(selector=>Boolean(document.activeElement?.closest(selector)),selector);
@@ -187,6 +189,9 @@ async function checkRoute(page,contextState,row,mode,device,origin){
     checks.keyboardUsable=true;
     stage='request-integrity';
     assert.deepEqual(contextState.security,[]);assert.equal(contextState.pageErrors,0);
+    if(row.route==='/school-affairs/admin/records'&&mode.state)assert.ok(
+      contextState.api.every(read=>read.path!=='/api/affairs-data'||read.scope==='unscoped'),
+      'The student denial view must not request administrator records.');
     stage=null;
   }catch{
     finalPath=new URL(page.url()).origin===origin?new URL(page.url()).pathname+new URL(page.url()).search:null;

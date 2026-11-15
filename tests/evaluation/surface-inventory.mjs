@@ -51,7 +51,7 @@ export async function discoverSurfaces() {
   if(!Array.isArray(dtmViews)||!dtmViews.every(view=>typeof view==='string'))throw new Error('Invalid current DTM view inventory.');
   const routeFamilies=[
     signedIn('school-affairs',['/school-affairs','/school-affairs/records','/school-affairs/notifications','/school-affairs/bookmarks','/school-affairs/search',
-      '/school-affairs/records/subjects','/school-affairs/course-selection',
+      '/school-affairs/records/subjects','/school-affairs/course-selection','/school-affairs/admin/records',
       ...['tutor','dean','academic'].map(role=>'/school-affairs/course-selection/review/'+role)]),
     signedIn('school-menus',menus.flatMap(group=>group.views.map(([view])=>`/school-affairs/menu/${group.id}/${view}`))),
     signedIn('school-services',[...new Set(schoolServiceEntries.map(row=>row.localUrl).filter(route=>route.startsWith('/school-affairs/services/')))]),

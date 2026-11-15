@@ -43,6 +43,9 @@ test('school service views and notice transitions keep distinct signed-in render
   assert.match(base.selector,/Learning support/u);
   const history=cases.find(row=>row.route==='/school-affairs/services/39-1/payment-history?page=2');
   assert.equal(new URL(history.guest,'https://renderer.invalid').searchParams.get('next'),history.route);
+  const admin=cases.find(row=>row.route==='/school-affairs/admin/records');
+  assert.match(admin.selector,/requires a verified site administrator/u);
+  assert.equal(new URL(admin.guest,'https://renderer.invalid').searchParams.get('next'),admin.route);
   const transitions=inventory.routeFamilies.find(row=>row.id==='school-service-acknowledgements');
   assert.equal(transitions.auth,'transition');
   for(const scenario of transitions.browserScenarios){

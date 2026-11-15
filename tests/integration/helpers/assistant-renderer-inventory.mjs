@@ -78,6 +78,7 @@ function selector(family,route){
   if(pathname==='/school-affairs/services/46-1/instructions')return '.parking-permits-instructions';
   if(pathname.startsWith('/school-affairs/services/45-1/')||pathname.startsWith('/school-affairs/admin/repairs'))return '.facility-repair-page';
   if(pathname==='/school-affairs/admin/venues')return '.venue-workspace';
+  if(pathname==='/school-affairs/admin/records')return '#portal-content p[role="alert"]:text-is("Administration requires a verified site administrator.")';
   const extraMarker=pathname==='/school-affairs/records/subjects'?'.school-subject-records'
     :pathname==='/school-affairs/course-selection'?'.course-selection-system-main'
       :pathname.startsWith('/school-affairs/services/29-1/')?'.counseling-workspace'
