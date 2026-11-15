@@ -159,7 +159,7 @@ test('actual cleanup clears every synthetic session before I/O on success, failu
     const protectedOwnerBefore={id:foreign,auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)};
     const state={protectedOwnerBefore,protectedOwnerEmail:'protected-admin@example.invalid',runId,users:[user],identityRequests:[{id:owner,email:'synthetic@example.invalid',runId,state:'created'}],ledgerOwned:mode!=='missing-ledger',ledgerTempOwned:false,ledger:'private-ledger',closed:mode==='closed',closing:false,locked:true,sql,
       db:{end:async()=>{ended++;if(mode==='connection-failure')throw new Error('PRIVATE_DB_ERROR');}},admin:{auth:{admin:{deleteUser:async()=>{deleted++;return {error:mode==='delete-failure'?{message:'PRIVATE_AUTH_ERROR'}:null};}}}}};
-    const context={state,UUID:/^[a-f0-9-]{36}$/i,PROJECT:project,ownTables:[],reconcileFixtureIdentity,LiveFixtureError,saveLedger:async()=>{},query:async work=>work(),
+    const context={state,UUID:/^[a-f0-9-]{36}$/i,PROJECT:project,ownTables:[],reconcileFixtureIdentity,LiveFixtureError,saveLedger:async()=>{},query:async work=>work(),pause:async()=>{},
       checkedProtectedOwnerFingerprint:value=>{protectedOwnerFingerprintDigest(value);return value;},readProtectedOwnerFingerprint:async()=>protectedOwnerBefore,assertProtectedOwnerUnchanged,
       rm:async()=>{if(mode==='ledger-failure')throw new Error('PRIVATE_LEDGER_ERROR');},fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
     const cleanup=vm.runInNewContext(section('export async function cleanup(')+'\ncleanup;',context);

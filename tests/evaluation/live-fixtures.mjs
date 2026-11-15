@@ -4142,12 +4142,6 @@ export function reconcileFixtureIdentity(request,rows){
   return {userId:row.id,unresolved:false};
 }
 
-function readFixtureIdentityRows(sql,request){
-  // A changed email must not hide a known ID from ownership validation.
-  return query(()=>sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id from auth.users
-    where lower(email)=lower(${request.email}) or id=${request.id??null}::uuid limit 2`,'Could not reconcile the pending fixture identity.');
-}
-
 /** Only the exact four-turn application fixture exposes this metadata. No
  * access token, email, student identifier or mutable state escapes. */
 export function transcriptFixtureIdentity(){
@@ -4195,6 +4189,9 @@ export async function cleanup(){
     fail('fixture-cleanup','The previous cleanup could not be completed and its connection is closed; use the retained private ledger for explicit recovery before another fixture run.');
   }
   s.closing=true;let verified=false,protectedOwnerUnchanged=false,cleanupError;
+  // A changed email must not hide a known ID from ownership validation.
+  const readFixtureIdentityRows=request=>query(()=>s.sql`select id,email,raw_user_meta_data->>'assistant_evaluation_run' as run_id from auth.users
+    where lower(email)=lower(${request.email}) or id=${request.id??null}::uuid limit 2`,'Could not reconcile the pending fixture identity.');
   try{
     let unresolvedCreation=false;const deletable=new Map(),absent=new Set();
     if((s.identityRequests.length||s.users.length)&&!s.ledgerOwned)fail('fixture-cleanup','Fixture identities have no owned cleanup ledger; no account will be deleted.');
@@ -4203,7 +4200,7 @@ export async function cleanup(){
       fail('fixture-protected-owner','The protected owner cannot be treated as a disposable fixture; no account will be deleted.');
     for(const request of s.identityRequests){
       if(request.runId!==s.runId||request.id!==undefined&&!UUID.test(request.id))fail('fixture-cleanup','The fixture recovery request does not belong to this lifecycle.');
-      const rows=await readFixtureIdentityRows(s.sql,request);
+      const rows=await readFixtureIdentityRows(request);
       const resolved=reconcileFixtureIdentity(request,rows);
       if(resolved.userId&&resolved.userId===s.protectedOwnerBefore.id)fail('fixture-protected-owner','The protected owner cannot be treated as a disposable fixture; no account will be deleted.');
       unresolvedCreation ||= resolved.unresolved;
@@ -4410,7 +4407,7 @@ export async function cleanup(){
         }catch{/* A network failure may follow a committed deletion. */}
         const retry=attempt<backoffs.length&&(!(status>=400&&status<500)||status===408||status===429);
         if(retry)await pause(backoffs[attempt]);
-        const rows=await readFixtureIdentityRows(s.sql,request);
+        const rows=await readFixtureIdentityRows(request);
         if(!reconcileFixtureIdentity(request,rows).userId){deleted=true;break;}
         if(!retry)break;
       }
