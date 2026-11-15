@@ -49,7 +49,7 @@ import {formatHousingApplicationAnswer} from './housingApplicationAnswer.js';
 import {unavailableHousingApplicationEvidence} from './accountHousingApplicationEvidence.js';
 import {exactTeachingFeedbackRead,teachingFeedbackImmediateFields,teachingFeedbackLookupContext} from './teachingFeedbackEvidenceIntent.js';
 import {selectFacilityRepairEvidence} from './facilityRepairEvidenceIntent.js';
-import {currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
+import {currentStudyCoachingQuestion,currentStudyForeignYearQuestion} from './currentStudyOwnerScope.js';
 import {isStudentAidRecordQuestion} from './studentAidRecords.js';
 export {supplementalAccountTools,requiredSupplementalTools} from './accountSupplementalLookup.js';
 
@@ -1019,16 +1019,20 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const teaching=teachingFeedbackLookupContext(question,fullRoute,history);
   const teachingSelected=Boolean(teaching.selection?.views.length);
   const teachingForeignYear=teachingSelected&&currentStudyForeignYearQuestion(teaching.otherQuestion);
-  const studyQuestion=teachingForeignYear?teachingForeignYear.courseQuestion:teachingSelected?teaching.otherQuestion:question;
-  const studyIntent=teachingSelected?accountQuestionIntent(studyQuestion,[],''):intent;
+  const coachingSelection=!teachingSelected&&snapshot.currentStudyScope?currentStudyCoachingQuestion(question):null;
+  const studyCoaching=coachingSelection&&coachingSelection.scope===snapshot.currentStudyScope?coachingSelection:null;
+  const studyQuestion=studyCoaching?.recordQuestion??(teachingForeignYear?teachingForeignYear.courseQuestion:teachingSelected?teaching.otherQuestion:question);
+  const studyIntent=studyCoaching||teachingSelected?accountQuestionIntent(studyQuestion,[],''):intent;
+  const responseIntent=studyCoaching?'mixed':intent.kind;
   const teachingFees=teachingSelected&&(isOwnFeeBalanceQuestion(studyQuestion)||ownFeeBalanceLabel(studyQuestion)!==null);
   const teachingNext=teachingSelected&&isServiceNoteNextClass(studyQuestion);
   const scopedTeaching=teachingSelected&&(!studyQuestion||teachingFees||teachingNext);
-  const studyTools=snapshot.currentStudyScope==='courses_and_year'&&isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?['profile','courses',...(teachingSelected?['teachingFeedback']:[])]
+  const studyTools=studyCoaching?studyCoaching.scope==='courses_and_year'?['profile','courses']:['courses']
+    :snapshot.currentStudyScope==='courses_and_year'&&isCurrentStudyRecordQuestion(studyIntent,studyQuestion)?['profile','courses',...(teachingSelected?['teachingFeedback']:[])]
     :snapshot.currentStudyScope==='courses'&&studyIntent.recognized&&studyIntent.currentCourses&&studyIntent.baseTools.length===1&&studyIntent.baseTools[0]==='courses'
       ?['courses',...(teachingSelected?['teachingFeedback']:[])]:null;
   const scopedStudy=Boolean(studyTools);
-  const directStudy=studyTools?.length===2&&studyTools.includes('profile')&&studyTools.includes('courses')&&!servicePlan;
+  const directStudy=!studyCoaching&&studyTools?.length===2&&studyTools.includes('profile')&&studyTools.includes('courses')&&!servicePlan;
   const scopedOverview=snapshot.overviewScope===true&&isAccountOverviewQuestion(intent,question);
   const publicPageRoute=!servicePlan&&!dtmCompound&&!scopedStudy&&!scopedTeaching&&!housingSelected&&!applicationSelected&&isPublicPageQuestion(question)?normalizePublicPageRoute(fullRoute):'';
   const serviceNoteScope=serviceNoteLookup(question,fullRoute,history);
@@ -1062,7 +1066,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const plan=scopedAcademics?{tools:['academicGrades'],publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :servicePlan?{tools:leavePlan?studentLeaveSelectedTools(leavePlan):internshipSelectedTools(internshipPlan),publicTopics:[],catalogQuery:null,responseIntent:'records'}
     :dtmCompound?{tools:dtmCompound.tools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
-    :scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent:'records'}
+    :scopedOverview||studyTools?{tools:scopedOverview?intent.baseTools:studyTools,publicTopics:[],catalogQuery:null,responseIntent}
     :await planAccountLookup(question,history,fullRoute,deadline);
   let activeTools=plan.tools,activeCatalogQuery=plan.catalogQuery;
   const singlePageTool=pageLookup.tools.length===1?pageLookup.tools[0]:null;
@@ -1467,6 +1471,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   let initial;
   if((scopedTimetable||scopedNotes||housingSelected||applicationSelected)&&!supplemental.length)initial={status:'answered',answer:'',citations:[],suggestedQuestions:[],activity:[]};
   else if(intent.kind==='coaching'&&!activeTools.length)initial={status:'abstained',answer:'',citations:[],suggestedQuestions:[],activity:[]};
+  else if(studyCoaching)initial=await answerPrivateAffairsQuestion(studyQuestion,snapshot,[],'',{draftOnly:true});
   else if(!supplemental.length)initial=await answerPrivateAffairsQuestion(question,snapshot,history,route,{draftOnly:true});
   else{
     const formatted=formatSupplementalAccountAnswers(supplemental,{question});
@@ -1492,7 +1497,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const privateEvidence=()=>{
     if(intent.kind==='coaching'&&!activeTools.length)return [];
     const extra=supplemental.map(result=>result.evidence),budget=70000-Buffer.byteLength(JSON.stringify(extra),'utf8')-4;
-    const scopeContext=scopedStudy&&teachingSelected?{...context,question:studyQuestion,history:[]}:scopedTimetable?{...context,question,history}:context;
+    const scopeContext=(studyCoaching||scopedStudy&&teachingSelected)?{...context,question:studyQuestion,history:[]}:scopedTimetable?{...context,question,history}:context;
     const sources=[...accountEvidence(current,activeTools,{...scopeContext,budget,teachingScopeOnly:scopedTeaching&&activeTools.length===1,scopedReadOnly:Boolean(servicePlan)||scopedAssignment||scopedOverview||scopedCounseling||scopedTutor||scopedConduct||scopedTimetable||scopedClearance||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing}),...extra];
     if(Buffer.byteLength(JSON.stringify(sources),'utf8')>70000)throw new RangeError('Private evidence exceeds its shared budget.');
     return sources;
@@ -1715,12 +1720,15 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // The deeper review, when useful, works from the same verified read scope.
   const recordFreeCoaching=intent.recognized&&intent.kind==='coaching'&&!activeTools.length&&!evidence.length;
   const coachingGuide=recordFreeCoaching?generalCoachingGuide(question):null;
-  const composeInitially=emptyHousing||directNoteCompanion||exactSupplemental?false:servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
+  const composeInitially=Boolean(studyCoaching)||(emptyHousing||directNoteCompanion||exactSupplemental?false
+    :servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition
+    :needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)
+      ||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length);
   if(composeInitially){
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
-      initial=await composeEvidenceAnswer({question,candidate:initial,evidence,deadline:Math.min(deadline-22000,Date.now()+12000),responseIntent:intent.kind,
-        resolvedUserQuestion,history:coachingGuide||resolvedUserQuestion&&intent.kind==='records'?[]:history,diagnosticContext:diagnosticContext(),onProviderCompleted});
+      initial=await composeEvidenceAnswer({question,candidate:initial,evidence,deadline:Math.min(deadline-22000,Date.now()+12000),responseIntent,
+        resolvedUserQuestion,history:studyCoaching||coachingGuide||resolvedUserQuestion&&intent.kind==='records'?[]:history,diagnosticContext:diagnosticContext(),onProviderCompleted});
       needsComposition=false;
       emit({kind:'account-compose',label:'Prepared your answer',detail:'The draft will now be independently checked.',status:'complete'});
     }catch{
@@ -1875,7 +1883,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         :servicePlan||scopedAssignment||scopedStudy||scopedTeaching||housingSelected||applicationSelected
           ?scopedReviewReferences(context.evidence,activeTools,teaching.selection?.question,Boolean(dtmCompound||leavePlan?.gradeQuestion))
           :activeTools.includes('dtmAssignment')?scopedReviewReferences(context.evidence,['dtmAssignment']):undefined;
-      return verifyEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,requiredEvidenceReferences,
+      return verifyEvidenceAnswer({...context,responseIntent,resolvedUserQuestion,requiredEvidenceReferences,
         deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt),onProviderCompleted});
     },repair:context=>{
       if(coachingGuide&&context.evidence.length===0){
@@ -1902,7 +1910,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         const answer=composeCurrentStudyEvidence(question,context.evidence);
         return {...context.candidate,status:answer?'answered':'abstained',answer:answer??'',citations:answer?evidenceCitations(context.evidence):[]};
       }
-      return repairEvidenceAnswer({...context,responseIntent:intent.kind,resolvedUserQuestion,
+      return repairEvidenceAnswer({...context,responseIntent,resolvedUserQuestion,
         deeperReview:context.attempt>2,diagnosticContext:diagnosticContext(context.attempt),onProviderCompleted});
     },
   });
@@ -1938,7 +1946,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');
   const baseViews=[...(scopedOverview?(verified?overviewRecordViews(viewSnapshot):[]):accountRecordViews(viewSnapshot,viewTools,{...context,courseTerms:intent.courseTerms})),
     ...(boundedFeeAnswer(evidence)?.views||[]),...(applicationSelected&&result.verification?.status==='verified'?applicationAnswer(evidence)?.views??[]:[]),...(housingSelected?(result.verification?.status==='verified'?housingAnswer(evidence)?.views??[]:[]):activeTools.includes('housing')?housingBedView(viewSnapshot,context):[])];
-  const views=servicePlan&&!verified?[]:pairedChargeLabel!==null&&exactSupplemental?(verified?result.views:[])
+  const views=(servicePlan||studyCoaching)&&!verified?[]:pairedChargeLabel!==null&&exactSupplemental?(verified?result.views:[])
     :[...supplementalViews,...baseViews].slice(0,3);
   if(supplementalViews.length+baseViews.length>3)for(const view of views)view.note=(view.note?view.note+' ':'')+'Additional source tables were omitted by the three-table display limit; use the source links for the full records.';
   return {...result,...(repairClarification&&result.verification?.status==='verified'?{status:'clarification'}:{}),views,grounding:{...result.grounding,...(recordFreeCoaching?{source:'general-guidance'}:{}),webSearched:observed.some(step=>step.kind.startsWith('web-')),checkedAt:current.checkedAt},

@@ -197,3 +197,9 @@ The frozen correction candidate over0731bda keeps the same account, action and t
 The exact Student Loan release0731bda passed seven deployed actual-JWT/browser groups with cleanup and protected-owner preservation, but no Loan assistant tool is registered in this batch. The next own-record overview/current-courses-plus-year/career-advice work is a separate candidate, outside these frozen corrections.
 
 Final independent grader acceptance covers literal `0` versus numeric variants, valid unconfirmed-payment wording, contradictory paid/completed claims, and unavailable-read versus absent-record conclusions. All54 focused tests and17 separate actual-case probes passed. The isolated23-path release also passed380 offline evaluation tests,839 API/source checks,318 units,build/assets,lint,handoff and audit0. These are offline gates; production model acceptance is still pending.
+
+### Saved subjects and interview coaching
+
+An explicit current-subjects list with standalone interview wording help uses the signed-in student’s bounded timetable reader. The recorded year is read separately only when requested. The existing LangGraph composes and verifies the full reply, keeps sample provenance and uncertainty visible, and rereads the same selected sources on retry. It can give interview practice wording alongside a precise unavailable or unlinked status. Questions with an additional independent topic continue through their existing routing.
+
+The local handler test captures Auth, PostgREST and verification requests. It checks the unchanged mixed course and coaching case against its frozen rubric and independently verifies that the handler reads no unrelated account collections. Its provider responses are controlled. Protected model behavior requires a separate revision-pinned replay.

@@ -55,6 +55,44 @@ function foreignCurrentCourses(value) {
   return Boolean(owner&&foreignSubject(owner));
 }
 
+const courseListRequests=[
+  /^(?:please )?(?:list|show(?: me)?|tell me) my (?:current (?:term |semester )?)?(?:courses?|subjects?|classes)(?: (?:in |for |during )?this (?:term|semester))?$/u,
+  /^(?:please )?(?:what|which) (?:courses?|subjects?|classes) (?:do i have|am i taking) (?:in |for |during )?this (?:term|semester)$/u,
+  /^(?:請)?(?:列出|顯示|告訴我)我(?:的)?(?:這學期|本學期|目前)(?:的)?(?:課程|科目|修課)$/u,
+  /^我(?:的)?(?:這學期|本學期|目前)(?:有|修)(?:哪些|哪幾門)(?:課程|科目|課)$/u,
+];
+const yearRequests=[
+  /^(?:what|which) year(?: level)? (?:am i|i am)(?: currently)?(?: in| at)?$/u,
+  /^(?:(?:please )?(?:list|show(?: me)?|tell me) |what is )my (?:current |recorded )?year(?: level)?$/u,
+  /^我(?:目前|現在)?(?:是|讀)?幾年級$/u,
+];
+const interviewRequests=[
+  /^(?:then |please )*(?:help me (?:to )?)?(?:draft|write|prepare|practi[cs]e) (?:an? )?(?:(?:honest|short|brief|practice|sample) )*(?:(?:job )?interview (?:answer|introduction|example)|self[- ]introduction|answer about why i (?:could be|want to be) (?:an? )?(?:software engineer|software developer|developer))$/u,
+  /^(?:再|然後)?(?:請)?幫我(?:準備|草擬|練習|撰寫)(?:一段|一個)?(?:簡短|誠實|真實)?(?:的)?(?:面試回答|面試自我介紹|自我介紹|面試例子)$/u,
+];
+
+/** One explicit current-course list, optional own year, and one standalone
+ * interview wording request. Extra subjects keep their regular routing. */
+export function currentStudyCoachingQuestion(question) {
+  const input=text(question);
+  if(!input)return null;
+  const parts=clauses(input);
+  if(parts.length<2||parts.length>3)return null;
+  let courses='',year='',coaching=false;
+  for(const part of parts){
+    const value=normalized(part);
+    if(!courses&&ownCurrentCourses(value)&&courseListRequests.some(pattern=>pattern.test(value))){courses=part;continue;}
+    if(!year&&ownYear(value)&&!foreignYear(value)&&yearRequests.some(pattern=>pattern.test(value))){year=part;continue;}
+    if(!coaching&&interviewRequests.some(pattern=>pattern.test(value))){coaching=true;continue;}
+    return null;
+  }
+  if(!courses||!coaching)return null;
+  const zh=/\p{Script=Han}/u.test(courses);
+  return {recordQuestion:year?(zh?'我這學期有哪些課？我目前是幾年級？':'What courses do I have this semester and what year am I currently in?')
+    :(zh?'我這學期有哪些課？':'What courses do I have this semester?'),
+    scope:year?'courses_and_year':'courses'};
+}
+
 /** True only when the year request itself is first-person, not a nearby course. */
 export function currentStudyOwnYearClause(question) {
   const input=text(question);
