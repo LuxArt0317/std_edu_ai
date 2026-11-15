@@ -21,6 +21,7 @@ test('the four direct readers and verified graph dispatch remain separately visi
     {id:'elearning-page-metadata',graphTool:'elearningMetadata'},
     {id:'dtm-assignment-list',graphTool:'dtmAssignmentList'},
     {id:'dtm-materials',graphTool:'dtmMaterials'},
+    {id:'dtm-submission-timing',graphTool:'dtmSubmissionTiming'},
     {id:'student-leave',graphTool:'leaveRecords'},
     {id:'venue-requests',graphTool:'venueRequests'},
     {id:'internship',graphTool:'internshipRecords'},

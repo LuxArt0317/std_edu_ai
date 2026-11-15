@@ -4,6 +4,7 @@ import {campusEntryIntent} from '../../server/campusEntryContract.js';
 import {learningEntryIntent} from '../../server/learningEntryContract.js';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
 import {dtmMaterialIntent} from '../../server/dtmMaterialIntent.js';
+import {selectDtmSubmissionTiming} from '../../server/dtmSubmissionTimingIntent.js';
 import {isElearningCatalogPageQuestion} from '../../server/elearningCatalogPageIntent.js';
 import {catalogDetailIntent} from '../../server/catalogDetailIntent.js';
 import {isElearningMetadataQuestion} from '../../server/elearningMetadataIntent.js';
@@ -73,7 +74,7 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
   const {access_token:accessToken}=data.session;
   if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
-    ||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
+    ||selectDtmSubmissionTiming(question,route,history)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
     ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history)

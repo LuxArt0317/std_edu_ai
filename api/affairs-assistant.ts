@@ -20,6 +20,8 @@ import {answerDtmMaterial} from '../server/accountDtmMaterialAnswer.js';
 import {answerDtmAssignmentList} from '../server/accountDtmAssignmentListAnswer.js';
 import {dtmAssignmentListBoundary,dtmAssignmentListSelection} from '../server/dtmAssignmentListIntent.js';
 import {dtmMaterialBoundary,dtmMaterialIntent} from '../server/dtmMaterialIntent.js';
+import {answerDtmSubmissionTiming} from '../server/accountDtmSubmissionTiming.js';
+import {dtmSubmissionTimingBoundary,selectDtmSubmissionTiming} from '../server/dtmSubmissionTimingIntent.js';
 import {readInternshipEvidence} from '../server/accountInternshipEvidence.js';
 import {internshipAssistantPlan,internshipBoundary,internshipSelectedTools,internshipUnavailable} from '../server/internshipAssistantPlan.js';
 import {readStudentLeaveEvidence} from '../server/accountStudentLeaveEvidence.js';
@@ -395,6 +397,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     }catch{
       stream.send(503,{error:'The saved venue requests could not be checked.'});
     }
+    return;
+  }
+  const submissionTiming=selectDtmSubmissionTiming(question,route,history);
+  if(submissionTiming){
+    if(submissionTiming.reason){stream.send(200,dtmSubmissionTimingBoundary(submissionTiming,question));return;}
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about your saved submission timing using text, without an image.'});
+      return;
+    }
+    try{
+      stream.send(200,await answerDtmSubmissionTiming({account,selection:submissionTiming,question,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The selected submission timing could not be checked.'});}
     return;
   }
   const assignmentList=dtmAssignmentListSelection(question,route);

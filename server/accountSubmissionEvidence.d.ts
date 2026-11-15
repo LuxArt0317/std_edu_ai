@@ -14,6 +14,9 @@ export type SubmissionEvidencePayload={checkedAt:string;source:string;officialUn
   complete:boolean;records:SubmissionEvidenceRecord[];unavailable:SubmissionUnavailable[]};
 export type SubmissionEvidenceResult={readState:'ok'|'empty'|'partial'|'unavailable';reason:string|null;evidence:VerificationEvidence};
 export function isSubmissionEvidenceQuestion(question:unknown,route?:string,history?:{role:string;content:string}[]):boolean;
+export type DtmSubmissionTimingRecord={submittedAt:string|null;dueAtAtSubmission:string|null};
+export function dtmSubmissionInstantMicros(value:unknown):bigint|null;
+export function readDtmSubmissionTiming(account:AffairsAccount&{requestDeadline?:number},options:{courseId:string;assignmentId:string;deadline?:number},dependencies?:{fetchImpl?:typeof fetch}):Promise<DtmSubmissionTimingRecord>;
 /** Captures caller credentials and minimal owned assignment/course metadata
  * synchronously, before any concurrent read worker starts. */
 export function readSubmissionEvidence(account:AffairsAccount&{requestDeadline?:number},options:{snapshot:Record<string,unknown>;question?:string;route?:string;history?:{role:string;content:string}[];deadline?:number;assignmentIds?:string[]},dependencies?:{fetchImpl?:typeof fetch}):Promise<SubmissionEvidenceResult>;

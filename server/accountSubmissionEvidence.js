@@ -21,6 +21,11 @@ const timestamp=value=>{
   return day.toISOString().slice(0,10)===value.slice(0,10)&&Number(value.slice(11,13))<24&&Number(value.slice(14,16))<60&&Number(value.slice(17,19))<60;
 };
 const nullableTimestamp=value=>value===null||timestamp(value);
+export function dtmSubmissionInstantMicros(value){
+  if(!timestamp(value))return null;
+  const fraction=/\.(\d{1,6})/u.exec(value)?.[1]??'';
+  return BigInt(Date.parse(value))*1000n+BigInt(fraction.padEnd(6,'0').slice(3));
+}
 const detailUrl=row=>'/dtm/course/'+row.course.id+'/assignment/'+row.assignment.id;
 const followup=question=>/^(?:and\b|what about\b|how about\b|what (?:feedback|grade|review)\b|what (?:is|was) (?:it|its)\b|那|還有|它|評語呢|分數呢)|\b(?:it|its|this assignment|that assignment)\b|這份|那份|該作業/i.test(question.trim());
 const asksAll=question=>/\b(?:all|every) (?:of )?(?:my |the )?(?:saved |local |moodle |dtm )?(?:assignments?|submissions?|files?|courses?)\b|(?:全部|所有).{0,8}(?:作業|繳交|檔案|課程)/i.test(question);
@@ -150,12 +155,14 @@ async function readWorkspace(account,id,deadline,fetchImpl,onDeadline){
 const requireValid=valid=>{if(!valid)throw new ReadFailure('invalid_metadata');};
 function safeReview(row){return {status:row.status,gradeText:row.grade_text,feedback:row.feedback,reviewedAt:row.reviewed_at};}
 function safeFile(row){return {filename:row.filename,sizeBytes:row.sizeBytes,contentType:row.contentType,committedAt:row.committedAt};}
-function projectWorkspace(data,row,userId){
-  requireValid(object(data)&&data.assignmentId===row.assignment.id&&data.userId===userId&&data.courseId===row.course.id&&nullableTimestamp(data.dueAt)&&data.maxBytes===maxFileBytes&&Array.isArray(data.files)&&Array.isArray(data.reviews));
+function verifiedWorkspace(data,{assignmentId,courseId},userId){
+  requireValid(object(data)&&data.assignmentId===assignmentId&&data.userId===userId&&data.courseId===courseId&&nullableTimestamp(data.dueAt)&&data.maxBytes===maxFileBytes&&Array.isArray(data.files)&&Array.isArray(data.reviews));
   const submission=data.submission;
-  const common={assignmentTitle:row.assignment.title,courseTitle:row.course.title,assignmentSourceMode:row.assignment.sourceMode,url:detailUrl(row),dueAt:data.dueAt};
-  if(submission===null){requireValid(data.files.length===0&&data.reviews.length===0);return {...common,submission:null,pendingReservation:null,reviewHistory:{available:0,included:0,omitted:0,completeRetainedHistory:true},reviewedRetiredFiles:[]};}
-  requireValid(object(submission)&&uuid.test(submission.id||'')&&submission.user_id===userId&&submission.assignment_id===row.assignment.id&&submission.course_id===row.course.id&&submission.source_mode==='local_submission'&&integer(submission.version)&&timestamp(submission.created_at)&&nullableTimestamp(submission.submitted_at)&&nullableTimestamp(submission.content_modified_at)&&nullableTimestamp(submission.due_at_at_submission));
+  if(submission===null){
+    requireValid(data.files.length===0&&data.reviews.length===0);
+    return {submission:null,current:null,pending:null,retired:[],reviews:new Map()};
+  }
+  requireValid(object(submission)&&uuid.test(submission.id||'')&&submission.user_id===userId&&submission.assignment_id===assignmentId&&submission.course_id===courseId&&submission.source_mode==='local_submission'&&integer(submission.version)&&timestamp(submission.created_at)&&nullableTimestamp(submission.submitted_at)&&nullableTimestamp(submission.content_modified_at)&&nullableTimestamp(submission.due_at_at_submission));
   const hasCurrent=submission.current_upload_id!==null;
   requireValid(hasCurrent?uuid.test(submission.current_upload_id||'')&&submission.version>0&&timestamp(submission.submitted_at)&&timestamp(submission.content_modified_at):submission.version===0&&submission.submitted_at===null&&submission.content_modified_at===null&&submission.due_at_at_submission===null);
   const files=new Map();let current=null,pending=null;
@@ -175,6 +182,12 @@ function projectWorkspace(data,row,userId){
   }
   const retired=[...files.values()].filter(file=>file.state==='retired');
   requireValid(retired.every(file=>reviews.has(file.id))&&(current||retired.length===0));
+  return {submission,current,pending,retired,reviews};
+}
+
+function projectWorkspace(data,row,userId){
+  const {submission,current,pending,retired,reviews}=verifiedWorkspace(data,{assignmentId:row.assignment.id,courseId:row.course.id},userId);
+  const common={assignmentTitle:row.assignment.title,courseTitle:row.course.title,assignmentSourceMode:row.assignment.sourceMode,url:detailUrl(row),dueAt:data.dueAt};
   retired.sort((a,b)=>Date.parse(b.committedAt)-Date.parse(a.committedAt)||a.id.localeCompare(b.id));
   const kept=retired.slice(0,5);
   return {...common,submission:current?{sourceMode:'local_submission',version:submission.version,submittedAt:submission.submitted_at,contentModifiedAt:submission.content_modified_at,dueAtAtSubmission:submission.due_at_at_submission,
@@ -182,6 +195,26 @@ function projectWorkspace(data,row,userId){
     pendingReservation:pending?{filename:pending.filename,sizeBytes:pending.sizeBytes,contentType:pending.contentType,expiresAt:pending.expiresAt,state:'reserved_not_committed'}:null,
     reviewedRetiredFiles:kept.map(file=>({file:safeFile(file),review:safeReview(reviews.get(file.id))})),
     reviewHistory:{available:retired.length,included:kept.length,omitted:retired.length-kept.length,completeRetainedHistory:retired.length===kept.length}};
+}
+
+/** Reads the selected caller-owned submission without opening files or a broad account snapshot. */
+export async function readDtmSubmissionTiming(account,{courseId,assignmentId,deadline}={},dependencies={}){
+  if(!object(account)||!uuid.test(account.user?.id||'')||account.url?.replace(/\/$/,'')!==project
+    ||typeof account.key!=='string'||!account.key||typeof account.token!=='string'||!account.token
+    ||!uuid.test(courseId||'')||!uuid.test(assignmentId||'')
+    ||![deadline,account.requestDeadline].every(value=>value===undefined||Number.isFinite(value)))
+    throw new ReadFailure('invalid_selection');
+  const caller={key:account.key,token:account.token,userId:account.user.id};
+  const stopAt=Math.min(deadline??Infinity,account.requestDeadline??Infinity,Date.now()+8000);
+  const data=await readWorkspace(caller,assignmentId,stopAt,dependencies.fetchImpl??fetch,()=>{});
+  const {submission,current}=verifiedWorkspace(data,{courseId,assignmentId},caller.userId);
+  if(!current)return {submittedAt:null,dueAtAtSubmission:null};
+  const submittedAt=submission.submitted_at;
+  const submitted=dtmSubmissionInstantMicros(submittedAt);
+  requireValid(dtmSubmissionInstantMicros(current.committedAt)===submitted
+    &&dtmSubmissionInstantMicros(submission.content_modified_at)>=submitted
+    &&dtmSubmissionInstantMicros(submission.created_at)<=submitted);
+  return {submittedAt,dueAtAtSubmission:submission.due_at_at_submission};
 }
 
 /** Never calls Storage, an action RPC, a signing endpoint, or a cleanup method. */
