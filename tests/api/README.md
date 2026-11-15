@@ -34,6 +34,8 @@ The `dtm-submissions*`, `dtm-admin-selection`, and `enrollment-certificate*` sui
 
 The reference-catalog, empty-record and graduation-course-selection suites cover bounded evidence guidance and overlapping parent/child course titles. Activity-budget/persistence/schema suites cover full observed traces, Unicode and SQL payload bounds; they are offline contracts.
 
+`catalog-detail-assistant.test.ts` checks actual assistant handlers and the selected published detail RPC with controlled data. It covers exact links, a literal zero, missing grading weights, a wrong-ID retry, an empty lookup, and a failed lookup.
+
 `student-loan.test.ts` and `student-loan-handler.test.ts` check literal metadata, caller/admin isolation, strict API dispatch, replay envelopes, bounded errors and deadlines offline. [Scope and live limits](../../docs/qa/STUDENT_LOAN.md).
 
 The `dormitory-conduct*` suites cover validation, bounded handler dispatch, ownership and offline lifecycle contracts. Rollback/HTTP live harnesses require separate exact-baseline execution. See [Dormitory Conduct QA](../../docs/qa/DORMITORY_CONDUCT.md).

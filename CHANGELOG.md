@@ -1,6 +1,7 @@
 # Changelog
 ## Unreleased
 
+- Keep the selected course or syllabus through School Affairs sign-in and verify the requested catalog fields against its exact published sample. [#100]
 - Check the returned conversation and its activity before reporting an account save. Deleting a signed-in chat also requests account deletion when its save response was lost. [#100]
 - Serialize account conversation saves and deletes so a delayed first save cannot recreate a deleted chat. [#100]
 - Verify saved venue request counts, dates, periods and status through caller-scoped reads. [#100]

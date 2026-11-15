@@ -1,4 +1,6 @@
 import {venueRequestBoundary,venueRequestSelection} from './venueRequestIntent.js';
+import {catalogDetailGuestAnswer} from './accountCatalogDetailAnswer.js';
+import {catalogDetailGuestRoute,catalogDetailIntent} from './catalogDetailIntent.js';
 import {parseExplicitAccountAction} from './accountActionIntent.js';
 import {internshipAssistantPlan,internshipGuestAnswer} from './internshipAssistantPlan.js';
 import {studentConductScope} from './studentConductEvidenceScope.js';
@@ -139,7 +141,8 @@ function parse(body) {
         return ['user', 'assistant'].includes(String(item.role)) && typeof item.content === 'string' ? [{ role: String(item.role), content: boundedAssistantText(item.content, 2000) }] : [];
     }) : [];
     const catalogRoute=elearningCatalogGuestRoute(source.route);
-    const route = isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
+    const offeringRoute=catalogDetailGuestRoute(source.route);
+    const route = offeringRoute?offeringRoute:isElearningCatalogPageQuestion(question,catalogRoute)?catalogRoute:typeof source.route === 'string' && (/^\/school-affairs(?:\/search|\/menu\/[a-zA-Z]+\/[a-z]+|\/services\/12-8\/results\/\d{3}\/\d{1,2}\/[A-Z0-9]{1,8})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/leave(?:\/(?:index|history|archive|periods)|\/edit\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/internship(?:\/(?:contract|self_assessment|company|directory))?\/?$/.test(source.route)||
         /^\/school-affairs\/services\/21-3\/?$/.test(source.route)||
@@ -360,6 +363,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const offering=!input.images.length&&catalogDetailIntent(input.question,input.route);
+        if(offering){stream.send(200,catalogDetailGuestAnswer(input.question,offering));return;}
         const action=!input.images.length&&parseExplicitAccountAction(input.question);
         if(action){
             const zh=/[\u3400-\u9fff]/u.test(input.question);

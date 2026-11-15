@@ -1,4 +1,6 @@
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
+import {answerCatalogDetail} from '../server/accountCatalogDetailAnswer.js';
+import {catalogDetailIntent} from '../server/catalogDetailIntent.js';
 import {venueRequestBoundary,venueRequestSelection} from '../server/venueRequestIntent.js';
 import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
@@ -244,6 +246,18 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const correlationId=randomUUID();
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  const offering=catalogDetailIntent(question,route);
+  if(offering){
+    if(Array.isArray(input?.images)&&input.images.length){
+      stream.send(400,{error:'Ask about the selected course or syllabus using text.'});
+      return;
+    }
+    try{
+      stream.send(200,await answerCatalogDetail({account,question,selection:offering,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));
+    }catch{stream.send(503,{error:'The selected offering could not be checked.'});}
+    return;
+  }
   if(isElearningCatalogPageQuestion(question,route)){
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'For exact catalog questions, remove the image and ask using text.'});

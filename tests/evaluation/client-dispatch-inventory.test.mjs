@@ -13,6 +13,7 @@ test('the four direct readers and verified graph dispatch remain separately visi
     'certificate-awards','announcement-email','student-profile']);
   assert.equal(new Set(inventory.questions.map(row=>row.id)).size,25);
   assert.deepEqual(inventory.verifiedDispatch.map(({id,graphTool})=>({id,graphTool})),[
+    {id:'published-course-detail',graphTool:'courseCatalog'},
     {id:'elearning-catalog-page',graphTool:'elearningCatalog'},
     {id:'dtm-assignment-list',graphTool:'dtmAssignmentList'},
     {id:'dtm-materials',graphTool:'dtmMaterials'},

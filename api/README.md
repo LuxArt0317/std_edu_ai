@@ -20,6 +20,8 @@ Focused Moodle assignment questions use the signed-in caller's exact course and 
 
 The conversation DELETE handler requires migration `20261115230000`. The owner-only RPC records the deleted ID and returns the same receipt for absent and existing IDs. The save RPC checks that ID under the same account lock.
 
+The assistant uses the selected published-offering ID from the course or syllabus route to answer field questions. It retries only the published detail RPC and retains a separate enrollment boundary.
+
 
 Vercel serverless endpoints live here. `research-assistant.ts` answers public school questions from governed knowledge, the captured service directory, images, and verified web sources. `affairs-assistant.ts` verifies a separate School Affairs Google session and never loads Nexus records; `school-assistant.ts` remains the protected Nexus operating assistant.
 

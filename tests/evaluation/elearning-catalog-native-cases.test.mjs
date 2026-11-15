@@ -1,3 +1,4 @@
+import {catalogDetailIntent} from '../../server/catalogDetailIntent.js';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
@@ -295,6 +296,7 @@ test('compiled signed-in client sends exact filters directly to the authenticate
   const exports={},requests=[];
   let owner=account.user.id;
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('catalogDetailIntent.js'))return {catalogDetailIntent};
     if(specifier.endsWith('elearningCatalogPageIntent.js'))return {isElearningCatalogPageQuestion};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{

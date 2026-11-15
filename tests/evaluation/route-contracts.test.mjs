@@ -183,7 +183,6 @@ test('route coverage retains only unresolved semantic cases after adding public 
   const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
   const expected=[
-    '/school-affairs/services/12-4?course=%3Aid','/school-affairs/services/12-4?syllabus=%3Aid',
     '/dtm/dashboard','/dtm/my',
     '/dtm/course/:courseId/assignment/:assignmentId/edit',
     '/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw',
@@ -218,13 +217,13 @@ test('route coverage retains only unresolved semantic cases after adding public 
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,577);
-  assert.equal(expected.length,20);assert.equal(added.length,5);
+  assert.equal(expected.length,18);assert.equal(added.length,5);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,25);
+  assert.equal(report.coverage.routes.missing.length,23);
   assert.equal(report.browserAcceptance.total,577);assert.equal(report.browserAcceptance.requiredScenarios,587);
   assert.equal(report.coverage.routeFamilies.total,53);
   assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,25);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,23);
 });

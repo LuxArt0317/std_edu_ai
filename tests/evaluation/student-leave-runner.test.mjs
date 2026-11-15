@@ -1,3 +1,4 @@
+import {catalogDetailIntent} from '../../server/catalogDetailIntent.js';
 import * as actions from '../../server/accountActionIntent.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -59,6 +60,7 @@ test('compiled client selects account verification before older direct readers a
   let caller=leaveFixtureOwner;
   const exports={},requests=[];
   runInNewContext(code,{exports,require:specifier=>{
+    if(specifier.endsWith('catalogDetailIntent.js'))return {catalogDetailIntent};
     if(specifier.endsWith('elearningCatalogPageIntent.js'))return catalogIntent;
     if(specifier.endsWith('accountActionIntent.js'))return actions;
     if(specifier.endsWith('dtmAssignmentListIntent.js'))return {dtmAssignmentListSelection};
