@@ -881,11 +881,13 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Require the archived-page answer to summarize requested content from the same capture and independently grade it locally.
 - [x] Verify the substantive archived student-page summary, title, link and date on protected `ae5135f`.
-- [ ] Verify English and Traditional Chinese archive wording on the language-correction Preview.
+- [x] Verify substantive English and Traditional Chinese archive content, exact link/date and no web retrieval on `eddb586`.
+- [ ] Localize the Chinese capture-date caption and clarify the OneDrive notice text versus the separately available link.
 - [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
 - [x] Preserve the original DTM notice link outside answer evidence and verify the login redirect handling locally.
 - [x] Verify the exact DTM notice access handoff on protected `ae5135f`.
-- [ ] Observe an independent successful verified-partial follow-up with live public providers. Controlled endpoint coverage resolves this branch.
+- [x] Observe a verified-partial follow-up search and safe retention of checked details using live providers on `eddb586`.
+- [ ] Observe a live verified-partial follow-up that finds a new fact. Controlled endpoint coverage passes.
 - [x] Add protected runners for equipment confirmation and exact Moodle submission timing with paired record readbacks and journaled cleanup.
 
 ### Native grade and appointment actions [Issue #100]

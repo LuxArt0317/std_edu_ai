@@ -947,3 +947,10 @@ released after exact cleanup. The five public probes preserved the gated
 OneDrive notice and verified the archived student page summary. The language
 correction is staged separately on `eddb586`. Native Moodle grades and the
 owned Counseling cancellation are in separate worktrees.
+
+Protected `eddb586` completed all three exact public checks. The bilingual
+archive summaries passed independent content review. The OneDrive reply
+kept verified information after a further source search and appended the
+original sign-in-required link. The Chinese date caption and the missing
+notice URL wording remain small presentation gaps. Full generated-bank
+and production gates stay open.
