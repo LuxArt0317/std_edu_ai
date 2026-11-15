@@ -48,6 +48,13 @@ node tests/evaluation/run-counseling-preview.mjs "$PREVIEW_ORIGIN" "$SOURCE_REVI
 
 Supply the authorized Development OIDC identity for the exact deployed project and use a clean checkout of the deployed revision. Compound tuition, access, booking, reporting and deliberately failed-read cases remain pending for independent hosted coverage.
 
+The two Counseling and tuition question orders and the explicit Counseling exclusion also run through the actual assistant handler with migrated PGlite. Before and after each answer, the test checks paired appointment metadata, owned and crossed billing reads, the selected fee currency, and persistence. It uses an injected reviewer and verifies exact fixture disposal. The appointment-only protected operator keeps its existing packet.
+
+```sh
+STU_COUNSELING_TEST_PGLITE_ENTRY=/absolute/path/to/@electric-sql/pglite/dist/index.js \
+  node --experimental-strip-types --test tests/evaluation/counseling-compound-postgres.test.mjs
+```
+
 The separate counseling cancellation packet checks the guest handoff, independent owner reads and proposal, crossed-owner and stale confirmations, one committed revision, exact replay, changed replay, and unchanged second account. It uses an owner-only report of request and state digests and verifies the exact appointment, audit operation and disposable identities are gone before acceptance. Only the known synthetic scheduled appointment can be cancelled. Booking and clinical records are outside this packet.
 
 ```sh

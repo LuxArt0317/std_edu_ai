@@ -310,6 +310,7 @@ test('excluding appointments keeps the exact named fee scope only',async()=>{
     assert.equal(result.body.verification.status,'verified');
     assert.deepEqual(observedTools(result.steps),['charges']);
     assert.match(result.body.answer,/23,000/);
+    assert.match(result.body.answer,/Currency: ` TWD `/u);
   },{read:'none',charges:'records'});
 });
 

@@ -48,7 +48,7 @@ import {readClearanceEvidence} from '../server/accountClearanceEvidence.js';
 import {clearanceNavigationView,clearanceTimetableQuestion} from '../server/clearanceEvidenceIntent.js';
 import {clearanceDirectoryAnswer} from '../server/graduationClearanceContract.js';
 import {readCounselingEvidence} from '../server/accountCounselingEvidence.js';
-import {isCounselingNavigationQuestion} from '../server/counselingEvidenceIntent.js';
+import {isCounselingNavigationQuestion,withoutExcludedCounselingClause} from '../server/counselingEvidenceIntent.js';
 import {counselingGuide} from '../server/counselingContract.js';
 import {readFeeRemissionEvidence} from '../server/accountFeeRemissionEvidence.js';
 import {readHealthExaminationEvidence} from '../server/accountHealthExaminationEvidence.js';
@@ -815,9 +815,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const excludedNoteFeeLabel=notes.excluded&&!notes.keys.length&&!notes.officialOnly?ownFeeBalanceLabel(notes.otherQuestion):null;
   const hasImages=Array.isArray(input?.images)&&input.images.length>0;
   const textOnly=input?.images===undefined||(Array.isArray(input.images)&&!hasImages);
-  const excludedHealthFee=textOnly&&scopedQuestion!==question&&withoutExcludedHealthClause(question)===scopedQuestion
+  const excludedHealthOrCounselingFee=textOnly&&scopedQuestion!==question
+    &&(withoutExcludedHealthClause(question)===scopedQuestion||withoutExcludedCounselingClause(question)===scopedQuestion)
     &&standaloneFeeBalanceLabel(scopedQuestion)!==null?scopedQuestion:null;
-  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(excludedHealthFee??question):null;
+  const standaloneChargeLabel=question===requestedQuestion?standaloneFeeBalanceLabel(excludedHealthOrCounselingFee??question):null;
   const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):standaloneChargeLabel);
   const pairedHealthCharge=pageContext.feeAndBalance&&chargeLabel!==null&&chargeLabel===pageContext.feeChargeLabel
     &&pageContext.tools.length===1&&pageContext.tools[0]==='healthExaminations';
@@ -999,7 +1000,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       },
     };
     const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n')
-      :excludedNoteFeeLabel?noteQuestion:exactBalance&&excludedHealthFee?excludedHealthFee:question;
+      :excludedNoteFeeLabel?noteQuestion:exactBalance&&excludedHealthOrCounselingFee?excludedHealthOrCounselingFee:question;
     const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
       allowNativeTeachingVerification:graphQuestion===question,
       loadSnapshot:()=>loadSelectedSnapshot(false),

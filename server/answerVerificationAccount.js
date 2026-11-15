@@ -1092,7 +1092,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const boundedFeeAnswer=sources=>{
     const fees=sources.find(source=>source.id==='account:charges');
     if(!(nativeAndFees||noteFees||excludedNoteFees||aidFees||teachingFees||housingFees||assignmentFees||serviceFees)||!fees)return null;
-    try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question),includeAuthorityLimit:asksAboutOfficialRecords(question)});}
+    try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question),includeAuthorityLimit:asksAboutOfficialRecords(question),
+      separateCurrency:scopedCounseling});}
     catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
   };
   emit({kind:'account-tools',label:'Selected account lookups',detail:plan.tools.map(key=>accountTools[key]||supplementalAccountTools[key]).join('; ').slice(0,480)||(intent.kind==='coaching'?'No private record lookup is needed for this wording advice.':'No specific record collection was identified; a focused question may be needed.'),status:'complete'});
