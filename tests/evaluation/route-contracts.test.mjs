@@ -18,8 +18,8 @@ import {accountStatusCases} from './account-status-cases.mjs';
 
 const revision='offline-route-contract';
 const observe=(route,extra={})=>({route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true,...extra});
-function assess(families,routeResults){
-  return assessCoverage({cases:[],results:[],inventory:{services:[],tools:[],routeFamilies:families},sourceRevision:revision,
+function assess(families,routeResults,cases=[]){
+  return assessCoverage({cases,results:[],inventory:{services:[],tools:[],routeFamilies:families},sourceRevision:revision,
     browserAcceptance:{status:'passed',sourceRevision:revision,routeResults}});
 }
 const family=(id,routes,extra={})=>({id,routes,auth:'either',browserChecks:['assistantPresent','keyboardUsable','sessionVerified'],...extra});
@@ -48,6 +48,36 @@ test('wrong frame or unspecified authentication cannot satisfy a required state'
   const missingState=assess(families,[observe('/assistant',{scenario:'embedded',frame:'iframe',authenticated:undefined})]);
   assert.equal(missingState.browserAcceptance.passed,false);assert.ok(hasFailure(missingState,'browser.unexpectedAuthState'));
   assert.equal(missingState.browserAcceptance.missingScenarios.length,2);
+});
+
+test('embedded assistant uses host semantics but still requires context and answer scope in both browser states',async()=>{
+  const {routeFamilies}=await discoverSurfaces();
+  const assistant=routeFamilies.find(row=>row.id==='assistant-sessions');
+  const [standalone,embed]=assistant.routes;
+  const cases=[{id:'standalone-question',route:standalone}];
+  const observations=[false,true].flatMap(authenticated=>[
+    observe(standalone,{scenario:'standalone',authenticated}),
+    observe(embed,{scenario:'embedded',frame:'iframe',authenticated,hostContextVerified:true,answerScopeVerified:true}),
+  ]);
+  const complete=assess([assistant],observations,cases);
+  assert.deepEqual(complete.coverage.routes.missing,[]);
+  assert.deepEqual(complete.coverage.routes.hostContextFrames,[embed]);
+  assert.equal(complete.coverage.routes.registered,1);
+  assert.equal(complete.coverage.routes.executed,0);
+  assert.equal(complete.browserAcceptance.passed,true,JSON.stringify(complete.browserAcceptance));
+
+  assert.deepEqual(assess([assistant],observations).coverage.routes.missing,[standalone,embed]);
+  for(const missingCheck of ['hostContextVerified','answerScopeVerified']){
+    const reduced=observations.map(row=>row.route===embed&&!row.authenticated?{...row,[missingCheck]:false}:row);
+    const incomplete=assess([assistant],reduced,cases).browserAcceptance;
+    assert.equal(incomplete.passed,false);
+    assert.deepEqual(incomplete.incompleteScenarios,[{route:embed,scenario:'embedded',frame:'iframe',authState:'signed-out'}]);
+  }
+  const missing=assess([assistant],observations.filter(row=>row.route!==embed||!row.authenticated),cases);
+  assert.deepEqual(missing.browserAcceptance.missingScenarios,[{route:embed,scenario:'embedded',frame:'iframe',authState:'signed-in'}]);
+
+  const malformed={...assistant,browserScenarios:assistant.browserScenarios.map(row=>row.route===embed?{...row,frame:'top-level'}:row)};
+  assert.ok(hasFailure(assess([malformed],observations,cases),'browser.inventoryInvalid'));
 });
 
 test('an unknown scenario cannot conceal a failed observation or replace a declared context',()=>{
@@ -191,7 +221,7 @@ test('route coverage retains only unresolved semantic cases after adding public 
     '/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw',
     '/dtm/login','/dtm/login/index.php','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml',
     '/school-affairs/auth/callback','/school-affairs/signed-out','/school-affairs/privacy',
-    '/campus-assistant?embed=1','/campus-directory','/local-pages',
+    '/campus-directory','/local-pages',
   ];
   const added=[
     '/elearning/login',
@@ -223,13 +253,13 @@ test('route coverage retains only unresolved semantic cases after adding public 
   for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds])
     assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
   assert.equal(report.coverage.routes.total,579);
-  assert.equal(expected.length,16);assert.equal(added.length,5);
+  assert.equal(expected.length,15);assert.equal(added.length,5);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>!added.includes(route)),expected);
   assert.deepEqual(report.coverage.routes.missing.filter(route=>added.includes(route)),added);
-  assert.equal(report.coverage.routes.missing.length,21);
+  assert.equal(report.coverage.routes.missing.length,20);
   assert.equal(report.browserAcceptance.total,579);assert.equal(report.browserAcceptance.requiredScenarios,589);
   assert.equal(report.coverage.routeFamilies.total,54);
-  assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','assistant-sessions','campus-navigation']);
+  assert.deepEqual(report.coverage.routeFamilies.missing,['dtm-submissions','elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,21);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,20);
 });

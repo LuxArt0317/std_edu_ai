@@ -32,7 +32,7 @@ export function routeMatches(pattern,concrete) {
   });
 }
 
-const browserCheckNames=['assistantPresent','keyboardUsable','sessionVerified','navigationSucceeded','accountStateVerified','privateTranscriptCleared','oauthParametersCleared'];
+const browserCheckNames=['assistantPresent','keyboardUsable','sessionVerified','navigationSucceeded','accountStateVerified','privateTranscriptCleared','oauthParametersCleared','hostContextVerified','answerScopeVerified'];
 const browserAuthModes=['public','signed-in','signed-out','either','transition'];
 const scenarioName=value=>typeof value==='string'&&/^[a-z][a-z0-9-]{0,79}$/.test(value);
 const validChecks=value=>Array.isArray(value)&&value.length>0&&unique(value).length===value.length&&value.every(key=>browserCheckNames.includes(key));
@@ -62,13 +62,18 @@ function routeInventory(families,fail) {
         const auth=scenario.auth??family.auth??'public',checks=scenario.checks??browserChecks;
         const key=scenario.id+':'+scenario.frame;
         const transition=auth==='transition';
+        const hostContext=scenario.semanticContext==='host-route';
+        const invalidContext=scenario.semanticContext!==undefined&&(!hostContext||scenario.frame!=='iframe'||auth!=='either'
+          ||!normalized.query.length||!routeMatches(route,route)||!routes.includes(normalized.path)
+          ||!validChecks(checks)||!['hostContextVerified','answerScopeVerified'].every(check=>checks.includes(check)));
         const invalid=!scenarioName(scenario.id)||!['top-level','iframe'].includes(scenario.frame)||!validChecks(checks)
-          ||!browserAuthModes.includes(auth)||['either','signed-in','signed-out','transition'].includes(family.auth)&&auth!==family.auth
+          ||invalidContext||!browserAuthModes.includes(auth)||['either','signed-in','signed-out','transition'].includes(family.auth)&&auth!==family.auth
           ||seen.has(key)||transition&&(typeof scenario.initialAuthenticated!=='boolean'||typeof scenario.resultingAuthenticated!=='boolean'
             ||!localDestination(scenario.resultingRoute)||!checks.includes('sessionVerified')||!checks.includes('navigationSucceeded'))
           ||!transition&&['initialAuthenticated','resultingAuthenticated','resultingRoute'].some(name=>Object.hasOwn(scenario,name));
         if(invalid){fail('routes.browserContractInvalid',`Invalid browser scenario for ${normalized.key}.`);continue;}
         seen.add(key);
+        if(hostContext)row.semanticHost=normalized.path;
         const states=auth==='either'?['signed-in','signed-out']:transition?[scenario.resultingAuthenticated?'signed-in':'signed-out']:[auth==='public'?'any':auth];
         for(const authState of states){
           const contract={scenario:scenario.id,frame:scenario.frame,authState,checks:[...checks],
@@ -230,14 +235,16 @@ export function assessCoverage({cases=[],results=[],inventory={},requestedSuite=
     const candidates=unique([testCase.route,...(testCase.expected?.requiredLinks||[]),...(testCase.coveredRoutes||[])].filter(Boolean));
     for(const row of routes)if(candidates.some(route=>routeMatches(row.route,route)))routeCases.get(row.pattern).push(testCase);
   }
-  const missingRoutes=routes.filter(row=>!routeCases.get(row.pattern).length).map(row=>row.pattern);
+  const hostContextFrames=routes.filter(row=>row.semanticHost&&[...caseMap.values()]
+    .some(testCase=>routeMatches(row.semanticHost,testCase.route))).map(row=>row.pattern);
+  const missingRoutes=routes.filter(row=>!routeCases.get(row.pattern).length&&!hostContextFrames.includes(row.pattern)).map(row=>row.pattern);
   for(const route of missingRoutes)fail('routes.omitted',`No semantic/navigation case covers concrete path or pattern: ${route}`);
-  coverage.routes={total:routes.length,registered:routes.length-missingRoutes.length,
+  coverage.routes={total:routes.length,registered:routes.filter(row=>routeCases.get(row.pattern).length).length,
     executed:routes.filter(row=>routeCases.get(row.pattern).some(testCase=>wasExecuted(resultMap.get(testCase.id)))).length,
     passed:routes.filter(row=>routeCases.get(row.pattern).length&&routeCases.get(row.pattern).every(testCase=>{
       const result=resultMap.get(testCase.id);return passedBehavior(result)&&(!requireLive||liveMatches(testCase,result));
-    })).length,missing:missingRoutes,
-    basis:'API route context or required destination checks; browser visits are assessed separately.'};
+    })).length,missing:missingRoutes,hostContextFrames,
+    basis:'API route context or required destination checks. Host-context frames require their own browser observations and use the host page for semantic evaluation.'};
   const browser=assessBrowserAcceptance(browserAcceptance,routes,sourceRevision,routeFailures);
   const capabilityGaps=unique([...caseMap.values()].filter(testCase=>testCase.capability?.gap===true || testCase.capability?.gap!==false && (['partial','generic-tracker'].includes(testCase.capability?.level)||testCase.capability?.complete===false))
     .map(testCase=>JSON.stringify({domain:testCase.domain,serviceId:testCase.serviceId??null,level:testCase.capability?.level,limitation:testCase.capability?.limitation||'Capability is not complete.'}))).map(value=>JSON.parse(value));

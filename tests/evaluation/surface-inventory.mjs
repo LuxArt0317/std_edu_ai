@@ -102,7 +102,8 @@ export async function discoverSurfaces() {
     ]}),
     {id:'assistant-sessions',routes:['/campus-assistant','/campus-assistant?embed=1'],auth:'either',browserChecks:['assistantPresent','keyboardUsable','sessionVerified'],browserScenarios:[
       {route:'/campus-assistant',id:'standalone',frame:'top-level'},
-      {route:'/campus-assistant?embed=1',id:'embedded',frame:'iframe'},
+      {route:'/campus-assistant?embed=1',id:'embedded',frame:'iframe',semanticContext:'host-route',
+        checks:['assistantPresent','keyboardUsable','sessionVerified','hostContextVerified','answerScopeVerified']},
     ]},
     publicFamily('campus-navigation',['/campus-directory','/local-pages']),
     ...[...new Set(publicPages.map(row=>new URL(row.source).hostname))].sort().map(host=>publicFamily('public:'+host,publicPages.filter(row=>new URL(row.source).hostname===host).map(row=>row.route))),
@@ -119,7 +120,7 @@ export async function discoverSurfaces() {
       'Inline administration editors, filter combinations, role states, uploads and OAuth transitions require their own browser scenarios.',
       'Explicit callback/sign-out routes are evaluated by their resulting state, not by requiring a launcher during a transient redirect.',
       'Browser observations are keyed by route, authentication state, scenario and frame; either-state pages require both signed-in and signed-out observations.',
-      'Account-status is an iframe indicator, not a chatbot page. Raw semantic omissions remain visible for every inventoried route, including transitions and aliases.',
+      'Account-status is an iframe indicator, not a chatbot page. The embedded assistant uses the host route for its questions; it requires separate browser observations in both session states.',
       'Remote-learning catalog, notice, course and activity pages require the shared signed-in session. Their presence does not establish university enrollment, available course-outline permission, or provider-hosted grades and submissions.',
       'The legacy remote-learning category redirect uses captured category 48 in both session states as one exact representative; passing it does not cover every category identifier or return destination.',
     ]};

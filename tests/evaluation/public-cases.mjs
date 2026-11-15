@@ -52,6 +52,7 @@ export function buildPublicCases(inventory) {
     expected:{behavior:'navigation',requiredText,requiredLinks,forbiddenText,requiredTools:[],noAction:true}}));
   const studyPlanning={
     ...caseBase,id:'public-study-first-week',domain:'public-guidance',routeFamily:'school-services',route:'/campus-assistant',mode:'coaching',
+    coveredRouteFamilies:['assistant-sessions'],
     question:'How should I plan a first week of study at Shu-Te University? Give me three practical steps using public school resources and cite the sources.',
     history:[
       {role:'user',content:'Where can I find the campus Wi-Fi setup guide?'},
