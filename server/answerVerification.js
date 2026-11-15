@@ -179,6 +179,7 @@ export async function runAnswerVerification({
           const reason = error?.code === 'VERIFICATION_OUTPUT_LIMIT' ? 'verification_output_limit'
             : error?.code === 'VERIFICATION_QUOTA_EXHAUSTED' ? 'provider_quota_exhausted'
               : error?.code === 'VERIFICATION_TIMEOUT' ? 'verification_timeout' : 'verifier_unavailable';
+          if (verifiedPartial && reason === 'verification_output_limit') feedback = [];
           verdict = { ok: false, reason };
         }
         const label = verdict.ok ? 'Answer checked against evidence'
@@ -225,9 +226,11 @@ export async function runAnswerVerification({
         return 'retry';
       }
       if(verifiedPartial){
-        const recoverable=['unsupported_claims','no_supported_answer','snapshot_provenance_missing'].includes(state.verdict.reason);
-        return recoverable&&checks===state.attempt+previousChecks&&feedback.some(detail=>typeof detail==='string'&&detail.trim())
-          &&safeToContinue()&&canFollowLead(state.attempt)&&enoughTimeToContinue(state.attempt)
+        const hasActionableFeedback = ['unsupported_claims', 'no_supported_answer', 'snapshot_provenance_missing'].includes(state.verdict.reason)
+          && feedback.some(detail => typeof detail === 'string' && detail.trim());
+        const canRecoverReview = hasActionableFeedback || state.verdict.reason === 'verification_output_limit';
+        return canRecoverReview && checks === state.attempt + previousChecks
+          && safeToContinue() && canFollowLead(state.attempt) && enoughTimeToContinue(state.attempt)
           &&lookForMissingPublicDetails?.()===true?'retry':END;
       }
       if(!canFollowLead(state.attempt))return END;

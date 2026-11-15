@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Continue looking for missing details when a later review reaches its output limit. Keep the already verified facts until a different source supports a fuller answer. [#100]
+
 - Answer the university’s founding and mission and school motto from the checksum-verified About page. Include the source and its capture date. [#100]
 
 - Continue a public answer check with a distinct school source when an earlier reviewer reaches its response limit. [#100]
