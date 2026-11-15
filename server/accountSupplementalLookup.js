@@ -310,28 +310,35 @@ export async function readSupplementalLookups({tools,readers={},question,route='
   const pageContext=nativePageLookupContext(question,route,history);
   const residual=pageContext.selected?pageContext.otherQuestion:question;
   const deadlineExceeded=Symbol('Supplemental account read timed out');
-  let next=0;
+  let next=0,deadlineReached=false;
+  const deadlinePassed=()=>deadlineReached||Date.now()>=deadline;
   const emit=(key,status,detail)=>{try{onProgress({kind:`account-read:${key}:${attempt}`,label:(status==='running'?'Reading ':'Checked ')+supplementalAccountTools[key],detail,status});}catch{/* Disconnected progress cannot approve a read. */}};
   const worker=async()=>{while(next<selected.length){
     const index=next++,key=selected[index];let timer,result;
     try{
-      if(!Number.isFinite(deadline)||Date.now()>=deadline)result=unavailable(key,'deadline_exceeded');
+      if(!Number.isFinite(deadline)||deadlinePassed())result=unavailable(key,'deadline_exceeded');
       else if(typeof readers[key]!=='function')result=unavailable(key,'reader_unavailable');
       else if(key==='courseCatalog'&&catalogQuery===null&&!catalogRouteContext(route,question))result=unavailable(key,'catalog_selection_unavailable');
       else{
         const query=key==='courseCatalog'?validateCatalogReadPlan(catalogQuery):null;
         emit(key,'running','Starting the selected authorized reader. No action is executed.');
         result=await Promise.race([
-          Promise.resolve().then(()=>readers[key]({question:key==='facilityRepairs'?facilityRepairLookupContext(residual,route,history).repairQuestion:pageContext.questions[key]||residual||question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})})),
-          new Promise((_,reject)=>{timer=setTimeout(()=>reject(deadlineExceeded),Math.max(1,deadline-Date.now()));}),
+          Promise.resolve().then(()=>{
+            if(deadlinePassed())throw deadlineExceeded;
+            return readers[key]({question:key==='facilityRepairs'?facilityRepairLookupContext(residual,route,history).repairQuestion:pageContext.questions[key]||residual||question,route,history:history.map(row=>({...row})),snapshot,deadline,...(query===null?{}:{catalogQuery:query})});
+          }),
+          new Promise((_,reject)=>{timer=setTimeout(()=>{
+            deadlineReached=true;
+            reject(deadlineExceeded);
+          },Math.max(1,deadline-Date.now()));}),
         ]);
-        if(Date.now()>=deadline)throw deadlineExceeded;
+        if(deadlinePassed())throw deadlineExceeded;
         result=structuredClone(result);
         if(result?.evidence?.id!=='account:'+key)throw new TypeError('Reader source mismatch.');
         if(bytes(result)>sourceLimits[key])throw new TypeError('Reader source exceeds its fixed budget.');
         formatSupplementalAccountAnswers([result],{question});
       }
-    }catch(error){result=unavailable(key,error===deadlineExceeded||Date.now()>=deadline?'deadline_exceeded':'read_failed');}
+    }catch(error){result=unavailable(key,error===deadlineExceeded||deadlinePassed()?'deadline_exceeded':'read_failed');}
     finally{if(timer!==undefined)clearTimeout(timer);}
     results[index]=result;
     const payload=JSON.parse(result.evidence.content),limited=result.readState==='partial'||payload.complete===false||payload.counts?.complete===false||payload.selection?.requiresClarification;
