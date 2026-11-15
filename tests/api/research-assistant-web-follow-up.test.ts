@@ -307,7 +307,7 @@ test('two failed managed checks can switch to separately read public evidence wi
   assert.deepEqual(answer.verification,{status:'verified',attempts:3});
   assert.match(answer.answer,/opens at 10:30 a\.m\./u);
   assert.doesNotMatch(answer.answer,/supposedly|PRIVATE_REVIEW_FEEDBACK/);
-  assert.deepEqual(answer.citations.map(citation=>citation.url),[officialNotice]);
+  assert.deepEqual(answer.citations.map((citation:{url:string})=>citation.url),[officialNotice]);
   const checks=[
     ['verification-1','unavailable'],['verification-retry','complete'],['verification-2','unavailable'],
     ['verification-source-switch','complete'],['verification-3','complete'],
@@ -327,7 +327,7 @@ test('an attempted evidence switch preserves both managed checks when the web se
   assert.equal(answer.verification.attempts,2);
   assert.deepEqual(answer.citations,[]);
   assert.equal(attempt.searches.length,2,'one web lookup tries official sources then broader results');
-  assert.deepEqual(answer.activity.map(({kind})=>kind),
+  assert.deepEqual(answer.activity.map(({kind}:Progress)=>kind),
     ['knowledge','verification-1','verification-retry','verification-2','verification-source-switch','web']);
   assert.equal(answer.activity.at(-1).status,'unavailable');
 });
