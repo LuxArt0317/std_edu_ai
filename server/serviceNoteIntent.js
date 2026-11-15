@@ -120,7 +120,7 @@ export function serviceNoteLookup(question,route='',history=[]) {
   const selected=foreignRequest?[]:[...keys];
   const boundary=[...boundaryKeys];
   return {keys:selected,noteQuestion:noteClauses.filter(row=>row.selected.some(key=>keys.has(key))).map(row=>row.clause).join('\n'),
-    otherQuestion:rest.join('. '),foreign:foreignRequest,excluded,invalidService,statusOnly:statusProjection,officialOnly:boundary.length>0&&!selected.length,operation,boundaryKeys:boundary};
+    otherQuestion:rest.join('. ').replace(/[,，]+$/u,'').trim(),foreign:foreignRequest,excluded,invalidService,statusOnly:statusProjection,officialOnly:boundary.length>0&&!selected.length,operation,boundaryKeys:boundary};
 }
 export function isServiceNoteEvidenceQuestion(question,route='',history=[]) {
   const lookup=serviceNoteLookup(question,route,history);

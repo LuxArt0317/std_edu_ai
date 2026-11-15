@@ -887,6 +887,8 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   const scopedNotes=serviceNoteScope.keys.length>0;
   const noteNext=scopedNotes&&isServiceNoteNextClass(serviceNoteScope.otherQuestion);
   const noteFees=scopedNotes&&(isOwnFeeBalanceQuestion(serviceNoteScope.otherQuestion)||ownFeeBalanceLabel(serviceNoteScope.otherQuestion)!==null);
+  const excludedNoteFees=serviceNoteScope.excluded&&!scopedNotes&&!serviceNoteScope.officialOnly
+    &&ownFeeBalanceLabel(serviceNoteScope.otherQuestion)!==null;
   const repairLookup=facilityRepairLookupContext(question,fullRoute,history);
   const pageLookup=nativePageLookupContext(housingSelected||applicationSelected?housing.otherQuestion:scopedNotes?serviceNoteScope.otherQuestion:question,
     housingSelected||applicationSelected||scopedNotes?'':fullRoute,housingSelected||applicationSelected||scopedNotes?[]:history);
@@ -922,7 +924,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     &&!plan.publicTopics.length&&!publicPageRoute;
   const boundedFeeAnswer=sources=>{
     const fees=sources.find(source=>source.id==='account:charges');
-    if(!(nativeAndFees||noteFees||aidFees||teachingFees||housingFees||assignmentFees||serviceFees)||!fees)return null;
+    if(!(nativeAndFees||noteFees||excludedNoteFees||aidFees||teachingFees||housingFees||assignmentFees||serviceFees)||!fees)return null;
     try{return formatSelectedChargeEvidence(fees,{language:supplementalAnswerLanguage(question),includeAuthorityLimit:asksAboutOfficialRecords(question)});}
     catch(error){if(!(error instanceof TypeError)&&!(error instanceof RangeError))throw error;return null;}
   };
@@ -1035,6 +1037,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   if(bedAnswer)initial.answer=[initial.answer,bedAnswer.answer].filter(Boolean).join('\n\n');
   const directServiceNotes=scopedNotes&&!serviceNoteScope.otherQuestion&&!serviceNoteScope.operation
     &&activeTools.length===1&&activeTools[0]==='serviceRecords';
+  const noteCompanionTool=noteNext?'courses':noteFees||excludedNoteFees?'charges':null;
+  const directNoteCompanion=noteCompanionTool&&!serviceNoteScope.operation&&!plan.publicTopics.length&&!publicPageRoute
+    &&activeTools.length===(scopedNotes?2:1)&&activeTools.includes(noteCompanionTool)
+    &&(!scopedNotes||activeTools.includes('serviceRecords'));
   const renderScopedServiceNotes=sources=>{
     const source=sources.find(item=>item.id==='account:serviceRecords');
     if(!source)return null;
@@ -1054,14 +1060,30 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     }
     return notes;
   };
-  if(scopedNotes){
+  const renderNoteCompanion=sources=>{
+    const wanted=['account-scope',...(scopedNotes?['account:serviceRecords']:[]),'account:'+noteCompanionTool];
+    if(sources.length!==wanted.length||!wanted.every(id=>sources.some(source=>source.id===id)))return null;
+    const notes=scopedNotes?renderScopedServiceNotes(sources):null;
+    const companion=noteNext?clearanceNextClassAnswer(sources,question):boundedFeeAnswer(sources)?.answer;
+    if((scopedNotes&&!notes)||!companion)return null;
+    const ordered=notes&&question.trimStart().toLowerCase().startsWith(serviceNoteScope.otherQuestion.toLowerCase())
+      ?[companion,notes.answer]:[notes?.answer,companion];
+    const answer=ordered.filter(Boolean).join('\n\n');
+    if(answer.length>supplementalAnswerLimits.answerCharacters||!answerLinksSupported(answer,sources))return null;
+    return {status:'answered',answer,citations:evidenceCitations(sources)};
+  };
+  if(directNoteCompanion){
+    initial={...initial,...(renderNoteCompanion(evidence)??{status:'abstained',answer:'',citations:[]})};
+    needsComposition=false;
+  }
+  if(scopedNotes&&!directNoteCompanion){
     const notes=renderScopedServiceNotes(evidence);
     if(notes)initial=directServiceNotes?{...initial,...notes}:{...initial,answer:[notes.answer,initial.answer].filter(Boolean).join('\n\n')};
     needsComposition=Boolean(serviceNoteScope.otherQuestion)&&!noteFees&&!noteNext;
   }
   const fees=boundedFeeAnswer(evidence);
   if((noteFees||aidFees||teachingFees||housingFees||serviceFees)&&!fees)needsComposition=true;
-  if(fees){
+  if(fees&&!directNoteCompanion){
     const combined={...initial,answer:[initial.answer,fees.answer].filter(Boolean).join('\n\n'),views:[...(initial.views||[]),...fees.views]};
     if(combined.answer.length<=selectedChargeAnswerLimits.answerCharacters
       &&Buffer.byteLength(JSON.stringify(combined),'utf8')<=selectedChargeAnswerLimits.resultBytes){
@@ -1070,7 +1092,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     }
   }
   const timetableAnswer=scopedTimetable||noteNext||aidNext||teachingNext||housingNext||serviceNext?clearanceNextClassAnswer(evidence,question,{labelFields:housingNext}):null;
-  if(timetableAnswer){
+  if(timetableAnswer&&!directNoteCompanion){
     const answer=initial.answer?[initial.answer,timetableAnswer]:[timetableAnswer];
     if(initial.answer&&question.trimStart().startsWith(serviceNext?servicePlan.classQuestion:noteNext?serviceNoteScope.otherQuestion:aidNext?aidScope.otherQuestion:teachingNext?studyQuestion:housingNext?housing.otherQuestion:pageLookup.otherQuestion))answer.reverse();
     initial={...initial,answer:answer.join('\n\n')};
@@ -1081,7 +1103,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   // The deeper review, when useful, works from the same verified read scope.
   const recordFreeCoaching=intent.recognized&&intent.kind==='coaching'&&!activeTools.length&&!evidence.length;
   const coachingGuide=recordFreeCoaching?generalCoachingGuide(question):null;
-  const composeInitially=servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
+  const composeInitially=directNoteCompanion?false:servicePlan||dtmCompound||scopedOverview||scopedTimetable||scopedNotes||scopedAid||scopedStudy||scopedTeaching||scopedHousing?needsComposition:needsComposition||(repairLookup.selected||pageLookup.selected)&&plan.publicTopics.length>0||Boolean(resolvedUserQuestion)||intent.kind!=='records'||intent.overview||intent.currentCourses&&intent.year||intent.courseTerms.length>0&&!intent.recognized||!activeTools.length;
   if(composeInitially){
     emit({kind:'account-compose',label:'Preparing your answer',detail:'Combining the requested details and clearly separating recorded facts from suggestions.',status:'running'});
     try{
@@ -1095,7 +1117,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
       emit({kind:'account-compose',label:'Answer preparation incomplete',detail:'A fresh evidence-based correction will be attempted within the remaining budget.',status:'unavailable'});
     }
   }
-  const fixedEvidenceScope=servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
+  const fixedEvidenceScope=directNoteCompanion||servicePlan||scopedAssignment||scopedOverview||scopedNotes||scopedCounseling||scopedTutor||scopedConduct
     ||scopedClearance||scopedTimetable||scopedAid||scopedStudy||scopedTeaching||housingSelected||applicationSelected;
   const result=await runAnswerVerification({question,initialAnswer:initial,deadline,onProgress:emit,
     allowDeeperReview:!fixedEvidenceScope&&!recordFreeCoaching&&!pageLookup.selected&&activeTools.length>1,
@@ -1128,6 +1150,13 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     verify:async context=>{
       // The fixed coaching guide contains no sourced facts or user-supplied text.
       if(coachingGuide&&context.candidate===coachingGuide&&context.evidence.length===0)return {ok:true};
+      if(directNoteCompanion){
+        const supported=renderNoteCompanion(context.evidence);
+        return supported&&context.candidate.status==='answered'&&!context.candidate.proposedAction
+          &&context.candidate.answer===supported.answer
+          &&JSON.stringify(context.candidate.citations)===JSON.stringify(supported.citations)
+          ?{ok:true}:{ok:false,reason:'evidence_unavailable'};
+      }
       if(directServiceNotes){
         // The selected read owns the note, status and link. Check the exact
         // rendering from that evidence so a rewrite cannot detach its fields.
@@ -1170,6 +1199,9 @@ export async function answerAccountWithVerification({question,snapshot,history=[
           detail:'The answer uses fixed practice guidance without personal records or external sources.',status:'complete'});
         return coachingGuide;
       }
+      if(directNoteCompanion){
+        return {...context.candidate,...(renderNoteCompanion(context.evidence)??{status:'abstained',answer:'',citations:[]})};
+      }
       if(directServiceNotes){
         const notes=renderScopedServiceNotes(context.evidence);
         return notes?{...context.candidate,...notes}:{...context.candidate,status:'abstained',answer:'',citations:[]};
@@ -1211,7 +1243,7 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     viewSnapshot={...viewSnapshot,serviceRecords:payload?.records??[]};
   }
   const viewTools=activeTools.filter(key=>
-    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||aidFees||teachingFees||housingFees||serviceFees))
+    !(key==='charges'&&(viewSnapshot.chargeReadUnavailable||nativeAndFees||noteFees||excludedNoteFees||aidFees||teachingFees||housingFees||serviceFees))
     &&!(key==='courses'&&((scopedTimetable||noteNext||aidNext||teachingNext||housingNext||serviceNext)&&!scheduledMeeting?.records.length||scopedStudy&&(viewSnapshot.timetableReadUnavailable||viewSnapshot.studentRecordFound===false)))
     &&!(key==='serviceRecords'&&viewSnapshot.serviceNoteReadUnavailable)
     &&!(key==='housing'&&housingSelected)&&key!=='housingApplications');

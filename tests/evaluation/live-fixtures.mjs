@@ -50,6 +50,7 @@ import {createTrustedPreviewFetch,isEvaluationPreviewOrigin} from './vercel-prev
 import {clubAttendanceOracle} from './club-attendance-cases.mjs';
 import {serviceNoteRunnerOracle,serviceNoteSetupRequired} from './service-note-runner.mjs';
 import {buildServiceNotePlan,changeServiceNoteRows,observeServiceNoteRows} from './service-note-live-fixture.mjs';
+import {observeNoteCompanion,serviceNoteCompanionPlan} from './service-note-companion-fixture.mjs';
 import {buildClubAttendancePlan,changeClubAttendanceFixture,observeClubAttendanceFixture} from './club-attendance-fixtures.mjs';
 
 const ROOT=fileURLToPath(new URL('../../',import.meta.url));
@@ -68,6 +69,7 @@ export const clubAttendanceFixtureVersion=1;
 export const protectedPreviewReadbackVersion=1;
 export const elearningMetadataFixtureVersion=1;
 export const serviceNoteFixtureVersion=1;
+export const serviceNoteCompanionFixtureVersion=1;
 export const catalogFixtureSetupReasons=Object.freeze(['catalog_read_unavailable','published_payload_invalid','public_scope_mismatch','no_suitable_published_offering','no_null_weight_offering','absent_probe_not_empty']);
 const catalogKinds=Object.freeze({'account:catalog-known-fields':'known-fields','account:catalog-null-weight':'null-weight','account:catalog-unfound':'unfound','account:catalog-enrollment-distinction':'enrollment-distinction','account:catalog-mixed-dtm':'mixed-dtm','service:12-4:record':'known-fields','service:12-4:empty':'unfound'});
 let state;
@@ -302,6 +304,7 @@ async function saveLedger(){
       ...(s.clubAttendancePlan?{clubAttendanceFixture:{plan:s.clubAttendancePlan,setupPending:!!s.clubAttendancePending}}:{}),
       ...(s.serviceNotePlan||s.pendingServiceNotePlan?{serviceNoteFixture:{
         caseId:s.serviceNotePlan?.caseId??null,pendingCaseId:s.pendingServiceNotePlan?.caseId??null,
+        companionChargeIds:[s.serviceNotePlan,s.pendingServiceNotePlan].flatMap(plan=>plan?.companion?.rows.map(row=>row.id)??[]).sort(),
         transitionPending:Boolean(s.serviceNotePending),
       }}:{}),
       ...(s.dtmReportPlan||s.dtmReportTransitionPending?{dtmReportFixture:{
@@ -1812,7 +1815,7 @@ async function changeServiceNoteFixture(s,next,{recovering=false}={}){
   if(!recovering){
     s.pendingServiceNotePlan=next;
     s.serviceNotePending=true;
-    for(const row of next?.rows??[])s.recordIds.add(row.id);
+    for(const row of [...(next?.rows??[]),...(next?.companion?.rows??[])])s.recordIds.add(row.id);
     await saveLedger();
   }
   const change={...serviceNoteBinding(s),previous:s.serviceNotePlan,next:s.pendingServiceNotePlan,recovering};
@@ -1825,8 +1828,15 @@ async function changeServiceNoteFixture(s,next,{recovering=false}={}){
 async function currentServiceNoteFixture(s,signal){
   const active=signal||s.signal;
   await Promise.all(s.users.map(user=>user.renewSession({signal:active})));
-  return query(()=>observeServiceNoteRows({sql:s.sql,plan:s.serviceNotePlan,...serviceNoteBinding(s),
-    users:s.users,publishable:s.publishable,signal:active}),'Could not verify persisted and caller-scoped service notes.');
+  const context={sql:s.sql,users:s.users,publishable:s.publishable,signal:active};
+  const notes=await query(()=>observeServiceNoteRows({...context,plan:s.serviceNotePlan,...serviceNoteBinding(s)}),
+    'Could not verify persisted and caller-scoped service notes.');
+  const companion=s.serviceNotePlan.companion
+    ?await query(()=>observeNoteCompanion({...context,plan:s.serviceNotePlan.companion,fetchImpl:s.boundedFetch,
+      readResponse:readBoundedFixtureResponse,readInitializer:()=>readPublishedSampleInitializerRows(s.sql)}),
+    'Could not verify the exact caller-scoped service-note companion.')
+    :null;
+  return {digest:companion?hash([notes,companion]):notes,companion};
 }
 
 export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
@@ -1881,10 +1891,13 @@ export async function forCase(testCase,{signal,fixtureMode,fixtureFamily}={}){
     if(!s.caseIds.has(testCase.id)||testCase.auth==='anonymous')
       fail('fixture-case','The service-note case is outside its selected disposable binding.');
     (signal||s.signal)?.throwIfAborted();
+    if(testCase.publishedNextClass)assertPublishedNextClassClock(testCase.publishedNextClass,{now:new Date().toISOString()});
     const plan=buildServiceNotePlan(testCase,s.users.map(user=>user.id));
+    const companion=serviceNoteCompanionPlan(testCase,s.users);
+    if(companion)plan.companion=companion;
     await changeServiceNoteFixture(s,plan);
-    const beforeHash=await currentServiceNoteFixture(s,signal);
-    s.current={caseId:testCase.id,beforeHash,serviceNotes:true};
+    const before=await currentServiceNoteFixture(s,signal);
+    s.current={caseId:testCase.id,beforeHash:before.digest,companionBefore:before.companion,serviceNotes:true};
     await saveLedger();
     return {token:s.users[0].token};
   }
@@ -2041,17 +2054,21 @@ export async function afterCase(testCase,envelope,{signal,fixtureMode,fixtureFam
     if(current.serviceNotes){
       serviceNoteRunnerOracle(testCase);
       const after=await currentServiceNoteFixture(s,signal);
-      if(after!==current.beforeHash)fail('fixture-unapproved-write','The disposable service-note rows changed during the assistant request.');
+      if(after.digest!==current.beforeHash||after.companion!==current.companionBefore)
+        fail('fixture-unapproved-write','The disposable service-note or companion rows changed during the assistant request.');
       const output=JSON.stringify([envelope.body,envelope.events]).toLowerCase();
       const plan=s.serviceNotePlan;
-      if([...plan.owners,...plan.rows.map(row=>row.id),...s.users.map(user=>user.token)].some(marker=>output.includes(marker.toLowerCase()))){
+      const companionIds=plan.companion?.rows.map(row=>row.id)??[];
+      if([...plan.owners,...plan.rows.map(row=>row.id),...companionIds,...s.users.map(user=>user.token)].some(marker=>output.includes(marker.toLowerCase()))){
         envelope.body={error:'Service-note fixture identity isolation failed.'};envelope.events=[];
         fail('fixture-isolation','The response disclosed a disposable credential or record identifier.');
       }
       envelope.stateBefore={ownedRecordsDigest:current.beforeHash};
-      envelope.stateAfterProposal={ownedRecordsDigest:after};
+      envelope.stateAfterProposal={ownedRecordsDigest:after.digest};
       envelope.fixtureReadback={verified:true,projectRef:PROJECT,independentGolden:true,
-        serviceNotes:{caseId:testCase.id,twoOwnersVerified:true,method:'caller RLS and persisted notes'}};
+        serviceNotes:{caseId:testCase.id,twoOwnersVerified:true,method:'caller RLS and persisted notes',
+          ...(plan.companion?{companion:{kind:plan.companion.kind,before:current.companionBefore,after:after.companion,
+            validUntil:plan.companion.clock?.validUntil??null}}:{})}};
       return;
     }
     if(current.clubAttendance){

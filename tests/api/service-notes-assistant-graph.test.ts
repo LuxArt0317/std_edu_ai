@@ -22,71 +22,16 @@ async function ask(question:string,route=path('27-1'),history:History=[],serve=h
   assert.equal(output.status,200,JSON.stringify(output.body));
   return output.body;
 }
-type Scenario={key?:string;read?:'empty'|'failed'|'foreign'|'capped'|'no-match';fee?:'success'|'failed';next?:boolean;reject?:number;statusOnly?:boolean};
+type Scenario={key?:string;read?:'empty'|'failed'|'foreign'|'capped'|'no-match';fee?:'success'|'failed';next?:boolean;statusOnly?:boolean};
 async function fakeSources(options:Scenario,run:()=>Promise<void>){
   const original=globalThis.fetch,key=process.env.OPENAI_API_KEY;
   activeOwner='70000000-0000-4000-8000-'+String(100+ ++testOwner).padStart(12,'0');
-  const failures:unknown[]=[],reads:string[]=[],stages:string[]=[];
-  let noteReads=0,reviews=0;
+  const failures:unknown[]=[],reads:string[]=[];
+  let noteReads=0;
   process.env.OPENAI_API_KEY='LOCAL_NOTE_TEST_MODEL';
   const mocked:typeof fetch=async(input,init)=>{
     const url=new URL(String(input));
-    if(url.hostname==='api.openai.com'){
-      const request=JSON.parse(String(init?.body)),stage=request.text.format.name;
-      const data=JSON.parse(request.input[0].content[0].text);
-      stages.push(stage);
-      assert.equal(data.evidence[0].id,'account-scope');
-      assert.deepEqual(Object.keys(JSON.parse(data.evidence[0].content).availableTools),[
-        ...(options.key?['serviceRecords']:[]),...(options.fee?['charges']:[]),...(options.next?['courses']:[]),
-      ]);
-      assert.doesNotMatch(JSON.stringify(data.evidence),/LOCAL_NOTE_TEST|FORBIDDEN|PRIVATE_CONTACT/u);
-      assert.ok(!JSON.stringify(data.evidence).includes(activeOwner)&&!JSON.stringify(data.evidence).includes(other));
-      const claims=[];
-      for(const source of data.evidence.slice(1)){
-        const p=JSON.parse(source.content);
-        if(source.id==='account:serviceRecords'){
-          assert.equal(source.url,path(options.key!));
-          assert.deepEqual(p.selection.serviceKeys,[options.key]);
-          assert.equal(p.records.length,options.read?0:1);
-          if(options.read==='failed'||options.read==='foreign'||options.read==='capped'){
-            assert.equal(p.unavailableReason,'read_failed');
-            claims.push({claim:'I could not read your saved notes in this scope.',evidenceId:source.id,jsonPaths:['/unavailableReason']});
-          }else if(options.read){
-            assert.equal(p.unavailableReason,undefined);
-            claims.push({claim:options.read==='no-match'?'No saved local note matches that reference.':'No saved local notes were found.',evidenceId:source.id,jsonPaths:['/selection/matchingRows']});
-          }else{
-            assert.equal(p.records[0].status,'filed');
-            if(options.statusOnly){
-              assert.equal(p.records[0].notes,undefined);
-              assert.doesNotMatch(JSON.stringify(data),/Review step/iu);
-              claims.push({claim:'Your saved note status is filed (self-marked).',evidenceId:source.id,jsonPaths:['/records/0/status']});
-            }else{
-              assert.equal(p.records[0].notes,'Reference QA-NOTE-14. Review step '+noteReads+'.');
-              claims.push({claim:'Your saved note QA-NOTE-14 is filed (self-marked). Review step '+noteReads+'.',evidenceId:source.id,jsonPaths:['/records/0/notes','/records/0/status']});
-            }
-          }
-        }else if(source.id==='account:charges'){
-          assert.equal(source.url,path('39-1'));
-          if(options.fee==='failed'){
-            assert.equal(p.unavailableReason,'read_failed');
-            claims.push({claim:'I couldn’t read the saved fee balance.',evidenceId:source.id,jsonPaths:['/unavailableReason']});
-          }else{
-            assert.deepEqual(p.records.map((row:{label:string})=>row.label),[fee]);
-            claims.push({claim:fee+' has NT$23,000 remaining.',evidenceId:source.id,jsonPaths:['/records/0/label','/records/0/amountDue','/records/0/amountPaid']});
-          }
-        }else{
-          assert.equal(source.id,'account:courses');
-          assert.equal(source.url,'/school-affairs/records/subjects');
-          assert.equal(p.calendar.records.next,null);
-          claims.push({claim:'I found no upcoming meeting in your saved stu.best enrollments.',evidenceId:source.id,jsonPaths:['/calendar/records/next']});
-        }
-      }
-      const supported=stage==='answer_evidence_review'&&++reviews>(options.reject??0);
-      const reply=stage==='answer_evidence_review'?{supported,answersQuestion:supported,claims:claims.map(claim=>({...claim,quotes:[],supported}))}:
-        {status:'answered',answer:claims.map(claim=>claim.claim).join('\n\n'),sourceIds:claims.map(claim=>claim.evidenceId)};
-      assert.ok(['answer_evidence_review','correct_grounded_answer'].includes(stage),stage);
-      return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify(reply)}]}]});
-    }
+    assert.notEqual(url.hostname,'api.openai.com','An exact note or companion answer must use the deterministic verifier.');
     assert.equal(url.origin,origin);
     assert.equal(init?.method,'GET');
     assert.equal(new Headers(init?.headers).get('authorization'),'Bearer '+account.token);
@@ -125,10 +70,8 @@ async function fakeSources(options:Scenario,run:()=>Promise<void>){
   try{
     try{await run();}catch(error){if(failures.length)throw new AggregateError(failures,'Unexpected source calls');throw error;}
     assert.deepEqual(failures,[]);
-    const attempts=options.reject?2:1;
-    assert.equal(noteReads,options.key?attempts:0);
-    assert.deepEqual(stages,!options.key||!options.fee&&!options.next?[]:attempts===1?['answer_evidence_review']:['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
-    assert.equal(reads.length,attempts*((options.key?1:0)+(options.fee?2:0)+(options.next?2:0)));
+    assert.equal(noteReads,options.key?1:0);
+    assert.equal(reads.length,(options.key?1:0)+(options.fee?2:0)+(options.next?2:0));
   }finally{
     globalThis.fetch=original;
     if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;
@@ -192,14 +135,14 @@ test('a failed read is not empty and a truly missing reference never substitutes
   });
 });
 
-test('a rejected composite answer rereads both scopes before correcting',async()=>{
-  await fakeSources({key:'35-1',fee:'success',reject:1},async()=>{
-    const result=await ask('Show my group insurance note and the unpaid balance for '+fee);
-    assert.equal(result.verification.attempts,2);
-    assert.doesNotMatch(result.answer,/Review step 1/u);
-    assert.equal(result.verification?.status,'verified',JSON.stringify(result));
-    assert.match(result.answer,/Review step 2/u);
+test('excluded notes leave only the exact companion fee read and verified local answer',async()=>{
+  await fakeSources({fee:'success'},async()=>{
+    const result=await ask('Show my unpaid balance for '+fee+', but do not read my group insurance notes.');
+    assert.deepEqual(result.verification,{status:'verified',attempts:1});
     assert.match(result.answer,/23,000/u);
+    assert.doesNotMatch(result.answer,/FORBIDDEN FEE|QA-NOTE-14/u);
+    assert.ok(result.citations.some((row:{chunkId:string;url:string})=>row.chunkId==='account:charges'&&row.url===path('39-1')));
+    assert.ok(result.citations.every((row:{chunkId:string})=>row.chunkId!=='account:serviceRecords'));
   });
 });
 

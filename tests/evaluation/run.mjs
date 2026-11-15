@@ -118,7 +118,7 @@ export async function evaluationSuite(now,{caseFamily}={}){
   const [graphInventory,clientDispatch]=await Promise.all([discoverSurfaces(),discoverClientDispatchSurfaces()]);
   const inventory={...graphInventory,clientDispatch,hash:hash({graph:graphInventory.hash,clientDispatch})};
   const cases=caseFamily==='fee-remission'?feeRemissionRunnerCases()
-    :[...serviceNoteRunnerCases(),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
+    :[...serviceNoteRunnerCases({now}),...[...buildServiceCases(),...buildAccountCases({now})].map(markLegacyStudentLeaveFixture).map(markLegacyInternshipFixture).map(markLegacyDtmAssignmentListFixture).map(markLegacyVenueFixture),
       ...teachingFeedbackRunnerCases(),...nativeDtmRunnerCases(),...studentLeaveRunnerCases(),...internshipRunnerCases(),...venueRunnerCases(),
       ...elearningCatalogRunnerCases(),...accountStatusCases(),...clubAttendanceRunnerCases(),...learningEntryCases(),...campusEntryCases(),...buildPublicCases(inventory)];
   if(caseFamily==='fee-remission')validateFeeRemissionRunnerCases(cases);
@@ -520,6 +520,8 @@ export async function main(args=process.argv.slice(2),dependencies={}){
         if(fixtureCases.some(row=>isServiceNoteCase(row)&&row.fixtureKey!=='anonymous')
           &&(adapter.serviceNoteFixtureVersion!==1||typeof adapter.afterCase!=='function'))
           throw new Error('Service notes require the exact two-caller fixture adapter and after-request verification.');
+        if(fixtureCases.some(row=>row.serviceNoteCompanion)&&adapter.serviceNoteCompanionFixtureVersion!==1)
+          throw new Error('Service-note companions require independent hosted timetable or charge readbacks.');
         if(fixtureCases.some(isElearningMetadataCase)
           &&(adapter.elearningMetadataFixtureVersion!==1||typeof adapter.afterCase!=='function'))
           throw new Error('Digital Academy metadata requires paired disposable caller readbacks.');

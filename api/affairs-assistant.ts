@@ -544,7 +544,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     stream.send(200,noteDestination);
     return;
   }
-  const notes=serviceNoteLookup(question,route,history);
+  const noteQuestion=question;
+  const notes=serviceNoteLookup(noteQuestion,route,history);
   if(notes.foreign||notes.invalidService||!notes.otherQuestion&&!notes.keys.length&&(notes.excluded||notes.officialOnly)){
     if(notes.operation&&!notes.foreign)stream.progress('service-note-write-boundary','Checked note actions',
       'This service allows editing on its page. The chat request ended at the read-only boundary.','complete');
@@ -647,7 +648,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   }
   const noteFees=notes.keys.length>0&&(isOwnFeeBalanceQuestion(notes.otherQuestion)||ownFeeBalanceLabel(notes.otherQuestion)!==null);
   const noteNext=notes.keys.length>0&&isServiceNoteNextClass(notes.otherQuestion);
-  const chargeLabel=pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
+  const excludedNoteFeeLabel=notes.excluded&&!notes.keys.length&&!notes.officialOnly?ownFeeBalanceLabel(notes.otherQuestion):null;
+  const chargeLabel=excludedNoteFeeLabel??pageContext.feeChargeLabel??(assignmentFees?ownFeeBalanceLabel(assignment.otherQuestion):housingFees?ownFeeBalanceLabel(housing.otherQuestion):teachingFees?ownFeeBalanceLabel(studyQuestion):noteFees?ownFeeBalanceLabel(notes.otherQuestion):aidFees?ownFeeBalanceLabel(aid.otherQuestion):aid.excluded?ownFeeBalanceLabel(question):scopedQuestion!==question?ownFeeBalanceLabel(scopedQuestion):null);
   const chargesOnly=assignmentFees||isOwnFeeBalanceQuestion(aid.excluded?question:scopedQuestion)||pageContext.feeAndBalance||aidFees||teachingFees||housingFees||chargeLabel!==null&&!noteFees;
   const exactBalance=(question===requestedQuestion||question===resolvedFee)&&isOwnFeeBalanceQuestion(question)
     &&/\b(?:balance|owe)\b|還要繳|還有|尚欠|剩餘|餘額|還剩/iu.test(question.normalize('NFKC'))
@@ -707,9 +709,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         const normalize=(value:string)=>value.normalize('NFKC').trim().toLowerCase();
         return chargeLabel?{...saved,chargeSelectionLabel:chargeLabel,charges:saved.charges.filter(row=>normalize(row.label)===normalize(chargeLabel))}:saved;
       }catch(error){
-        if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!aidFees&&!teachingFees&&!housingFees)throw error;
+        if(!exactBalance&&!assignmentFees&&!pageContext.feeAndBalance&&!noteFees&&!excludedNoteFeeLabel&&!aidFees&&!teachingFees&&!housingFees)throw error;
         const charges:Awaited<ReturnType<typeof loadOwnAffairsCharges>>['charges']=[];
-        return {...scopedSnapshot(),charges,chargeReadUnavailable:true,...(exactBalance?{feeBalanceScope:true}:{})};
+        return {...scopedSnapshot(),charges,chargeReadUnavailable:true,...(exactBalance?{feeBalanceScope:true}:{}),
+          ...(chargeLabel?{chargeSelectionLabel:chargeLabel}:{})};
       }
     };
     const loadTimetable=async()=>{
@@ -802,7 +805,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       teachingFeedback:context=>teachingSelection?readers.teachingFeedback(account,{views:[...teachingSelection.views],commentRequested:teachingSelection.commentRequested,
         ...(teachingSelection.course?{course:{...teachingSelection.course}}:{}),deadline:readDeadline(context.deadline)}):Promise.resolve(unavailableTeachingFeedbackEvidence('reader_unavailable')),
     };
-    const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n'):question;
+    const graphQuestion=teachingSelection&&foreignYear?[teaching.question,studyQuestion].filter(Boolean).join('\n'):excludedNoteFeeLabel?noteQuestion:question;
     const answer=await answerAccount({question:graphQuestion,correlationId,snapshot,history,route,deadline,supplementalReaders,
       loadSnapshot:()=>loadSelectedSnapshot(false),
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status),

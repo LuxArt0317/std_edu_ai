@@ -152,7 +152,7 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 
 ### School Affairs private note evidence
 
-`serviceNoteIntent.js` validates service scope for the seven tracking pages. `loadOwnServiceNotes` reads the selected records with the caller’s School Affairs token, an exact row count and a 200-record ceiling. `answerVerificationAccount.js` checks direct replies against the exact selected note text, status and service links. A compound question can combine independent reads through the answer verifier. A note’s filed status is self-marked. Empty results and unavailable reads have distinct messages. Standalone note-page navigation uses the local service directory. A combined note edit and university submission request returns the note page and explains which steps are available there.
+`serviceNoteIntent.js` validates service scope for the seven tracking pages. `loadOwnServiceNotes` reads the selected records with the caller’s School Affairs token, an exact row count and a 200-record ceiling. `answerVerificationAccount.js` checks direct replies against the exact selected note text, status and service links. Exact note and next-class or tuition questions use the selected independent readers and deterministic verification. An explicit request to skip notes preserves the named tuition selection. A note’s filed status is self-marked. Empty results and unavailable reads have distinct messages. Standalone note-page navigation uses the local service directory. A combined note edit and university submission request returns the note page and explains which steps are available there.
 
 ### Student conduct evidence
 

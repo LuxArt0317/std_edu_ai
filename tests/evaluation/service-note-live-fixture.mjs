@@ -2,6 +2,7 @@ import {createHash,randomUUID} from 'node:crypto';
 import {isDeepStrictEqual} from 'node:util';
 import {serviceNoteCaseManifest} from './service-note-cases.mjs';
 import {foreignServiceNoteMarkers,serviceNoteFixtureForRunnerCase} from './service-note-runner.mjs';
+import {changeNoteCompanionRows} from './service-note-companion-fixture.mjs';
 
 const keys=serviceNoteCaseManifest.services.map(row=>row.id);
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -51,7 +52,9 @@ async function assertOwners(sql,{owners,identities,runId}){
  * caller. Cleanup can reconcile a transaction whose outcome was uncertain. */
 export async function changeServiceNoteRows(sql,{previous,next,owners,identities,runId,recovering=false}){
   await assertOwners(sql,{owners,identities,runId});
-  requireProof([previous,next].filter(Boolean).every(plan=>isDeepStrictEqual(plan.owners,owners)),'The note plan changed its disposable owners.');
+  requireProof([previous,next].filter(Boolean).every(plan=>isDeepStrictEqual(plan.owners,owners)
+    &&(!plan.companion||isDeepStrictEqual(plan.companion.students.map(row=>row.user_id),owners))),
+  'The note or companion plan changed its disposable owners.');
   const actual=await readRows(sql,owners),before=previous?.rows??[],after=next?.rows??[];
   requireProof(isDeepStrictEqual(actual,before)||recovering&&isDeepStrictEqual(actual,after),'Existing service notes do not equal either authorized fixture state.');
   if(actual.length){
@@ -61,6 +64,7 @@ export async function changeServiceNoteRows(sql,{previous,next,owners,identities
   }
   if(!recovering&&after.length)await sql`insert into public.affairs_service_records ${sql(after)}`;
   requireProof(isDeepStrictEqual(await readRows(sql,owners),recovering?[]:after),'The transaction did not establish the exact disposable note rows.');
+  await changeNoteCompanionRows(sql,{previous:previous?.companion,next:next?.companion,recovering});
 }
 
 export async function readCallerServiceNotes(caller,ownerId,{publishable,signal,fetchImpl=fetch}={}){
