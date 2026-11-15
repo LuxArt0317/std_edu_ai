@@ -1,6 +1,6 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
 import {
-  parseProfileReceipt,parseStudentProfile,studentProfileScope,type ConfirmStudentProfile,
+  parseProfileReceipt,parseStudentProfile,studentProfileScope,studentProfileYearRequested,type ConfirmStudentProfile,
   type SaveStudentProfile,type StudentProfileReceipt,
 } from '../../server/studentProfileContract.js';
 import type {AssistantResponse} from './researchAssistant';
@@ -51,7 +51,17 @@ export async function saveStudentProfile(userId:string,payload:SaveStudentProfil
 }
 
 export async function readStudentProfileAnswer(userId:string,question:string,signal?:AbortSignal):Promise<AssistantResponse>{
-  const reply=await request(userId,readPath('mine',{answer:/[\u3400-\u9fff]/u.test(question)?'zh':'en'}),signal);
+  const zh=/[\u3400-\u9fff]/u.test(question),year=studentProfileYearRequested(question);
+  const reply=await request(userId,readPath('mine',{answer:zh?'zh':'en',...(year?{year_level:'requested'}:{})}),signal)
+    .catch(error=>{
+      if(signal?.aborted||!(error instanceof StudentProfileError)||error.status<500)throw error;
+      const detail=zh?'無法查證學生基本資料的確認狀態。':'I couldn’t verify whether your student information has been confirmed.';
+      const yearDetail=zh?'無法查證帳戶中的年級。':'I couldn’t verify your recorded year level.';
+      const activity=[{kind:'student-profile',label:zh?'查詢基本資料確認狀態':'Student information confirmation',detail,status:'unavailable'}];
+      if(year)activity.push({kind:'account-read:profile:1',label:zh?'查詢年級':'Recorded year level',detail:yearDetail,status:'unavailable'});
+      return {status:'handoff',answer:year?`${detail}\n\n${yearDetail}`:detail,citations:[],suggestedQuestions:[],
+        grounding:{source:'account',webSearched:false},activity};
+    });
   if(typeof reply?.answer!=='string'||reply.grounding?.source!=='account')throw new StudentProfileError(503);
   return reply;
 }

@@ -14,6 +14,10 @@
 
 `courseWithdrawal.js` and its contract validate account and term binding, confirmed withdrawal or restore receipts, and direct assistant answers from the saved window and course records.
 
+## Public answer verification
+
+`answerVerification.js` reserves time for a queued unread school page during a rewrite or review. After a timeout or temporary provider failure, `researchAssistantHandler.js` reads that page and verifies a fresh answer within the original request deadline. A duplicate page supplies no new evidence. Hard quota failures stop the lookup. Chat Activity records the interruption separately from evidence checks that actually ran.
+
 
 ## Learning support actions
 

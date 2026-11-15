@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Continue public answer verification with an unread school page after a temporary rewrite or review failure, when time remains to check the answer. Keep each completed check and the interruption in chat Activity. [#100]
+
+- Answer the signed-in Student Profile confirmation and recorded year together when requested. Distinguish an empty record, an unavailable source and an attempt to read somebody else’s profile. [#100]
+
 - Add a protected Chromium replay for the original certificate status and bank receipt questions. Verify the visible answer, private conversation restore, and account isolation. [#100]
 
 - Add a protected Preview evaluator for the three original Tutor Evaluation and tuition questions with exact caller readback and cleanup. [#100]

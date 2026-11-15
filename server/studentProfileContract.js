@@ -56,14 +56,23 @@ export function parseProfileReceipt(value,userId,expected,operation){
   return value;
 }
 
+const profileSubject=/\bstudent (?:profile|(?:basic )?information|details)\b|學生基本資料|学生基本资料|學籍基本資料/u;
+const foreignProfile=/\b(?:another|other) student(?:['’]s)?\b|\bmy (?:classmate|friend|roommate)['’]s\b|別人|别人|他人|其他學生|其他学生/u;
+
 export function studentProfileQuestion(question) {
-  const q=question.normalize('NFKC').trim();
-  if(/\b(?:password|token|code this|python|javascript|write code|another student)\b|密碼|他人/iu.test(q))return null;
-  const subject=/\bstudent (?:profile|information|details)\b|學生基本資料|學籍基本資料/iu;
-  if(subject.test(q)&&(
-    /\b(?:have i|did i)\b.{0,30}\b(?:confirm(?:ed)?|complete(?:d)?)\b|\b(?:is|was) my\b.{0,55}\b(?:confirmed|complete(?:d)?)\b|\bmy\b.{0,45}\bconfirmation status\b/iu.test(q)||
-    /我(?:的|已|有|是否)|確認狀態/u.test(q)&&/已(?:經)?確認|確認了嗎|是否確認|有沒有確認|確認狀態/u.test(q)
+  const q=question.normalize('NFKC').trim().toLowerCase();
+  if(/\b(?:password|token|code this|python|javascript|write code)\b|密碼|密码/u.test(q))return null;
+  const subject=profileSubject.test(q);
+  if(foreignProfile.test(q))return subject?'foreign':null;
+  if(subject&&(
+    /\b(?:have i|did i)\b.{0,30}\b(?:confirm(?:ed)?|complete(?:d)?)\b|\b(?:is|was) my\b.{0,55}\b(?:confirmed|complete(?:d)?)\b|\bmy\b.{0,45}\bconfirmation status\b/u.test(q)||
+    /我(?:的|已|有|是否)|確認狀態|确认状态/u.test(q)&&/已(?:經)?確認|確認了嗎|是否確認|有沒有確認|確認狀態|确认了吗|是否确认|确认状态/u.test(q)
   ))return 'status';
-  if(/學生基本資料確認|學籍基本資料確認|更新行動電話|\b(?:student (?:profile|information|details) confirmation|update (?:my |the )?(?:student profile|mobile number)|confirm (?:my |the )?student (?:profile|information|details))\b/iu.test(q))return 'guide';
+  if(/學生基本資料確認|學籍基本資料確認|更新行動電話|\b(?:student (?:profile|(?:basic )?information|details) confirmation|update (?:my |the )?(?:student profile|mobile number)|confirm (?:my |the )?student (?:profile|(?:basic )?information|details))\b/u.test(q))return 'guide';
   return null;
+}
+
+export function studentProfileYearRequested(question) {
+  return /\b(?:(?:year level|study year) (?:currently )?(?:recorded|saved) (?:in my account|for me)|my (?:(?:recorded|current|saved) )?year level|what year (?:level )?am i (?:in|at))\b|(?:我的|我目前的?|帳戶.{0,8}|账户.{0,8})(?:就讀|就读|目前)?(?:年級|年级)|我(?:是|讀|读)幾年級/u
+    .test(question.normalize('NFKC').toLowerCase());
 }

@@ -6,6 +6,8 @@ The [stu.best form](https://stu.best/school-affairs/services/8-1) reads a baseli
 
 Only the final four characters of an identity number can be stored. The read and write functions require a Google-linked account. The administrator function also verifies the protected owner. Row-level security and revoked direct grants prevent direct table access. Private receipts contain revision and time, with a digest for replay. The chatbot calls the status-only reader and links to the form. The status response excludes names, phone numbers, addresses and identity numbers.
 
+When the signed-in student also asks for their recorded year, the assistant separately reads the year from that caller’s student record. It keeps the confirmed part of the reply if either read fails. A question about another student's profile is declined before dispatch. The controlled original-prompt replay runs with `node --experimental-strip-types --test tests/evaluation/student-profile-dispatch.test.mjs`.
+
 ## Verification
 
 ```sh

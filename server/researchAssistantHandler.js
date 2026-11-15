@@ -85,7 +85,7 @@ import { recordResearchOperation, safeOperationalCode } from "./researchOperatio
 import { answerCampusNavigation, answerDirectoryQuestion, answerSchoolServiceNotice, campusDirectoryResearch, directoryEntries } from "./schoolAffairsDirectory.js";
 import {schoolServiceNoticeForRoute} from '../src/features/public/affairs/noticePages.js';
 import { createAssistantStream } from "./assistantStream.js";
-import { normalizeMissingDetails, runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
+import { normalizeMissingDetails, publicEvidenceInterruption, runAnswerVerification, unverifiedAnswer, verificationStopActivity } from "./answerVerification.js";
 import { composeEvidenceAnswer, validEvidence, verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
 import { createPublicSchoolSourceLeads, officialSchoolLeadUrl } from "./publicSchoolSourceLeads.js";
@@ -1440,7 +1440,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 const ordinal = attempt + previousChecks;
                 const deeper = ordinal >= maxAnswerVerificationChecks;
                 const extended = ordinal === maxPublicAnswerVerificationChecks;
-                const reviewTimedOut = previousFailure === 'verification_timeout';
+                const interrupted = publicEvidenceInterruption(previousFailure);
                 const usefulFeedback = evidence.length > 0 && (feedback.some(detail => typeof detail === 'string' && detail.trim())
                     || previousFailure === 'verification_output_limit');
                 foundOnlyMirroredContent = false;
@@ -1452,18 +1452,18 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 let fresh = [];
                 // A deeper review can retry a truncated review on the same
                 // evidence. The last check still needs a different source.
-                if (canRecover && (reviewTimedOut || needsPublicEvidence(previousFailure) || (extended && previousFailure === 'verification_output_limit'))) {
+                if (canRecover && (interrupted || needsPublicEvidence(previousFailure) || (extended && previousFailure === 'verification_output_limit'))) {
                     const readUntil = Math.min(until - 8_500, Date.now() + 4_000);
                     if (readUntil - Date.now() >= 1_000) {
                         const attempts = lead => readAttempts.get(canonicalUrl(lead.url)) || 0;
-                        const leadsToRead = [...pendingLeads.values()].filter(lead => !reviewTimedOut || attempts(lead) === 0)
+                        const leadsToRead = [...pendingLeads.values()].filter(lead => !interrupted || attempts(lead) === 0)
                             .sort((first, second) => attempts(first) - attempts(second));
                         fresh = retainDifferentContents(await checkNewSources(leadsToRead, readUntil, 3));
                         if (fresh.length) progress({ kind: extended ? 'web-extended-source' : 'web-alternate-source',
                             label: 'Read another school source', detail: 'Checked additional school pages.', status: 'complete' });
                     }
                     const searchUntil = Math.min(until - 11_000, Date.now() + (deeper ? 8_000 : 6_500));
-                    if (!reviewTimedOut && !fresh.length && (!extended || !triedAlternateSearch) && searchUntil - Date.now() >= 2_500) {
+                    if (!interrupted && !fresh.length && (!extended || !triedAlternateSearch) && searchUntil - Date.now() >= 2_500) {
                         const step = extended
                             ? { kind: 'web-alternate-discovery', label: 'Checking a different official publication' }
                             : deeper
@@ -1489,9 +1489,9 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 }
                 // The stronger third review can fix a drafting problem. A fourth
                 // review is only useful when it can evaluate different evidence.
-                if (!fresh.length && (reviewTimedOut || extended || previousFailure==='verified_partial' || !usefulFeedback)) {
+                if (!fresh.length && (interrupted || extended || previousFailure==='verified_partial' || !usefulFeedback)) {
                     throw Object.assign(new Error('No further verification evidence'), {
-                        code: reviewTimedOut || extended || previousFailure==='verified_partial' ? 'NO_MORE_EVIDENCE' : 'EVIDENCE_UNAVAILABLE',
+                        code: interrupted || extended || previousFailure==='verified_partial' ? 'NO_MORE_EVIDENCE' : 'EVIDENCE_UNAVAILABLE',
                     });
                 }
                 return evidence;

@@ -2,6 +2,8 @@
 
 Earlier entries are preserved in [the November 16 archive](archive/progress_2026-11-16.md).
 
+- 2026-11-16 [#100] Reproduced a stalled public rewrite and a temporary second-review failure with a queued official notice. Continued to verify the notice, persisted progress, and checked quota, no-lead and mirror stops. Routed the five original native Student Profile prompts with separate confirmation and year reads.
+
 - 2026-11-16 [#100] `8d74216` passed Quality and 19/20 hosted Moodle grades. The last grader saw an extra practice assignment during full-workspace fixture setup. All four temporary account pairs were disposed. Split that setup and widened the paired observation to detect extra Moodle records.
 - 2026-11-16 [#100] Completed local native Facility Repair, selected certificate, and two-source Student Leave/Moodle fixture work. Exact `fc357c6` passed 133 checks and has a protected replay queued. Local integrated API and evaluator passed 1,964 and 1,558 tests before the separate two-source integration.
 

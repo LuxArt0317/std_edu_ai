@@ -72,7 +72,7 @@ async function invoke(input: Record<string,unknown>, run: ReturnType<typeof crea
   return responseBody;
 }
 
-function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead') {
+function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'tool-links'|'unreadable-tool-link'|'unused-tool-lead'|'third-pass-discovery'|'incomplete-office'|'fourth-check'|'fourth-rejected'|'fourth-budget'|'mirror'|'mirror-then-primary'|'transient-lead'|'transient-initial'|'transient-uncited'|'empty-deep-search'|'empty-alternate-search'|'review-timeout-lead'|'review-timeout-duplicate'|'review-timeout-no-lead'|'correction-timeout'|'correction-outage'|'correction-mirrored-lead'|'correction-no-lead'|'second-review-outage'|'second-review-quota') {
   configured();
   const started = Date.now();
   let elapsed = 0;
@@ -82,9 +82,12 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
   const acquiredUrls: string[] = [];
   const searchRequests: Record<string,unknown>[] = [];
   const reviewTimeouts: number[] = [];
+  const correctionTimeouts: number[] = [];
   let lastTimeout = 0;
   const timedReview = outcome.startsWith('review-timeout-');
-  if (timedReview) AbortSignal.timeout = milliseconds => {
+  const interruptedCorrection = outcome.startsWith('correction-');
+  const secondReviewOutage = outcome.startsWith('second-review-');
+  if (timedReview || interruptedCorrection) AbortSignal.timeout = milliseconds => {
     lastTimeout = milliseconds;
     return originalTimeout(milliseconds);
   };
@@ -113,6 +116,10 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       if (outcome === 'transient-initial') {
         assert.equal(searchCalls,1);
         return Response.json(searchPayload([officialNotice],unsafeDraft));
+      }
+      if ((interruptedCorrection || secondReviewOutage) && searchCalls === 2) {
+        const urls = outcome === 'correction-no-lead' ? [officialOffice,eventCalendar] : [officialOffice,eventCalendar,officialNotice];
+        return Response.json(searchPayload(urls,unsafeDraft));
       }
       if (searchCalls === 1) return Response.json(outcome === 'unused-tool-lead'
         ? searchPayload([officialDirectory,officialNotice,'https://outside.example.org/campus/'],unsafeDraft,[officialDirectory])
@@ -150,6 +157,14 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       assert.doesNotMatch(source.content,/FORGED|11:45/);
     }
     if (name === 'correct_grounded_answer' || name === 'compose_grounded_answer') {
+      if (interruptedCorrection && name === 'correct_grounded_answer') {
+        correctionTimeouts.push(lastTimeout);
+        if (correctionTimeouts.length === 1) {
+          if (outcome === 'correction-outage') return Response.json({error:{type:'server_error'}},{status:503});
+          elapsed += Math.min(lastTimeout,18_000);
+          throw new DOMException('Controlled correction timeout','TimeoutError');
+        }
+      }
       if (name === 'compose_grounded_answer') {
         assert.equal(context.previousAnswer,undefined);
         assert.equal(context.unsupportedClaims,undefined);
@@ -161,6 +176,10 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
     }
     assert.equal(name,'answer_evidence_review');
     reviewCalls++;
+    if (interruptedCorrection && reviewCalls === 1) elapsed = 24_000;
+    if (secondReviewOutage && reviewCalls === 2) return outcome === 'second-review-quota'
+      ? Response.json({error:{type:'insufficient_quota'}},{status:429})
+      : Response.json({error:{type:'server_error'}},{status:503});
     if (timedReview) {
       reviewTimeouts.push(lastTimeout);
       if (reviewCalls === 1) {
@@ -192,7 +211,7 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
           && acquiredUrls.filter(visited => visited === officialNotice).length === 1))
           throw Object.assign(new Error('Controlled source read failure'),{code:'ECONNRESET'});
         const content = new Map([
-          [officialDirectory,directoryContent], [officialNotice,outcome === 'review-timeout-duplicate' ? directoryContent : noticeContent], [officialOffice,officeContent],
+          [officialDirectory,directoryContent], [officialNotice,['review-timeout-duplicate','correction-mirrored-lead'].includes(outcome) ? directoryContent : noticeContent], [officialOffice,officeContent],
           [eventCalendar,outcome.startsWith('mirror') ? officeContent : calendarContent],
         ]).get(url);
         assert.ok(content);
@@ -200,8 +219,68 @@ function harness(outcome: 'new-source'|'deeper-review'|'same-source'|'budget'|'t
       },
     }),
   });
-  return {run,scopes,acquiredUrls,searchRequests,reviewTimeouts};
+  return {run,scopes,acquiredUrls,searchRequests,reviewTimeouts,correctionTimeouts};
 }
+
+test('a temporary failure on the second check does not discard a queued primary source', async () => {
+  const attempt = harness('second-review-outage'), progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-second-review-outage',progress);
+  assert.equal(attempt.searchRequests.length,2);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,officialNotice]);
+  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+  assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
+  assert.deepEqual(progress.filter(step=>/^verification-\d+$/u.test(step.kind)&&step.status!=='running')
+    .map(({kind,status})=>[kind,status]),[['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','complete']]);
+  assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+});
+
+test('hard quota exhaustion stops without spending another lookup or returning the draft', async () => {
+  const attempt = harness('second-review-quota'), progress: Progress[] = [];
+  const answer = await invoke({question:testQuestion},attempt.run,'web-second-review-quota',progress);
+  assert.equal(attempt.searchRequests.length,2);
+  assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar]);
+  assert.deepEqual(answer.verification,{status:'unverified',attempts:2,reason:'provider_quota_exhausted'});
+  assert.deepEqual(answer.citations,[]);
+  assert.doesNotMatch(answer.answer,/supposedly/u);
+  assert.match(progress.find(step=>step.kind==='verification-stop')?.detail ?? '',/checker could not complete/u);
+});
+
+test('an interrupted rewrite leaves time to read and verify the queued official notice', async () => {
+  for (const outcome of ['correction-timeout','correction-outage'] as const) {
+    const attempt = harness(outcome), progress: Progress[] = [];
+    const answer = await invoke({question:testQuestion},attempt.run,'web-'+outcome,progress);
+    assert.equal(attempt.searchRequests.length,2);
+    assert.equal(attempt.correctionTimeouts[0],6_000);
+    assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,officialNotice]);
+    assert.deepEqual(answer.verification,{status:'verified',attempts:2});
+    assert.match(answer.answer,/opens at 10:30 a\.m\./u);
+    assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
+    assert.ok(progress.some(step=>step.kind==='verification-preparation-2'&&step.status==='unavailable'));
+    assert.match(progress.find(step=>step.kind==='verification-deeper-review')?.label ?? '',/another source/u);
+    assert.deepEqual(progress.filter(step=>/^verification-\d+$/u.test(step.kind)&&step.status!=='running').map(step=>step.kind),['verification-1','verification-2']);
+    assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
+    const [restored]=sanitizeStoredConversation([{id:outcome,role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
+    assert.equal(restored.result.verification.attempts,2);
+    assert.ok(restored.activity.some((step:Progress)=>step.kind==='verification-deeper-review'));
+  }
+});
+
+test('an interrupted rewrite stops with the remaining limitation when a queued page is a mirror or absent',async()=>{
+  for(const outcome of ['correction-mirrored-lead','correction-no-lead'] as const){
+    const attempt=harness(outcome),progress:Progress[]=[];
+    const answer=await invoke({question:testQuestion},attempt.run,'web-'+outcome,progress);
+    const mirror=outcome==='correction-mirrored-lead';
+    assert.equal(attempt.searchRequests.length,2);
+    assert.equal(attempt.correctionTimeouts.length,1);
+    assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,...(mirror?[officialNotice]:[])]);
+    assert.equal(answer.verification.attempts,1);
+    assert.equal(answer.verification.status,'unverified');
+    assert.deepEqual(answer.citations,[]);
+    assert.doesNotMatch(answer.answer,/supposedly|10:30/u);
+    assert.match(progress.find(step=>step.kind==='verification-stop')?.detail ?? '',mirror?/usable evidence/u:/time left/u);
+  }
+});
 
 test('an exact follow-up source is fetched independently and replaces the unsupported public draft', async () => {
   const attempt = harness('new-source');

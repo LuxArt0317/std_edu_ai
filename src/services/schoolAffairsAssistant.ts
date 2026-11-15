@@ -87,6 +87,12 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     ||isTeachingFeedbackScopeQuestion(question,route,history)
     ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history)||clubAttendanceSelection(question,route)||clubEquipmentPlan(question,route,history))
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress);
+  const profile=!images.length&&studentProfileQuestion(question);
+  if(profile==='foreign'){
+    const zh=/[\u3400-\u9fff]/u.test(question);
+    return {status:'handoff',answer:zh?'我無法查閱另一位學生的基本資料。':'I can’t access another student’s profile records.',
+      citations:[],suggestedQuestions:[]};
+  }
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
   const clubs = !images.length ? clubIntent(question,route) : null;
@@ -111,7 +117,6 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
     onProgress?.({kind:'announcement-email',label:'Checking announcement email preference',detail:'Reading your saved setting.',status:'running'});
     return readAnnouncementEmailAnswer(data.session.user.id,question,signal);
   }
-  const profile=!images.length&&studentProfileQuestion(question);
   if(profile==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
   if(profile==='status'){
     onProgress?.({kind:'student-profile',label:'Checking student information confirmation',detail:'Reading your confirmation status.',status:'running'});

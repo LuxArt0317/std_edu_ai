@@ -33,7 +33,7 @@ export async function verificationModelCall(name, schema, instructions, input, d
   }); } catch (error) {
     const timeout = error?.name === 'TimeoutError' || error?.name === 'AbortError';
     console.warn('Answer verification transport unavailable', {operation:name,reason:timeout?'timeout':'network'});
-    throw Object.assign(new Error('Verification provider unavailable'), {code:timeout?'VERIFICATION_TIMEOUT':'VERIFICATION_UNAVAILABLE'});
+    throw Object.assign(new Error('Verification provider unavailable'), {code:timeout?'VERIFICATION_TIMEOUT':'VERIFICATION_UNAVAILABLE',retryable:!timeout});
   }
   if (!response.ok) {
     const failure=await response.json().catch(()=>null);
@@ -44,7 +44,7 @@ export async function verificationModelCall(name, schema, instructions, input, d
       ||['credit_balance_exhausted','insufficient_quota','organization_spend_limit_exceeded','project_spend_limit_exceeded','organization_usage_limit_exceeded'].includes(code));
     const unavailable=response.status===429||response.status>=500;
     throw Object.assign(new Error('Verification provider unavailable'),quotaExhausted?{code:'VERIFICATION_QUOTA_EXHAUSTED'}
-      :unavailable?{code:'VERIFICATION_UNAVAILABLE'}:{});
+      :unavailable?{code:'VERIFICATION_UNAVAILABLE',retryable:true}:{});
   }
   const payload = await response.json();
   if (payload.status && payload.status !== 'completed') {

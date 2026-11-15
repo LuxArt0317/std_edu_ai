@@ -103,7 +103,7 @@ test('independent natural-language probes expose unsupported wording without cou
   assert.equal(probeNativePredicate('student-profile','Have I confirmed my student information?'),'status');
   // Natural variants are deliberate targets, not rewritten to force regex hits.
   assert.equal(inventory.questions.find(row=>row.id==='client:club-student:record').staticProbe.predicate,null);
-  assert.equal(inventory.questions.find(row=>row.id==='client:student-profile:record').staticProbe.predicate,null);
+  assert.equal(inventory.questions.find(row=>row.id==='client:student-profile:record').staticProbe.predicate,'status');
   for(const row of inventory.questions.filter(row=>row.mode==='read-failure')){
     assert.equal(row.fixtureRequirement,'offline_reader_failure');assert.equal(row.assertions.mustSayUnavailable,true);
     assert.equal(row.assertions.forbidNoRecordsInference,true);assert.equal(row.assertions.forbidCompletedReadClaim,true);
