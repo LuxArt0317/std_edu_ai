@@ -64,14 +64,14 @@ export function answerSavedServiceRecords(question,snapshot,route='',history=[],
   const footerFor=linkKeys=>{
     const links=linkKeys.length?linkKeys.map(key=>link(key,zh)).join(' · '):`[${zh?'開啟我的紀錄':'Open my records'}](/school-affairs/records)`;
     const linkOmissions=keys.length>linkKeys.length?(zh?`另有${keys.length-linkKeys.length}項服務連結未列出；請指定服務查看。`:`${keys.length-linkKeys.length} additional service links are not displayed; name a service to open it.`):'';
-    return [boundary,links,linkOmissions].filter(Boolean).join('\n\n');
+    return [scoped?'':boundary,links,linkOmissions].filter(Boolean).join('\n\n');
   };
   // Reserve the longest possible link list, then cite the services actually
   // displayed (which may follow oversized earlier records in the selection).
   const longestLinkKeys=keys.toSorted((a,b)=>link(b,zh).length-link(a,zh).length).slice(0,ROW_LIMIT);
   // Reserve room for an omission/absence explanation. Only whole rows fit;
   // an oversized first row must not prevent later short matching rows showing.
-  let remaining=SAVED_SERVICE_ANSWER_LIMIT-prefix.length-footerFor(longestLinkKeys).length-600;
+  let remaining=(scoped?7500:SAVED_SERVICE_ANSWER_LIMIT)-prefix.length-footerFor(longestLinkKeys).length-600;
   const details=[],displayedKeys=[];
   for(const row of rows){
     if(details.length===ROW_LIMIT)break;
@@ -84,8 +84,8 @@ export function answerSavedServiceRecords(question,snapshot,route='',history=[],
   const matching=context.selectedEvidence?selection.matchingRows:rows.length;
   const omitted=matching-details.length;
   const omissions=omitted?(zh?`顯示${matching}筆符合備註中的${details.length}筆；${omitted}筆因顯示上限未列出。沒有截短任何備註；請指定名稱或編號縮小範圍。`:`Showing ${details.length} of ${matching} matching saved notes; ${omitted} omitted because of the display limit. No note was shortened; specify a title or reference to narrow the list.`):'';
-  const content=context.unavailable?(zh?'目前無法讀取並確認此範圍的站內私人備註。':'I couldn’t verify your saved notes because this read was unavailable.')
-    :rows.length?details.join('\n\n'):context.excerpted?(zh?'符合的備註存在，但這次無法顯示完整內容。':'Matching notes exist, but their full contents could not be included in this response.'):[missing,absence].join(' ');
+  const content=context.unavailable?(zh?'此範圍的站內私人備註讀取失敗。':'I could not read your saved notes in this scope.')
+    :rows.length?details.join('\n\n'):context.excerpted?(zh?'符合的備註存在，但這次無法顯示完整內容。':'Matching notes exist, but their full contents could not be included in this response.'):[missing,scoped?'':absence].filter(Boolean).join(' ');
   const linkKeys=[...new Set([...displayedKeys,...keys])].slice(0,ROW_LIMIT);
   return {status:'answered',answer:[prefix,content,omissions,footerFor(linkKeys)].filter(Boolean).join('\n\n'),
     citations:linkKeys.map(citation),suggestedQuestions:[],

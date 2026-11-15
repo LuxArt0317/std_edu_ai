@@ -17,7 +17,7 @@ export const foreignServiceNoteMarkers=Object.freeze(serviceNoteCaseManifest.ser
 
 function buildRunnerCase(source){
   const row=structuredClone(source),suffix=row.id.slice(prefix.length);
-  const guest=row.auth==='anonymous',requiresModel=row.toolPolicy.required.includes('serviceRecords');
+  const guest=row.auth==='anonymous',readsNotes=row.toolPolicy.required.includes('serviceRecords');
   const reason=outsideFixture[suffix]??(suffix.endsWith('-write')
     ?'The combined note change and official submission requires a verified no-write boundary beyond note retrieval.'
     :suffix.endsWith('-link')?'The current phrasing reaches the general navigation handler; its separate tool and source contract remains unbound.':null);
@@ -25,12 +25,12 @@ function buildRunnerCase(source){
   row.fixtureRequirement=bound;
   row.fixtureKey=guest?'anonymous':row.fixtureKey.replace(/^offline:/u,'');
   row.endpoint=guest?'/api/research-assistant':'/api/affairs-assistant';
-  row.executionContract=requiresModel?'live-model':'live-native';
+  row.executionContract='live-native';
   row.capability={...row.capability,mounted:true};
   row.expected.forbiddenAccountMarkers.push(...foreignServiceNoteMarkers);
   if(!guest)row.expected.requireUnchangedOwnedRecords=true;
   row.coveredTools=[...row.toolPolicy.required];
-  if(requiresModel)Object.assign(row.expected,{verification:'verified',requiredTools:['serviceRecords']});
+  if(readsNotes)Object.assign(row.expected,{verification:'verified',requiredTools:['serviceRecords']});
   if(row.language==='zh-TW')for(const fact of row.expected.facts)
     fact.values=fact.values.map(value=>value==='filed'?{anyOf:['filed','自己標記已送件']}:value);
   // Local safety rejections use an explicit handoff. Foreign reads deliberately

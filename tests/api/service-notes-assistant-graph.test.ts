@@ -50,7 +50,7 @@ async function fakeSources(options:Scenario,run:()=>Promise<void>){
           assert.equal(p.records.length,options.read?0:1);
           if(options.read==='failed'||options.read==='foreign'||options.read==='capped'){
             assert.equal(p.unavailableReason,'read_failed');
-            claims.push({claim:'I couldn’t verify your saved notes because this read was unavailable.',evidenceId:source.id,jsonPaths:['/unavailableReason']});
+            claims.push({claim:'I could not read your saved notes in this scope.',evidenceId:source.id,jsonPaths:['/unavailableReason']});
           }else if(options.read){
             assert.equal(p.unavailableReason,undefined);
             claims.push({claim:options.read==='no-match'?'No saved local note matches that reference.':'No saved local notes were found.',evidenceId:source.id,jsonPaths:['/selection/matchingRows']});
@@ -127,7 +127,7 @@ async function fakeSources(options:Scenario,run:()=>Promise<void>){
     assert.deepEqual(failures,[]);
     const attempts=options.reject?2:1;
     assert.equal(noteReads,options.key?attempts:0);
-    assert.deepEqual(stages,!options.key?[]:attempts===1?['answer_evidence_review']:['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
+    assert.deepEqual(stages,!options.key||!options.fee&&!options.next?[]:attempts===1?['answer_evidence_review']:['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
     assert.equal(reads.length,attempts*((options.key?1:0)+(options.fee?2:0)+(options.next?2:0)));
   }finally{
     globalThis.fetch=original;
@@ -184,7 +184,7 @@ test('a failed read is not empty and a truly missing reference never substitutes
     const result=await ask(read==='no-match'?'Show my insurance note for reference QA-NOTE-99.':'Show my group insurance note.');
     assert.equal(result.verification?.status,'verified',JSON.stringify(result));
     assert.doesNotMatch(result.answer,/QA-NOTE-14/u);
-    assert.match(result.answer,read==='empty'?/no saved local records/iu:read==='no-match'?/no saved local note matches/iu:/read was unavailable/iu);
+    assert.match(result.answer,read==='empty'?/no saved local records/iu:read==='no-match'?/no saved local note matches/iu:/could not read/iu);
   });
   await fakeSources({key:'31-2',fee:'failed'},async()=>{
     const result=await ask('Show my rental note and the unpaid balance for '+fee);
@@ -192,13 +192,35 @@ test('a failed read is not empty and a truly missing reference never substitutes
   });
 });
 
-test('a rejected answer rereads the selected notes before correcting and abstains after a second rejection',async()=>{
-  for(const reject of [1,2])await fakeSources({key:'35-1',reject},async()=>{
-    const result=await ask('Show my group insurance note.');
+test('a rejected composite answer rereads both scopes before correcting',async()=>{
+  await fakeSources({key:'35-1',fee:'success',reject:1},async()=>{
+    const result=await ask('Show my group insurance note and the unpaid balance for '+fee);
     assert.equal(result.verification.attempts,2);
     assert.doesNotMatch(result.answer,/Review step 1/u);
-    if(reject===1){assert.equal(result.verification?.status,'verified',JSON.stringify(result));assert.match(result.answer,/Review step 2/u);}
-    else{assert.equal(result.verification.status,'unverified');assert.doesNotMatch(result.answer,/Review step 2/u);}
+    assert.equal(result.verification?.status,'verified',JSON.stringify(result));
+    assert.match(result.answer,/Review step 2/u);
+    assert.match(result.answer,/23,000/u);
+  });
+});
+
+test('direct note answers distinguish a saved-only qualifier from an explicit request about school approval',async()=>{
+  await fakeSources({key:'35-1',read:'empty'},async()=>{
+    const result=await ask('Are any of my local group insurance notes saved? Do not infer official records.');
+    assert.deepEqual(result.verification,{status:'verified',attempts:1});
+    assert.match(result.answer,/No saved local records/u);
+    assert.doesNotMatch(result.answer,/official|approval/iu);
+  });
+  await fakeSources({key:'35-1'},async()=>{
+    const result=await ask('Does the tracking status in my group insurance note prove insurer approval? Show the saved note and explain the limit.',path('35-1'));
+    assert.deepEqual(result.verification,{status:'verified',attempts:1});
+    assert.match(result.answer,/\*\*Saved reference\*\*: filed \\?\(self-marked\\?\)/u);
+    assert.match(result.answer,/cannot verify an official outcome/u);
+  });
+  await fakeSources({key:'35-1'},async()=>{
+    const result=await ask('請顯示我在「學生團體保險查詢」儲存的備註與追蹤狀態。',path('35-1'));
+    assert.deepEqual(result.verification,{status:'verified',attempts:1});
+    assert.match(result.answer,/站內私人追蹤備註/u);
+    assert.match(result.answer,/\*\*Saved reference\*\*: 自己標記已送件/u);
   });
 });
 

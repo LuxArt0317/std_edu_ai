@@ -22,7 +22,7 @@
 
 `dtmAssignmentEvidenceIntent` selects the assignment and requested fields. `accountDtmAssignmentEvidence` uses the existing caller-scoped assignment RPC and bounds the projection before model input. `dtmNativeClauseScope` keeps independent assignment and native grade clauses separate. The reviewer must cite the requested assignment fields and a grade value or recorded availability when applicable.
 
-`answerVerification.js` runs the LangGraph retrieve → draft → verify → (fresh retrieval → one correction → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently referenced evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.
+`answerVerification.js` runs retrieval, drafting and verification in LangGraph. A failed first check can trigger a fresh read and correction. A second failure can trigger a deeper review when evidence and time remain and the reviewer identified a specific gap. Public questions can spend the remaining check on a focused school-source search when the earlier source cannot support the answer. Account records and drafts stay in request-local closures. `answerVerificationModel` requires independently referenced evidence and approved links, and `answerVerificationSources` reads the cited pages. The endpoint uses a shared 55-second deadline and withholds unsupported drafts and actions.
 
 `answerVerificationAccount` selects named account lookups and fixed public research topics without sending private records to web search. `accountAssistantActions` prepares only reviewed, owned-record actions. `accountRecordViews` produces bounded tables directly from the snapshot. `assistantConversationData` strips action payloads, image bytes and provider fields before persistence. See [QA criteria](../docs/qa/ANSWER_VERIFICATION.md).
 
@@ -150,7 +150,7 @@ Certificate awards use a bounded caller-JWT reader and send status fields only t
 
 ### School Affairs private note evidence
 
-`serviceNoteIntent.js` validates service scope for the seven tracking pages. `loadOwnServiceNotes` reads the selected records with the caller’s existing School Affairs token, an exact row count and a 200-record ceiling. `answerVerificationAccount.js` supplies bounded note evidence, checks the draft, and refreshes the same sources for the single correction. A note’s filed status is self-marked. An unavailable read does not establish whether a note exists.
+`serviceNoteIntent.js` validates service scope for the seven tracking pages. `loadOwnServiceNotes` reads the selected records with the caller’s School Affairs token, an exact row count and a 200-record ceiling. `answerVerificationAccount.js` checks direct replies against the exact selected note text, status and service links. A compound question can combine independent reads through the answer verifier. A note’s filed status is self-marked. Empty results and unavailable reads have distinct messages.
 
 ### Student conduct evidence
 

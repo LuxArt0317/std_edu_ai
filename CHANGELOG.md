@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Verify direct saved-note answers from the exact scoped records and keep each note title, text and tracking status together. [#100]
+
 - Deploy the compatible UUIDv7 chat protocol and verify exact saved answers on the protected Preview. [#100]
 - Apply the authenticated Digital Academy metadata reader and verify Student Leave fixture data on the protected Preview. [#100]
 - Stop queued Moodle and supplemental account reads when the shared verification deadline expires. [#100]

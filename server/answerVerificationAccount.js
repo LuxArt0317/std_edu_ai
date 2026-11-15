@@ -1033,19 +1033,31 @@ export async function answerAccountWithVerification({question,snapshot,history=[
   if(appAnswer)initial.answer=[initial.answer,appAnswer.answer].filter(Boolean).join('\n\n');
   const bedAnswer=housingAnswer(evidence);
   if(bedAnswer)initial.answer=[initial.answer,bedAnswer.answer].filter(Boolean).join('\n\n');
+  const directServiceNotes=scopedNotes&&!serviceNoteScope.otherQuestion&&!serviceNoteScope.operation
+    &&activeTools.length===1&&activeTools[0]==='serviceRecords';
+  const renderScopedServiceNotes=sources=>{
+    const source=sources.find(item=>item.id==='account:serviceRecords');
+    if(!source)return null;
+    const payload=JSON.parse(source.content);
+    const unavailable=Boolean(payload.unavailableReason);
+    const selection=payload.selection??(unavailable?{serviceKeys:serviceNoteScope.keys,matchingRows:0}:null);
+    if(payload.collection!=='serviceRecords'||!Array.isArray(payload.records)||!selection
+      ||JSON.stringify(selection.serviceKeys)!==JSON.stringify(serviceNoteScope.keys)
+      ||!Number.isSafeInteger(selection.matchingRows)||selection.matchingRows<payload.records.length
+      ||!unavailable&&Boolean(payload.excerpted)!==(selection.matchingRows>payload.records.length)
+      ||payload.records.some(row=>row.recordType!=='note'||!selection.serviceKeys.includes(row.serviceKey)))return null;
+    const notes=answerSavedServiceRecords(serviceNoteScope.noteQuestion,{profile:current.profile,checkedAt:payload.checkedAt??current.checkedAt},route,history,{serviceNoteScope,
+      selectedEvidence:{records:unavailable?[]:payload.records,selection},unavailable,excerpted:payload.excerpted});
+    if(notes&&serviceNoteScope.boundaryKeys.length){
+      const boundary=supplementalAnswerLanguage(question)==='zh-TW'?'站內備註無法確認校方的處理結果。':'I cannot verify an official outcome from a saved tracking note.';
+      notes.answer+='\n\n'+boundary;
+    }
+    return notes;
+  };
   if(scopedNotes){
-    const source=evidence.find(item=>item.id==='account:serviceRecords');
-    if(source){
-      const payload=JSON.parse(source.content);
-      const notes=answerSavedServiceRecords(serviceNoteScope.noteQuestion,snapshot,route,history,{serviceNoteScope,
-        selectedEvidence:{records:payload.records,selection:payload.selection??{serviceKeys:serviceNoteScope.keys,matchingRows:0}},unavailable:Boolean(payload.unavailableReason),excerpted:payload.excerpted});
-      if(notes)initial.answer=[notes.answer,initial.answer].filter(Boolean).join('\n\n');
-    }
+    const notes=renderScopedServiceNotes(evidence);
+    if(notes)initial=directServiceNotes?{...initial,...notes}:{...initial,answer:[notes.answer,initial.answer].filter(Boolean).join('\n\n')};
     needsComposition=Boolean(serviceNoteScope.otherQuestion)&&!noteFees&&!noteNext;
-    if(serviceNoteScope.boundaryKeys.length){
-      const boundary=supplementalAnswerLanguage(question)==='zh-TW'?'站內私人備註無法確認官方處理結果。':'I can’t verify an official outcome from a private tracking note.';
-      initial.answer=[initial.answer,boundary].filter(Boolean).join('\n\n');
-    }
   }
   const fees=boundedFeeAnswer(evidence);
   if((noteFees||aidFees||teachingFees||housingFees||serviceFees)&&!fees)needsComposition=true;
@@ -1116,6 +1128,17 @@ export async function answerAccountWithVerification({question,snapshot,history=[
     verify:async context=>{
       // The fixed coaching guide contains no sourced facts or user-supplied text.
       if(coachingGuide&&context.candidate===coachingGuide&&context.evidence.length===0)return {ok:true};
+      if(directServiceNotes){
+        // The selected read owns the note, status and link. Check the exact
+        // rendering from that evidence so a rewrite cannot detach its fields.
+        const [scope,source]=context.evidence;
+        const supported=context.evidence.length===2&&scope.id==='account-scope'&&source.id==='account:serviceRecords'
+          &&renderScopedServiceNotes(context.evidence);
+        if(!supported||context.candidate.status!=='answered'||context.candidate.proposedAction
+          ||context.candidate.answer!==supported.answer
+          ||JSON.stringify(context.candidate.citations)!==JSON.stringify(supported.citations))return {ok:false,reason:'evidence_unavailable'};
+        return {ok:true};
+      }
       if(scopedOverview){
         const supported=scopedOverviewAnswer(context.evidence);
         if(!supported||context.candidate.answer!==supported||context.candidate.status!=='answered'||context.candidate.proposedAction
@@ -1146,6 +1169,10 @@ export async function answerAccountWithVerification({question,snapshot,history=[
         emit({kind:'general-coaching-guide',label:'Used a general coaching guide',
           detail:'The answer uses fixed practice guidance without personal records or external sources.',status:'complete'});
         return coachingGuide;
+      }
+      if(directServiceNotes){
+        const notes=renderScopedServiceNotes(context.evidence);
+        return notes?{...context.candidate,...notes}:{...context.candidate,status:'abstained',answer:'',citations:[]};
       }
       if(scopedOverview){
         const answer=scopedOverviewAnswer(context.evidence);

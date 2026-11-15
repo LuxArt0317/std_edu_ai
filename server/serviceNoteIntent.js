@@ -15,6 +15,8 @@ const otherTopic = /\b(?:insurance|notes? on|housing|dorm(?:itory)?|room(?:s)?|l
 const note = /\bnotes?\b|\b(?:(?:saved|local|personal|private|self.marked)\s+(?:service\s+)?track\w*|track\w*\s+(?:records?|status|reference))\b|備註|备注|筆記|笔记|(?:私人|本地|站內|已儲存|自己標記).{0,6}(?:追蹤|紀錄|狀態)/iu;
 const own = /\b(?:my|mine|our|i|me|own)\b|我|本人|自己/iu;
 const omitText = /^(?:(?:please|also|then)\s+)*(?:do not|don['’]t|never|without|not)\s+(?:(?:show|display|include|read|repeat|quote)\s+)?(?:the |my |its |their )?(?:note (?:text|content|contents|body)|text|details|contents|body)\b|^(?:請)?(?:不要|不顯示|不含).{0,6}(?:備註|筆記)?內容$/iu;
+const savedOnly = /^(?:please\s+)?(?:do not|don['’]t|never)\s+infer\s+(?:any\s+)?(?:official|university)\s+records?$|^(?:請)?(?:不要|不得)(?:推斷|推測)(?:校方|官方|正式)(?:的)?(?:紀錄|記錄)$/iu;
+const sameNoteDetail = /^(?:what (?:tracking )?status did i (?:set|save|record)|their references?)$/iu;
 const statusOnly = /\b(?:status only|only (?:the |my )?(?:tracking )?status|just (?:the |my )?(?:tracking )?status)\b|只(?:顯示|查詢|要).{0,5}狀態/iu;
 const nominal = /^(?:my |our |the |saved |local |private |own )*(?:[\p{L}\p{N} -]+\s)?(?:notes?|tracking records?)\s*$/iu;
 const negative = /^(?:(?:please|and|then|also)\s+)*(?:do not|don['’]t|never|not(?!\s+only)|without|excluding|except)\b|^(?:請|请)?(?:不要|不含|排除|不用|不查)/iu;
@@ -73,6 +75,7 @@ export function serviceNoteLookup(question,route='',history=[]) {
       invalidService=true;continue;
     }
     if(omitText.test(clause)){statusProjection=true;continue;}
+    if(savedOnly.test(clause)||keys.size&&sameNoteDetail.test(clause))continue;
     if(!direct.length&&(isOwnFeeBalanceQuestion(clause)||ownFeeBalanceLabel(clause)!==null)){rest.push(clause);continue;}
     const selected=direct.length?direct:matchesFollow&&linked.length?linked:(note.test(clause)&&!otherTopic.test(clause)||matchesFollow)&&routeScope?[routeScope]:[];
     if(!selected.length||navigation.test(clause)){rest.push(clause);continue;}
