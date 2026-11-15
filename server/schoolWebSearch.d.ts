@@ -3,4 +3,5 @@ export type WebAnswer = {answer:string;citations:WebCitation[];origin:'web';chec
 export function questionKind(question:string): {personal:boolean;irrelevant:boolean;greeting:boolean;capabilities:boolean;fresh:boolean;school:boolean};
 export function publicSchoolQuestion(question:string,history?:Array<{role:string;content:string}>):string|null;
 export function safeWebSource(value:string):string|null;
-export function searchSchoolWeb(question:string,options?:{deadline?:number;followUp?:boolean;deeperDiscovery?:boolean;alternateDiscovery?:boolean;libraryScope?:boolean;responseLanguage?:'en'|'zh-Hant'}):Promise<{result:WebAnswer|null;attempted:boolean;discoveredSources?:WebCitation[]}>;
+/** checkedSchoolUrls contains independently read live public pages for this request only. */
+export function searchSchoolWeb(question:string,options?:{deadline?:number;followUp?:boolean;deeperDiscovery?:boolean;alternateDiscovery?:boolean;libraryScope?:boolean;responseLanguage?:'en'|'zh-Hant';checkedSchoolUrls?:readonly string[]}):Promise<{result:WebAnswer|null;attempted:boolean;discoveredSources?:WebCitation[]}>;
