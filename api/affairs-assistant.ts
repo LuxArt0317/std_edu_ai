@@ -20,7 +20,7 @@ import {answerStudentSupportGuidance} from '../server/studentSupportGuidance.js'
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
 import {venueRequestBoundary,venueRequestSelection} from '../server/venueRequestIntent.js';
 import {announcementEmailForeignAnswer,announcementEmailQuestion} from '../server/announcementEmailContract.js';
-import {studentProfileForeignAnswer,studentProfileQuestion} from '../server/studentProfileContract.js';
+import {isForeignStudentProfileQuestion,studentProfileForeignAnswer} from '../server/studentProfileContract.js';
 
 type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>};
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
@@ -169,7 +169,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const stream=createAssistantStream(input?.stream===true,response);
   const hasImages=Array.isArray(input?.images)&&input.images.length>0;
   const guidance=hasImages?null:answerStudentSupportGuidance(question);
-  const privacy=hasImages?null:studentProfileQuestion(question)==='foreign'?studentProfileForeignAnswer(question)
+  const privacy=hasImages?null:isForeignStudentProfileQuestion(question)?studentProfileForeignAnswer(question)
     :announcementEmailQuestion(question)==='foreign'?announcementEmailForeignAnswer(question):null;
   const direct=guidance??privacy;
   if(direct){

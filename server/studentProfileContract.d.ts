@@ -19,5 +19,6 @@ export function validProfileAction(operation:'save',payload:unknown):payload is 
 export function validProfileAction(operation:'confirm',payload:unknown):payload is ConfirmStudentProfile;
 export function parseStudentProfile(value:unknown,userId:string):StudentProfileResult;
 export function parseProfileReceipt(value:unknown,userId:string,expected:number,operation:'save'|'confirm'):StudentProfileReceipt;
-export function studentProfileQuestion(question:string):'guide'|'status'|'foreign'|null;
+export function studentProfileQuestion(question:string):'guide'|'status'|null;
+export function isForeignStudentProfileQuestion(question:string):boolean;
 export function studentProfileForeignAnswer(question:string):import('../src/services/researchAssistant').AssistantResponse;

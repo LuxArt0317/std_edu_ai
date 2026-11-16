@@ -39,7 +39,7 @@ import { createAssistantStream } from "./assistantStream.js";
 import {answerStudentSupportGuidance} from './studentSupportGuidance.js';
 import {venueRequestBoundary,venueRequestSelection} from './venueRequestIntent.js';
 import {announcementEmailForeignAnswer} from './announcementEmailContract.js';
-import {studentProfileForeignAnswer} from './studentProfileContract.js';
+import {isForeignStudentProfileQuestion,studentProfileForeignAnswer} from './studentProfileContract.js';
 import { runAnswerVerification } from "./answerVerification.js";
 import { verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
@@ -275,7 +275,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         if(!input.images.length){
-            const privacy=studentProfileQuestion(input.question)==='foreign'?studentProfileForeignAnswer(input.question)
+            const privacy=isForeignStudentProfileQuestion(input.question)?studentProfileForeignAnswer(input.question)
                 :announcementEmailQuestion(input.question)==='foreign'?announcementEmailForeignAnswer(input.question):null;
             if(privacy){stream.send(200,privacy);return;}
         }

@@ -56,13 +56,18 @@ export function parseProfileReceipt(value,userId,expected,operation){
   return value;
 }
 
+export function isForeignStudentProfileQuestion(question){
+  const q=question.normalize('NFKC').trim();
+  return !/\b(?:password|token|code this|python|javascript|write code)\b|密碼|密码/iu.test(q)
+    &&/\bstudent (?:profile|(?:basic )?information|details)\b|學生基本資料|學籍基本資料/iu.test(q)
+    &&/\b(?:another|other) student(?:['’]s)?\b|\bmy (?:classmate|friend|roommate)['’]s\b|別人|别人|他人|其他學生|其他学生/iu.test(q);
+}
+
 export function studentProfileQuestion(question) {
   const q=question.normalize('NFKC').trim();
-  if(/\b(?:password|token|code this|python|javascript|write code)\b|密碼|密码/iu.test(q))return null;
-  const subject=/\bstudent (?:profile|(?:basic )?information|details)\b|學生基本資料|學籍基本資料/iu.test(q);
-  if(/\b(?:another|other) student(?:['’]s)?\b|\bmy (?:classmate|friend|roommate)['’]s\b|別人|别人|他人|其他學生|其他学生/iu.test(q))
-    return subject?'foreign':null;
-  if(subject&&(
+  if(/\b(?:password|token|code this|python|javascript|write code|another student)\b|密碼|他人/iu.test(q))return null;
+  const subject=/\bstudent (?:profile|information|details)\b|學生基本資料|學籍基本資料/iu;
+  if(subject.test(q)&&(
     /\b(?:have i|did i)\b.{0,30}\b(?:confirm(?:ed)?|complete(?:d)?)\b|\b(?:is|was) my\b.{0,55}\b(?:confirmed|complete(?:d)?)\b|\bmy\b.{0,45}\bconfirmation status\b/iu.test(q)||
     /我(?:的|已|有|是否)|確認狀態/u.test(q)&&/已(?:經)?確認|確認了嗎|是否確認|有沒有確認|確認狀態/u.test(q)
   ))return 'status';

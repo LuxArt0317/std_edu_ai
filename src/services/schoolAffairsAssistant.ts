@@ -12,7 +12,7 @@ import {certificateAwardQuestion} from '../../server/certificateAwardsContract.j
 import {readCertificateAwardAnswer} from './certificateAwards';
 import {announcementEmailForeignAnswer,announcementEmailQuestion} from '../../server/announcementEmailContract.js';
 import {readAnnouncementEmailAnswer} from './announcementEmail';
-import {studentProfileForeignAnswer,studentProfileQuestion} from '../../server/studentProfileContract.js';
+import {isForeignStudentProfileQuestion,studentProfileForeignAnswer,studentProfileQuestion} from '../../server/studentProfileContract.js';
 import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
 import {readGraduationClearanceAnswer} from './graduationClearance';
@@ -48,7 +48,7 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   const askAccount = () => requestAccountAnswer(data.session.access_token,question,history,signal,images,route,onProgress);
   if(!images.length){
-    if(studentProfileQuestion(question)==='foreign')return studentProfileForeignAnswer(question);
+    if(isForeignStudentProfileQuestion(question))return studentProfileForeignAnswer(question);
     if(announcementEmailQuestion(question)==='foreign')return announcementEmailForeignAnswer(question);
     if(answerStudentSupportGuidance(question)||isVenueRequestQuestion(question,route,history))return askAccount();
   }
