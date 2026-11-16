@@ -69,8 +69,8 @@ export function probeNativePredicate(id,question,route=''){
       return selection?selection.reason??(selection.courses?'mine-and-current-subjects':'my-memberships'):clubStudentQuestion(question);}
     case 'club-activity-attendance':{const selection=clubAttendanceSelection(question,route);return selection?selection.reason??(selection.tuitionBalance?'mine-and-tuition':selection.partial?'partial':'mine'):null;}
     case 'certificate-awards':return certificateAwardQuestion(question)==='status'?'status':null;
-    case 'announcement-email':return announcementEmailQuestion(question)==='status'?'status':null;
-    case 'student-profile':return studentProfileQuestion(question)==='status'?'status':null;
+    case 'announcement-email':{const scope=announcementEmailQuestion(question);return scope==='guide'?null:scope;}
+    case 'student-profile':{const scope=studentProfileQuestion(question);return scope==='guide'?null:scope;}
     case 'venue-requests':{const plan=venueRequestPlan(question,route);return plan?plan.selection.reason??(plan.feeQuestion?'mine-and-fees':'mine'):null;}
     default:throw new Error('Unknown native client predicate.');
   }

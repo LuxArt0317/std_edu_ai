@@ -4,12 +4,14 @@ import {createProtectedNativeBrowserSaveJournal,deriveProtectedNativeBrowserAsse
 import {announcementEmailBrowserAnswerPath,announcementEmailBrowserBootstrap,announcementEmailBrowserCases,announcementEmailBrowserProfile,
   gradeAnnouncementEmailBrowserReply,verifyProtectedAnnouncementEmailBrowserEgress} from './announcement-email-browser-turn.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
+import {localPrivacySavePath} from './native-browser-privacy.mjs';
 
 const announcementEmailBrowser={
   profile:announcementEmailBrowserProfile,route:announcementEmailPath,heading:'校園最新公告個人E-MAIL接收設定',
   bootstrap:announcementEmailBrowserBootstrap,receiptKey:'announcementEmailReceipt',
   grade({testCase,preference},{statusCode,body,requestPath}){
-    check(statusCode===200&&requestPath===announcementEmailBrowserAnswerPath(testCase.inbox),'announcement fixture mismatch');
+    const expectedPath=testCase.local?localPrivacySavePath:announcementEmailBrowserAnswerPath(testCase.inbox);
+    check(statusCode===200&&requestPath===expectedPath,'announcement fixture mismatch');
     return gradeAnnouncementEmailBrowserReply({testCase,preference,reply:body});
   },
   verifyEgress:verifyProtectedAnnouncementEmailBrowserEgress,
@@ -36,7 +38,7 @@ export function createAnnouncementEmailBrowserSaveJournal(options){
 export function runAnnouncementEmailBrowserTurn(options){
   const {role,testCase}=options.bound;
   const canonical=announcementEmailBrowserCases.find(row=>row.id===testCase?.id);
-  check(canonical&&canonical.role===role&&canonical.question===testCase.question&&canonical.inbox===testCase.inbox
+  check(canonical&&canonical.role===role&&canonical.question===testCase.question&&canonical.inbox===testCase.inbox&&canonical.local===testCase.local
     &&testCase.route===announcementEmailPath,'announcement fixture mismatch');
   return runProtectedNativeBrowserTurn(options,announcementEmailBrowser);
 }

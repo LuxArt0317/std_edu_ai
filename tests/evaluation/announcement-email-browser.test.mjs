@@ -24,13 +24,13 @@ const owners={A:{id:'a2100000-0000-4000-8000-000000000002',email:'announcement-a
 const users=Object.values(owners).map(owner=>({id:owner.id,token:'synthetic-announcement-'+owner.id}));
 const origin='https://xiftudmvxphxcjtmfmib.supabase.co',key='synthetic-publishable-key';
 
-test('2-1 selects three exact inventory cases and the original foreign question gets a record-free refusal',async()=>{
+test('2-1 selects the four exact inventory cases, including a record-free refusal',async()=>{
   const {questions}=await discoverClientDispatchSurfaces();
   for(const testCase of announcementEmailBrowserCases){
     const frozen=questions.find(row=>row.id===testCase.id);
     assert.equal(frozen.question,testCase.question);
     assert.equal(frozen.route,announcementEmailPath);
-    assert.equal(frozen.staticProbe.predicate,'status');
+    assert.equal(frozen.staticProbe.predicate,testCase.local?'foreign':'status');
   }
   const foreign=questions.find(row=>row.id==='client:announcement-email:foreign');
   assert.equal(announcementEmailQuestion(foreign.question),'foreign');
@@ -188,7 +188,7 @@ test('actual 2-1 handler verifies retained preference, inbox boundary, missing p
     });
     const pair=await observeAnnouncementEmailBrowserCallers(plan,{users,readRpc,deliveryConfigured:false});
     assert.deepEqual([pair.A.enabled,pair.A.active,pair.B.version],[true,false,0]);
-    for(const frozen of announcementEmailBrowserCases){
+    for(const frozen of announcementEmailBrowserCases.filter(row=>!row.local)){
       const bound=bindAnnouncementEmailBrowserCase(plan,pair,frozen.id),user=users[frozen.role==='A'?0:1];
       const requestPath=announcementEmailBrowserAnswerPath(frozen.inbox);
       const query=Object.fromEntries(new URL(requestPath,origin).searchParams);

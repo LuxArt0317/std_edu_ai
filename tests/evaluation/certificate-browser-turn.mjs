@@ -82,7 +82,7 @@ export function verifyProtectedCertificateBrowserEgress({evidence,mode,requestSe
   return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope:'certificate'});
 }
 
-export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope,answerMethod='GET'}){
+export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope,answerMethod='GET',local=false}){
   const turn=mode==='turn';
   const bootstrap=scope+'-bootstrap',answer=scope+'-answer';
   check((turn||mode==='restore')&&evidence?.overflow===false&&Array.isArray(evidence.observations)
@@ -95,7 +95,7 @@ export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequenc
       continue;
     }
     const startup=['document','asset',bootstrap,'conversations'].includes(row.request);
-    const turnRequest=turn&&(row.request===answer||row.request==='conversation-save');
+    const turnRequest=turn&&(!local&&row.request===answer||row.request==='conversation-save');
     const restoreRequest=!turn&&row.request==='conversation-detail';
     check((startup||turnRequest||restoreRequest)&&row.forwarded===true&&row.result==='accepted'&&row.status===200
       &&row.method===(row.request==='conversation-save'?'POST':row.request===answer?answerMethod:'GET')
@@ -103,10 +103,10 @@ export function verifyProtectedNativeBrowserEgress({evidence,mode,requestSequenc
       'certificate egress mismatch');
     counts.set(row.request,(counts.get(row.request)??0)+1);
     if(row.request===answer)check(row.sequence===requestSequence,'certificate egress mismatch');
-    if(row.request==='conversation-save')check(counts.get(answer)===1,'certificate egress mismatch');
+    if(row.request==='conversation-save')check(local?row.sequence===requestSequence:counts.get(answer)===1,'certificate egress mismatch');
   }
   const required=['document',bootstrap,'conversations',
-    ...(turn?[answer,'conversation-save']:['conversation-detail'])];
+    ...(turn?[...(!local?[answer]:[]),'conversation-save']:['conversation-detail'])];
   check(required.every(request=>counts.get(request)===1),'certificate egress mismatch');
-  return {mode,answerRequests:turn?1:0,saveRequests:turn?1:0,restoreRequests:turn?0:1};
+  return {mode,answerRequests:turn&&!local?1:0,saveRequests:turn?1:0,restoreRequests:turn?0:1};
 }

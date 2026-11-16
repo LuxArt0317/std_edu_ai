@@ -31,8 +31,10 @@ const certificateBootstrap=dataPath+'?scope='+certificateAwardScope+'&view=mine'
 const certificateAnswers=new Map(certificateAwardPreviewManifest().filter(row=>row.id.endsWith('-aggregate-control')||row.bankReceipt)
   .map(({question,bankReceipt})=>[question,{selection:{bankReceipt:Boolean(bankReceipt)},
     answerPath:certificateBootstrap+'&answer=en'+(bankReceipt?'&bank_receipt=requested':'')}]));
-const announcementAnswers=new Map(announcementEmailBrowserCases.map(({question,inbox})=>[question,{selection:{inbox},answerPath:announcementEmailBrowserAnswerPath(inbox)}]));
-const profileAnswers=new Map(studentProfileBrowserCases.map(({question,year})=>[question,{selection:{year},answerPath:studentProfileBrowserAnswerPath(year)}]));
+const announcementAnswers=new Map(announcementEmailBrowserCases.map(({question,inbox,local=false})=>[question,
+  {local,selection:{inbox,local},answerPath:local?null:announcementEmailBrowserAnswerPath(inbox)}]));
+const profileAnswers=new Map(studentProfileBrowserCases.map(({question,year,local=false})=>[question,
+  {local,selection:{year,local},answerPath:local?null:studentProfileBrowserAnswerPath(year)}]));
 const nativeProfiles=new Map([
   [certificateBrowserProfile,{label:'certificate',route:certificateAwardPath,bootstrap:certificateBootstrap,answers:certificateAnswers,
     requiredMedia:[certificateBrowserHeading],receiptKey:'certificateReceipt',
@@ -243,7 +245,7 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
           &&transaction.title.trim()===transaction.title&&transaction.title.length>0&&transaction.title.length<=100
           &&Array.isArray(transaction.messages)&&transaction.messages.length===2&&save&&!save.saved
           &&(save.mode==='fixture'&&[...permittedPages].some(page=>frameUrl===origin+page)
-            ||save.mode==='turn'&&(native?nativeTurn.response:save.answer)&&frameUrl===origin+save.route
+            ||save.mode==='turn'&&(native?(nativeTurn.local||nativeTurn.response):save.answer)&&frameUrl===origin+save.route
             &&transaction.messages[0]?.role==='user'&&transaction.messages[0].content===save.question
             &&transaction.messages[1]?.role==='assistant'&&transaction.messages[1].phase==='complete'),'unreserved conversation save');
         save.saved=true;
@@ -252,6 +254,13 @@ export function createProtectedConversationBrowserRelay({origin,revision,token,o
     if(!staticAsset||!releaseChecked)await pin();
     else{await pinQueue;check(!pinFailed,'release pin failed');}
     if(save){
+      // These frozen refusal turns run entirely in the compiled client. Bind
+      // their actual returned result to the first save and reject any lookup.
+      if(nativeTurn?.local){
+        const result=transaction.messages[1].result;
+        check(!nativeTurn.requested&&result&&typeof result==='object'&&observation,'save answer mismatch');
+        nativeTurn.response={bytes:Buffer.from(JSON.stringify(result)),requestSequence:observation.sequence};
+      }
       const nativeCommand=native?{
         assistantResponse:Buffer.from(nativeTurn.response.bytes),requestSequence:nativeTurn.response.requestSequence,
         ...nativeTurn.selection,question:save.question,

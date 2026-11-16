@@ -46,7 +46,7 @@ test('CLI rejects unknown modes, malformed limits, missing values and invalid da
 test('signed browser profiles require the protected non-injected live runner',async()=>{
   const origin='https://stdedu-aaabbb111-v1-d286.vercel.app';
   const args=['--mode','live','--origin',origin,'--approved-preview-origin',origin,'--preview-auth','oidc'];
-  for(const profile of ['certificate-awards','announcement-email','student-profile','club-attendance','club-membership','protected-native']){
+  for(const profile of ['certificate-awards','announcement-email','student-profile','club-attendance','club-membership','protected-native','protected-privacy']){
     const flag=['--client-dispatch',profile];
     assert.equal(options([...args,...flag]).clientDispatch,profile);
     for(const invalid of [['--mode','inventory'],['--mode','live'],args.slice(0,-2)])assert.throws(()=>options([...invalid,...flag]));
@@ -83,6 +83,23 @@ test('announcement browser proof requires one forwarded native answer, paired re
     proof=>{proof.cleanup.conversationCleanup.conversationRows=1;},
   ]){
     const altered=structuredClone(result);change(altered);assert.equal(verify(altered).passed,false);
+  }
+  const foreign=questions.find(row=>row.id==='client:announcement-email:foreign');
+  const foreignResult=structuredClone(result);
+  Object.assign(foreignResult,{caseIds:[foreign.id],suiteDigest:certificateAwardPreviewHash([foreign]),
+    browserDiagnostics:[{observations:[{request:'conversation-save',method:'POST',phase:'turn',result:'accepted',forwarded:true}]}]});
+  Object.assign(foreignResult.results[0],{caseId:foreign.id,browserTurn:{answerRequests:0,saveRequests:1}});
+  const verifyForeign=proof=>verifiedNativeBrowserObservation({result:proof,question:foreign,sourceRevision,origin,profile:'announcement-email'});
+  assert.equal(verifyForeign(foreignResult).passed,true);
+  for(const event of [
+    {request:'announcement-email-answer',method:'GET',phase:'turn',forwarded:true},
+    {request:'graph-assistant',method:'POST',phase:'turn',result:'accepted',forwarded:true},
+    {request:'graph-assistant',method:'POST',phase:'turn',result:'rejected',forwarded:false},
+    {request:'conversation-save',method:'POST',phase:'turn',result:'accepted',forwarded:true},
+  ]){
+    const contaminated=structuredClone(foreignResult);
+    contaminated.browserDiagnostics[0].observations.push(event);
+    assert.equal(verifyForeign(contaminated).passed,false);
   }
 });
 

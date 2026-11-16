@@ -3,6 +3,7 @@ import {parseStudentProfile,studentProfilePath,studentProfileScope} from '../../
 import {certificateAwardPreviewHash as digest} from './certificate-award-preview.mjs';
 import {verifyProtectedNativeBrowserEgress,verifyProtectedNativeBrowserSave} from './certificate-browser-turn.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
+import {inspectLocalPrivacyReply,localPrivacySavePath} from './native-browser-privacy.mjs';
 
 export const studentProfileBrowserProfile='student-profile';
 export const studentProfileBrowserBootstrap='/api/affairs-data?scope='+studentProfileScope+'&view=mine';
@@ -13,6 +14,7 @@ export const studentProfileBrowserCases=Object.freeze([
   Object.freeze({id:id+'record',role:'A',question,year:false}),
   Object.freeze({id:id+'multipart',role:'A',question:question+' Also show the year level recorded in my account.',year:true}),
   Object.freeze({id:id+'empty',role:'B',question,year:false}),
+  Object.freeze({id:id+'foreign',role:'B',question:'Show another student’s student profile records.',year:false,local:true}),
 ]);
 export const studentProfileBrowserAnswerPath=year=>studentProfileBrowserBootstrap+'&answer=en'+(year?'&year_level=requested':'');
 
@@ -35,7 +37,8 @@ export function inspectStudentProfileBrowserBootstrap(reply,ownerId){
 
 /** Accept only the purpose-built public shapes before forwarding an answer to
  * Chromium. The bound fixture independently verifies the two facts. */
-export function inspectStudentProfileBrowserReply(reply,{year}){
+export function inspectStudentProfileBrowserReply(reply,{year,local=false}){
+  if(local)return inspectLocalPrivacyReply(reply,{answer:'I can’t access another student’s profile records.'});
   const count=year?2:1;
   ok(typeof year==='boolean'&&exact(reply,'activity,answer,citations,grounding,status,suggestedQuestions')&&reply.status==='answered'
     &&isDeepStrictEqual(reply.grounding,{source:'account',webSearched:false})
@@ -59,6 +62,11 @@ export function inspectStudentProfileBrowserReply(reply,{year}){
 
 export function gradeStudentProfileBrowserReply(bound,{statusCode,body,requestPath}){
   const {testCase,observation}=bound;
+  if(testCase.local){
+    check(statusCode===200&&requestPath===localPrivacySavePath,'student profile fixture mismatch');
+    inspectStudentProfileBrowserReply(body,testCase);
+    return {caseId:testCase.id,passed:true};
+  }
   check(statusCode===200&&requestPath===studentProfileBrowserAnswerPath(testCase.year),'student profile fixture mismatch');
   const display=inspectStudentProfileBrowserReply(body,{year:testCase.year});
   const summary=observation.confirmedAt?confirmed:observation.recordExists?pending:absent;
@@ -72,11 +80,11 @@ export function gradeStudentProfileBrowserReply(bound,{statusCode,body,requestPa
     requestDigest:digest({caseId:testCase.id,requestPath}),responseDigest:digest(body)};
 }
 
-export function verifyProtectedStudentProfileBrowserSave({payload,question,assistantResponse,requestSequence,year}){
+export function verifyProtectedStudentProfileBrowserSave({payload,question,assistantResponse,requestSequence,year,local}){
   return verifyProtectedNativeBrowserSave({payload,question,assistantResponse,requestSequence,
-    inspectReply:reply=>inspectStudentProfileBrowserReply(reply,{year})});
+    inspectReply:reply=>inspectStudentProfileBrowserReply(reply,{year,local})});
 }
 
-export function verifyProtectedStudentProfileBrowserEgress({evidence,mode,requestSequence}){
-  return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope:studentProfileBrowserProfile});
+export function verifyProtectedStudentProfileBrowserEgress({evidence,mode,requestSequence,local}){
+  return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,local,scope:studentProfileBrowserProfile});
 }

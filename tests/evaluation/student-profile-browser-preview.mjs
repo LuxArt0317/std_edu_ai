@@ -35,7 +35,7 @@ export const createStudentProfileBrowserSaveJournal=options=>createProtectedNati
 export function runStudentProfileBrowserTurn(options){
   const {role,testCase}=options.bound;
   const canonical=studentProfileBrowserCases.find(row=>row.id===testCase?.id);
-  check(canonical&&canonical.role===role&&canonical.question===testCase.question&&canonical.year===testCase.year
+  check(canonical&&canonical.role===role&&canonical.question===testCase.question&&canonical.year===testCase.year&&canonical.local===testCase.local
     &&testCase.route===studentProfilePath,'student profile fixture mismatch');
   return runProtectedNativeBrowserTurn(options,studentProfileBrowser);
 }

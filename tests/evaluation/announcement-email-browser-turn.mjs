@@ -3,6 +3,7 @@ import {announcementEmailInboxLimit,announcementEmailPath,announcementEmailScope
 import siteAssets from '../../src/features/public/site/assets.json' with {type:'json'};
 import {verifyProtectedNativeBrowserEgress,verifyProtectedNativeBrowserSave} from './certificate-browser-turn.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
+import {inspectLocalPrivacyReply} from './native-browser-privacy.mjs';
 
 export const announcementEmailBrowserProfile='announcement-email';
 export const announcementEmailBrowserBootstrap='/api/affairs-data?scope='+announcementEmailScope;
@@ -18,6 +19,7 @@ export const announcementEmailBrowserCases=Object.freeze([
   Object.freeze({id:prefix+'record',role:'A',question,inbox:false}),
   Object.freeze({id:prefix+'multipart',role:'A',question:inboxQuestion,inbox:true}),
   Object.freeze({id:prefix+'empty',role:'B',question,inbox:false}),
+  Object.freeze({id:prefix+'foreign',role:'B',question:'Show another student’s announcement email records.',inbox:false,local:true}),
 ]);
 export function announcementEmailBrowserAnswerPath(inbox){
   return announcementEmailBrowserBootstrap+'&answer=en'+(inbox?'&inbox_receipt=requested':'');
@@ -39,7 +41,12 @@ export function inspectAnnouncementEmailBrowserBootstrap(reply,ownerId){
   return {...record,deliveryConfigured};
 }
 
-export function inspectAnnouncementEmailBrowserReply(reply,{inbox}){
+export function inspectAnnouncementEmailBrowserReply(reply,{inbox,local=false}){
+  if(local){
+    const detail='I can’t check another student’s announcement email preference.';
+    return inspectLocalPrivacyReply(reply,{answer:detail+`\n\n[${title}](${announcementEmailPath})`,
+      activity:[{kind:'announcement-email-privacy',label:title,detail,status:'complete'}],grounding:{source:'directory',webSearched:false}});
+  }
   check(exact(reply,'activity,answer,citations,grounding,status,suggestedQuestions')&&reply.status==='answered'
     &&exact(reply.grounding,'source,webSearched')&&reply.grounding.source==='account'&&reply.grounding.webSearched===false
     &&Array.isArray(reply.suggestedQuestions)&&reply.suggestedQuestions.length===0
@@ -63,6 +70,10 @@ export function inspectAnnouncementEmailBrowserReply(reply,{inbox}){
 }
 
 export function gradeAnnouncementEmailBrowserReply({testCase,preference,reply}){
+  if(testCase.local){
+    inspectAnnouncementEmailBrowserReply(reply,testCase);
+    return {caseId:testCase.id,passed:true};
+  }
   const {inbox}=testCase,display=inspectAnnouncementEmailBrowserReply(reply,{inbox});
   const {enabled,active,version,effectiveAt,deliveryConfigured}=preference;
   const claim=version===0?missing:!enabled?off:active?on:pending;
@@ -72,10 +83,10 @@ export function gradeAnnouncementEmailBrowserReply({testCase,preference,reply}){
   return {caseId:testCase.id,passed:true,enabled,active,stored:version>0,deliveryConfigured};
 }
 
-export function verifyProtectedAnnouncementEmailBrowserSave({payload,question,assistantResponse,requestSequence,inbox}){
+export function verifyProtectedAnnouncementEmailBrowserSave({payload,question,assistantResponse,requestSequence,inbox,local}){
   return verifyProtectedNativeBrowserSave({payload,question,assistantResponse,requestSequence,
-    inspectReply:reply=>inspectAnnouncementEmailBrowserReply(reply,{inbox})});
+    inspectReply:reply=>inspectAnnouncementEmailBrowserReply(reply,{inbox,local})});
 }
-export function verifyProtectedAnnouncementEmailBrowserEgress({evidence,mode,requestSequence}){
-  return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,scope:announcementEmailBrowserProfile});
+export function verifyProtectedAnnouncementEmailBrowserEgress({evidence,mode,requestSequence,local}){
+  return verifyProtectedNativeBrowserEgress({evidence,mode,requestSequence,local,scope:announcementEmailBrowserProfile});
 }

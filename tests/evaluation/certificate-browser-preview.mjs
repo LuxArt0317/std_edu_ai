@@ -8,6 +8,7 @@ import {createTranscriptDurableJournal} from './transcript-durable-journal.mjs';
 import {certificateBrowserProfile,createProtectedConversationBrowserRelay} from './vercel-preview-browser-transport.mjs';
 import {createPreviewDevelopmentTokenGuard,isEvaluationPreviewOrigin,previewTrustedHeader} from './vercel-preview-transport.mjs';
 import {requireProtectedBrowser as check} from './protected-browser-diagnostics.mjs';
+import {localPrivacySavePath} from './native-browser-privacy.mjs';
 import {verifyProtectedCertificateBrowserEgress} from './certificate-browser-turn.mjs';
 import {installProtectedConversationBrowserRoute} from '../integration/helpers/protected-conversation-browser.mjs';
 
@@ -60,7 +61,7 @@ export async function createProtectedNativeBrowserSaveJournal({directory,runId,o
       const assessment=browserProfile.grade(bound,{statusCode:200,body,requestPath});
       check(assessment.passed,'save answer mismatch');
       const grade={...assessment,
-        requestDigest:digest({method:browserProfile.answerMethod??'GET',path:requestPath,role:bound.role,question:bound.testCase.question}),
+        requestDigest:digest({method:bound.testCase.local?'POST':browserProfile.answerMethod??'GET',path:requestPath,role:bound.role,question:bound.testCase.question}),
         responseDigest:digest(body),
       };
       const messages=JSON.parse(JSON.stringify(sanitizeStoredConversation(payload.messages)));
@@ -116,6 +117,10 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
       relay=createProtectedConversationBrowserRelay({origin,revision:sourceRevision,token,ownerId:session.user.id,
         getCallerToken:()=>session.access_token,verifyPin,assets,profile:browserProfile.profile,graphTurn,
         async authorizeSave({ownerId,payload,assistantResponse,requestSequence,expected}){
+          if(testCase.local){
+            check(!capture&&Buffer.from(JSON.stringify(payload.messages[1].result)).equals(assistantResponse),'save fixture owner mismatch');
+            capture={body:assistantResponse,path:localPrivacySavePath};
+          }
           check(!restore&&ownerId===session.user.id&&savedJournal&&savedId===payload.id
             &&capture&&capture.body.equals(assistantResponse),'save fixture owner mismatch');
           await assertLease();
@@ -169,8 +174,9 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
     }
   }
   try{
-    const verifyRendered=browserProfile.verifyRendered??
-      (await import('../integration/helpers/protected-conversation-browser.mjs')).verifyRenderedCertificateBrowserTurn;
+    const verifyRendered=testCase.local
+      ?(await import('./club-attendance-browser-turn.mjs')).verifyRenderedClubRecordBrowserTurn
+      :browserProfile.verifyRendered??(await import('../integration/helpers/protected-conversation-browser.mjs')).verifyRenderedCertificateBrowserTurn;
     const live=await open();
     let turnNetwork;
     try{
@@ -194,7 +200,7 @@ export async function runProtectedNativeBrowserTurn({origin,sourceRevision,token
     }finally{turnNetwork=await live.close();}
     if(turnNetwork.denial)throw turnNetwork.denial;
     check(turnNetwork.pageErrors===0,'unexpected application response');
-    const browserTurn=browserProfile.verifyEgress({evidence:turnNetwork.egress,mode:'turn',requestSequence:beforeSave.requestSequence});
+    const browserTurn=browserProfile.verifyEgress({evidence:turnNetwork.egress,mode:'turn',requestSequence:beforeSave.requestSequence,local:testCase.local});
 
     const readback=await pinReadback(async()=>{
       await assertLease();

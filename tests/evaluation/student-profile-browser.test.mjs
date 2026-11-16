@@ -26,13 +26,13 @@ const apiOrigin='https://xiftudmvxphxcjtmfmib.supabase.co',key='synthetic-publis
 const migrations=['20261105010000_school_affairs_workspace.sql','20261105020000_dtm_sample_workspace.sql',
   '20261106010000_affairs_academic_records.sql','20261114210000_student_profile_confirmation.sql'];
 
-test('the three 8-1 browser cases use the unmodified inventory prompts and select only the requested year',async()=>{
+test('the four 8-1 browser cases use the unmodified inventory prompts and select only the requested year',async()=>{
   const {questions}=await discoverClientDispatchSurfaces();
   for(const row of studentProfileBrowserCases){
     const frozen=questions.find(item=>item.id===row.id);
     assert.equal(frozen.question,row.question);
     assert.equal(frozen.route,studentProfilePath);
-    assert.equal(frozen.staticProbe.predicate,'status');
+    assert.equal(frozen.staticProbe.predicate,row.local?'foreign':'status');
     assert.equal(studentProfileBrowserAnswerPath(row.year).includes('year_level=requested'),row.id.endsWith(':multipart'));
   }
 });
@@ -106,7 +106,8 @@ async function exerciseChromium(pair,plan){
     const page=await context.newPage();
     await page.goto(pageUrl);
     await page.addScriptTag({content:output[0].code});
-    for(const row of studentProfileBrowserCases){
+    const ownCases=studentProfileBrowserCases.filter(row=>!row.local);
+    for(const row of ownCases){
       const user=users[row.role==='A'?0:1],requestPath=studentProfileBrowserAnswerPath(row.year);
       const body=await page.evaluate(({user,question})=>window.askProfile(user,question),{user,question:row.question});
       assert.equal(gradeStudentProfileBrowserReply(bindStudentProfileBrowserCase(plan,pair,row.id),
@@ -116,7 +117,7 @@ async function exerciseChromium(pair,plan){
     const denial=await page.evaluate(({user,question})=>window.askProfile(user,question),{user:users[1],question:foreign.question});
     assert.equal(denial.status,'handoff');
     assert.match(denial.answer,/can’t access another student’s profile records/u);
-    assert.deepEqual(calls,studentProfileBrowserCases.map(row=>({method:'GET',owner:owners[row.role].id,path:studentProfileBrowserAnswerPath(row.year)})));
+    assert.deepEqual(calls,ownCases.map(row=>({method:'GET',owner:owners[row.role].id,path:studentProfileBrowserAnswerPath(row.year)})));
     await context.close();
   }finally{await browser.close();}
 }
@@ -235,7 +236,7 @@ test('migrated 8-1 browser packet observes two signed scopes, the actual API, ex
       reads.push(['year',user.id]);
       return Response.json(year.body,{status:year.status,headers:{'content-range':year.contentRange}});
     });
-    for(const row of studentProfileBrowserCases){
+    for(const row of studentProfileBrowserCases.filter(row=>!row.local)){
       const user=users[row.role==='A'?0:1],requestPath=studentProfileBrowserAnswerPath(row.year);
       const bound=bindStudentProfileBrowserCase(plan,pair,row.id);
       const {status,body}=await invoke(user,requestPath);

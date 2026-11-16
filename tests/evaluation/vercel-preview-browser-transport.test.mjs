@@ -251,6 +251,57 @@ test('the exact Student Profile multipart GET binds both citations to one save a
   assert.equal(fresh.calls.length,before);
 });
 
+test('foreign profile and announcement questions allow one exact refusal save and zero answer requests',async t=>{
+  const emailSummary='I can’t check another student’s announcement email preference.',title='Announcement email settings';
+  const fixtures=[
+    {case:studentProfileBrowserCases.find(row=>row.local),route:studentProfilePath,profile:studentProfileBrowserProfile,
+      bootstrap:studentProfileBrowserBootstrap,bootReply:{userId:ownerId,record:null},media:[studentProfileBrowserHeading],
+      answerPath:studentProfileBrowserAnswerPath(false),verify:verifyProtectedStudentProfileBrowserEgress,
+      refusal:{answer:'I can’t access another student’s profile records.'}},
+    {case:announcementEmailBrowserCases.find(row=>row.local),route:announcementEmailPath,profile:announcementEmailBrowserProfile,
+      bootstrap:announcementEmailBrowserBootstrap,bootReply:{userId:ownerId,enabled:false,active:false,effectiveAt:null,version:0,deliveryConfigured:false},
+      media:announcementEmailBrowserMedia,answerPath:announcementEmailBrowserAnswerPath(false),verify:verifyProtectedAnnouncementEmailBrowserEgress,
+      refusal:{answer:`${emailSummary}\n\n[${title}](${announcementEmailPath})`,grounding:{source:'directory',webSearched:false},
+        activity:[{kind:'announcement-email-privacy',label:title,detail:emailSummary,status:'complete'}]}},
+  ];
+  for(const fixture of fixtures)await t.test(fixture.profile,async()=>{
+    const {route,profile,bootstrap,bootReply,media,answerPath,verify,refusal,case:{question}}=fixture;
+    const target=id(),messageId=randomUUID(),reply={status:'handoff',citations:[],suggestedQuestions:[],...refusal};
+    const payload={id:target,title:question.slice(0,80),version:0,messages:sanitizeStoredConversation([
+      {id:'u-'+messageId,role:'user',content:question,images:[]},
+      {id:'a-'+messageId,role:'assistant',phase:'complete',content:reply.answer,result:reply,activity:reply.activity},
+    ])};
+    const setup=async()=>{
+      const h=harness({profile,assets:[assets[0],...media],authorizeSave:command=>command.local===true&&command.requestSequence===4,
+        respond(url,init){
+          if(url.pathname===route)return new Response('Pinned private page',{headers:{'Content-Type':'text/html'}});
+          if(url.pathname+url.search===bootstrap)return Response.json(bootReply);
+          if(url.pathname==='/api/affairs-conversations')return Response.json(init.method==='GET'?{conversations:[]}:
+            {...payload,version:1,created_at:certUpdatedAt,updated_at:certUpdatedAt});
+          assert.fail('A refusal must not dispatch an answer lookup.');
+        }});
+      await h.dispatch(get(route));
+      await h.dispatch(certificateGet(bootstrap,ownerId,route));
+      await h.dispatch(certificateGet('/api/affairs-conversations',ownerId,route));
+      h.reserve({id:target,mode:'turn',route,question});
+      return h;
+    };
+    const post=value=>({...certificatePost(value),frameUrl:origin+route});
+    const h=await setup();
+    assert.equal((await h.dispatch(post(payload))).status,200);
+    assert.deepEqual(verify({evidence:h.egress(),mode:'turn',requestSequence:4,local:true}),
+      {mode:'turn',answerRequests:0,saveRequests:1,restoreRequests:0});
+    assert.throws(()=>verify({evidence:h.egress(),mode:'turn',requestSequence:3,local:true}));
+    await assert.rejects(h.dispatch(certificateGet(answerPath,ownerId,route)),{code:'unapproved-request-operation'});
+    await assert.rejects(h.dispatch(assistant(bodyFor(0,{question,route}),route)),{code:'unapproved-request-operation'});
+    assert.throws(()=>verify({evidence:h.egress(),mode:'turn',requestSequence:4,local:true}));
+    const tampered=await setup(),bad=structuredClone(payload);
+    bad.messages[1].result.views=[{title:'Another student’s record',rows:[['private']]}];
+    await assert.rejects(tampered.dispatch(post(bad)),{code:'save-answer-mismatch'});
+    assert.equal(tampered.calls.length,3);
+  });
+});
+
 test('certificate profiles cannot broaden data paths and malformed replies cannot hide forwarded reads',async()=>{
   assert.throws(()=>certificateHarness({dataPaths:[certificateBootstrap]}),/invalid data route allowlist/u);
   assert.throws(()=>certificateHarness({assets:[assets[0],certificateBrowserHeading,'/stu-reference/other.js']}),/invalid resource allowlist/u);

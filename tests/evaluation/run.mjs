@@ -49,9 +49,11 @@ const browserDispatchProfiles=new Map([
   ['certificate-awards',{ids:certificateBrowserCaseIds,operation:'runCertificateAwardPreview',request:'certificate-answer',pinnedReads:2,
     cleanup:proof=>proof.certificateAwardPreviewCleanup===true&&proof.certificateAwardCatalogUnchanged===true}],
   ['announcement-email',{ids:announcementEmailBrowserCases.map(row=>row.id),operation:'runAnnouncementEmailBrowserPreview',
-    request:'announcement-email-answer',pinnedReads:6,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='announcement-email'}],
+    localIds:announcementEmailBrowserCases.filter(row=>row.local).map(row=>row.id),request:'announcement-email-answer',pinnedReads:6,
+    cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='announcement-email'}],
   ['student-profile',{ids:studentProfileBrowserCases.map(row=>row.id),operation:'runStudentProfileBrowserPreview',
-    request:'student-profile-answer',pinnedReads:2,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='student-profile'}],
+    localIds:studentProfileBrowserCases.filter(row=>row.local).map(row=>row.id),request:'student-profile-answer',pinnedReads:2,
+    cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='student-profile'}],
   ['club-membership',{ids:clubMembershipBrowserCases.map(row=>row.id),operation:'runClubMembershipBrowserPreview',
     request:'club-membership-answer',answerMethod:'POST',pinnedReads:2,
     cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='club-membership'}],
@@ -62,6 +64,7 @@ const browserDispatchProfiles=new Map([
 ]);
 
 const liveClientObservations=new WeakMap();
+const aggregateBrowserProfiles=new Set(['protected-native','protected-privacy']);
 
 process.umask(0o077);
 const root=fileURLToPath(new URL('../../',import.meta.url));
@@ -96,7 +99,7 @@ export function options(args){
   if(result.approvedPreviewOrigin&&(result.mode!=='live'||result.origin!==result.approvedPreviewOrigin||result.origin==='https://stu.best'))throw new Error('An approved Preview origin must equal the live target origin.');
   if(result.previewAuth!==undefined&&(result.previewAuth!=='oidc'||result.mode!=='live'
     ||result.approvedPreviewOrigin!==result.origin||!isEvaluationPreviewOrigin(result.origin)))throw new Error('Preview OIDC requires an explicitly approved exact project Preview.');
-  if(result.clientDispatch!==undefined&&(!browserDispatchProfiles.has(result.clientDispatch)&&result.clientDispatch!=='protected-native'
+  if(result.clientDispatch!==undefined&&(!browserDispatchProfiles.has(result.clientDispatch)&&!aggregateBrowserProfiles.has(result.clientDispatch)
     ||result.mode!=='live'||result.previewAuth!=='oidc'))
     throw new Error('Signed browser dispatch requires a live, exact protected Preview with OIDC.');
   if(!Number.isFinite(Date.parse(result.now)))throw new Error('Provide an ISO evaluation time.');
@@ -330,11 +333,16 @@ export function verifiedNativeBrowserObservation({result,question,sourceRevision
   if(scope.verify)return scope.verify({result,question,sourceRevision,origin});
   const [row]=result.results;
   const {cleanup,deployment}=result;
-  const answerRequests=result.browserDiagnostics?.flatMap(context=>context.observations).filter(event=>
-    event.request===scope.request&&event.method===(scope.answerMethod??'GET')&&event.forwarded===true)??[];
-  const dispatched=answerRequests.length>0;
+  const local=scope.localIds?.includes(question.id)===true;
+  const observed=result.browserDiagnostics?.flatMap(context=>context.observations)??[];
+  const answerRequests=observed.filter(event=>event.request===scope.request&&event.method===(scope.answerMethod??'GET')&&event.forwarded===true);
+  const localSaves=local?observed.filter(event=>event.request==='conversation-save'&&event.method==='POST'&&event.phase==='turn'&&event.forwarded===true):[];
+  const dispatched=local?localSaves.length>0:answerRequests.length>0;
+  const lookupVerified=local?answerRequests.length===0&&localSaves.length===1
+    &&observed.every(event=>event.result!=='rejected'&&(event.phase!=='turn'||event.forwarded!==true
+      ||['asset','conversations','conversation-save'].includes(event.request))):answerRequests.length===1;
   const sha=value=>typeof value==='string'&&/^[a-f0-9]{64}$/u.test(value);
-  const passed=answerRequests.length===1&&result.origin===origin&&result.sourceRevision===sourceRevision&&result.execution==='live-browser'
+  const passed=lookupVerified&&result.origin===origin&&result.sourceRevision===sourceRevision&&result.execution==='live-browser'
     &&(profile==='certificate-awards'?result.dispatchProfile===undefined:result.dispatchProfile===profile)
     &&result.terminal===true&&result.caseIds.length===1&&result.caseIds[0]===question.id
     &&result.suiteDigest===certificateAwardPreviewHash([question])&&sha(result.boundSuiteDigest)
@@ -343,7 +351,7 @@ export function verifiedNativeBrowserObservation({result,question,sourceRevision
     &&row?.caseId===question.id&&result.results.length===1&&row.passed===true
     &&row.native?.passed===true&&row.native.requestDigest===row.requestDigest&&row.native.responseDigest===row.responseDigest
     &&(!scope.proof||scope.proof(row))
-    &&sha(row.requestDigest)&&sha(row.responseDigest)&&row.browserTurn?.answerRequests===1&&row.browserTurn.saveRequests===1
+    &&sha(row.requestDigest)&&sha(row.responseDigest)&&row.browserTurn?.answerRequests===(local?0:1)&&row.browserTurn.saveRequests===1
     &&row.browserRestore?.restoreRequests===1&&row.readback?.own===true&&row.readback.crossed===true
     &&row.readback.version===1&&sha(row.readback.messageDigest)&&sha(row.before?.stateDigest)&&isDeepStrictEqual(row.before,row.after)
     &&cleanup.verified===true&&cleanup.protectedOwnerUnchanged===true&&scope.cleanup(cleanup)&&cleanup.conversationCleanup?.verified===true
@@ -608,9 +616,11 @@ export async function main(args=process.argv.slice(2),dependencies={}){
       if(opt.clientDispatch){
         const fixtures=await import('./live-fixtures.mjs');
         const observations=[];
-        const selected=[...browserDispatchProfiles].filter(([profile])=>opt.clientDispatch==='protected-native'||opt.clientDispatch===profile);
+        const privacyOnly=opt.clientDispatch==='protected-privacy';
+        const selected=[...browserDispatchProfiles].filter(([profile,scope])=>opt.clientDispatch==='protected-native'
+          ||opt.clientDispatch===profile||privacyOnly&&scope.localIds?.length);
         liveClientObservations.set(report,observations);
-        for(const [profile,{ids,operation}] of selected)for(const id of ids){
+        for(const [profile,{ids,operation,localIds}] of selected)for(const id of privacyOnly?localIds:ids){
           const question=suite.inventory.clientDispatch.questions.find(item=>item.id===id);
           if(!question)throw new Error('A frozen signed browser question is missing from the inventory.');
           await deploymentGate.assertCurrent();
