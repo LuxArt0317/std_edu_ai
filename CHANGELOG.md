@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Exercise Membership privacy denial in the protected browser evaluator and dependency failure, retry and recovery in the local signed-in browser. [#100]
+
 - Add a protected browser check for saved club roles, the current-semester follow-up and an account with no memberships. [#100]
 
 - Answer campus Wi-Fi access, semester leave and withdrawal, and the class-absence form from the matching school guidance. Keep earlier private chat context out of these lookups. [#100]

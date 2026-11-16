@@ -1112,11 +1112,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify and archive the interrupted Student Profile fixture cleanup. Reclaim local storage from the inactive sparse-ready checkout while preserving report hashes.
 - [x] Replay both Certificate, all three Announcement Email, and both nonempty Student Profile cases on exact `5e1e662` with independent saves, restores, crossed reads and disposal.
 - [x] Correct the empty Student Profile evaluator selector for the inline exit link and check it in the rendered app locally.
-- [ ] Replay the corrected empty Student Profile case on protected Preview.
+- [x] Replay the corrected empty Student Profile case on exact protected `2616472`, with verified disposal.
 - [x] Mount the five frozen Club Attendance browser cases in the proof-aware aggregate evaluator, with controlled actual LangGraph and Chromium coverage.
 - [x] Run the protected Club Attendance evaluator on exact `0c8815c`. Four cases passed and all five cleanups passed. Keep the outage case unverified until its independent transport-failure evidence is available.
 - [x] Implement separate Club Student membership and current-semester evidence. Preserve the original questions, distinguish club status and the student's saved role, and refuse other-owner queries before a read. Verify the real handler and controlled Chromium save and restore.
-- [ ] Bind and run the five original Club Membership browser cases on an exact protected Preview. Preserve the independent outage, empty and crossed-owner conditions.
+- [ ] Finish the five original Club Membership browser cases with the distinct hosted privacy, empty and upstream-failure conditions.
 - [ ] Verify the follow-up `7461124` on protected Preview, including its different-publication continuation after an unread indexed notice.
 
 ### Reported Wi-Fi and leave failures [Issue #100]
@@ -1130,4 +1130,8 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 
 - [x] Mount the original record, multipart, and empty Club Student cases. Cross-check owner-scoped membership and enrolled terms with independent SQL, grade the graph response before committing a browser save, and verify fresh restore and cleanup.
 - [x] Verify all three selected cases against exact protected `ea56353`, including fresh restore, crossed-account readback and all disposals.
-- [ ] Verify the foreign and unavailable Membership scenarios separately and finish the wider release evaluation.
+- [x] Add the original foreign Membership question to the protected runner and validate the exact refusal with both accounts nonempty.
+- [x] Exercise the original outage question in signed-in Chromium with two actual handler reads rejected by the controlled upstream. Check the saved Activity and successful recovery when the reader becomes available.
+- [x] Replay and separately grade all four original user questions on exact protected `ea56353`, with versioned conversations and 13 pins.
+- [ ] Run the foreign question on exact protected Preview and verify the cleanup.
+- [ ] Independently verify the hosted upstream outage and finish the wider release evaluation.

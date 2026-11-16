@@ -12,6 +12,7 @@ export const clubMembershipBrowserCases=Object.freeze([
   {id:'client:club-student:record',mode:'record',role:'A',question},
   {id:'client:club-student:multipart',mode:'multipart',role:'A',question:question+' Also show my current semester subjects.'},
   {id:'client:club-student:empty',mode:'empty',role:'B',question},
+  {id:'client:club-student:foreign',mode:'foreign',role:'A',question:'Show another student’s club student records.'},
 ].map(item=>Object.freeze({...item,route:clubMembershipPath})));
 const need=value=>check(value,'club membership evidence mismatch');
 const note='The status is for the club itself. The saved membership gives your role.';
@@ -21,10 +22,17 @@ const cite=(chunkId,title,url)=>({chunkId,title,url,sourceName:'School Affairs'}
 const today=instant=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(instant));
 
 export function gradeClubMembershipBrowserAnswer({testCase,observation,peer},{statusCode,body,requestPath}){
+  need(requestPath==='/api/affairs-assistant'&&statusCode===200);
+  if(testCase.mode==='foreign'){
+    need(observation.workspace.rows.length>0&&peer.workspace.rows.length>0
+      &&isDeepStrictEqual(body,{status:'handoff',answer:'I can’t access another student’s club records.',
+        citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}}));
+    return {passed:true,checks:[{id:'club-membership.foreign-denied',passed:true}]};
+  }
   const {workspace,terms}=observation;
   const isCompound=testCase.mode==='multipart';
   const rows=workspace.rows.map(row=>[row.name,row.role_label,row.active?'Active':'Inactive']);
-  need(requestPath==='/api/affairs-assistant'&&statusCode===200&&body?.status==='answered'
+  need(body?.status==='answered'
     &&isDeepStrictEqual(body.verification,{status:'verified',attempts:1})&&body.grounding?.source==='account'
     &&body.grounding.webSearched===false&&!body.grounding.degraded&&!body.proposedAction
     &&Array.isArray(body.activity)&&typeof body.answer==='string'&&body.answer.length<=12000
@@ -73,7 +81,7 @@ export function createProtectedClubMembershipBrowserTurn({bound,origin}){
       need(terminal?.type==='result'&&packets.every(packet=>packet.type==='progress'));
       grade(terminal.data);
       const progress=new Map(packets.map(({data})=>[data.kind,data]));
-      need(isDeepStrictEqual([...progress.values()],terminal.data.activity));
+      need(isDeepStrictEqual([...progress.values()],terminal.data.activity??[]));
       accepted=terminal.data;
       return {body:bytes,terminalBytes:Buffer.from(JSON.stringify(accepted))};
     },

@@ -16,7 +16,7 @@ function clubId(value){
 export function buildClubMembershipFixture(runId,owners,testCase){
   const scope=validateAidPaymentFixtureOwners({runId,owners});
   const mode=testCase.mode;
-  need(['record','multipart','empty'].includes(mode));
+  need(['record','multipart','empty','foreign'].includes(mode));
   const prefix=runId.slice(0,12);
   const clubs=roles.map(role=>({id:clubId({runId,role,scope:'club-membership'}),name:'QA Membership '+prefix+' '+role,active:false}));
   const memberships=roles.flatMap((role,index)=>role==='B'&&mode==='empty'?[]:[{

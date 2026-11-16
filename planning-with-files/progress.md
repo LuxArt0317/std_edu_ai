@@ -76,3 +76,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] The corrected asset discovery passed against live `692f590`. Re-ran the complete revised evaluator and the configured local Chromium workflow. Started the exact protected `ea56353` operator from a clean detached checkout after verifying earlier fixture disposition.
 
 - 2026-11-16 [#100] Finished the exact `ea56353` Club Membership operator with three approved signed Chromium cases, fresh restore, crossed denial, and all cleanup verified. The public Student Leave control and all three reported Wi-Fi and leave replays passed. The separate foreign Membership prompt and native outage cases remain open.
+
+- 2026-11-16 [#100] Replayed the original four signed questions on exact `ea56353` and recorded a separately bound 4/4 assessment. Added the frozen foreign Membership case and passed controlled signed-in Chromium with two observed upstream 503 responses followed by a verified recovery. Staging the exact foreign-case Preview.

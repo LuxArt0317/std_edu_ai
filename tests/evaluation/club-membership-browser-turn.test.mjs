@@ -44,10 +44,11 @@ function scenario(mode){
   return {bound,body};
 }
 
-test('the protected browser exposes the original membership questions and leaves the outage and foreign cases in the frozen inventory',async ()=>{
+test('the protected browser exposes four frozen membership questions and preserves the separate outage case',async ()=>{
   const inventory=await discoverClientDispatchSurfaces();
   const originals=inventory.questions.filter(row=>row.domain==='club-student');
   assert.equal(originals.length,5);
+  assert.equal(originals.find(row=>row.mode==='read-failure').id,'client:club-student:unavailable');
   for(const {id,question,mode,route}of clubMembershipBrowserCases){
     const row=originals.find(item=>item.id===id);
     assert.deepEqual([row.question,row.mode,row.route,row.endpoint],[question,mode,route,'/api/affairs-assistant']);
@@ -72,4 +73,19 @@ test('the browser oracle checks own rows, the current term, and the empty caller
   const future=structuredClone(body);
   future.answer=future.answer.replace('SAMP103 · Student Services Practice (Sample Fall 2026)','SAMP201 · Future subjects (Sample Spring 2027)');
   assert.throws(()=>gradeClubMembershipBrowserAnswer(bound,actualCase(future)),/club membership evidence mismatch/u);
+});
+
+test('a foreign request requires the exact refusal and two nonempty independent accounts',()=>{
+  const {bound}=scenario('foreign');
+  const refusal={status:'handoff',answer:'I can’t access another student’s club records.',
+    citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
+  assert.equal(gradeClubMembershipBrowserAnswer(bound,actualCase(refusal)).passed,true);
+  for(const extra of [
+    {answer:bound.peer.workspace.rows[0].name},
+    {answer:bound.observation.workspace.rows[0].name},
+    {activity:[step('account-read:clubMemberships:1')]},
+    {proposedAction:{kind:'read-record'}},
+  ])assert.throws(()=>gradeClubMembershipBrowserAnswer(bound,actualCase({...refusal,...extra})),/club membership evidence mismatch/u);
+  const emptyPeer={...bound,peer:{...bound.peer,workspace:{...bound.peer.workspace,rows:[]}}};
+  assert.throws(()=>gradeClubMembershipBrowserAnswer(emptyPeer,actualCase(refusal)),/club membership evidence mismatch/u);
 });

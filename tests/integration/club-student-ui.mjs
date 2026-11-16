@@ -25,10 +25,12 @@ try{
     ends_at:'2026-11-13T03:00:00Z',category:'lecture',description:'QA course materials'};
   const submitted={id,name:'QA New Club',description:'A QA proposal for a new local club.',status:'submitted',version:1,
     review_note:'',club_id:null,student_name:null,updated_at:'2026-11-13T02:00:00Z'};
-  let application=null,allowManager=false;
+  let application=null,allowManager=false,membershipReaderUnavailable=false;
   const writes=[],assistantReads=[],saved=new Map();
-  const compound=(await discoverClientDispatchSurfaces()).questions.find(row=>row.id==='client:club-student:multipart');
-  assert.ok(compound);
+  const membershipCases=(await discoverClientDispatchSurfaces()).questions.filter(row=>row.domain==='club-student');
+  const [compound,foreign,outage]=['multipart','foreign','read-failure'].map(mode=>membershipCases.find(row=>row.mode===mode));
+  assert.ok(compound&&foreign&&outage);
+  const membershipRpc='/rest/v1/rpc/affairs_read_club_student';
   const membership={...club,...period,active:true,role_label:'QA Member'};
   const provider='https://xiftudmvxphxcjtmfmib.supabase.co';
   const handler=createAffairsAssistantHandler({verifyToken:async token=>({user:{id:user.id},url:provider,token,key:'test-club-membership-key'}),
@@ -79,15 +81,17 @@ try{
     }
     if(url.pathname==='/api/affairs-assistant'){
       assert.equal(request.method(),'POST');
-      const body=request.postDataJSON();assert.equal(body.question,compound.question);assert.equal(body.route,compound.route);
+      const body=request.postDataJSON();
+      assert.ok([compound,foreign,outage].some(testCase=>body.question===testCase.question&&body.route===testCase.route));
       const authorization=request.headers().authorization;assert.match(authorization??'',/^Bearer /u);
       const original=globalThis.fetch;
       globalThis.fetch=async(input,options)=>{
         const target=new URL(input);
         assert.equal(target.origin,provider);assert.equal(new Headers(options.headers).get('authorization'),authorization);
         assistantReads.push(target.pathname);
-        if(target.pathname.endsWith('/affairs_read_club_student')){
+        if(target.pathname===membershipRpc){
           assert.deepEqual(JSON.parse(options.body),{p_view:'my-memberships',p_search:'',p_page:1});
+          if(membershipReaderUnavailable)return new Response(null,{status:503});
           return Response.json({userId:user.id,view:'my-memberships',page:1,eligible:false,hasMore:false,rows:[membership]});
         }
         if(target.pathname.endsWith('/affairs_students')){
@@ -189,10 +193,48 @@ try{
   await assistant.getByText(/QA Robotics · QA Member · Club status: Active/u).waitFor();
 
   assert.equal(await assistant.getByRole('link',{name:'My club memberships'}).first().getAttribute('href'),clubPath+'/my-memberships');
+
+  async function sendAndSave(testCase,answer){
+    const next=page.waitForResponse(response=>response.url()===origin+'/api/affairs-conversations'
+      &&response.request().method()==='POST'&&response.ok());
+    await assistant.getByPlaceholder('Ask a school question…').fill(testCase.question);
+    await assistant.getByRole('button',{name:'Send',exact:true}).click();
+    const last=assistant.getByRole('article').last();
+    await last.getByText(answer).waitFor();
+    const {messages}=await (await next).json();
+    return messages.at(-1);
+  }
+
+  await assistant.getByRole('button',{name:'New chat',exact:true}).click();
+  assistantReads.length=0;
+  const refused=await sendAndSave(foreign,'I can’t access another student’s club records.');
+  assert.deepEqual(assistantReads,[]);
+  assert.equal(refused.result.status,'handoff');
+  assert.deepEqual(refused.result.citations,[]);
+
+  membershipReaderUnavailable=true;
+  const failed=await sendAndSave(outage,'I couldn’t verify your saved club memberships.');
+  assert.deepEqual(assistantReads,[membershipRpc,membershipRpc]);
+  assert.deepEqual(failed.result.verification,{status:'unverified',attempts:2});
+  assert.deepEqual(failed.result.citations,[]);
+  assert.ok(!failed.result.views?.length);
+  assert.deepEqual(failed.activity.filter(step=>step.kind.startsWith('account-read:')).map(step=>[step.kind,step.status]),
+    [['account-read:clubMemberships:1','unavailable'],['account-read:clubMemberships:2','unavailable']]);
+  assert.doesNotMatch(failed.content,/no club memberships|QA Robotics/u);
+  const failureActivity=assistant.getByRole('article').last().locator('details:has(> summary span:text-is("Activity"))');
+  await failureActivity.locator('summary').click();
+  assert.equal(await failureActivity.getByText('The selected record source could not be read.',{exact:true}).count(),2);
+
+  membershipReaderUnavailable=false;
+  assistantReads.length=0;
+  const recovered=await sendAndSave(outage,/QA Robotics · QA Member · Club status: Active/u);
+  assert.deepEqual(assistantReads,[membershipRpc]);
+  assert.deepEqual(recovered.result.verification,{status:'verified',attempts:1});
+
   await page.keyboard.press('Escape');
   await page.setViewportSize({width:320,height:700});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   assert.deepEqual(errors,[]);
   await pin();
-  console.log('Six student menu routes, real navigation, lookup, private assistant, submit retry, withdrawal, manager approval and mobile width passed.');
+  console.log('Six student menu routes, real navigation, lookup, assistant denial/outage/recovery, submit retry, withdrawal, manager approval and mobile width passed.');
 }finally{await browser.close();}
