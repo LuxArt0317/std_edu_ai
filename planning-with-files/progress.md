@@ -72,3 +72,5 @@ Earlier entries are preserved in [the November 16 archive](archive/progress_2026
 - 2026-11-16 [#100] Completed the previously staged Club Membership fixture and mounted the original three-browser-case profile. The independent answer oracle rejects peer records, future term facts and extra account-read activity. Focused evaluator passed 49/49. Exact hosted replay pending.
 
 - 2026-11-16 [#100] Protected `692f590` passed the three reported guidance controls. Its signed browser suite stopped before setup because asset discovery lacked the Membership route. Added the bounded shell and mark, then verified the route-specific discovery in the focused evaluator.
+
+- 2026-11-16 [#100] The corrected asset discovery passed against live `692f590`. Re-ran the complete revised evaluator and the configured local Chromium workflow. Started the exact protected `ea56353` operator from a clean detached checkout after verifying earlier fixture disposition.
