@@ -1133,5 +1133,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Add the original foreign Membership question to the protected runner and validate the exact refusal with both accounts nonempty.
 - [x] Exercise the original outage question in signed-in Chromium with two actual handler reads rejected by the controlled upstream. Check the saved Activity and successful recovery when the reader becomes available.
 - [x] Replay and separately grade all four original user questions on exact protected `ea56353`, with versioned conversations and 13 pins.
-- [ ] Run the foreign question on exact protected Preview and verify the cleanup.
+- [x] Run the foreign question on exact protected `42be958`, with three other signed cases, verified restore and complete cleanup.
 - [ ] Independently verify the hosted upstream outage and finish the wider release evaluation.
