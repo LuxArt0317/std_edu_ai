@@ -13,7 +13,7 @@ function asksAboutEnrollmentChange(text){
   const lead=semesterIntentLead.exec(text);
   return Boolean(lead&&enrollmentChange.test(text.slice(lead[0].length).replace(adviceSuffix,'').trim()));
 }
-const absenceForm=/^(?:please )?(?:(?:where|how) (?:can|do|should) i (?:file(?: for)?|submit|apply for) (?:(?:a|an|the) )?(?:student )?(?:(?:sick|personal) )?leave(?: (?:request|form))?(?: for (?:a )?class(?:es)?)?|where (?:is|can i (?:find|open|get)) (?:the |a )?(?:student )?(?:(?:class )?absence|(?:class |sick )?leave) form)(?: please)?$/iu;
+const absenceForm=/^(?:please )?(?:(?:where|how) (?:can|do|should) i (?:file(?: for)?|submit|apply for) (?:(?:a|an|the) )?(?:student )?(?:(?:sick|personal) )?leave(?:(?: request| form)? for (?:a )?class(?:es)?)?|where (?:is|can i (?:find|open|get)) (?:the |a )?(?:student )?(?:(?:class )?absence|(?:class|sick) leave) form)(?: please)?$/iu;
 const wifiChinese=/^(?:請問\s*)?(?:樹德(?:科大|科技大學)?|學校|校園)?\s*(?:wi[ -]?fi|無線網路)\s*(?:的)?\s*(?:密碼|通行碼)(?:是什麼|是多少|在哪(?:裡|裏))?$/iu;
 const wifiSetupChinese=/^(?:請問\s*)?(?:(?:怎麼|如何)(?:連線到?|連接|設定)\s*(?:校園|學校)?\s*(?:wi[ -]?fi|無線網路)|(?:校園|學校)\s*(?:wi[ -]?fi|無線網路)\s*(?:要)?(?:怎麼|如何)(?:連線|連接|設定))$/iu;
 const semesterChinese=/^(?:請問\s*)?(?:(?:我)?(?:想|打算|考慮|需要)(?:要)?(?:休學|退學|暫停上學|休一學期)(?:\s*[,，、]?\s*(?:該怎麼辦|怎麼辦|要做什麼|怎麼申請))?|(?:怎麼|如何)(?:辦理|申請)?(?:休學|退學))$/u;
@@ -29,7 +29,7 @@ function selection(question){
 }
 
 const link=(title,url)=>'['+title+']('+url+')';
-const source=(chunkId,title,url)=>({chunkId:'campus-guidance:'+chunkId,title,url,sourceName:'Shu-Te University'});
+const source=(chunkId,title,url,locator)=>({chunkId:'campus-guidance:'+chunkId,title,url,sourceName:'Shu-Te University',...(locator?{locator}:{})});
 
 export function answerStudentSupportGuidance(question){
   const kind=selection(question);
@@ -42,7 +42,7 @@ export function answerStudentSupportGuidance(question){
     answer=t('On your own device, choose **STU-Dot1x** or **STU-Dot1x-5G** and use the 802.1X sign-in in the Computing Center’s guide. The guide shows how to install a certificate if your device needs one. **STUWLAN** uses a separate web sign-in page.',
       '使用自己的裝置時，請選擇 **STU-Dot1x** 或 **STU-Dot1x-5G**，依電算中心教學使用 802.1X 登入。若裝置需要憑證，教學中有安裝步驟。**STUWLAN** 使用另一個網頁登入。')
       +'\n\n'+link(guide,wifiGuidePath);
-    citations=[source('wireless-service',t('Computing Center wireless service','電算中心無線網路說明'),wirelessService),source('wireless-setup',guide,officialWifiUrl)];
+    citations=[source('wireless-service',t('Computing Center wireless service','電算中心無線網路說明'),wirelessService),source('wireless-setup',guide,officialWifiUrl,wifiGuidePath)];
   }else if(kind==='enrollment-leave'){
     title=t('Taking a semester off or withdrawing','休學與退學');
     const process=t('Semester leave and withdrawal instructions','學生休學、復學及退學');
