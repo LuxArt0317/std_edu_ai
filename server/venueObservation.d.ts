@@ -1,9 +1,10 @@
 type VenueProbeScope={ownerId:string;runId:string;origin:string;sourceRevision:string;nonce:string};
-type VenueProbeRequest={question:string;route:string;history:Array<{role:string;content:string}>;stream:false;consentedResearchUse:false};
+type VenueProbeRequest={question:string;route:string;history:Array<{role:string;content:string}>;stream:boolean;consentedResearchUse:false};
 type VenueProbeBinding=VenueProbeScope&{issuedAt:number;requestDigest:string};
 type VenueReadProof={readDigest:string;evidenceDigest:string};
 export type VenueObservation={record(readback:{ownerId:string},evidence:unknown):void;nativeVerified():void;finish(body:unknown,expectsRead:boolean):string|null};
 export const venueObservationHeader:'X-Venue-Observation';
+export const venueBrowserObservationEvent:'evaluation-venue-observation';
 export function createVenueProbe(scope:VenueProbeScope,request:VenueProbeRequest,key:string,now?:number):{
   binding:VenueProbeBinding;body:VenueProbeRequest&{evaluationVenueProbe:string};
 };

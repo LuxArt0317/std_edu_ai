@@ -17,7 +17,7 @@ const scopeValid=scope=>exact(scope,scopeKeys)&&scopeKeys.every(key=>typeof scop
   &&preview.test(scope.origin)&&/^[a-f0-9]{40}$/u.test(scope.sourceRevision);
 const requestValid=request=>exact(request,requestKeys)&&typeof request.question==='string'&&request.question.length>=2
   &&request.question.length<=2000&&request.route===route&&Array.isArray(request.history)&&request.history.length===0
-  &&request.stream===false&&request.consentedResearchUse===false;
+  &&typeof request.stream==='boolean'&&request.consentedResearchUse===false;
 const requestDigest=(origin,request)=>digest({method:'POST',url:origin+'/api/affairs-assistant',request});
 const mac=(kind,payload,key)=>createHmac('sha256',key).update('stu:venue-observation:v1:'+kind+':'+payload).digest();
 function seal(kind,value,key){
@@ -32,6 +32,7 @@ function open(kind,value,key){
 }
 const readProof=value=>exact(value,['readDigest','evidenceDigest'])&&hash.test(value.readDigest)&&hash.test(value.evidenceDigest);
 export const venueObservationHeader='X-Venue-Observation';
+export const venueBrowserObservationEvent='evaluation-venue-observation';
 
 export function createVenueProbe(scope,request,key,now=Date.now()){
   if(!scopeValid(scope)||!requestValid(request)||!keyValid(key)||!Number.isSafeInteger(now))

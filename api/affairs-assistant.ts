@@ -2,7 +2,7 @@ import {answerStudentSupportGuidance} from '../server/studentSupportGuidance.js'
 import {answerLearningSupport} from '../server/learningSupportAssistant.js';
 import {learningSupportQuestion} from '../server/learningSupportAssistantIntent.js';
 import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
-import {openVenueObservation,venueObservationHeader} from '../server/venueObservation.js';
+import {openVenueObservation,venueBrowserObservationEvent,venueObservationHeader} from '../server/venueObservation.js';
 import {clubAttendanceBrowserObservationEvent,openClubAttendanceBrowserObservation} from '../server/clubAttendanceObservation.js';
 import {answerClubActivityAttendance} from '../server/accountClubAttendanceAnswer.js';
 import {answerClubMemberships,clubMembershipBoundary} from '../server/accountClubMembershipAnswer.js';
@@ -319,6 +319,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const now=Date.now();
   const observedVenue=venueObservation?venueRequestPlan(question,route,history,now):null;
   if(hasVenueProbe&&(!observedVenue||observedVenue.feeQuestion!==null
+    ||input?.stream===true&&(typeof response.write!=='function'||typeof response.end!=='function')
     ||observedVenue.selection.reason!==null&&!['foreign','mixed'].includes(observedVenue.selection.reason))){
     rejectProbe();return;
   }
@@ -348,7 +349,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         :await answerVenueRequests({account,plan:venue,question,route,history,asOf,deadline,observation,
           onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
       const receipt=observation?.finish(result,!venue.selection.reason);
-      if(receipt)response.setHeader(venueObservationHeader,receipt);
+      if(receipt){
+        if(stream.enabled)stream.observation(venueBrowserObservationEvent,receipt);
+        else response.setHeader(venueObservationHeader,receipt);
+      }
       stream.send(200,result);
     }catch{stream.send(503,{error:'The saved venue requests could not be checked.'});}
   }

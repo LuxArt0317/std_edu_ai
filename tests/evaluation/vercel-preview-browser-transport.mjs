@@ -17,6 +17,7 @@ import {studentProfileBrowserAnswerPath,studentProfileBrowserBootstrap,studentPr
   verifyProtectedStudentProfileBrowserSave} from './student-profile-browser-turn.mjs';
 import {clubAttendanceBrowserBootstrap,clubAttendanceBrowserMark,clubAttendanceBrowserProfile,clubAttendanceBrowserQuestions} from './club-attendance-browser-turn.mjs';
 import {clubAttendancePath} from '../../server/clubAttendanceIntent.js';
+import {venueBrowserBootstrap,venueBrowserCases,venueBrowserPath,venueBrowserProfile} from './venue-browser-turn.mjs';
 
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
 const conversationPath='/api/affairs-conversations',assistantPath='/api/affairs-assistant';
@@ -55,6 +56,10 @@ const nativeProfiles=new Map([
     requiredMedia:[clubAttendanceBrowserMark],receiptKey:'clubAttendanceReceipt',stream:true,
     inspectBootstrap(value,ownerId){check(value?.userId===ownerId&&value.page===1&&value.view==='my-attendance'
       &&Array.isArray(value.rows),'wrong fixture caller');}}],
+  [venueBrowserProfile,{label:venueBrowserProfile,route:venueBrowserPath,bootstrap:venueBrowserBootstrap,
+    answers:new Map(venueBrowserCases.map(({question})=>[question,{answerPath:assistantPath,selection:{}}])),
+    requiredMedia:[clubAttendanceBrowserMark],receiptKey:'venueReceipt',stream:true,
+    inspectBootstrap(value,ownerId){check(value?.userId===ownerId&&Array.isArray(value.rows),'wrong fixture caller');}}],
 ]);
 const sha=/^[a-f0-9]{40}$/u,uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
 const asset=/^\/(?:assets|stu-reference|school-assets|dtm-theme)\/[a-zA-Z0-9._/-]+\.[a-zA-Z0-9]+$/u;

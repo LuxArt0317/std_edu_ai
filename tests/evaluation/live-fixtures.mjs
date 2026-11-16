@@ -55,6 +55,7 @@ import {dtmStudyPreviewMode,dtmStudyPreviewCases,buildDtmStudyPreviewPlan,assert
 import {buildVenueProtectedPlan,deleteVenueProtectedFixture,observeVenueProtectedFixture,seedVenueProtectedFixture,
   venueProtectedCases,venueProtectedFixtureMode,venueProtectedGaps,verifyVenueProtectedFixtureAbsent} from './venue-protected-fixture.mjs';
 import {hasVenueProtectedProof,observeVenueProtectedCallers,requestVenueProtectedCase} from './venue-protected-preview.mjs';
+import {bindVenueBrowserCase,venueBrowserCases,venueBrowserProfile} from './venue-browser-turn.mjs';
 import {bindCertificateAwardBrowserCase,bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewHash,certificateAwardPreviewManifest,certificateBrowserCaseIds,
   certificateAwardPreviewMode,deleteCertificateAwardPreview,observeCertificateAwardPreview,observeCertificateAwardPreviewCallers,
   readCertificateAwardPreviewCatalog,requestCertificateAwardPreviewCase,seedCertificateAwardPreview,verifyCertificateAwardPreviewAbsent} from './certificate-award-preview.mjs';
@@ -155,6 +156,11 @@ const nativeBrowserFixtures=new Map([
     deletePlan:deleteAnnouncementEmailBrowserFixture,verifyAbsent:verifyAnnouncementEmailBrowserFixtureAbsent}],
   ['student-profile',{assertSchema:assertStudentProfileBrowserSchema,
     deletePlan:deleteStudentProfileBrowserFixture,verifyAbsent:verifyStudentProfileBrowserFixtureAbsent}],
+  [venueBrowserProfile,{async assertSchema(sql){
+    const [tables]=await sql`select to_regclass('public.affairs_venue_requests') as requests,
+      to_regclass('public.affairs_venue_weeks') as weeks,to_regclass('private.affairs_venue_receipts') as receipts`;
+    if(!tables?.requests||!tables.weeks||!tables.receipts)throw new Error('Venue fixtures require the deployed native schema.');
+  },deletePlan:deleteVenueProtectedFixture,verifyAbsent:verifyVenueProtectedFixtureAbsent}],
 ]);
 export const fixtureModes=Object.freeze([FEE_FIXTURE_MODE,dtmAssignmentListFixtureMode,healthMetadataFixtureMode]);
 export const clubAttendanceFixtureVersion=1;
@@ -803,6 +809,7 @@ export async function prepare({runId,cases,now,origin,approvedPreviewOrigin,expe
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:['certificate-awards']};
     }
     if(nativeBrowserProfile){
+      if(nativeBrowserProfile===venueBrowserProfile)state.venueObservationKey=serviceKey;
       state.prepared=true;
       return {projectRef:PROJECT,fixtureUsers:2,origin:state.origin,supportedDomains:[nativeBrowserProfile]};
     }
@@ -2490,8 +2497,10 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
     };
     const before=await observe(),bound=fixture.bind(plan,before.callers,browserCase);
     boundSuiteDigest=certificateAwardPreviewHash([bound]);
+    const runTurn=fixture.profile===venueBrowserProfile
+      ?options=>browser.runTurn({...options,observationKey:s.venueObservationKey}):browser.runTurn;
     const result=await runScopedNativeBrowserTurn({s,origin,sourceRevision,previewToken,assets,bound,signal,artifactDirectory,
-      runTurn:browser.runTurn,diagnostics:browserDiagnostics,onJournal:journal=>{conversationJournal=journal;}});
+      runTurn,diagnostics:browserDiagnostics,onJournal:journal=>{conversationJournal=journal;}});
     const after=await observe(),unchanged=isDeepStrictEqual(before,after);
     results.push({...result,before,after,passed:result.passed&&unchanged});
     await onCheckpoint?.(report(false));
@@ -2511,6 +2520,26 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
     await onCheckpoint?.(report(true));
   }
   return report(true);
+}
+
+export function runVenueBrowserPreview(options){
+  return runNativeBrowserPreview(options,{
+    profile:venueBrowserProfile,cases:venueBrowserCases,
+    build:(runId,owners,testCase)=>buildVenueProtectedPlan(runId,owners,{emptyB:testCase.mode==='empty'}),
+    seed:seedVenueProtectedFixture,bind:bindVenueBrowserCase,
+    async loadBrowser(){
+      const {deriveVenueBrowserAssets,runVenueBrowserTurn}=await import('./venue-browser-preview.mjs');
+      return {derive:deriveVenueBrowserAssets,runTurn:runVenueBrowserTurn};
+    },
+    async observe(s,plan,{fetchImpl,signal}){
+      const stateDigest=await observeVenueProtectedFixture(s.sql,plan);
+      await Promise.all(s.users.map(user=>user.renewSession({signal})));
+      const callers=await observeVenueProtectedCallers(plan,{users:s.users,publishable:s.publishable,origin:s.origin,previewFetch:fetchImpl,
+        directFetch:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
+      await s.previewGate.assertCurrent();
+      return {stateDigest,callers};
+    },
+  });
 }
 
 export async function runCertificateAwardPreview({origin,sourceRevision,previewToken,signal,onCheckpoint,browserCase,artifactDirectory}={}){

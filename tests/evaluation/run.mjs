@@ -43,6 +43,7 @@ import {announcementEmailBrowserCases} from './announcement-email-browser-turn.m
 import {studentProfileBrowserCases} from './student-profile-browser-turn.mjs';
 import {clubAttendanceBrowserCaseIds,verifiedClubAttendanceBrowserObservation} from './club-attendance-browser-preview.mjs';
 import {clubMembershipBrowserCases} from './club-membership-browser-turn.mjs';
+import {venueBrowserCases,venueBrowserProfile} from './venue-browser-turn.mjs';
 
 const browserDispatchProfiles=new Map([
   ['certificate-awards',{ids:certificateBrowserCaseIds,operation:'runCertificateAwardPreview',request:'certificate-answer',pinnedReads:2,
@@ -55,6 +56,9 @@ const browserDispatchProfiles=new Map([
     request:'club-membership-answer',answerMethod:'POST',pinnedReads:2,
     cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup==='club-membership'}],
   ['club-attendance',{ids:clubAttendanceBrowserCaseIds,operation:'runClubAttendancePreview',verify:verifiedClubAttendanceBrowserObservation}],
+  [venueBrowserProfile,{ids:venueBrowserCases.map(row=>row.id),operation:'runVenueBrowserPreview',request:venueBrowserProfile+'-answer',
+    answerMethod:'POST',pinnedReads:2,cleanup:proof=>proof.createdUsers===2&&proof.nativeBrowserCleanup===venueBrowserProfile,
+    proof:row=>/^[a-f0-9]{64}$/u.test(row.proofDigest??'')}],
 ]);
 
 const liveClientObservations=new WeakMap();
@@ -338,6 +342,7 @@ export function verifiedNativeBrowserObservation({result,question,sourceRevision
     &&deployment.sourceRevision===sourceRevision&&deployment.origin===origin&&deployment.completed===scope.pinnedReads&&deployment.issued===scope.pinnedReads
     &&row?.caseId===question.id&&result.results.length===1&&row.passed===true
     &&row.native?.passed===true&&row.native.requestDigest===row.requestDigest&&row.native.responseDigest===row.responseDigest
+    &&(!scope.proof||scope.proof(row))
     &&sha(row.requestDigest)&&sha(row.responseDigest)&&row.browserTurn?.answerRequests===1&&row.browserTurn.saveRequests===1
     &&row.browserRestore?.restoreRequests===1&&row.readback?.own===true&&row.readback.crossed===true
     &&row.readback.version===1&&sha(row.readback.messageDigest)&&sha(row.before?.stateDigest)&&isDeepStrictEqual(row.before,row.after)

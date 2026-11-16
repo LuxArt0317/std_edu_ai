@@ -58,18 +58,19 @@ export function venueProtectedGaps(){
   ];
 }
 
-export function buildVenueProtectedPlan(runId,owners){
+export function buildVenueProtectedPlan(runId,owners,{emptyB=false}={}){
   const binding=validateAidPaymentFixtureOwners({runId,owners});
-  const rows=['A','B'].map(role=>({id:target[role],user_id:binding.owners[role].id,venue:room[role],booking_date:date[role],
+  const rows=(emptyB?['A']:['A','B']).map(role=>({id:target[role],user_id:binding.owners[role].id,venue:room[role],booking_date:date[role],
     period:'2',purpose:'QA DISPOSABLE VENUE ONLY '+runId+' '+role,status:'submitted',
     review_note:'QA DISPOSABLE REVIEW FIELD '+runId+' '+role,version:1,created_at:stamp,updated_at:stamp}));
   if(rows.some(row=>[runId,...Object.values(binding.owners).map(owner=>owner.id)].includes(row.id)))
     throw new Error('Venue fixture record IDs overlap the caller binding.');
-  return {...binding,rows};
+  return {...binding,rows,...(emptyB?{emptyB:true}:{})};
 }
 
 function assertPlan(plan){
-  if(!isDeepStrictEqual(plan,buildVenueProtectedPlan(plan.runId,plan.owners)))throw new Error('Venue fixture changed after ownership binding.');
+  if(!isDeepStrictEqual(plan,buildVenueProtectedPlan(plan.runId,plan.owners,{emptyB:plan.emptyB===true})))
+    throw new Error('Venue fixture changed after ownership binding.');
 }
 
 const sort=rows=>rows.slice().sort((a,b)=>a.id.localeCompare(b.id));
@@ -153,7 +154,7 @@ export function expectedVenueProtectedRead(plan,{role,scope}){
   const range=scope.range;
   url.search=new URLSearchParams({select:fields.join(','),user_id:'eq.'+ownerId,
     ...(scope.id?{id:'eq.'+scope.id}:{}),...(scope.room?{venue:'eq.'+scope.room}:{}),
-    ...(scope.status?{status:'eq.'+scope.status}:{}),order:'created_at.desc,id.asc',limit:'1',
+    ...(scope.status?{status:'eq.'+scope.status}:{}),order:'created_at.desc,id.asc',limit:scope.id||scope.countOnly?'1':'12',
     ...(range?{and:'(booking_date.gte.'+range.from+',booking_date.lte.'+range.through+')'}:{})});
   const records=plan.rows.filter(row=>row.user_id===ownerId&&(!scope.id||row.id===scope.id)&&(!scope.room||row.venue===scope.room)
     &&(!range||row.booking_date>=range.from&&row.booking_date<=range.through)&&(!scope.status||row.status===scope.status));
