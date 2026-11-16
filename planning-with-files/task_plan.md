@@ -1129,4 +1129,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 ### Protected Club Membership [Issue #100]
 
 - [x] Mount the original record, multipart, and empty Club Student cases. Cross-check owner-scoped membership and enrolled terms with independent SQL, grade the graph response before committing a browser save, and verify fresh restore and cleanup.
-- [ ] Verify all three cases against an exact protected Preview. Keep the foreign and unavailable scenarios distinct and account for them in the wider release evaluation.
+- [x] Verify all three selected cases against exact protected `ea56353`, including fresh restore, crossed-account readback and all disposals.
+- [ ] Verify the foreign and unavailable Membership scenarios separately and finish the wider release evaluation.
