@@ -56,6 +56,7 @@ import {buildVenueProtectedPlan,deleteVenueProtectedFixture,observeVenueProtecte
   venueProtectedCases,venueProtectedFixtureMode,venueProtectedGaps,verifyVenueProtectedFixtureAbsent} from './venue-protected-fixture.mjs';
 import {hasVenueProtectedProof,observeVenueProtectedCallers,requestVenueProtectedCase} from './venue-protected-preview.mjs';
 import {bindVenueBrowserCase,venueBrowserCases,venueBrowserProfile} from './venue-browser-turn.mjs';
+import {observeVenueBilling} from './venue-billing-fixture.mjs';
 import {bindCertificateAwardBrowserCase,bindCertificateAwardPreviewCases,buildCertificateAwardPreviewPlan,certificateAwardPreviewHash,certificateAwardPreviewManifest,certificateBrowserCaseIds,
   certificateAwardPreviewMode,deleteCertificateAwardPreview,observeCertificateAwardPreview,observeCertificateAwardPreviewCallers,
   readCertificateAwardPreviewCatalog,requestCertificateAwardPreviewCase,seedCertificateAwardPreview,verifyCertificateAwardPreviewAbsent} from './certificate-award-preview.mjs';
@@ -2484,6 +2485,7 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
     const plan=fixture.build(runId,verifiedDisposableBrowserOwners(s),selected);
     s.nativeBrowserPlan=plan;
     if(fixture.profile==='student-profile')s.recordIds.add(plan.student.id);
+    if(fixture.profile===venueBrowserProfile&&plan.billing)s.recordIds.add(plan.billing.student.id);
     if(fixture.profile==='club-membership'&&plan.courseFixture)s.recordIds.add(plan.courseFixture.student.id);
     await saveLedger();
     await query(()=>feeTransaction(s,async()=>{
@@ -2525,7 +2527,7 @@ async function runNativeBrowserPreview({origin,sourceRevision,previewToken,brows
 export function runVenueBrowserPreview(options){
   return runNativeBrowserPreview(options,{
     profile:venueBrowserProfile,cases:venueBrowserCases,
-    build:(runId,owners,testCase)=>buildVenueProtectedPlan(runId,owners,{emptyB:testCase.mode==='empty'}),
+    build:(runId,owners,testCase)=>buildVenueProtectedPlan(runId,owners,{emptyB:testCase.mode==='empty',includeFees:testCase.mode==='multipart'}),
     seed:seedVenueProtectedFixture,bind:bindVenueBrowserCase,
     async loadBrowser(){
       const {deriveVenueBrowserAssets,runVenueBrowserTurn}=await import('./venue-browser-preview.mjs');
@@ -2536,6 +2538,8 @@ export function runVenueBrowserPreview(options){
       await Promise.all(s.users.map(user=>user.renewSession({signal})));
       const callers=await observeVenueProtectedCallers(plan,{users:s.users,publishable:s.publishable,origin:s.origin,previewFetch:fetchImpl,
         directFetch:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
+      if(plan.billing)callers[0].billing=await observeVenueBilling(s.sql,plan,{users:s.users,publishable:s.publishable,
+        fetchImpl:s.boundedFetch,readResponse:readBoundedFixtureResponse,signal:signals(signal,15000)});
       await s.previewGate.assertCurrent();
       return {stateDigest,callers};
     },

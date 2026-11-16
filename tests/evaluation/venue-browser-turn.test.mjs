@@ -6,6 +6,7 @@ import {venueBrowserObservationEvent,venueObservationHeader} from '../../server/
 import {discoverClientDispatchSurfaces} from './client-dispatch-inventory.mjs';
 import {bindVenueBrowserCase,createProtectedVenueBrowserTurn,venueBrowserCases} from './venue-browser-turn.mjs';
 import {buildVenueProtectedPlan} from './venue-protected-fixture.mjs';
+import {observeVenueBilling} from './venue-billing-fixture.mjs';
 
 const origin='https://stdedu-abcdef123-v1-d286.vercel.app', sourceRevision='a'.repeat(40);
 const dbOrigin='https://xiftudmvxphxcjtmfmib.supabase.co';
@@ -16,7 +17,7 @@ const owners={
   B:{id:randomUUID(),email:'evaluation.other.'+runId+'@example.invalid',runMarker:runId},
 };
 
-test('the three frozen venue browser turns require an exact signed user, selected read and real streamed receipt',async t=>{
+test('the four frozen venue browser turns require exact signed users and independent receipts for each selected source',async t=>{
   const {questions}=await discoverClientDispatchSurfaces();
   for(const testCase of venueBrowserCases){
     const frozen=questions.find(row=>row.id===testCase.id);
@@ -26,9 +27,28 @@ test('the three frozen venue browser turns require an exact signed user, selecte
   const previous=Object.fromEntries(Object.keys(configured).map(name=>[name,process.env[name]]));
   Object.assign(process.env,configured);
   t.after(()=>{for(const [name,value] of Object.entries(previous))if(value===undefined)delete process.env[name];else process.env[name]=value;});
-  let plan,reads=0;
+  let plan,charge,reads=0,feeReads=0,changeObservedAmount=false;
+  const billingFetch=async(url,init)=>{
+    const owner=new Headers(init.headers).get('authorization').slice('Bearer '.length);
+    const student=plan.billing.student;
+    assert.equal(url.origin,dbOrigin);
+    assert.equal(init.method,'GET');
+    if(url.pathname==='/rest/v1/affairs_students'){
+      assert.equal(url.searchParams.get('user_id'),'eq.'+student.user_id);
+      assert.equal(url.searchParams.get('select'),'id,user_id');
+      return Response.json(owner===student.user_id?[{id:student.id,user_id:student.user_id}]:[]);
+    }
+    assert.equal(url.pathname,'/rest/v1/affairs_charges');
+    assert.equal(url.searchParams.get('student_id'),'eq.'+student.id);
+    const result=changeObservedAmount?{...charge,amount_paid:5100}:charge;
+    return Response.json(owner===student.user_id?[result]:[]);
+  };
   t.mock.method(globalThis,'fetch',async(url,init)=>{
     assert.equal(url.origin,dbOrigin);
+    if(plan.billing&&['/rest/v1/affairs_students','/rest/v1/affairs_charges'].includes(url.pathname)){
+      feeReads++;
+      return billingFetch(url,init);
+    }
     assert.equal(url.pathname,'/rest/v1/affairs_venue_requests');
     assert.equal(init.method,'GET');
     assert.equal(new Headers(init.headers).get('prefer'),'count=exact');
@@ -60,9 +80,18 @@ test('the three frozen venue browser turns require an exact signed user, selecte
   }
 
   for(const testCase of venueBrowserCases){
-    plan=buildVenueProtectedPlan(runId,owners,{emptyB:testCase.mode==='empty'});
+    plan=buildVenueProtectedPlan(runId,owners,{emptyB:testCase.mode==='empty',includeFees:testCase.mode==='multipart'});
     const callers=['A','B'].map(role=>({role,count:plan.rows.filter(row=>row.user_id===owners[role].id).length,
       crossedVisible:0,managementDenied:true}));
+    if(plan.billing){
+      charge={id:randomUUID(),student_id:plan.billing.student.id,label:'Sample Fall 2026 tuition',
+        amount_due:28000,amount_paid:5000,currency:'TWD',due_on:'2026-12-15',source_mode:'sample',
+        occurrence_on:null,category:null,contact_unit:null,contact_extension:null,payment_unit:null};
+      callers[0].billing=await observeVenueBilling(async()=>[charge],plan,{
+        users:Object.values(owners).map(owner=>({id:owner.id,token:owner.id})),publishable:'fixture-key',fetchImpl:billingFetch,
+        readResponse:async response=>response.json(),
+      });
+    }
     const bound=bindVenueBrowserCase(plan,callers,testCase.id);
     const turn=createProtectedVenueBrowserTurn({bound,origin,sourceRevision,runId,key});
     const {ownerId}=bound,frameUrl=origin+testCase.route;
@@ -82,6 +111,14 @@ test('the three frozen venue browser turns require an exact signed user, selecte
     const withoutReceipt=createProtectedVenueBrowserTurn({bound,origin,sourceRevision,runId,key});
     withoutReceipt.request({payload,frameUrl,ownerId});
     assert.throws(()=>withoutReceipt.receive({bytes:observed.body,correlationId}),/invalid assistant stream result/u);
+    if(plan.billing){
+      const mismatched=createProtectedVenueBrowserTurn({bound,origin,sourceRevision,runId,key});
+      const mismatchedRequest=mismatched.request({payload,frameUrl,ownerId});
+      changeObservedAmount=true;
+      const reply=await invoke(mismatchedRequest,ownerId);
+      assert.throws(()=>mismatched.receive({bytes:reply.bytes,correlationId:reply.headers.get('x-assistant-request-id')}),/save answer mismatch/u);
+    }
   }
-  assert.equal(reads,2);
+  assert.equal(reads,4);
+  assert.equal(feeReads,4);
 });

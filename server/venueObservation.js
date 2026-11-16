@@ -31,6 +31,8 @@ function open(kind,value,key){
   try{return JSON.parse(Buffer.from(payload,'base64url').toString('utf8'));}catch{return null;}
 }
 const readProof=value=>exact(value,['readDigest','evidenceDigest'])&&hash.test(value.readDigest)&&hash.test(value.evidenceDigest);
+const companionProof=value=>exact(value,['readDigests','rowsDigest'])&&hash.test(value.rowsDigest)
+  &&Array.isArray(value.readDigests)&&value.readDigests.length===2&&value.readDigests.every(item=>hash.test(item));
 export const venueObservationHeader='X-Venue-Observation';
 export const venueBrowserObservationEvent='evaluation-venue-observation';
 
@@ -54,29 +56,42 @@ export function openVenueObservation({body,identity,correlationId},env=process.e
     ||!Number.isSafeInteger(issuedAt)||!Number.isSafeInteger(now)||issuedAt>now+5000||now-issuedAt>120000
     ||declaredDigest!==requestDigest(scope.origin,request))return null;
 
-  let read=null,verified=false,invalid=false;
+  let read=null,companion=null,verified=false,invalid=false;
   return {
     record(readback,evidence){
       if(read||!readback||readback.ownerId!==scope.ownerId){invalid=true;return;}
       read={readDigest:digest(readback),evidenceDigest:digest(evidence)};
     },
+    recordFees(reads,source){
+      let selected;
+      try{selected=JSON.parse(source?.content);}catch{invalid=true;return;}
+      if(companion||!Array.isArray(reads)||reads.length!==2||reads.some(row=>row?.ownerId!==scope.ownerId)
+        ||selected?.collection!=='charges'||selected.studentRecordFound!==true||selected.excerpted!==false
+        ||!Array.isArray(selected.records)){invalid=true;return;}
+      const rows=selected.records.map(({id,label,amountDue,amountPaid,currency,sourceMode})=>
+        ({id,label,amountDue,amountPaid,currency,sourceMode}));
+      companion={readDigests:reads.map(digest),rowsDigest:digest(rows)};
+    },
     nativeVerified(){
       if(!read||verified)invalid=true;
       else verified=true;
     },
-    finish(body,expectsRead){
-      if(invalid||expectsRead!==Boolean(read)||expectsRead!==verified||verified&&(body?.verification?.status!=='verified'||body.verification.attempts!==1))return null;
+    finish(body,expectsRead,expectsFees=false){
+      if(invalid||expectsRead!==Boolean(read)||expectsRead!==verified||expectsFees!==Boolean(companion)
+        ||expectsFees&&!expectsRead||verified&&(body?.verification?.status!=='verified'||body.verification.attempts!==1))return null;
       return seal('response',{binding,correlationId,read,verificationMethod:verified?'native-exact':'none',
-        responseDigest:digest({statusCode:200,body})},key);
+        responseDigest:digest({statusCode:200,body}),...(companion?{companion}:{})},key);
     },
   };
 }
 
 export function verifyVenueObservation({receipt,binding,correlationId,body},key){
   const proof=open('response',receipt,key);
-  if(!exact(proof,['binding','correlationId','read','verificationMethod','responseDigest'])||!exact(proof.binding,bindingKeys)
+  const fields=['binding','correlationId','read','verificationMethod','responseDigest',...(proof?.companion?['companion']:[])];
+  if(!exact(proof,fields)||!exact(proof.binding,bindingKeys)
     ||bindingKeys.some(name=>proof.binding[name]!==binding?.[name])||!uuid.test(correlationId??'')||proof.correlationId!==correlationId
     ||proof.responseDigest!==digest({statusCode:200,body})
+    ||proof.companion&&(proof.verificationMethod!=='native-exact'||!companionProof(proof.companion))
     ||(proof.verificationMethod==='native-exact'?!readProof(proof.read):proof.verificationMethod!=='none'||proof.read!==null))
     return null;
   return proof;

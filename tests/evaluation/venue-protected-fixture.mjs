@@ -2,6 +2,8 @@ import {isDeepStrictEqual} from 'node:util';
 import {internshipObservationDigest as digest} from '../../server/internshipObservation.js';
 import {validateAidPaymentFixtureOwners} from './aid-payment-fixture-plan.mjs';
 import {assertVenueCaseDefinition,venueFixture,venueRunnerCases} from './venue-native-runner.mjs';
+import {buildStudentProfileBrowserFixture,deleteStudentProfileBrowserFixture,observeStudentProfileBrowserFixture,
+  seedStudentProfileBrowserFixture,verifyStudentProfileBrowserFixtureAbsent} from './student-profile-browser-fixture.mjs';
 
 export const venueProtectedFixtureMode='venue-protected-read-only';
 const route='/school-affairs/services/44-1';
@@ -58,18 +60,18 @@ export function venueProtectedGaps(){
   ];
 }
 
-export function buildVenueProtectedPlan(runId,owners,{emptyB=false}={}){
+export function buildVenueProtectedPlan(runId,owners,{emptyB=false,includeFees=false}={}){
   const binding=validateAidPaymentFixtureOwners({runId,owners});
   const rows=(emptyB?['A']:['A','B']).map(role=>({id:target[role],user_id:binding.owners[role].id,venue:room[role],booking_date:date[role],
     period:'2',purpose:'QA DISPOSABLE VENUE ONLY '+runId+' '+role,status:'submitted',
     review_note:'QA DISPOSABLE REVIEW FIELD '+runId+' '+role,version:1,created_at:stamp,updated_at:stamp}));
   if(rows.some(row=>[runId,...Object.values(binding.owners).map(owner=>owner.id)].includes(row.id)))
     throw new Error('Venue fixture record IDs overlap the caller binding.');
-  return {...binding,rows,...(emptyB?{emptyB:true}:{})};
+  return {...binding,rows,...(emptyB?{emptyB:true}:{}),...(includeFees?{billing:buildStudentProfileBrowserFixture(runId,owners)}:{})};
 }
 
 function assertPlan(plan){
-  if(!isDeepStrictEqual(plan,buildVenueProtectedPlan(plan.runId,plan.owners,{emptyB:plan.emptyB===true})))
+  if(!isDeepStrictEqual(plan,buildVenueProtectedPlan(plan.runId,plan.owners,{emptyB:plan.emptyB===true,includeFees:!!plan.billing})))
     throw new Error('Venue fixture changed after ownership binding.');
 }
 
@@ -112,6 +114,7 @@ export async function seedVenueProtectedFixture(sql,plan){
   assertRows(await readVenueState(sql,plan,true),[]);
   await sql`insert into public.affairs_venue_requests ${sql(plan.rows)}`;
   assertRows(await readVenueState(sql,plan),plan.rows);
+  if(plan.billing)await seedStudentProfileBrowserFixture(sql,plan.billing);
 }
 
 export async function observeVenueProtectedFixture(sql,plan){
@@ -119,13 +122,14 @@ export async function observeVenueProtectedFixture(sql,plan){
   await assertIdentities(sql,plan);
   const rows=await readVenueState(sql,plan);
   assertRows(rows,plan.rows);
-  return digest(sort(rows));
+  return plan.billing?digest({rows:sort(rows),billing:await observeStudentProfileBrowserFixture(sql,plan.billing)}):digest(sort(rows));
 }
 
 export async function deleteVenueProtectedFixture(sql,plan){
   assertPlan(plan);
   await assertIdentities(sql,plan);
   const rows=await readVenueState(sql,plan,true);
+  if(plan.billing)await deleteStudentProfileBrowserFixture(sql,plan.billing);
   if(!rows.length)return;
   assertRows(rows,plan.rows);
   for(const row of rows){
@@ -142,7 +146,7 @@ export async function verifyVenueProtectedFixtureAbsent(sql,plan){
   const [result]=await sql`select (exists(select 1 from auth.users where id in ${sql(ids)})
     or exists(select 1 from auth.identities where user_id in ${sql(ids)})) as remains`;
   if(result?.remains!==false)throw new Error('A venue fixture identity remains after cleanup.');
-  return true;
+  return plan.billing?verifyStudentProfileBrowserFixtureAbsent(sql,plan.billing):true;
 }
 
 export function expectedVenueProtectedRead(plan,{role,scope}){

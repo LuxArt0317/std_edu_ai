@@ -318,7 +318,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const venueObservation=hasVenueProbe?openVenueObservation({body,identity:probeIdentity,correlationId}):null;
   const now=Date.now();
   const observedVenue=venueObservation?venueRequestPlan(question,route,history,now):null;
-  if(hasVenueProbe&&(!observedVenue||observedVenue.feeQuestion!==null
+  if(hasVenueProbe&&(!observedVenue||observedVenue.feeQuestion!==null&&(input?.stream!==true||observedVenue.selection.reason!==null)
     ||input?.stream===true&&(typeof response.write!=='function'||typeof response.end!=='function')
     ||observedVenue.selection.reason!==null&&!['foreign','mixed'].includes(observedVenue.selection.reason))){
     rejectProbe();return;
@@ -348,7 +348,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       const result=venue.selection.reason?venueRequestBoundary(venue.selection,question,true)
         :await answerVenueRequests({account,plan:venue,question,route,history,asOf,deadline,observation,
           onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
-      const receipt=observation?.finish(result,!venue.selection.reason);
+      const receipt=observation?.finish(result,!venue.selection.reason,venue.feeQuestion!==null);
       if(receipt){
         if(stream.enabled)stream.observation(venueBrowserObservationEvent,receipt);
         else response.setHeader(venueObservationHeader,receipt);

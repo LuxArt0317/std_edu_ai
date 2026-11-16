@@ -140,11 +140,14 @@ export async function answerVenueRequests({account,plan,question,route,history,a
   const evidence={venue:null,fees:null};
   let venueRetryable=false;
   const loadFees=async()=>{
-    const snapshot=await loadOwnAffairsCharges(caller,{deadline});
+    const reads=[];
+    const snapshot=await loadOwnAffairsCharges(caller,{deadline,requireExactProjection:true,
+      observeRead:observation?read=>reads.push(read):undefined});
     const source=accountEvidence(snapshot,['charges'],{question:expected.feeQuestion,route:'/school-affairs/services/39-1',scopedReadOnly:true})
       .find(item=>item.id==='account:charges');
     // Validate the independent amount evidence before treating this source as healthy.
     formatSelectedChargeEvidence(source);
+    observation?.recordFees(reads,source);
     return source;
   };
   const read=async attempt=>{

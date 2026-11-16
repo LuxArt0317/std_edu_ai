@@ -11,9 +11,12 @@ import {requireProtectedBrowser as check} from './protected-browser-diagnostics.
 export const venueBrowserProfile='venue-requests';
 export const venueBrowserPath=venuePaths.apply;
 export const venueBrowserBootstrap='/api/affairs-data?scope=venue-requests&view=mine';
-export const venueBrowserCases=Object.freeze(['record','empty','foreign'].map(mode=>Object.freeze({
+const baseQuestion='What is the status of my venue reservation requests?';
+const feePath='/school-affairs/services/39-1';
+export const venueBrowserCases=Object.freeze(['record','empty','foreign','multipart'].map(mode=>Object.freeze({
   id:'client:venue-requests:'+mode,mode,route:venueBrowserPath,
-  question:mode==='foreign'?'Show another student’s venue requests records.':'What is the status of my venue reservation requests?',
+  question:mode==='foreign'?'Show another student’s venue requests records.':mode==='multipart'
+    ?baseQuestion+' Also show the fee balance recorded on my account.':baseQuestion,
 })));
 const statusValues={submitted:'Submitted',approved:'Approved',declined:'Declined',cancelled:'Cancelled'};
 
@@ -33,13 +36,17 @@ export function bindVenueBrowserCase(plan,callers,id){
   const workspace={userId:ownerId,rows:rows.map(({updated_at:_updated,...row})=>row)};
   const forbidden=[ownerId,plan.owners[peer].id,...plan.rows.flatMap(row=>[row.id,row.purpose,row.review_note]),
     ...peerRows.flatMap(row=>[row.venue,row.booking_date]),...(testCase.mode==='foreign'?rows.flatMap(row=>[row.venue,row.booking_date]):[])];
-  return {role,ownerId,testCase,workspace,forbidden,expectedRead:expectedVenueProtectedRead(plan,{role,scope})};
+  const billing=callers[0].billing;
+  check(Boolean(billing)===(testCase.mode==='multipart')&&Boolean(plan.billing)===Boolean(billing),'wrong fixture caller');
+  if(billing)forbidden.push(billing.chargeId,plan.billing.student.id,plan.billing.record.student_number,plan.billing.record.registered_address);
+  return {role,ownerId,testCase,workspace,forbidden,expectedRead:expectedVenueProtectedRead(plan,{role,scope}),...(billing?{billing}:{})};
 }
 
 function verifyFacts(body,bound){
-  const {testCase,workspace,forbidden}=bound;
+  const {testCase,workspace,forbidden,billing}=bound;
   check(typeof body?.answer==='string'&&Array.isArray(body.citations)&&Array.isArray(body.activity??[])
-    &&!body.proposedAction&&body.views===undefined&&body.grounding?.source==='account'&&body.grounding.webSearched===false
+    &&!body.proposedAction&&(billing?Array.isArray(body.views)&&body.views.length===1:body.views===undefined)
+    &&body.grounding?.source==='account'&&body.grounding.webSearched===false
     &&forbidden.every(value=>!JSON.stringify(body).includes(value)),'save answer mismatch');
   const activity=body.activity??[];
   if(testCase.mode==='foreign'){
@@ -48,9 +55,11 @@ function verifyFacts(body,bound){
     return;
   }
   const sources=body.citations.map(({chunkId,url})=>[chunkId,url]);
-  const reader=activity.filter(({kind})=>kind.startsWith('account-read:')).map(({kind,status})=>[kind,status]);
-  check(body.status==='answered'&&isDeepStrictEqual(sources,[['account:venueRequests',venueBrowserPath]])
-    &&isDeepStrictEqual(reader,[['account-read:venueRequests:1','complete']])
+  const reader=activity.filter(({kind})=>kind.startsWith('account-read:')).map(({kind,status})=>[kind,status]).sort();
+  const expectedSources=[['account:venueRequests',venueBrowserPath],...(billing?[['account:charges',feePath]]:[])];
+  const expectedReaders=[['account-read:venueRequests:1','complete'],...(billing?[['account-read:charges:1','complete']]:[])].sort();
+  check(body.status==='answered'&&isDeepStrictEqual(sources,expectedSources)
+    &&isDeepStrictEqual(reader,expectedReaders)
     &&isDeepStrictEqual(body.verification,{status:'verified',attempts:1})
     &&activity.some(({kind,status})=>kind==='verification-1'&&status==='complete'),'save answer mismatch');
   if(testCase.mode==='empty'){
@@ -62,6 +71,15 @@ function verifyFacts(body,bound){
   check(period&&['Matching saved venue requests: 1.',`Room: ${row.venue}`,`Booking date: ${row.booking_date}`,
     `Period: ${row.period} (${period})`,`Saved local status: ${statusValues[row.status]}`].every(text=>body.answer.includes(text)),
   'save answer mismatch');
+  if(billing){
+    const [view]=body.views;
+    const formatted=value=>'NT$'+value.toLocaleString('en-US');
+    const decimal=value=>value.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    const feeRow=[billing.label,billing.currency,...[billing.amountDue,billing.amountPaid,billing.remaining].map(decimal),'sample'];
+    check([billing.label,formatted(billing.amountDue),formatted(billing.amountPaid),formatted(billing.remaining)]
+      .every(value=>body.answer.includes(value))&&view.url===feePath&&view.total===1
+      &&isDeepStrictEqual(view.rows,[feeRow]),'save answer mismatch');
+  }
 }
 
 export function createProtectedVenueBrowserTurn({bound,origin,sourceRevision,runId,key}){
@@ -86,6 +104,7 @@ export function createProtectedVenueBrowserTurn({bound,origin,sourceRevision,run
         &&receipt.data&&Object.keys(receipt.data).join()==='receipt'&&steps.every(packet=>packet.type==='progress'),'invalid assistant stream result');
       const proof=verifyVenueObservation({receipt:receipt.data.receipt,binding,correlationId,body:terminal.data},key);
       check(proof&&isDeepStrictEqual(proof.read,expectedRead)
+        &&isDeepStrictEqual(proof.companion,bound.billing?.proof)
         &&proof.verificationMethod===(expectedRead?'native-exact':'none'),'save answer mismatch');
       verifyFacts(terminal.data,bound);
       check(isDeepStrictEqual([...new Map(steps.map(({data})=>[data.kind,data])).values()],terminal.data.activity??[]),'save activity mismatch');
