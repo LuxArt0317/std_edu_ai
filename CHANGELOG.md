@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer natural variants of campus Wi-Fi setup, semester leave and class-absence form questions with their specific sign-in steps and links. [#100]
+
 - Exercise Membership privacy denial in the protected browser evaluator and dependency failure, retry and recovery in the local signed-in browser. [#100]
 
 - Add a protected browser check for saved club roles, the current-semester follow-up and an account with no memberships. [#100]

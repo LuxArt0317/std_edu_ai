@@ -4,21 +4,25 @@ const wirelessService='https://www.ecc.stu.edu.tw/wireless/';
 const enrollmentLeave='https://www.aca.stu.edu.tw/%E5%AD%B8%E7%94%9F%E4%BC%91%E5%AD%B8%E3%80%81%E5%BE%A9%E5%AD%B8%E5%8F%8A%E9%80%80%E5%AD%B8/';
 const registrationNotice='https://www2.stu.edu.tw/latestnews_single.php?id=223587';
 const wifiPassword=/^(?:(?:hi|hey|please)[, ]+)?(?:(?:what(?: is|'s)|where (?:can|do) i (?:find|get)|do you know|tell me)\s+)?(?:(?:the |our )?(?:(?:stu|school|campus)(?:'s)? )?wi[ -]?fi (?:pass(?:word|code)?|network password|key)|(?:the )?password for (?:the )?(?:(?:stu|school|campus) )?wi[ -]?fi)(?: please)?$/iu;
-const semesterIntentLead=/^(?:i(?: am|'?m| was)? (?:planning|thinking|considering)(?: to| about| of)?|i want to|i (?:need|have) to|i might|i(?: am|'?m) going to|what (?:can|should) i do if i (?:want to|plan to|need to)|how (?:can|do|should) i) /iu;
-const enrollmentChange=/^(?:stop (?:going to|attending) (?:school|university)|(?:take|taking) (?:a|the|this) semester off|(?:drop out|dropping out)(?: of (?:school|university))?|(?:withdraw|withdrawing) from (?:school|(?:the )?university)|apply for (?:a )?(?:semester leave|leave of absence)(?: for (?:a|this) semester)?)$/iu;
+const wifiSetup=/^(?:please )?(?:(?:how (?:can|do|should) i |help me )(?:connect to|join|set up|log (?:in|on) to)|where(?: is|'s| can i (?:find|open))) (?:the )?(?:(?:stu|school|campus) wi[ -]?fi(?: network| setup (?:guide|instructions))?|stu-dot1x(?:-5g)?|stuwlan)(?: please)?$/iu;
+const namedWifiPassword=/^(?:(?:is there (?:a |one )?(?:shared )?password for)|(?:what (?:is|'s) the (?:shared )?password for)) (?:the )?(?:stu-dot1x(?:-5g)?|stuwlan|(?:stu|school|campus) wi[ -]?fi)(?: please)?$/iu;
+const semesterIntentLead=/^(?:i(?: am|'?m| was)? (?:planning|thinking|considering)(?: to| about| of)?|i want to|i (?:need|have) to|i might|i(?: am|'?m) going to|what (?:can|should) i do if i (?:want to|plan to|need to)|how (?:can|do|should) i|can i) /iu;
+const enrollmentChange=/^(?:stop (?:going to|attending) (?:school|university)|(?:take|taking) (?:a|the|this|next) semester off|(?:drop out|dropping out)(?: of (?:school|university))?|(?:withdraw|withdrawing) from (?:school|(?:the )?university)|apply for (?:a )?(?:semester leave|leave of absence)(?: for (?:a|this|next) semester)?)$/iu;
 const adviceSuffix=/[,.!? ]+(?:is there anything i should do|what (?:can|should) i do|what do i (?:need|have) to do|how do i (?:do (?:it|that)|apply)|can you help(?: me)?|please)$/iu;
 function asksAboutEnrollmentChange(text){
   const lead=semesterIntentLead.exec(text);
   return Boolean(lead&&enrollmentChange.test(text.slice(lead[0].length).replace(adviceSuffix,'').trim()));
 }
-const absenceForm=/^(?:please )?(?:(?:where|how) (?:can|do|should) i (?:file|submit|apply for) (?:(?:a|an|the) )?(?:student )?(?:(?:sick|personal) )?leave(?: for class(?:es)?)?|where (?:is|can i (?:find|open|get)) (?:the |a )?(?:student )?(?:class )?absence form)(?: please)?$/iu;
+const absenceForm=/^(?:please )?(?:(?:where|how) (?:can|do|should) i (?:file(?: for)?|submit|apply for) (?:(?:a|an|the) )?(?:student )?(?:(?:sick|personal) )?leave(?: (?:request|form))?(?: for (?:a )?class(?:es)?)?|where (?:is|can i (?:find|open|get)) (?:the |a )?(?:student )?(?:(?:class )?absence|(?:class |sick )?leave) form)(?: please)?$/iu;
 const wifiChinese=/^(?:請問\s*)?(?:樹德(?:科大|科技大學)?|學校|校園)?\s*(?:wi[ -]?fi|無線網路)\s*(?:的)?\s*(?:密碼|通行碼)(?:是什麼|是多少|在哪(?:裡|裏))?$/iu;
+const wifiSetupChinese=/^(?:請問\s*)?(?:(?:怎麼|如何)(?:連線到?|連接|設定)\s*(?:校園|學校)?\s*(?:wi[ -]?fi|無線網路)|(?:校園|學校)\s*(?:wi[ -]?fi|無線網路)\s*(?:要)?(?:怎麼|如何)(?:連線|連接|設定))$/iu;
 const semesterChinese=/^(?:請問\s*)?(?:(?:我)?(?:想|打算|考慮|需要)(?:要)?(?:休學|退學|暫停上學|休一學期)(?:\s*[,，、]?\s*(?:該怎麼辦|怎麼辦|要做什麼|怎麼申請))?|(?:怎麼|如何)(?:辦理|申請)?(?:休學|退學))$/u;
 const absenceChinese=/^(?:請問\s*)?(?:(?:我)?(?:要去哪(?:裡|裏)|在哪(?:裡|裏)|怎麼|如何)(?:申請|辦理|填寫)?(?:學生)?(?:請假|假單)|(?:學生)?(?:請假|假單)(?:要)?在哪(?:裡|裏)(?:申請|填寫)?)$/u;
 
 function selection(question){
   const text=question.normalize('NFKC').trim().replace(/[’‘]/gu,"'").replace(/[?!。！？]+$/u,'').trim();
-  if(wifiPassword.test(text)||wifiChinese.test(text))return 'wifi-access';
+  if(wifiPassword.test(text)||wifiSetup.test(text)||namedWifiPassword.test(text)||wifiChinese.test(text)||wifiSetupChinese.test(text))
+    return 'wifi-access';
   if(asksAboutEnrollmentChange(text)||semesterChinese.test(text))return 'enrollment-leave';
   if(absenceForm.test(text)||absenceChinese.test(text))return 'class-absence-form';
   return null;
@@ -35,8 +39,8 @@ export function answerStudentSupportGuidance(question){
   if(kind==='wifi-access'){
     title=t('Campus Wi-Fi access','校園無線網路連線');
     const guide=t('Wi-Fi setup guide','無線網路設定教學');
-    answer=t('For campus Wi-Fi on a personal device, choose **STU-Dot1x** or **STU-Dot1x-5G** and follow the Computing Center’s setup steps. These networks use 802.1X sign-in. The published instructions give the sign-in steps for these networks. **STUWLAN** uses a web sign-in page.',
-      '個人手機或電腦在校內可選 **STU-Dot1x** 或 **STU-Dot1x-5G**，並依電算中心教學設定。這兩個網路使用 802.1X 登入，教學提供的是登入流程。**STUWLAN** 則使用網頁登入。')
+    answer=t('On your own device, choose **STU-Dot1x** or **STU-Dot1x-5G** and use the 802.1X sign-in in the Computing Center’s guide. The guide shows how to install a certificate if your device needs one. **STUWLAN** uses a separate web sign-in page.',
+      '使用自己的裝置時，請選擇 **STU-Dot1x** 或 **STU-Dot1x-5G**，依電算中心教學使用 802.1X 登入。若裝置需要憑證，教學中有安裝步驟。**STUWLAN** 使用另一個網頁登入。')
       +'\n\n'+link(guide,wifiGuidePath);
     citations=[source('wireless-service',t('Computing Center wireless service','電算中心無線網路說明'),wirelessService),source('wireless-setup',guide,officialWifiUrl)];
   }else if(kind==='enrollment-leave'){

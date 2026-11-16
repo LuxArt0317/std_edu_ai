@@ -1,3 +1,7 @@
+## Student guidance wording coverage [Issue #100]
+
+The original three questions and natural variants now use the same sourced guidance in the guest, School Affairs and Moodle handlers. A Wi-Fi setup question previously returned only a link. It now explains the two 802.1X networks, device certificate setup and the separate web sign-in. A test clock that moved backward caused two unrelated Internship timetable checks to hit the real caller rate limit. The tests now advance past earlier fixture windows while preserving the next-class date and all existing assertions.
+
 ## Original certificate browser dispatch [Issue #100]
 
 Exact fixed `186f49562ae39f85a11dcc087eede5b9f4d2fa3c` passed both original signed browser questions after the narrowly admitted favicon. For each question Chromium made one actual answer GET and one browser autosave. A new context restored the answer, source and Activity through one detail GET. Both independent SQL/HTTP readbacks, crossed-account denials, unchanged certificate state and cleanup passed. The two report SHA-256 digests are `fc3b58e8a852051cdf9f60662cc078751f499f686b7417cc60824c8e46754ef1` and `d4bfe513723f9ebcdf2fafdca11e523a9c18821ce7e3b25b0beadd26f330f605`. [Exact protected Preview](https://stdedu-94dwi82tf-v1-d286.vercel.app/campus-assistant)

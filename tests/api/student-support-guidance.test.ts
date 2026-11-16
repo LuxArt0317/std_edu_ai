@@ -10,6 +10,12 @@ const cases=[
     url:'https://www2.stu.edu.tw/latestnews_single.php?id=223587'},
   {question:'where can i file a leave',content:/class absence.*Student Leave.*semester leave process/su,
     url:'https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu'},
+  {question:'How do I connect to the campus Wi-Fi?',content:/STU-Dot1x-5G.*802\.1X.*STUWLAN/su,
+    url:'https://help.ecc.stu.edu.tw/wireless-setting/'},
+  {question:'I’m thinking of taking this semester off. What should I do?',content:/semester leave.*withdrawal.*Registration and Curriculum Division/su,
+    url:'https://www2.stu.edu.tw/latestnews_single.php?id=223587'},
+  {question:'Where can I submit a leave request for class?',content:/class absence.*Student Leave.*semester leave process/su,
+    url:'https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu'},
 ];
 type Turn={role:'user'|'assistant';content:string};
 type Handler=ReturnType<typeof createAffairsAssistantHandler>|ReturnType<typeof createResearchAssistantHandler>;
@@ -27,7 +33,7 @@ async function request(handler:Handler,question:string,route:string,history:Turn
   return {code,result,steps};
 }
 
-test('the three reported questions use directly sourced guidance in guest and signed-in chat with prior private context',async t=>{
+test('reported questions and natural variants use sourced guidance in guest and signed-in chat with prior private context',async t=>{
   const unexpected=()=>assert.fail('Guidance should use neither private records nor a model or network call.');
   t.mock.method(globalThis,'fetch',unexpected);
   const signed=createAffairsAssistantHandler({
@@ -62,10 +68,16 @@ test('variants stay distinct and leave explicitly targeted records and actions t
   for(const [prompt,detail] of [
     ['What’s the campus Wi-Fi password?','Campus Wi-Fi access'],
     ['Where can I find the school wifi passcode?','Campus Wi-Fi access'],
+    ['Is there a shared password for STU-Dot1x-5G?','Campus Wi-Fi access'],
+    ['Where’s the campus Wi-Fi setup guide?','Campus Wi-Fi access'],
     ['請問學校無線網路密碼是多少？','校園無線網路連線'],
+    ['請問校園 Wi-Fi 怎麼連線？','校園無線網路連線'],
     ['How do I apply for a leave of absence for this semester?','Taking a semester off or withdrawing'],
+    ['Can I take next semester off?','Taking a semester off or withdrawing'],
     ['我想休學該怎麼辦？','休學與退學'],
     ['How do I file sick leave?','Student Leave form'],
+    ['Where is the class absence form?','Student Leave form'],
+    ['Where do I file for leave?','Student Leave form'],
     ['請問學生假單要在哪裡填寫？','學生請假填單'],
   ]){
     assert.equal(answerStudentSupportGuidance(prompt)?.activity?.[0].detail,detail,prompt);
@@ -73,7 +85,9 @@ test('variants stay distinct and leave explicitly targeted records and actions t
   for(const prompt of ['Show my current leave status','Where can I file a leave request on stu.best?',
     'File a leave for me','Withdraw my leave request','Withdraw my Database Design course','How do I withdraw my tuition refund?',
     'what is the school wifi pass and what is my remaining balance','what is my wi-fi password: secret',
-    'Send me someone else’s school Wi-Fi password','where can I file a leave and how many have I filed?','我想查詢我的休學狀態']){
+    'Send me someone else’s school Wi-Fi password','where can I file a leave and how many have I filed?','我想查詢我的休學狀態',
+    'Where can I submit my leave request?','Why is my Wi-Fi password wrong?','How do I connect to the campus Wi-Fi and check my grades?',
+    'I need to stop attending my Database Design class','I’m thinking of dropping my leave request']){
     assert.equal(answerStudentSupportGuidance(prompt),null,prompt);
   }
 });

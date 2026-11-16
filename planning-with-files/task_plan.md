@@ -1136,3 +1136,9 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Run the foreign question on exact protected `42be958`, with three other signed cases, verified restore and complete cleanup.
 - [ ] Independently verify the hosted upstream outage and finish the wider release evaluation.
 - [x] Replay all 20 named emergency injury, health equipment, international-student rental tracking, and insurance cases on exact protected `42be958`. Verify both owners, every release pin, unchanged notes and disposal.
+
+### Student guidance wording coverage [Issue #100]
+
+- [x] Reproduce the link-only Wi-Fi setup reply and missing named-network classification.
+- [x] Run the three original and three natural variants through guest, School Affairs and Moodle handler entry points with existing private chat history. Check that mixed questions and private leave actions still use their normal paths.
+- [ ] Verify the six prompts on one pinned protected deployment and record the release and exact checks.

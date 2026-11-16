@@ -414,10 +414,12 @@ test('all 26 mounted independent hosted rubrics grade the real handlers and expe
 
 
 test('the independent protected published timetable packet verifies both orders without a model',async t=>{
-  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-15T00:00:00.000Z')});
+  // Advance past the earlier fixture's caller window without changing the next Friday class.
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-17T00:00:00.000Z')});
   for(const suffix of ['next-class','next-class-reversed']){
     await exercise(suffix,{hosted:true,published:true,providerAbsent:true});
     const {result,model}=await exercise(suffix,{published:true,providerAbsent:true});
+    assert.equal(result.status,200,suffix);
     assert.deepEqual(model,[],suffix);
     assert.deepEqual(result.body.verification,{status:'verified',attempts:1},suffix);
     assert.deepEqual(result.body.citations.map(({chunkId,url}:{chunkId:string;url:string})=>[chunkId,url]),[
@@ -453,9 +455,10 @@ test('an unavailable fee reader stays outside the exact paired rendering',async(
 });
 
 test('unavailable, incomplete or unresolved timetable results stay outside the exact paired rendering',async t=>{
-  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-15T00:00:00.000Z')});
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-17T01:00:00.000Z')});
   for(const timetableIssue of ['unavailable','truncated','empty','tie','missing-room'] as const){
     const {result,model}=await exercise('next-class',{timetableIssue});
+    assert.equal(result.status,200,timetableIssue);
     assert.ok(model.includes('answer_evidence_review'),timetableIssue);
     assert.equal(result.body.activity.some((step:{kind:string})=>step.kind==='internship-evidence-check'),false,timetableIssue);
     if(timetableIssue==='unavailable'||timetableIssue==='truncated')assert.match(result.body.answer,/saved timetable could not be read/u);
