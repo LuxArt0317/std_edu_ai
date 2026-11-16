@@ -1135,3 +1135,4 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Replay and separately grade all four original user questions on exact protected `ea56353`, with versioned conversations and 13 pins.
 - [x] Run the foreign question on exact protected `42be958`, with three other signed cases, verified restore and complete cleanup.
 - [ ] Independently verify the hosted upstream outage and finish the wider release evaluation.
+- [x] Replay all 20 named emergency injury, health equipment, international-student rental tracking, and insurance cases on exact protected `42be958`. Verify both owners, every release pin, unchanged notes and disposal.
