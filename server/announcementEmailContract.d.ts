@@ -7,4 +7,5 @@ export type AnnouncementEmailChange={enabled:boolean;expected_version:number;req
 export function validAnnouncementEmailChange(value:unknown):value is AnnouncementEmailChange;
 export function parseAnnouncementEmail(value:unknown,userId:string):AnnouncementEmailPreference;
 export function parseAnnouncementEmail(value:unknown,userId:string,expected:AnnouncementEmailChange):AnnouncementEmailReceipt;
-export function announcementEmailQuestion(question:string):'guide'|'status'|null;
+export function announcementEmailQuestion(question:string):'guide'|'status'|'foreign'|null;
+export function announcementEmailForeignAnswer(question:string):import('../src/services/researchAssistant').AssistantResponse;

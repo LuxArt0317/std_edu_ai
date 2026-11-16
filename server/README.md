@@ -16,7 +16,9 @@
 
 ## Verified account assistant (Issue #99)
 
-`answerVerification.js` runs the LangGraph retrieve → draft → verify → (fresh retrieval → one correction → verify) flow. Account records and drafts stay in request-local closures rather than graph traces/checkpoints. `answerVerificationModel` requires independently referenced evidence and approved links; `answerVerificationSources` reads actual web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts/actions. A verifier is fallible; this is not proof of perfect factual accuracy.
+`answerVerification.js` runs the LangGraph retrieve, draft, and verify flow. When verification fails, the graph reloads the evidence and checks a corrected draft. Standalone venue lookups can make a third read after a temporary service failure within the same deadline. Account records and drafts stay in request-local closures. `answerVerificationModel` requires independently referenced evidence and approved links. `answerVerificationSources` reads web pages through the acquisition safeguards. The endpoint has a shared 55-second deadline and withholds unverified drafts and actions.
+
+`studentSupportGuidance.js` serves existing school instructions for Wi-Fi and leave questions before the signed-in and public research handlers select additional sources. `accountVenueRequestAnswer.js` verifies saved request metadata using the signed-in caller and links the venue workspace when the record source is unavailable.
 
 `answerVerificationAccount` selects named account lookups and fixed public research topics without sending private records to web search. `accountAssistantActions` prepares only reviewed, owned-record actions. `accountRecordViews` produces bounded tables directly from the snapshot. `assistantConversationData` strips action payloads, image bytes and provider fields before persistence. See [QA criteria](../docs/qa/ANSWER_VERIFICATION.md).
 

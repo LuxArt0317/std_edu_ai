@@ -21,7 +21,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
-  question, initialAnswer, loadEvidence, verify, repair, onProgress, deadline = Date.now() + 50_000,
+  question, initialAnswer, loadEvidence, verify, repair, onProgress, canRetryScopedRead, deadline = Date.now() + 50_000,
 }) {
   // Keep account data out of graph traces/checkpoints. Every invocation owns its
   // evidence and draft; the graph state contains only bounded control metadata.
@@ -34,6 +34,9 @@ export async function runAnswerVerification({
     try { onProgress?.(step); } catch { /* A closed stream cannot approve a draft. */ }
   };
   const withinBudget = () => Date.now() < deadline - 500;
+  const mayRetryScopedRead = state => state.attempt === maxAttempts
+    && state.verdict.reason === 'evidence_unavailable' && deadline - Date.now() >= 18_000
+    && !initialAnswer?.proposedAction && !candidate?.proposedAction && canRetryScopedRead?.() === true;
   const bounded = async work => {
     let timer;
     try {
@@ -67,7 +70,8 @@ export async function runAnswerVerification({
       }
     })
     .addNode('verify', async state => {
-      emit(`verification-${state.attempt}`, 'Checking answer against evidence', `Verification attempt ${state.attempt} of ${maxAttempts}.`, 'running');
+      emit(`verification-${state.attempt}`, 'Checking answer against evidence',
+        canRetryScopedRead ? `Verification attempt ${state.attempt}.` : `Verification attempt ${state.attempt} of ${maxAttempts}.`, 'running');
       let verdict = state.verdict;
       if (!verdict) {
         try {
@@ -88,18 +92,23 @@ export async function runAnswerVerification({
       return { verdict };
     })
     .addNode('retry', state => {
-      emit('verification-retry', 'Rechecking and correcting the answer', 'Reloading the evidence and preparing one corrected draft.');
+      if(state.attempt===maxAttempts){
+        emit('verification-deeper-review','Retrying the temporarily unavailable records','Reading the same account records again after a temporary service error.');
+      }else{
+        emit('verification-retry', 'Rechecking and correcting the answer', 'Reloading the evidence and preparing one corrected draft.');
+      }
       return { attempt: state.attempt + 1, verdict: null };
     })
     .addEdge(START, 'retrieve')
     .addEdge('retrieve', 'draft')
     .addEdge('draft', 'verify')
-    .addConditionalEdges('verify', state => state.verdict.ok || state.attempt >= maxAttempts || !withinBudget() ? END : 'retry')
+    .addConditionalEdges('verify', state => !state.verdict.ok && withinBudget()
+      && (state.attempt < maxAttempts || mayRetryScopedRead(state)) ? 'retry' : END)
     .addEdge('retry', 'retrieve')
     .compile();
   let result;
   try {
-    result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: 12, callbacks: [] });
+    result = await graph.invoke({ attempt: 1, verdict: null }, { recursionLimit: canRetryScopedRead ? 16 : 12, callbacks: [] });
   } catch {
     return unverifiedAnswer(question, candidate, activity, 0, 'verification_unavailable');
   }

@@ -16,6 +16,11 @@ import { AffairsWorkspaceError, loadAffairsSnapshot, verifyAffairsToken } from '
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
 import researchHandler from '../server/researchAssistantHandler.js';
+import {answerStudentSupportGuidance} from '../server/studentSupportGuidance.js';
+import {answerVenueRequests} from '../server/accountVenueRequestAnswer.js';
+import {venueRequestBoundary,venueRequestSelection} from '../server/venueRequestIntent.js';
+import {announcementEmailForeignAnswer,announcementEmailQuestion} from '../server/announcementEmailContract.js';
+import {studentProfileForeignAnswer,studentProfileQuestion} from '../server/studentProfileContract.js';
 
 type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>};
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
@@ -162,6 +167,29 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return ['user','assistant'].includes(String(entry.role))&&typeof entry.content==='string'?[{role:String(entry.role),content:entry.content.slice(0,1000)}]:[];
   }):[];
   const stream=createAssistantStream(input?.stream===true,response);
+  const hasImages=Array.isArray(input?.images)&&input.images.length>0;
+  const guidance=hasImages?null:answerStudentSupportGuidance(question);
+  const privacy=hasImages?null:studentProfileQuestion(question)==='foreign'?studentProfileForeignAnswer(question)
+    :announcementEmailQuestion(question)==='foreign'?announcementEmailForeignAnswer(question):null;
+  const direct=guidance??privacy;
+  if(direct){
+    for(const step of direct.activity??[])stream.progress(step.kind,step.label,step.detail,step.status);
+    stream.send(200,direct);
+    return;
+  }
+  const venueClock=Date.now(),venue=venueRequestSelection(question,route,history,venueClock);
+  if(venue){
+    if(venue.reason){stream.send(200,venueRequestBoundary(venue,question,true));return;}
+    if(hasImages){stream.send(400,{error:'Ask about private venue requests using text, without an image.'});return;}
+    try{
+      const result=await answerVenueRequests({account,selection:venue,question,route,history,asOf:venueClock,deadline,
+        onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+      stream.send(200,result);
+    }catch{
+      stream.send(503,{error:'The saved venue requests could not be checked.'});
+    }
+    return;
+  }
   const needsRecords=personal(question,history) || isDtmRecordQuestion(question,route,history) || isScholarshipRecordQuestion(question,route,history) || isStudentAidRecordQuestion(question,route,history) || isHousingRecordQuestion(question,route,history) || isPendingFeeQuestion(question,route,history) || isCreditLoadHistoryQuestion(question,route,history) || isCourseSelectionQuestion(question,route,history) || requiredNativeTools(question,route,history).length>0 || requiredSupplementalTools(question,route,history).length>0;
   const navigation=!needsRecords && !(Array.isArray(input?.images) && input.images.length) && !questionKind(question).irrelevant
     ? answerCampusNavigation(question) : null;

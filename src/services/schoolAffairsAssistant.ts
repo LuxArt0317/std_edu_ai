@@ -10,14 +10,16 @@ import {answerElearning,answerElearningOutline} from './elearning';
 import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
 import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
-import {announcementEmailQuestion} from '../../server/announcementEmailContract.js';
+import {announcementEmailForeignAnswer,announcementEmailQuestion} from '../../server/announcementEmailContract.js';
 import {readAnnouncementEmailAnswer} from './announcementEmail';
-import {studentProfileQuestion} from '../../server/studentProfileContract.js';
+import {studentProfileForeignAnswer,studentProfileQuestion} from '../../server/studentProfileContract.js';
 import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
 import {readGraduationClearanceAnswer} from './graduationClearance';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
+import {isVenueRequestQuestion} from '../../server/venueRequestIntent.js';
+import {answerStudentSupportGuidance} from '../../server/studentSupportGuidance.js';
 import {readVenueAnswer} from './venueBooking';
 import {repairId,repairPaths,repairQuestion} from '../features/public/affairs/facilityRepair.js';
 import {readRepairAnswer} from './facilityRepair';
@@ -44,6 +46,12 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
+  const askAccount = () => requestAccountAnswer(data.session.access_token,question,history,signal,images,route,onProgress);
+  if(!images.length){
+    if(studentProfileQuestion(question)==='foreign')return studentProfileForeignAnswer(question);
+    if(announcementEmailQuestion(question)==='foreign')return announcementEmailForeignAnswer(question);
+    if(answerStudentSupportGuidance(question)||isVenueRequestQuestion(question,route,history))return askAccount();
+  }
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
   const studentClub = !images.length ? clubStudentQuestion(question) : null;
@@ -165,8 +173,13 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   if (!images.length && (adjustment === 'rules' || courseSubstitutionQuestion(question,route) || firstSelectionQuestion(question,route))) {
     return askCampusAssistant(question,[],signal,[],route,onProgress);
   }
+  return askAccount();
+}
+
+async function requestAccountAnswer(accessToken:string,question:string,history:Array<{role:string;content:string}>,
+  signal:AbortSignal|undefined,images:Array<{name:string;dataUrl:string}>,route:string,onProgress?: (step:AssistantProgress)=>void):Promise<AssistantResponse> {
   const response = await fetch('/api/affairs-assistant', {
-    method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${data.session.access_token}`},
+    method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${accessToken}`},
     body:JSON.stringify({question:question.trim(),history:history.slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)})),images,route,stream:Boolean(onProgress)}),
   });
   const result = await readAssistantReply(response,onProgress) as (Partial<AssistantResponse> & {error?:string})|null;

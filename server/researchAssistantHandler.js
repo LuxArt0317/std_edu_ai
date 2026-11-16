@@ -36,6 +36,10 @@ import { inferKnowledgeLanguage } from "./knowledgePipeline.js";
 import { recordResearchOperation, safeOperationalCode } from "./researchOperations.js";
 import { answerCampusNavigation, answerDirectoryQuestion, directoryEntries } from "./schoolAffairsDirectory.js";
 import { createAssistantStream } from "./assistantStream.js";
+import {answerStudentSupportGuidance} from './studentSupportGuidance.js';
+import {venueRequestBoundary,venueRequestSelection} from './venueRequestIntent.js';
+import {announcementEmailForeignAnswer} from './announcementEmailContract.js';
+import {studentProfileForeignAnswer} from './studentProfileContract.js';
 import { runAnswerVerification } from "./answerVerification.js";
 import { verifyEvidenceAnswer, repairEvidenceAnswer } from "./answerVerificationModel.js";
 import { readVerificationSources } from "./answerVerificationSources.js";
@@ -263,6 +267,23 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const stream = createAssistantStream(input.stream, response);
+        const supportGuidance=input.images.length?null:answerStudentSupportGuidance(input.question);
+        if(supportGuidance){
+            const [step]=supportGuidance.activity;
+            stream.progress(step.kind,step.label,step.detail,step.status);
+            stream.send(200,supportGuidance);
+            return;
+        }
+        if(!input.images.length){
+            const privacy=studentProfileQuestion(input.question)==='foreign'?studentProfileForeignAnswer(input.question)
+                :announcementEmailQuestion(input.question)==='foreign'?announcementEmailForeignAnswer(input.question):null;
+            if(privacy){stream.send(200,privacy);return;}
+        }
+        const venueRequest=input.images.length?null:venueRequestSelection(input.question,input.route,input.history);
+        if(venueRequest){
+            stream.send(200,venueRequestBoundary(venueRequest,input.question,false));
+            return;
+        }
         if (!input.images.length && isProgramRegistrationQuestion(input.question)) {
             const next = "/school-affairs/login?next=" + encodeURIComponent(programRegistrationPath);
             const zh = /[\u3400-\u9fff]/u.test(input.question);

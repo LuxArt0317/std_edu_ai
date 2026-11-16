@@ -27,6 +27,16 @@ export function announcementEmailQuestion(question){
   if(/\b(?:password|token|write code|javascript|python)\b|密碼/u.test(q.toLowerCase()))return null;
   if(!/\b(?:announcements?|campus notices?)\b|校園(?:最新)?公告/u.test(q.toLowerCase())||
     !/\b(?:e-?mails?|inbox)\b|信箱|電子郵件|郵件|e-?mail/iu.test(q))return null;
+  if(/\b(?:another student|someone else|other student)['’]s\b|其他同學|其他學生|他人的/iu.test(q))return 'foreign';
   if(/\b(?:is my|are my|am i|did i|have i|do i|will i|my settings?|my preferences?)\b|(?:我.{0,12}(?:是否|有沒有|會收到|已開啟|已啟用)|我的.{0,16}(?:設定|狀態))/iu.test(q))return 'status';
   return 'guide';
+}
+
+export function announcementEmailForeignAnswer(question){
+  const zh=/[\u3400-\u9fff]/u.test(question);
+  const summary=zh?'無法查閱其他學生的公告郵件設定。':'I can’t check another student’s announcement email preference.';
+  const title=zh?'校園公告 E-MAIL 設定':'Announcement email settings';
+  return {status:'handoff',answer:summary+'\n\n['+title+']('+announcementEmailPath+')',
+    citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false},
+    activity:[{kind:'announcement-email-privacy',label:title,detail:summary,status:'complete'}]};
 }

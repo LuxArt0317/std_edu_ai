@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Answer campus Wi-Fi, semester leave, withdrawal and class-absence questions with the relevant school instructions and links. Refuse requests for another student's profile or announcement email settings before account or public research. Verify saved venue requests against caller-scoped records and retry eligible temporary failures. [#100]
+
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 
 - Save private club proposal and closeout PDFs with scoped download, replacement and removal. [#98]
