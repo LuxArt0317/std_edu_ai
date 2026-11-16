@@ -155,6 +155,7 @@ test('recognized no-record state differs from failed evidence after two identica
   const failed=await h.ask('Show my venue requests.');
   assert.equal(failed.body.status,'abstained');
   assert.deepEqual(failed.body.verification,{status:'unverified',attempts:2,reason:'evidence_unavailable'});
+  assert.ok(failed.body.answer.includes(`[Open my venue requests](${base})`));
   assert.doesNotMatch(JSON.stringify(failed.body),/M0001|No saved venue requests match/u);
   assert.equal(failed.body.views,undefined);
   assert.equal(failed.body.citations.length,0);
@@ -175,6 +176,41 @@ test('one retry discards an unscoped reply and publishes only the independently 
   const activity:ActivityStep[]=reply.body.activity;
   assert.deepEqual(activity.filter(item=>item.kind.startsWith('account-read:')).map(item=>item.status),['unavailable','complete']);
   assert.ok(activity.some(item=>item.kind==='verification-retry'));
+});
+
+test('a third check recovers the same account selection after two temporary server failures',async t=>{
+  const h=transport(t,(_url,attempt,owner)=>attempt<3
+    ?new Response(null,{status:503}):Response.json([fixture(owner)],{headers:allowedHeaders(1,1)}));
+  const {body}=await h.ask('Show my venue request for T0308 in period 2.');
+  assert.deepEqual(body.verification,{status:'verified',attempts:3});
+  assert.match(body.answer,/Saved local status: Approved/u);
+  assert.equal(h.requests.length,3);
+  assert.equal(new Set(h.requests.map(url=>url.href)).size,1);
+  assert.deepEqual(h.scopes,[]);
+  const activity:ActivityStep[]=body.activity;
+  assert.deepEqual(activity.filter(item=>item.kind.startsWith('account-read:')).map(item=>item.status),['unavailable','unavailable','complete']);
+  assert.ok(activity.some(item=>item.kind==='verification-deeper-review'));
+});
+
+test('a persistent temporary failure reports the affected records and stops within three checks',async t=>{
+  const h=transport(t,()=>new Response(null,{status:503}));
+  const {body}=await h.ask('List my saved venue bookings.');
+  assert.deepEqual(body.verification,{status:'unverified',attempts:3,reason:'evidence_unavailable'});
+  assert.match(body.answer,/couldn’t verify your saved venue requests/u);
+  assert.ok(body.answer.includes(`[Open my venue requests](${base})`));
+  assert.doesNotMatch(body.answer,/No saved venue requests/u);
+  assert.equal(body.views,undefined);
+  assert.deepEqual(body.citations,[]);
+  assert.equal(h.requests.length,3);
+});
+
+test('a temporary failure followed by a foreign row does not authorize a third attempt',async t=>{
+  const h=transport(t,(_url,attempt,owner)=>attempt===1
+    ?new Response(null,{status:503}):Response.json([fixture(owner,{user_id:foreign,venue:'M0001'})],{headers:allowedHeaders(1,1)}));
+  const {body}=await h.ask('Show my venue requests.');
+  assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'evidence_unavailable'});
+  assert.doesNotMatch(JSON.stringify(body),/M0001/u);
+  assert.equal(h.requests.length,2);
 });
 
 test('an inconsistent exact count fails rather than treating an omitted list as empty',async t=>{
@@ -357,6 +393,8 @@ test('failure of both paired sources never becomes a blank booking list or zero 
   assert.equal(body.status,'abstained');
   assert.deepEqual(body.verification,{status:'unverified',attempts:2,reason:'evidence_unavailable'});
   assert.doesNotMatch(body.answer,/No saved venue|zero|NT\$|23,000/u);
+  assert.ok(body.answer.includes(`[Open my venue requests](${base})`));
+  assert.ok(body.answer.includes(`[Open my fee records](${feeRoute})`));
   assert.deepEqual(body.citations,[]);
   assert.equal(h.requests.length,2);
   assert.equal(h.feeReads.length,2);

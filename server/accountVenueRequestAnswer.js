@@ -15,6 +15,7 @@ const labels={submitted:['Submitted','已送出'],approved:['Approved','已核�
 const periodTimes=new Map(venuePeriods);
 const formatter=new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
 const deadlineError=()=>new Error('Venue request evidence is unavailable.');
+const temporaryVenueStatus=status=>[408,429,502,503,504].includes(status);
 const hasColumns=row=>row!==null&&typeof row==='object'&&!Array.isArray(row)&&Object.keys(row).length===columns.length&&columns.every(key=>Object.hasOwn(row,key));
 
 function instant(value){
@@ -42,6 +43,10 @@ async function readVenueEvidence({user:{id:owner},key,token,url},selection,deadl
   if(remaining<=0)throw deadlineError();
   const response=await fetch(target,{method:'GET',redirect:'error',signal:AbortSignal.timeout(Math.min(6500,remaining)),
     headers:{apikey:key,Authorization:'Bearer '+token,Prefer:'count=exact'}});
+  if(temporaryVenueStatus(response.status)){
+    void response.body?.cancel().catch(()=>{});
+    throw Object.assign(deadlineError(),{retryable:true});
+  }
   const range=/^(?:(\d+)-(\d+)|\*)\/(\d+)$/u.exec(response.headers.get('content-range')??'');
   const total=Number(range?.[3]);
   if(![200,206].includes(response.status)||!Number.isSafeInteger(total)||total<0||selection.id&&total>1){
@@ -133,6 +138,7 @@ export async function answerVenueRequests({account,plan,question,route,history,a
     try{onProgress?.(step);}catch{/* The client may disconnect. */}
   };
   const evidence={venue:null,fees:null};
+  let venueRetryable=false;
   const loadFees=async()=>{
     const snapshot=await loadOwnAffairsCharges(caller,{deadline});
     const source=accountEvidence(snapshot,['charges'],{question:expected.feeQuestion,route:'/school-affairs/services/39-1',scopedReadOnly:true})
@@ -144,7 +150,10 @@ export async function answerVenueRequests({account,plan,question,route,history,a
   const read=async attempt=>{
     const load=async (key,tool,label,reader)=>{
       if(evidence[key])return;
-      evidence[key]=await reader().catch(()=>null);
+      evidence[key]=await reader().catch(error=>{
+        if(key==='venue')venueRetryable=error?.retryable===true;
+        return null;
+      });
       progress({kind:'account-read:'+tool+':'+attempt,label,status:evidence[key]?'complete':'unavailable',
         detail:evidence[key]?'Checked the selected records under this signed-in account.':'The selected records could not be read.'});
     };
@@ -160,6 +169,8 @@ export async function answerVenueRequests({account,plan,question,route,history,a
   let attempt=1;
   const result=await runAnswerVerification({
     question,initialAnswer:initial,deadline,onProgress:progress,
+    allowDeeperReview:!expected.feeQuestion,
+    canRetryScopedRead:()=>!expected.feeQuestion&&!evidence.venue&&venueRetryable,
     loadEvidence:async({attempt:next})=>{attempt=next;return attempt===1?first:read(attempt);},
     verify:async({candidate,evidence:active})=>{
       const supported=format(active);
@@ -175,6 +186,15 @@ export async function answerVenueRequests({account,plan,question,route,history,a
   if(expected.feeQuestion&&result.verification?.status==='verified'&&(!evidence.venue||!evidence.fees)){
     const scope=evidence.venue?'fees':'venue';
     return {...result,activity,verification:{status:'unverified',attempts:result.verification.attempts,reason:scope+'_evidence_unavailable'}};
+  }
+  if(result.status==='abstained'&&!evidence.venue&&!evidence.fees){
+    const zh=/\p{Script=Han}/u.test(question);
+    const what=expected.feeQuestion?(zh?'場地申請和待繳費用':'venue requests or fee balance')
+      :(zh?'場地申請':'venue requests');
+    const link=zh?'開啟我的場地申請':'Open my venue requests';
+    const separator=expected.feeQuestion?' · '+(zh?'[開啟我的待繳費用]':'[Open my fee records]')+'(/school-affairs/services/39-1)':'';
+    return {...result,activity,answer:(zh?'目前無法查核儲存的'+what+'。':'I couldn’t verify your saved '+what+'.')+
+      '\n\n['+link+']('+venuePaths.apply+')'+separator};
   }
   return {...result,activity};
 }

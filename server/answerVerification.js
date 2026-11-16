@@ -66,7 +66,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
 /** Request-local graph. Its retry edge only reads evidence and revises text. */
 export async function runAnswerVerification({
   question, initialAnswer, loadEvidence, loadDeeperEvidence, verify, repair, onProgress, allowDeeperReview = false, deferTerminalProgress = false,
-  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, lookForMissingPublicDetails, hasUnreadPublicLead, priorVerifiedPartial,
+  previousChecks = 0, maxChecks = maxAnswerVerificationChecks, canExtendReview, canRetryScopedRead, lookForMissingPublicDetails, hasUnreadPublicLead, priorVerifiedPartial,
   hasLocalCorrection = false, deadline = Date.now() + 50_000,
 }) {
   if (maxChecks !== maxAnswerVerificationChecks && maxChecks !== maxPublicAnswerVerificationChecks)
@@ -103,6 +103,7 @@ export async function runAnswerVerification({
     (evidence.length > 0 && deeperReviewReasons.has(verdict.reason)
       && (feedback.length > 0 || verdict.reason === 'verification_output_limit'))
     || (loadDeeperEvidence && ['unsupported_claims', 'no_supported_answer', 'evidence_unavailable'].includes(verdict.reason))
+    || (verdict.reason === 'evidence_unavailable' && canRetryScopedRead?.() === true)
   );
   const canRetryAfterSourceSwitch = verdict => safeToContinue()
     && (deeperReviewReasons.has(verdict.reason) || verdict.reason === 'evidence_unavailable');
@@ -149,9 +150,12 @@ export async function runAnswerVerification({
   const graph = new StateGraph(VerificationState)
     .addNode('retrieve', async state => {
       if (!withinBudget()) return { verdict: { ok: false, reason: 'timeout' } };
-      // Only an explicitly supplied public loader can acquire additional evidence
-      // in a deeper pass. Account answers retain the earlier scoped evidence.
-      const load = state.attempt > standardChecks ? loadDeeperEvidence : loadEvidence;
+      // The supplied loader controls scope. An explicit scoped retry reloads
+      // the same account selection, with the original deadline.
+      const retryScopedRead = state.previousFailure === 'evidence_unavailable' && canRetryScopedRead?.() === true;
+      const load = state.attempt > standardChecks
+        ? loadDeeperEvidence ?? (retryScopedRead ? loadEvidence : undefined)
+        : loadEvidence;
       if (!load) return { verdict: null };
       try {
         evidence = await bounded(()=>load({ attempt: state.attempt, deadline, feedback, previousFailure:state.previousFailure }));
@@ -244,8 +248,13 @@ export async function runAnswerVerification({
       } else if (nextCheck <= maxAnswerVerificationChecks && !((timedOut || interrupted) && publicRecovery)) {
         if(previousChecks>0)emit('verification-source-retry','Checking the new evidence again',
           'Looking for the missing detail and revising the answer if the evidence supports it.');
-        else if(state.attempt===standardChecks)emit('verification-deeper-review','Taking a closer look at the answer',
-          loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
+        else if(state.attempt===standardChecks){
+          if (state.verdict.reason === 'evidence_unavailable' && canRetryScopedRead?.() === true) {
+            emit('verification-deeper-review','Retrying the temporarily unavailable records',
+              'Reading the same account records again after a temporary service error.');
+          } else emit('verification-deeper-review','Taking a closer look at the answer',
+            loadDeeperEvidence ? 'Checking whether a more specific source can resolve the missing detail.' : 'Reconsidering the unresolved claims using the same authorized evidence.');
+        }
         else emit('verification-retry', 'Rechecking and correcting the answer', 'Checking the available evidence again and preparing a correction.');
       }
       return { attempt: state.attempt + 1, verdict: null,
