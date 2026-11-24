@@ -49,3 +49,5 @@
 ## 2026-11-25 — Answer Lab GitHub delivery / Issue #101
 
 User requested the connected GitHub pipeline instead of the 4.4 GB CLI upload. CLI process had already exited. Verified Vercel project and production branch main using its project metadata. Current development branch differed by hundreds of commits and 914 files, so prepared a clean main-based sparse checkout containing only the lab, authored FAQ, already-applied SQL migration and narrow model-selection adapters. Existing main student-profile/guidance fixes are preserved. No user data or local evaluation state is copied.
+
+Pushed 827c5418 to main without force. GitHub Quality started as 45448448361, while Vercel Git deployment dpl_CKwm3Yw5AU5k8QjrGPZMjL4T1Dbj was blocked with TEAM_ACCESS_REQUIRED because the inherited commit author maps to WinsonBaring rather than the authorized client identity. No permissions were changed. The next non-rewriting commit will use the verified client CLI identity and include the documented local runner.

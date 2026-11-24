@@ -256,3 +256,5 @@ All root live suites have closed with exact cleanup. Education Fund is now acces
 ## 2026-11-25 — Private Answer Lab pipeline candidate
 
 Publishing from `/private/var/tmp/stu-answer-lab-publish` based on current client `origin/main` to avoid merging unrelated development history. Candidate includes `/evaluation-lab`, 53 FAQ references, question CRUD, model/evaluator history, authenticated private image inputs, existing-admin checks and owner-scoped persistent SQL storage. Migration `20261124220000` was already applied; no repeat migration is needed. Deployment is not yet observed. No chatbot or evaluator prompts are run.
+
+First Git-triggered release 827c5418 is BLOCKED by Vercel commit-author team access; production is unchanged. This is a provider collaboration gate, not a build failure. Preparing a new normal commit under the verified client account instead of changing memberships or force-pushing.
