@@ -23,7 +23,8 @@ function walk(directory) {
 const markdown = walk('.').filter(file => file.endsWith('.md'))
 // The user requested this one shared agent ledger; engineering plans still live
 // exclusively in planning-with-files and detailed documentation stays in docs.
-for (const file of markdown) assert.ok(!file.includes(path.sep) || path.basename(file) === 'README.md' || file === 'agent/A2A.md' || file.startsWith('docs/') || file.startsWith('planning-with-files/') || /^media\/tutorials\/(README|SETUP|PROJECT)\.md$/.test(file), `${file}: move detailed documentation out of runtime/provider/test folders`)
+// The standalone Answer Lab retains the user-required SETUP entrypoint as well.
+for (const file of markdown) assert.ok(!file.includes(path.sep) || path.basename(file) === 'README.md' || file === 'agent/A2A.md' || file.startsWith('docs/') || file.startsWith('planning-with-files/') || file === 'tools/evaluation-lab/SETUP.md' || /^media\/tutorials\/(README|SETUP|PROJECT)\.md$/.test(file), `${file}: move detailed documentation out of runtime/provider/test folders`)
 const documents = markdown.filter(file => !file.startsWith('planning-with-files/archive/') && !file.startsWith('docs/archive/'))
 for (const file of documents) {
   const source = readFileSync(file, 'utf8')
