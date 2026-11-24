@@ -1,3 +1,4 @@
+import {assistantModelOverride,assistantReasoningOverride} from './assistantModelConfig.js';
 import Markdown from 'react-markdown';
 
 const readText = payload => (payload?.output || []).flatMap(item => item.content || [])
@@ -15,8 +16,8 @@ export async function verificationModelCall(name, schema, instructions, input, d
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(Math.min(review ? 25_000 : 15_000, Math.max(1, deadline - Date.now()))),
     body: JSON.stringify({
-      model: process.env.OPENAI_VERIFICATION_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
-      store: false, reasoning: { effort: 'low' }, max_output_tokens: review ? 8192 : 2400,
+      model: assistantModelOverride() || process.env.OPENAI_VERIFICATION_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
+      store: false, reasoning: { effort: assistantReasoningOverride() || 'low' }, max_output_tokens: review ? 8192 : 2400,
       instructions,
       input: [{ role: 'user', content: [
         { type: 'input_text', text: JSON.stringify(input) },

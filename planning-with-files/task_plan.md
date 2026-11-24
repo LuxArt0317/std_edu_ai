@@ -759,3 +759,12 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Verify the university inquiry layout and report access boundaries.
 - [x] Implement persistent account-owned examination metadata and private attachment access.
 - [x] Verify PDF downloads and account isolation through the live API and browser.
+
+## Publish private Answer Lab through GitHub [Issue #101]
+
+- [x] Verify `main` is Vercel’s connected production branch.
+- [x] Confirm the direct CLI upload has exited.
+- [x] Isolate the lab and minimal request-scoped model support on current `origin/main`; exclude unrelated development history.
+- [x] Retain the already-applied administrator/owner-scoped storage migration.
+- [ ] Push the reviewed source to `main` without force and observe the linked Vercel build.
+- [ ] Record live publication status. Chatbot/evaluator runs remain paused.

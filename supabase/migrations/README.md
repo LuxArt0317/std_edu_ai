@@ -69,3 +69,5 @@ Migration 20261114210000 adds the protected student information baseline and pri
 Migration 20261114220000 adds caller-owned announcement email preferences and a private queue with versioned opt-in and fenced delivery.
 
 Migration 20261114230000 installs the observed initial certificate catalog, protected applications, masked payout references, and reservation-based proof Storage.
+
+`20261124220000_evaluation_lab.sql` adds RPC-only administrator/owner-scoped evaluation state and image storage. It was applied independently through the authorized Marketplace-linked SQL editor; the table/RLS and migration-history result was observed. No student-service migrations were included.

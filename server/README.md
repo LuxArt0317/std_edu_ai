@@ -139,3 +139,5 @@ The summer eligibility reader uses the existing caller-JWT course adjustment aut
 Announcement email uses a caller-JWT preference reader and a separately authorized, fenced delivery worker. The chatbot receives only saved setting status.
 
 Certificate awards use a bounded caller-JWT reader and send status fields only to the assistant. The Storage policy checks the exact proof reservation.
+
+`evaluationLabHosted.js` provides the protected Answer Lab adapter and caller-bound Supabase RPC storage. `assistantModelConfig.js` applies per-request model/reasoning overrides only to the evaluation request, preserving production defaults and concurrent users. See the [lab notes](../tools/evaluation-lab/README.md).

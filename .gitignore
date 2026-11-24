@@ -50,3 +50,6 @@ artifacts/
 /public/school-assets/*.mp4
 /public/school-assets/*.mp3
 /public/school-assets/*.odt
+
+# Private local evaluation questions, input images and results
+.evaluation-lab/

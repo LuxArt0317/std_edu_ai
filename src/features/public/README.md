@@ -14,3 +14,5 @@ The School Affairs account link leaves the embedded assistant frame and opens th
 DTM and School Affairs share a verified Google session for private student records. The direct homepage embeds `/account-status` to show the signed-in account. [DTM](dtm/README.md), [School Affairs](affairs/README.md).
 
 `useAssistantSessions` isolates account and conversation saves, preserves unsaved work after failures, and prevents late responses from another account from restoring private content. `PublicAssistant` displays unsaved state; a failed old conversation does not block a new one.
+
+`AssistantActivity.tsx` and its presentation-only timeline helper render recorded tool/search/check steps in the private Answer Lab. They do not expose hidden model reasoning.

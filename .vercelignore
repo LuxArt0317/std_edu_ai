@@ -1,0 +1,6 @@
+.evaluation-lab/
+.env*
+artifacts/
+playwright-report/
+test-results/
+media/tutorials/

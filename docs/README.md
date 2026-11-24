@@ -38,3 +38,5 @@
 - [Planning and execution records](../planning-with-files/README.md)
 
 `STU_Nexus_Comprehensive_Platform_Manual.docx` and `build_platform_manual.py` are inherited functional reference artifacts. The current operational guides above supersede their original deployment/account details. Rendered manual pages are temporary QA artifacts.
+
+- [Survey FAQ](guides/SURVEY_FAQ.md): 53 questions and expected answers used by Answer Lab.

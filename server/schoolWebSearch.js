@@ -1,3 +1,4 @@
+import {assistantModelOverride,assistantReasoningOverride} from './assistantModelConfig.js';
 import { createHash } from 'node:crypto';
 import { isIP } from 'node:net';
 
@@ -102,9 +103,9 @@ export async function searchSchoolWeb(question, options = {}) {
         method:'POST',headers:{Authorization:`Bearer ${process.env.OPENAI_API_KEY}`,'Content-Type':'application/json'},
         signal:AbortSignal.timeout(Math.min(officialOnly?19000:14000,remaining)),
         body:JSON.stringify({
-          model:process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
+          model:assistantModelOverride() || process.env.OPENAI_SEARCH_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra',
           tools:[{type:'web_search',search_context_size:'medium',...(officialOnly?{filters:{allowed_domains:['stu.edu.tw']}}:{})}],
-          tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:'low'},store:false,max_output_tokens:1600,
+          tool_choice:'required',include:['web_search_call.action.sources'],reasoning:{effort:assistantReasoningOverride()||'low'},store:false,max_output_tokens:1600,
           instructions:[
             'You help visitors and students of Shu-Te University (樹德科技大學), Kaohsiung, Taiwan. STU here means Shu-Te, not another university.',
             'School Affairs is independent of the STU Nexus app. Never use the Nexus demo catalog, classes, terms, account context or stu.best pages as evidence for university facts.',

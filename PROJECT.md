@@ -79,3 +79,7 @@ The DTM workspace reuses that Google session and stores private course, material
 The campus assistant streams server-observed directory, knowledge, web, image and account lookup activity to an expandable timeline attached to each answer. A bounded, identity-scoped transcript persists within the current browser tab across navigation and refresh; sign-out and New chat clear it. Image bytes, auth tokens and unconfirmed action capabilities are not persisted. The UI does not expose private model reasoning. Public and School Affairs answers retain separate authorization, and site actions still require user confirmation.
 
 Moodle course content placement is managed separately from activity records and submission state; [course content QA](docs/qa/DTM_COURSE_CONTENT.md) documents the additive schema, access boundaries and verification.
+
+## Private Answer Lab
+
+The [Answer Lab](tools/evaluation-lab/README.md) is an independent `/evaluation-lab` entry built with the school website. It uses the existing School Affairs administrator authorization and an owner-scoped database store. See [setup](tools/evaluation-lab/SETUP.md).

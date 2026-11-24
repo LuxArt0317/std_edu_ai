@@ -85,7 +85,7 @@ export default defineConfig(({ mode }) => {
       name: "pinned-public-assets",
       writeBundle(output) { copyPublicAssets(process.cwd(), output.dir || "dist"); },
     }],
-    build: { copyPublicDir: false },
+    build: { copyPublicDir: false, rollupOptions: { input: { main: fileURLToPath(new URL("./index.html", import.meta.url)), evaluationLab: fileURLToPath(new URL("./tools/evaluation-lab/index.html", import.meta.url)) } } },
     server: {
       watch: {
         ignored: ["**/public/school-assets/**", "**/public/school-pages/**"],

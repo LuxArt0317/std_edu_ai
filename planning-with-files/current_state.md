@@ -252,3 +252,7 @@ Grades679298e5 and graduation97c178c3 previously passed on772ec95. Saved-chat727
 - Isolated snapshot `/tmp/stu-dtm-cert-index-t0g8pcjj` is clean at published e494fd4 and is reserved for the evaluator live packet. Large assets are hardlinked; do not make whole-tree copies. Disk pressure blocked two offline edits; only independently checked regenerable download/compiler caches were removed, leaving source, evidence, credentials and installed dependencies intact.
 
 All root live suites have closed with exact cleanup. Education Fund is now accessible; its observed source contains six instruction sections and a closed application period, with no application form. The observed native instructions are published in d72. Issue100 remains user-paused. The full authenticated Moodle/School Affairs goal remains unfinished; Issues98/100 stay open. Official synchronization, unseen workflows and complete pixel/accessibility/semantic acceptance are not claimed. Private source identities and captures remain outside Git.
+
+## 2026-11-25 — Private Answer Lab pipeline candidate
+
+Publishing from `/private/var/tmp/stu-answer-lab-publish` based on current client `origin/main` to avoid merging unrelated development history. Candidate includes `/evaluation-lab`, 53 FAQ references, question CRUD, model/evaluator history, authenticated private image inputs, existing-admin checks and owner-scoped persistent SQL storage. Migration `20261124220000` was already applied; no repeat migration is needed. Deployment is not yet observed. No chatbot or evaluator prompts are run.

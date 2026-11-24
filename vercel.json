@@ -2,6 +2,18 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/evaluation-lab",
+      "destination": "/tools/evaluation-lab/index.html"
+    },
+    {
+      "source": "/evaluation-lab/",
+      "destination": "/tools/evaluation-lab/index.html"
+    },
+    {
+      "source": "/tools/evaluation-lab/index.html",
+      "destination": "/tools/evaluation-lab/index.html"
+    },
+    {
       "source": "/api/affairs-conversations",
       "destination": "/api/affairs-data?resource=conversations"
     },
@@ -2535,5 +2547,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/affairs-data.ts": {
+      "includeFiles": "docs/guides/SURVEY_FAQ.md"
+    }
+  }
 }
