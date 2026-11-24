@@ -266,3 +266,7 @@ Production source is `5c4f334346913a60d0016b05b80b6321de8410e3` on client GitHub
 Delivery used a clean checkout of origin/main at `/private/var/tmp/stu-answer-lab-publish`; it did not merge the unrelated 516-commit development history. Never push the old development branch wholesale to main. The direct CLI upload had already exited. First inherited-author commit 827c5418 was provider-blocked; normal client-identity commit 5c4f3343 resolved this without permission changes or force push. Local run history and credentials were not uploaded.
 
 Update: Quality 45448908375 failed at the documentation handoff policy (not model behavior) because it disallowed the standalone lab SETUP.md. The single-file documentation exception is being published, and the full connected workflow will rerun. Live runtime remains 5c4f3343 until that documentation-rule release completes.
+
+## 2026-11-25 — Shared admin access candidate
+
+Candidate adds exactly the requested second Google administrator to Answer Lab and shares the existing Lux dataset. All other accounts remain denied. School Affairs/Nexus roles are untouched. Deploying through main/Vercel with a fixed one-version production migration step; no direct database credential export or UI access is needed. Source and migration outcome are pending. Prior release a328c692 and Quality 45450059315 are successful.

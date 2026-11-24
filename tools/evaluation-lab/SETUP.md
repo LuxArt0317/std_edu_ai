@@ -20,6 +20,8 @@ The first startup of the FAQ question bank replaces the old visible dataset with
 
 ## Hosted setup
 
-Apply only migration `20261124220000_evaluation_lab.sql` to the declared client database after confirming its prerequisite `private.affairs_is_admin()`. Build with the normal Vite configuration and deploy the existing linked Vercel project; the multi-entry build and rewrites include `/evaluation-lab`. The existing server-only provider configuration is reused. Sign in with the authorized School Affairs administrator account. Student accounts are denied.
+Apply only migration `20261124220000_evaluation_lab.sql` to the declared client database after confirming its prerequisite `private.affairs_is_admin()`. Build with the normal Vite configuration and deploy the existing linked Vercel project; the multi-entry build and rewrites include `/evaluation-lab`. The existing server-only provider configuration is reused. Sign in through Google as either approved Answer Lab administrator; both see the same hosted dataset. Other accounts are denied.
 
 Publication does not run question batches. Local history is not automatically transferred to production. The hosted database must be provisioned before the lab's data operations can work. See README for isolation and quotas.
+
+For shared admin access, production builds apply only `20261125020000_evaluation_lab_shared_admins.sql` through the fixed release script using the existing server-side database connection. Both approved accounts must use Google sign-in; the original verified Lux owner record must already exist. No local credential copy or general database migration deploy is required. See README for the explicit membership and data-sharing scope.

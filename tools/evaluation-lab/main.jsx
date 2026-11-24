@@ -302,6 +302,17 @@ function App() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [editor, saving]);
+  async function refreshWorkspace() {
+    setSaving(true);
+    try {
+      setData(await request("state"));
+      setNotice("Shared questions and run history refreshed.");
+    } catch (reason) {
+      setError(reason.message);
+    } finally {
+      setSaving(false);
+    }
+  }
   async function loadModels() {
     setModelsLoading(true);
     try {
@@ -779,10 +790,19 @@ function App() {
             STU <b>Answer Lab</b>
           </span>
           <span className="local-tag">
-            {hosted ? "PRIVATE WORKSPACE" : "LOCAL WORKSPACE"}
+            {hosted ? "SHARED ADMIN WORKSPACE" : "LOCAL WORKSPACE"}
           </span>
         </a>
         <div className="top-actions">
+          {hosted && (
+            <button
+              className="button"
+              disabled={busy || judging || saving || Boolean(editor)}
+              onClick={() => void refreshWorkspace()}
+            >
+              <RefreshCw size={15} /> Refresh shared data
+            </button>
+          )}
           <span className="model">
             <span className="dot" />
             {model || data.model}
@@ -897,7 +917,7 @@ function App() {
           <ShieldCheck size={16} />
           <span>
             {hosted
-              ? "Private answers and references are saved to your administrator account."
+              ? "Both Answer Lab administrators share this question library and run history."
               : "Answers and references stay in this local workspace."}
           </span>
         </div>
@@ -1589,7 +1609,7 @@ function App() {
           </span>
           <span>
             {hosted
-              ? "Saved privately in the database with your administrator account."
+              ? "Saved to the shared Answer Lab workspace for both administrators."
               : "Stored locally, including attachment files."}{" "}
             No actions are confirmed here. Runs may call online model and
             database services.

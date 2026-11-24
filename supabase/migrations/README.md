@@ -71,3 +71,5 @@ Migration 20261114220000 adds caller-owned announcement email preferences and a 
 Migration 20261114230000 installs the observed initial certificate catalog, protected applications, masked payout references, and reservation-based proof Storage.
 
 `20261124220000_evaluation_lab.sql` adds RPC-only administrator/owner-scoped evaluation state and image storage. It was applied independently through the authorized Marketplace-linked SQL editor; the table/RLS and migration-history result was observed. No student-service migrations were included.
+
+`20261125020000_evaluation_lab_shared_admins.sql` authorizes the two specified Google identities for a shared Answer Lab anchored to the existing Lux-owned data. It replaces only lab RPCs; School Affairs/Nexus roles and other records are unchanged. The fixed production release script applies this version transactionally and records it in migration history.

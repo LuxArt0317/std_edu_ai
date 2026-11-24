@@ -83,3 +83,5 @@ Moodle course content placement is managed separately from activity records and 
 ## Private Answer Lab
 
 The [Answer Lab](tools/evaluation-lab/README.md) is an independent `/evaluation-lab` entry built with the school website. It uses the existing School Affairs administrator authorization and an owner-scoped database store. See [setup](tools/evaluation-lab/SETUP.md).
+
+The two approved [Answer Lab administrators](tools/evaluation-lab/README.md#shared-administrators) share questions, references, images and results. Membership is scoped to this workspace, and the Git production build applies its independent access migration before deployment.

@@ -147,7 +147,11 @@ export function createEvaluationLab(root, options = {}) {
     let requestInput;
     try {
       await initialized;
-      if (!options.storage && req.headers.origin && req.headers.origin !== url.origin)
+      if (
+        !options.storage &&
+        req.headers.origin &&
+        req.headers.origin !== url.origin
+      )
         return send(403, {
           error: "Use the evaluation workspace on this same local origin.",
         });
@@ -176,6 +180,7 @@ export function createEvaluationLab(root, options = {}) {
         const state = await load();
         return send(200, {
           ...state,
+          ...(options.workspace ? { workspace: options.workspace } : {}),
           revision: revision(),
           model: process.env.OPENAI_MODEL || "gpt-5.6-terra",
         });
@@ -314,6 +319,13 @@ export function createEvaluationLab(root, options = {}) {
           });
         const row = await mutate((state) => {
           let original = state.cases.find((item) => item.id === value.id);
+          if (original && value.version !== original.version)
+            throw Object.assign(
+              new Error(
+                "This question changed in another admin session. Refresh the shared workspace before editing again.",
+              ),
+              { status: 409 },
+            );
           if (!original && state.cases.length >= 250)
             throw new Error("The workspace supports 250 question cases.");
           const keywords = Array.isArray(value.keywords)
@@ -343,6 +355,7 @@ export function createEvaluationLab(root, options = {}) {
                 ? "/api/affairs-assistant"
                 : "/api/research-assistant",
             enabled: value.enabled !== false,
+            ...(options.actor ? { updatedBy: options.actor } : {}),
             version: original
               ? original.version +
                 Number(
@@ -422,6 +435,7 @@ export function createEvaluationLab(root, options = {}) {
             expected: row.expected,
             scope: row.scope,
             createdAt: new Date().toISOString(),
+            ...(options.actor ? { actor: options.actor } : {}),
             revision: revision(),
             model:
               typeof input.model === "string" &&
@@ -538,6 +552,7 @@ export function createEvaluationLab(root, options = {}) {
               5,
           ),
           model: judgeModel,
+          ...(options.actor ? { actor: options.actor } : {}),
           reasoning: judgeReasoning,
           createdAt: new Date().toISOString(),
         };

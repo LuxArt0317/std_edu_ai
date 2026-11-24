@@ -28,7 +28,7 @@ async function rpc(account, name, body = {}) {
       status === 409
         ? "The evaluation library changed in another tab. Refresh before saving again."
         : status === 401 || status === 403
-          ? "Answer Lab requires an authorized School Affairs administrator."
+          ? "Answer Lab requires one of its authorized Google administrator accounts."
           : "The hosted evaluation store is unavailable. Its database migration may still need to be applied.",
       status === 409 ? 409 : status === 401 || status === 403 ? 403 : 503,
     );
@@ -46,7 +46,7 @@ export async function serveEvaluationLab(req, res) {
       throw new LabError("Use Answer Lab on this same website.", 403);
     const token = first(req.headers.authorization)?.replace(/^Bearer /, "");
     const account = await verifyAffairsToken(token || "");
-    // SQL checks the existing trusted administrator role. No email/client metadata bypass.
+    // SQL authorizes the two requested verified Google identities for the shared lab.
     await rpc(account, "evaluation_lab_access");
     const operation = first(req.query?.op);
     if (typeof operation !== "string" || !/^[a-z-]+$/.test(operation))
@@ -98,6 +98,12 @@ export async function serveEvaluationLab(req, res) {
     };
     const handler = createEvaluationLab(process.cwd(), {
       storage,
+      actor: { id: account.user.id, email: account.user.email },
+      workspace: {
+        id: "shared-answer-lab",
+        label: "Shared Answer Lab",
+        role: "admin",
+      },
       maxStateBytes: 3_000_000,
       operation,
       revision:

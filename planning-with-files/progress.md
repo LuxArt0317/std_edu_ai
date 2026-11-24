@@ -59,3 +59,7 @@ Production source is `5c4f334346913a60d0016b05b80b6321de8410e3` on client GitHub
 Delivery used a clean checkout of origin/main at `/private/var/tmp/stu-answer-lab-publish`; it did not merge the unrelated 516-commit development history. Never push the old development branch wholesale to main. The direct CLI upload had already exited. First inherited-author commit 827c5418 was provider-blocked; normal client-identity commit 5c4f3343 resolved this without permission changes or force push. Local run history and credentials were not uploaded.
 
 GitHub Quality 45448908375 completed with a documentation-policy failure after the prior lint, API/unit/evaluation and build stages passed: the handoff checker did not yet permit the user-required standalone lab SETUP.md. Added a narrowly scoped exception for that single entrypoint; retained all other documentation and Function-budget checks.
+
+## 2026-11-25 — Two shared lab admins / Issue #101
+
+User requested Winson’s Google account alongside the existing Lux account with shared evaluation data. Implemented a lab-only verified identity allowlist and canonical existing workspace resolution in an independent migration; existing document/images are retained. Added shared-data refresh and stale-question conflict rejection, plus verified actor metadata for new runs/reviews. The production-only fixed migration step uses existing Vercel server-side connection settings and a transactional ledger lock; no credentials are exported and no unrelated migrations run. No chatbot/evaluator calls.

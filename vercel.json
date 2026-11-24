@@ -2473,7 +2473,7 @@
     }
   ],
   "framework": "vite",
-  "buildCommand": "npm run build",
+  "buildCommand": "node scripts/deploy-evaluation-sharing.mjs && npm run build",
   "installCommand": "npm ci",
   "outputDirectory": "dist",
   "headers": [

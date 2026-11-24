@@ -16,3 +16,5 @@ Route regeneration preserves the conversation API alias. Handoff verification ch
 `dev-local.mjs` serves Vite and the actual API handlers on loopback, plus the local Answer Lab store. Run `npm run dev:local`; its hosted equivalent uses the authenticated affairs-data adapter and independent database state. See [Answer Lab setup](../tools/evaluation-lab/SETUP.md).
 
 The handoff documentation policy permits the standalone lab’s required `tools/evaluation-lab/SETUP.md` entrypoint, just as it permits the isolated tutorial package setup. Other runtime/provider/test Markdown restrictions remain in place.
+
+`deploy-evaluation-sharing.mjs` is the fixed, idempotent production-build migration step for the two shared Answer Lab administrators. It validates the exact client target and applies only version 20261125020000 under a transactional migration lock using existing production credentials. It skips non-production builds, never bootstraps accounts or applies unrelated migrations, and stops the release on failure.

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add the requested second Google administrator to shared Answer Lab data, preserving the existing questions, references, image inputs and run history. Keep lab membership separate from school administration; add manual shared refresh and stale-edit conflicts. [#101]
+
 - Include private Answer Lab at `/evaluation-lab`, with 53 editable survey FAQ references, question CRUD, selected-model run history, expandable Activity, authenticated screenshots and owner-scoped hosted persistence. Publish through the connected GitHub/Vercel pipeline; local data is excluded. [#101]
 
 - Answer campus Wi-Fi, semester leave, withdrawal and class-absence questions with the relevant school instructions and links. Refuse requests for another student's profile or announcement email settings before account or public research. Verify saved venue requests against caller-scoped records and retry eligible temporary failures. [#100]

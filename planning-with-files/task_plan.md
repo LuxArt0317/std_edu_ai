@@ -768,3 +768,11 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Retain the already-applied administrator/owner-scoped storage migration.
 - [x] Push the reviewed source to `main` without force and observe the linked Vercel build.
 - [x] Record live publication status and signed-out access guard. Chatbot/evaluator runs remain paused.
+
+## Shared Answer Lab administrators [Issue #101]
+
+- [ ] Authorize exactly the two requested verified Google accounts inside Answer Lab only.
+- [ ] Point both accounts at the existing Lux workspace, retaining questions, runs and images.
+- [ ] Retain revision conflicts and prevent other accounts from reading shared data.
+- [ ] Apply only the independent shared-lab migration during the production release build and publish via GitHub.
+- [ ] Record provider migration/release outcome; leave model evaluations paused.

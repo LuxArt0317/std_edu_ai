@@ -141,3 +141,5 @@ Announcement email uses a caller-JWT preference reader and a separately authoriz
 Certificate awards use a bounded caller-JWT reader and send status fields only to the assistant. The Storage policy checks the exact proof reservation.
 
 `evaluationLabHosted.js` provides the protected Answer Lab adapter and caller-bound Supabase RPC storage. `assistantModelConfig.js` applies per-request model/reasoning overrides only to the evaluation request, preserving production defaults and concurrent users. See the [lab notes](../tools/evaluation-lab/README.md).
+
+Hosted Answer Lab access is now separate from School Affairs administration: SQL admits only the two requested verified Google identities and maps them to the existing shared lab document/images. New evaluation runs record the authenticated actor; account assistant queries still use the caller’s own token.
