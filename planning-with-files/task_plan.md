@@ -766,5 +766,5 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Confirm the direct CLI upload has exited.
 - [x] Isolate the lab and minimal request-scoped model support on current `origin/main`; exclude unrelated development history.
 - [x] Retain the already-applied administrator/owner-scoped storage migration.
-- [ ] Push the reviewed source to `main` without force and observe the linked Vercel build.
-- [ ] Record live publication status. Chatbot/evaluator runs remain paused.
+- [x] Push the reviewed source to `main` without force and observe the linked Vercel build.
+- [x] Record live publication status and signed-out access guard. Chatbot/evaluator runs remain paused.
