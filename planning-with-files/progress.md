@@ -41,3 +41,4 @@
 
 - Live startup failure caught and production rolled back to7aa9d0bd; authenticated lab state53/154/138 and imported151 intact. Corrected build emits explicit JS handler artifact and Node trace confirms inclusion284 files/0warnings. New candidate will be staged and checked before domain promotion. User changed default filter to Selected model / All statuses / Highest score.
 
+-2026-11-25: PR103/25e377cb cleanCIpassedlint,2092APItests,548unit tests,fullassistant evaluation,build,handoff anddependency audit. Browsera11ygatecaughtstale bilingualtitle selectors. Updated exactEnglish→Chinese→English UIchecks andfreshfeedbackexpiry withoutrelaxingaxe/focus/overflowassertions; awaitingCIrerun. Fullverify:clientblockedbeforeI/O bymissing.env.owner.local inisolatedreleasecheckout.

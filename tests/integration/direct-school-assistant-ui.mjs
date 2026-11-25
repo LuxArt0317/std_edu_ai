@@ -21,7 +21,7 @@ try {
       const bounds = await panel.boundingBox();
       assert.ok(bounds && bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= width + 1, `${route} ${width}: chat panel fits`);
       const assistant = page.frameLocator('iframe.stu-assistant-frame');
-      await assistant.getByRole('heading', { name: '校園助理 · Assistant' }).waitFor();
+      await assistant.getByRole('heading', { name: 'Campus assistant', exact: true }).waitFor();
       await assistant.getByPlaceholder('Ask a school question…').fill('Registrar contact?');
       await assistant.getByRole('button', { name: 'Send', exact: true }).click();
       await assistant.getByText('The registrar contact is in the school directory.').nth(index).waitFor();
@@ -46,7 +46,7 @@ try {
       // Existing tabs may already have the login page trapped in the old frame.
       await page.goto(origin + '/');
       await page.getByRole('button', { name: '開啟 AI 校園助理' }).click();
-      await page.frameLocator('iframe.stu-assistant-frame').getByRole('heading', { name: '校園助理 · Assistant' }).waitFor();
+      await page.frameLocator('iframe.stu-assistant-frame').getByRole('heading', { name: 'Campus assistant', exact: true }).waitFor();
       await page.locator('iframe.stu-assistant-frame').evaluate(frame => { frame.src = '/school-affairs/login'; });
       await page.frameLocator('iframe.stu-assistant-frame').getByRole('button', { name: 'Continue with Google' }).click();
       await page.waitForURL('**/school-affairs/login');

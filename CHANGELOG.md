@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Align public browser checks with the assistant’s current language and valid feedback capabilities while retaining accessibility assertions.
+
+
 - Guard production backend imports with an AST linter and isolated JavaScript-only packaging check; compile the account assistant before tests/build.
 - Preserve shared Answer Lab administration, saved history and the common chatbot transport during release integration.
 - Restore fresh-checkout source documents with validated supplemental files instead of rebuilding the large archive.
