@@ -1,5 +1,11 @@
 # Current state —25 November2026
 
+## Active regression — resume this process
+
+Serial24-case public retrieval regression is LIVE in execsession76511, labelretrieval-regression-20261125, sourcef89ace7f. Current localserver is session63573. Do not restart either solely because an observation times out. Poll76511 or inspect its actual PID/terminal summary first. Q06producer verified/HTTP200, grader transport timed out (ungraded, not answer failure); Q07passed75; Q08started. Grade-only retry Q06 after the batch if provider recovers; do not regenerate its completed answer. All results/provenance remain private in.evaluation-lab/bank-runs/retrieval-regression-20261125. Q04/Q45alreadyfresh85/90; unchangedpreparedguidesexcluded.
+
+Next Q15 repair (read-only agent audit complete): actual12-5curriculum-plan directory exists; individual PDF availability not audited. Personal graduation evidence currently omits that navigation because directory evidence is restricted to initial report citations. Add a source-derived page guide and12-5allowlistedlink to selected graduation evidence; preserve13-1/graduationvslegacy15-2 report kinds and never infer entry cohort from yearLevel or eligibility from totalcredits. See curriculumPlans.js, graduationReview.js and nativeAcademicEvidence.js; no new producer patch made while regression is running.
+
 ## Scholarship follow-up [Issue #100]
 
 Local Q05 source/answer repair: guide bound to existing9-1 catalog entry, actual period/history fields and review semantics now accompanies selected scholarship evidence. Navigation draft explains the menu and how to compare the period/history status; generic demonstration disclaimer removed from the opening while saved-record provenance remains explicit. Six scholarship checks, API types and runtime-import lint pass. Real Q05 private grading remains pending. Preparing the requested serial regression of previous retrieval cases; unchanged prepared guides are excluded.
