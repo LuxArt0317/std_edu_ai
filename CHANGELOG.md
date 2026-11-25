@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Merge local and shared evaluation histories by stable IDs with conflict checks, verified recovery backups and hosted storage limits; retain cloud-only runs and judge history.
+
+
 - Run public browser gates alongside backend validation, retaining every gate while exposing UI regressions earlier.
 
 

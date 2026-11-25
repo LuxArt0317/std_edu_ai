@@ -24,3 +24,8 @@
 ## Restart
 - Releasehandoffbranch:codex/release-handoff-20261125 in std_edu_ai-release-20261125, based on publishedmain. This final acceptance documentation is committed locally; code is already deployed.
 - Continue Issue100qualitywork and signed-in manual verification without replacing newer shared cloud results.
+
+## Post-release data synchronization
+Usernoticedcodedeplydidnottransferprivateevalstore. Addedsafestable-IDmergeCLI:8focusedtestspassedandindependentreviewcomplete. Cloud187runsretained,99local-onlyadded→286/rev115,thenlatestQ50passadded→287/rev116;backup+readbackverified. Localbackfilladded36cloud-onlyruns. Sharedstorequestions53unchanged;noDDL/newrole/secretchanges.
+
+Localfollowupsourceworkinstd_edu_ai-issue100commitbd272e10passedQ08=70,Q36=70,Q44=95,Q50=85(Luna/Terra6.1);thosefixesnotdeployed. CombinedhistoryincludesnewerSolprivate/publicfailures,notall53done. PrivateQ03actualdisplayedamountsmatchedcurrentownedDBrowsunderprivilegedread-onlyQAdiagnostic,notauthenticatedreplay; currentprivategraderhasnoindependentsources. NewQ03caller-RLScontextworkisinprogresshere,notlive.
