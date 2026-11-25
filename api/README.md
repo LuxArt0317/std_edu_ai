@@ -1,5 +1,7 @@
 # HTTP API
 
+Signed-in public funding-discovery and admission-date questions delegate to the same in-process public research handler before account-record selection. Only the current question and validated public page route are forwarded; credentials and account history are excluded. Mixed personal questions remain on the account path.
+
 `affairs-data.ts?scope=graduation-clearance` reads private applications, available periods and office decisions. The `manage` view takes a term and optional candidate. Dedicated student and administrator actions are versioned and retry-safe.
 
 `affairs-data.ts?scope=teaching-feedback` reads survey completion, immediate feedback, or authorized management by `view`. Dedicated student and administrator actions save evaluations, feedback, survey settings, releases, and reviews.

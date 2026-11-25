@@ -1,5 +1,9 @@
 # Current state —25 November2026
 
+## Latest local routing repair [Issue #100]
+
+Authoritative local server now runs this release-handoff checkout on port5173 (session73246). Saved authenticated production Q04/Q45 failures exposed public questions inheriting private intent. Local code now sends explicit public funding/enrollment questions to the existing research handler before private selection, with public route only and no history/credentials. Mixed personal questions remain private. 30 focused checks, API types and runtime-import lint292/0 pass. Fresh Q04 Luna/Terra6.1 scored85 (public API,63.1s producer); no signed-in live acceptance or deployment is claimed. Combined history includes newer production failures: earlier local public passes do not establish all53 current cases pass.
+
 ## Published release
 - Client repository: LuxArt0317/std_edu_ai; original repository untouched.
 - Production:`https://stu.best`, revision`61e7b02889124f84b3b5fe4da0e75b99a06633c8`, Ready deployment`dpl_4JpJ8m2SQnKiKdmqDiVsk2TWHugs`.

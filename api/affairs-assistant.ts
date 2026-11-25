@@ -8,6 +8,8 @@ import {isPublicAdmissionLanguageQuestion} from '../server/publicAdmissionLangua
 import {isPublicCalendarDateQuestion} from '../server/publicCalendarEvidence.js';
 import {isPublicHousingPolicyQuestion} from '../server/publicHousingPolicyIntent.js';
 import {isPublicStudentCardReplacementQuestion} from '../server/publicStudentCardIntent.js';
+import {publicFundingIntent} from '../server/publicFundingEvidence.js';
+import {isPublicEnrollmentDateQuestion} from '../server/publicEnrollmentEvidence.js';
 import {publishedSchoolGuidance} from '../server/publishedSchoolGuidance.js';
 import {campusHelpGuide} from '../server/campusHelpGuides.js';
 import {isImageDescriptionQuestion} from '../server/assistantImageAnswer.js';
@@ -360,10 +362,15 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
 
-  if(!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)&&(isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
+  // Public funding/enrollment questions must not inherit private-record intent
+  // merely because the caller is signed in. Mixed/personal requests stay on the
+  // account path; public dispatch never receives account history or credentials.
+  const publicFundingOrEnrollment=!/\b(?:my|our|mine|am i|did i|have i|for me|on my behalf|another student|someone else's)\b|我的|我們的|幫我|帮我|其他學生|其他学生/iu.test(question)
+    &&Boolean(publicFundingIntent(question)||isPublicEnrollmentDateQuestion(question));
+  if(!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)&&(publicFundingOrEnrollment||isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
     try{
       const research=await dispatchPublicResearch(publicResearch,{method:'POST',headers:{'content-type':'application/json'},
-        body:{question,history:[],route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,
+        body:{question,history:[],route:publicFundingOrEnrollment&&/^(?:\/admissions\/?|\/school-sites\/[^?#]+)$/u.test(route)?route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,
         step=>stream.progress(step.kind,step.label,step.detail,step.status));
       stream.send(research.status,research.result);
     }catch{stream.send(503,{error:'I could not load the public procedure just now. Your personal records have not been checked.'});}

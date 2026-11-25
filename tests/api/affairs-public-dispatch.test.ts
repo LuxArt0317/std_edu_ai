@@ -39,6 +39,35 @@ function frames(chunks:string[]) {
 const generic={question:'Explain campus facilities.',route:'/'};
 const answer={status:'answered',answer:'Candidate public answer.',citations:[],grounding:{source:'candidate-public'}};
 
+test('signed-in funding discovery and enrollment dates use public research before private reads',async()=>{
+  const requests:Array<Parameters<PublicHandler>[0]>=[];
+  const handler=createAffairsAssistantHandler({publicResearch:async(request,response)=>{
+    requests.push(structuredClone(request));response.status(200).json(answer);
+  }});
+  for(const stream of [false,true])for(const input of [
+    {question:'What tuition discounts are available?',route:'/school-sites/life.sao.stu.edu.tw/教育部學雜費減免/'},
+    {question:'When does enrollment start?',route:'/admissions'},
+  ]){
+    const result=await invoke(handler,{...input,stream,history:[{role:'user',content:'PRIVATE_HISTORY'}]});
+    assert.equal(result.status,200);
+    assert.deepEqual(stream?frames(result.chunks).at(-1)?.data:result.body,answer);
+    const normalizedRoute=new URL(input.route,'https://stu.best').pathname.replace(/\/$/u,'');
+    assert.deepEqual(requests.at(-1)?.body,{...input,route:normalizedRoute,history:[],images:[],stream,consentedResearchUse:false});
+    assert.doesNotMatch(JSON.stringify(requests.at(-1)),/PRIVATE_HISTORY|Bearer|authorization/iu);
+  }
+});
+
+test('funding policy mixed with personal balances never becomes a public-only answer',async()=>{
+  let calls=0;
+  const handler=createAffairsAssistantHandler({publicResearch:async(_request,response)=>{calls++;response.status(200).json(answer);}});
+  for(const question of ['What tuition discounts are available and what is my balance?',
+    'When does enrollment start and am I enrolled?',
+    '有哪些學雜費減免？我的申請核准了嗎？']){
+    await invoke(handler,{question,route:'/school-affairs'});
+  }
+  assert.equal(calls,0);
+});
+
 test('default signed-in public lookup runs the actual local directory handler without a production request',async()=>{
   for(const stream of [false,true]) {
     const result=await invoke(affairsHandler,{question:'What is on this page?',route:'/school-affairs/menu/swd/input',stream});

@@ -1,5 +1,12 @@
 # Task Plan
 
+## Signed-in public lookup parity [Issue #100]
+
+- [x] Trace saved production Q04/Q45 failures to authenticated account dispatch.
+- [x] Delegate clearly public funding/enrollment requests before private intent selection; retain mixed personal requests and strip credentials/history.
+- [x] Verify 30 focused routing/source/boundary checks, API types and runtime-import lint.
+- [ ] Finish current Q04 Luna/Terra evaluation and subsequent retrieval-case regression; do not equate fixture routing with authenticated live acceptance.
+
 ## Club activities and equipment borrowing [Issue #98]
 
 - [x] Inspect the university club index, calendar, request list, form and officer-menu destinations.

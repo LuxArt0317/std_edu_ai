@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Route signed-in public tuition-discount and enrollment-date questions to public research before account-record selection; retain mixed personal requests on the account path.
+
 - Add current-caller charge evidence to Q03 evaluation without exposing private values in saved grading summaries; preserve reference-only history and historical-drift limits.
 - Preserve source-qualified admission clauses and published workshop schedules/registration labels during answer composition.
 
