@@ -1,5 +1,12 @@
 # Task Plan
 
+## Scholarship status navigation [Issue #100]
+
+- [x] Inspect the real local scholarship menu, period/history UI and saved response gaps.
+- [x] Add page-backed guidance to selected scholarship evidence and the initial answer; retain review/payment distinctions.
+- [x] Verify scholarship caller isolation, navigation and model-source consistency in six focused checks.
+- [ ] Evaluate Q05 with a verified signed-in caller; fixture checks are not a passing private score.
+
 ## Signed-in public lookup parity [Issue #100]
 
 - [x] Trace saved production Q04/Q45 failures to authenticated account dispatch.

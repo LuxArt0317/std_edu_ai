@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Give scholarship answers page-backed navigation, period/history fields and review/payment distinctions as model evidence, while retaining caller-owned records and confirmation boundaries.
+
 - Explain leave-count units, unfiltered tracking states and date scope; ask for the intended usage measure instead of equating request counts with approved days. Add caller-scoped current leave evidence to evaluation grading.
 
 - Route signed-in public tuition-discount and enrollment-date questions to public research before account-record selection; retain mixed personal requests on the account path.

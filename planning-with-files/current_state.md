@@ -1,5 +1,9 @@
 # Current state —25 November2026
 
+## Scholarship follow-up [Issue #100]
+
+Local Q05 source/answer repair: guide bound to existing9-1 catalog entry, actual period/history fields and review semantics now accompanies selected scholarship evidence. Navigation draft explains the menu and how to compare the period/history status; generic demonstration disclaimer removed from the opening while saved-record provenance remains explicit. Six scholarship checks, API types and runtime-import lint pass. Real Q05 private grading remains pending. Preparing the requested serial regression of previous retrieval cases; unchanged prepared guides are excluded.
+
 ## Latest local routing repair [Issue #100]
 
 Authoritative local server now runs this release-handoff checkout on port5173 (session73246). Saved authenticated production Q04/Q45 failures exposed public questions inheriting private intent. Local code now sends explicit public funding/enrollment questions to the existing research handler before private selection, with public route only and no history/credentials. Mixed personal questions remain private. 30 focused checks, API types and runtime-import lint292/0 pass. Fresh Q04 Luna/Terra6.1 scored85 (public API,63.1s producer); no signed-in live acceptance or deployment is claimed. Combined history includes newer production failures: earlier local public passes do not establish all53 current cases pass.

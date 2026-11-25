@@ -1,5 +1,7 @@
 # API contract checks
 
+`scholarship-workspace.test.ts` binds assistant navigation/evidence to the catalog's scholarship destination, preserves period and application fields, and prevents pending review from becoming an award/payment claim. It retains caller-only reads and confirmed student/manager writes.
+
 The leave suite verifies that count responses describe request units, all-status/date scope and an explicit clarification for ambiguous usage in English and Chinese. The private grading suite verifies caller-bound leave reconstruction through the existing read-only reader and blocks a different run actor before any read. Fixture checks do not establish a live signed-in evaluation score.
 
 `affairs-public-dispatch.test.ts` checks authenticated funding/admission public dispatch before private reads, public route preservation, JSON/SSE parity, and mixed personal-request isolation. These fixtures prove routing and privacy contracts, not real-model answer quality.

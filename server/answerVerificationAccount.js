@@ -1,4 +1,5 @@
 import {internshipAssistantPlan,internshipSelectedTools} from './internshipAssistantPlan.js';
+import {scholarshipPageGuide} from './scholarshipRecords.js';
 import {parseInternshipEvidence} from './internshipEvidenceContract.js';
 import {studentLeaveAssistantPlan,studentLeaveSelectedTools} from './studentLeaveAssistantPlan.js';
 import {studentLeaveBasePath,studentLeaveFieldNames} from './studentLeaveEvidenceIntent.js';
@@ -663,6 +664,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
       :key==='courses'&&requestedMeeting?.clearance?schoolSubjectRecordsPath
       :key==='academicAttendance'?(view==='details'||query?.selection?.reason==='subterm_hours_unavailable'?academicAttendancePaths.detail:academicAttendancePaths.statistics):selection?.url||urls[key];
     evidence.push(boundedAccountSource(key,{title:accountTools[key],url,budget,makeContent:contentBudget=>({checkedAt:snapshot.checkedAt,collection:key,
+        ...(key==='scholarship'?{pageGuide:scholarshipPageGuide()}:{}),
         ...(key==='serviceRecords'&&snapshot.serviceNoteReadUnavailable?{unavailableReason:'read_failed'}:{}),
         ...(key==='charges'?{
           ...(typeof snapshot.studentRecordFound==='boolean'?{studentRecordFound:snapshot.studentRecordFound}:{}),
