@@ -11,3 +11,5 @@ The official student information confirmation link resolves to the signed-in Sch
 The official announcement mail settings link resolves to the local signed-in service 2-1.
 
 The certificate form and catalog sources resolve to distinct local signed-in routes.
+
+ContactDirectory mounts the native /分機表/ route with searchable, source-backed public contacts. Missing extensions remain unknown. The stale imported 404 capture is retained for provenance but excluded from direct-page rewrites.

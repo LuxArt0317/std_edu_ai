@@ -26346,5 +26346,26 @@
     "checksum": "97ee182d024d92c3d397c092c029ee67aa637b3ccd28109bff851499de4b4b66",
     "sourceChecksum": "97ee182d024d92c3d397c092c029ee67aa637b3ccd28109bff851499de4b4b66",
     "bytes": 530179
+  },
+  {
+    "source": "https://drive.google.com/open?id=1GOwdmwo7eSjgWDF72LXwpvhr5eBT486J&usp=drive_copy",
+    "file": "/school-assets/e44f25b3f3d059cea3e3.pdf",
+    "checksum": "e44f25b3f3d059cea3e31bc618cd09239def01feb4bb46ddb25a574f89ed1f2e",
+    "sourceChecksum": "e44f25b3f3d059cea3e31bc618cd09239def01feb4bb46ddb25a574f89ed1f2e",
+    "bytes": 429158
+  },
+  {
+    "source": "https://drive.google.com/open?id=1fXoQ6C6YSvSh78OzkoxuUL68GeAWIDVU&usp=drive_copy",
+    "file": "/school-assets/6bff0a223ccf7873e1f1.pdf",
+    "checksum": "6bff0a223ccf7873e1f1c162fc6d1de60615e1e99b2650ef5634f397b11cd8b0",
+    "sourceChecksum": "6bff0a223ccf7873e1f1c162fc6d1de60615e1e99b2650ef5634f397b11cd8b0",
+    "bytes": 146065
+  },
+  {
+    "source": "https://drive.google.com/open?id=1LuhDk1I93iLm_vlTzCKzgeAREfICcq8T&usp=drive_copy",
+    "file": "/school-assets/e4596ecbaaafd37a1a13.pdf",
+    "checksum": "e4596ecbaaafd37a1a13f8045c1dade2b2bc95bb0994c811e9a608efd8065e94",
+    "sourceChecksum": "e4596ecbaaafd37a1a13f8045c1dade2b2bc95bb0994c811e9a608efd8065e94",
+    "bytes": 196504
   }
 ]

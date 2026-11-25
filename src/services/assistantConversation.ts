@@ -1,4 +1,5 @@
 import type { AssistantProgress, AssistantResponse } from './researchAssistant';
+import {sanitizeAssistantPreferences} from './assistantPreferences.js';
 import {MAX_ASSISTANT_RECORD_COLUMNS,boundedAssistantActivity,boundedAssistantText,boundedConversationMessages,reconcileAssistantActivity} from './assistantActivityBudget.js';
 import {maxPublicAnswerVerificationChecks} from './assistantVerificationLimits.js';
 
@@ -35,6 +36,7 @@ export function finishAssistantActivity(steps: AssistantProgress[], interrupted 
 function cleanResult(value: unknown): AssistantResponse | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const result = value as Record<string,unknown>;
+  const modelSettings=sanitizeAssistantPreferences(result.modelSettings);
   if (typeof result.answer !== 'string' || !answerStatuses.has(String(result.status))) return undefined;
   const grounding = result.grounding && typeof result.grounding === 'object' ? result.grounding as Record<string,unknown> : null;
   const verification = result.verification && typeof result.verification === 'object' ? result.verification as Record<string,unknown> : null;
@@ -57,6 +59,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
     ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=maxPublicAnswerVerificationChecks
       ? {verification:{status:verification.status as 'verified'|'unverified',attempts:Number(verification.attempts)}} : {}),
     ...(grounding?{grounding:{source:boundedAssistantText(grounding.source,80),webSearched:grounding.webSearched===true,checkedAt:boundedAssistantText(grounding.checkedAt,50),degraded:grounding.degraded===true}}:{}),
+    ...(modelSettings?{modelSettings}:{}),
   };
 }
 

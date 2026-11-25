@@ -53,3 +53,7 @@ artifacts/
 
 # Private local assistant evaluation answers and run history
 .evaluation-lab/
+
+# Derived shared handler for hosted evaluation; generated before packaging.
+/server/affairsAssistantRuntime.js
+/server/affairsAssistantRuntime.js.tmp

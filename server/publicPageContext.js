@@ -1,3 +1,4 @@
+import {publicContactDirectoryPageContext} from './publicContactDirectoryEvidence.js';
 import {createHash} from 'node:crypto';
 import manifestCaptures from '../src/features/public/mirror/pages.json' with {type:'json'};
 import prospectus from './data/ipiac115.json' with {type:'json'};
@@ -5,6 +6,7 @@ const captures=[...manifestCaptures,{source:prospectus.source,title:prospectus.t
   file:prospectus.captureFile,checksum:prospectus.captureChecksum,capturedOn:prospectus.capturedOn}];
 import {detectAndExtractSource} from './knowledgeAcquisition.js';
 import {universityFoundingYearQuestion} from './currentStudyOwnerScope.js';
+import {publicContactSections,publicDirectoryEntries} from './publicContactDetails.js';
 
 function captureOrigin(){
   // Only the loopback development runner can select a local source origin.
@@ -170,6 +172,8 @@ async function captureBytes(response) {
 /** Only a checksum-pinned, already-public local snapshot can be read here.
  * A missing body still permits honest manifest metadata, never invented text. */
 export async function loadPublicPageContext(route,deadline,dependencies={}) {
+  const nativeContactPage=!dependencies.captures&&publicContactDirectoryPageContext(route);
+  if(nativeContactPage)return nativeContactPage;
   const page=publicPageForRoute(route,dependencies.captures);
   if(!page)return null;
   const metadata={
@@ -189,6 +193,8 @@ export async function loadPublicPageContext(route,deadline,dependencies={}) {
     if(!response.ok||response.redirected||(response.url&&response.url!==url))throw new Error('capture_response');
     const bytes=await captureBytes(response);
     if(createHash('sha256').update(bytes).digest('hex')!==page.checksum)throw new Error('capture_checksum');
+    if(dependencies.includeContactSections===true)metadata.contactSections=publicContactSections(bytes.toString('utf8'));
+    if(dependencies.includeDirectoryLinks===true)metadata.directoryEntries=publicDirectoryEntries(bytes.toString('utf8')).map(entry=>publicPageForRoute(entry.url)?entry:{label:entry.label,destinationAvailable:false});
     const extracted=await detectAndExtractSource(bytes,'text/html',page.source);
     if(!metadata.pageTitle&&extracted.title?.trim()) { metadata.pageTitle=extracted.title.trim().slice(0,1000);metadata.titleSource='verified_snapshot'; }
     const content=extracted.sections.map(section=>section.content).join('\n');
@@ -207,7 +213,7 @@ export async function loadPublicPageContext(route,deadline,dependencies={}) {
   return {
     page:{title:metadata.pageTitle,route:page.route,source:page.source,capturedOn:page.capturedOn},
     contentAvailable:metadata.contentAvailable,
-    evidence:{id,title:metadata.pageTitle||page.route,url:page.route,urls:[page.route],capturedOn:page.capturedOn,content:JSON.stringify(metadata)},
+    evidence:{id,title:metadata.pageTitle||page.route,url:page.route,urls:[page.route,page.source,...(metadata.directoryEntries||[]).map(entry=>entry.url).filter(Boolean)],capturedOn:page.capturedOn,content:JSON.stringify(metadata)},
   };
 }
 

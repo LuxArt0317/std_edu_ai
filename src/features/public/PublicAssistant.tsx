@@ -1,4 +1,5 @@
 import { AssistantChatMessage } from "./AssistantChatMessage";
+import {useAssistantCommands} from './AssistantCommands';
 import {assistantLanguage} from '../../services/assistantLanguage.js';
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, RotateCcw, Paperclip, X, Trash2 } from "lucide-react";
@@ -56,6 +57,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
   const {messages,setMessages}=sessions;
+  const commands=useAssistantCommands(query,setQuery);
   const latestUser=messages.filter(message=>message.role==='user').at(-1)?.content||'';
   const english=assistantLanguage(latestUser,messages)==='en';
   const viewport = useRef<HTMLDivElement>(null),
@@ -102,6 +104,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     });
   }, [messages, busy]);
   async function send(text = query) {
+    if(commands.consumeCommand(text))return;
     const attached = images;
     const question = text.trim() || (attached.length ? "Please explain the attached image." : "");
     if (!question || busy || !scope || !sessions.active || sessions.loadingChat) return;
@@ -124,7 +127,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         if (request !== sequence.current || controller.signal.aborted) return;
         setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
       };
-      const result = await askWebsiteAssistant({userId:user?.id,question,history:messages,signal:controller.signal,images:attached,route,onProgress});
+      const result = await askWebsiteAssistant({userId:user?.id,question,history:messages,signal:controller.signal,images:attached,route,onProgress,preferences:commands.preferences});
       if (request === sequence.current && !controller.signal.aborted)
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeFinalAssistantActivity(item.activity,result.activity))}:item));
     } catch (reason) {
@@ -343,6 +346,9 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
           </label>
           <Textarea
             id="public-assistant-question"
+            aria-controls={commands.activeCommandId?'assistant-command-list':undefined}
+            aria-activedescendant={commands.activeCommandId}
+            aria-autocomplete="list"
             value={query}
             maxLength={2000}
             rows={3}
@@ -350,6 +356,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Ask a school question…"
             onKeyDown={(event) => {
+              if(commands.onKeyDown(event))return;
               if (
                 event.key === "Enter" &&
                 !event.shiftKey &&
@@ -360,6 +367,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
               }
             }}
           />
+          {commands.controls}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2"><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="Attach images" onChange={event=>void addImages(event.target.files)}/><Button type="button" variant="outline" size="icon" aria-label="Attach images" disabled={busy} onClick={()=>fileInput.current?.click()}><Paperclip size={16}/></Button><span className="text-xs text-muted-foreground">Enter to send · Shift+Enter for a new line</span></div>
             <Button type="submit" disabled={!scope || !sessions.active || sessions.loadingChat || busy || (!query.trim() && !images.length)}>

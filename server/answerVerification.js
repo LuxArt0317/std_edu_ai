@@ -65,6 +65,10 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
       : timeout ? 'Sorry, the lookup took too long, so I couldn’t finish checking that. Would you like me to try again?'
         : noSource ? 'Sorry, I couldn’t find enough reliable information to answer that yet. If you have a related page, notice or screenshot, send it here and I can take a closer look.'
           : 'Sorry, I couldn’t confidently confirm that from the information I found. Could you share the page, notice or screenshot you’re referring to? I can take a closer look.';
+  const accountMissing=candidate?.grounding?.source==='account'&&noSource;
+  const scopedAnswer=accountMissing
+    ? chinese?'抱歉，我目前無法核實你選取的已儲存紀錄。這不代表沒有紀錄，也不能據此判定結果。':'Sorry, I could not verify the saved records you selected. That does not establish that no records exist or confirm their status.'
+    :answer;
   const receivedImage=candidate?.grounding?.source==='attached-image';
   const imageAnswer=receivedImage
     ? chinese ? reason==='provider_quota_exhausted'
@@ -73,7 +77,7 @@ export function unverifiedAnswer(question, candidate, activity, attempts, reason
     : reason==='provider_quota_exhausted'
       ? 'I received your screenshot, but the AI service has run out of credits, so I couldn’t read it. The administrator needs to restore the credits; you don’t need to resend the same image.'
       : 'I received your screenshot, but I couldn’t finish checking its contents. I can’t confirm the details yet—you didn’t miss the attachment.'
-    : answer;
+    : scopedAnswer;
   return {
     status: 'abstained',
     answer:imageAnswer,

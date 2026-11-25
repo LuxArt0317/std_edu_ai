@@ -28,9 +28,23 @@ export async function matches(file, checksum) { try {
 catch {
     return false;
 } }
-export async function restoreDocuments(docs, missing, target, cache) {
-    const manifest = JSON.parse(await fs.readFile(path.join(bundleRoot, 'manifest.json'), 'utf8'));
-    if (manifest.version !== 1 || manifest.documents !== docs.length || manifest.documentKey !== documentKey(docs) || !/^[a-f\d]{64}$/.test(manifest.archiveChecksum) || !Array.isArray(manifest.parts) || !manifest.parts.length)
+export async function restoreDocuments(docs, missing, target, cache, {bundleDirectory=bundleRoot}={}) {
+    const manifest = JSON.parse(await fs.readFile(path.join(bundleDirectory, 'manifest.json'), 'utf8'));
+    const supplemental=manifest.supplementalDocuments??[];
+    if(!Array.isArray(supplemental))throw Error('Invalid supplemental document manifest');
+    const extras=new Map();
+    for(const descriptor of supplemental){
+        if(!descriptor||!/^\/school-assets\/[a-f\d]{20}\.[a-z\d]+$/.test(descriptor.file)||!/^[a-f\d]{64}$/.test(descriptor.checksum)||!Number.isSafeInteger(descriptor.bytes)||descriptor.bytes<=0||extras.has(descriptor.file))throw Error('Invalid supplemental document descriptor');
+        const reviewed=docs.filter(document=>document.file===descriptor.file);
+        if(reviewed.length!==1||reviewed[0].checksum!==descriptor.checksum||reviewed[0].bytes!==descriptor.bytes)throw Error('Supplemental document does not match reviewed assets');
+        const physical=path.join(target,path.basename(descriptor.file));
+        const stat=await fs.lstat(physical).catch(()=>null);
+        if(!stat?.isFile()||stat.isSymbolicLink()||stat.size!==descriptor.bytes||!await matches(physical,descriptor.checksum))throw Error('Missing or corrupt supplemental document: '+descriptor.file);
+        extras.set(descriptor.file,descriptor);
+    }
+    const bundled=docs.filter(document=>!extras.has(document.file));
+    if(missing.some(document=>extras.has(document.file)))throw Error('Supplemental documents must be supplied intact, not restored from the old archive');
+    if (manifest.version !== 1 || manifest.documents !== bundled.length || manifest.documentKey !== documentKey(bundled) || !/^[a-f\d]{64}$/.test(manifest.archiveChecksum) || !Array.isArray(manifest.parts) || !manifest.parts.length)
         throw Error('Document bundle does not match the reviewed asset manifest');
     await fs.mkdir(cache, { recursive: true });
     const archive = path.join(cache, manifest.archiveChecksum + '.' + process.pid + '.tar.gz');
@@ -44,7 +58,7 @@ export async function restoreDocuments(docs, missing, target, cache) {
                 for (const [index, part] of manifest.parts.entries()) {
                     if (part.file !== `part-${String(index).padStart(3, '0')}.bin` || !Number.isSafeInteger(part.bytes) || part.bytes <= 0 || part.bytes > 32 * 1024 * 1024 || !/^[a-f\d]{64}$/.test(part.checksum))
                         throw Error('Invalid document bundle part');
-                    const b = await fs.readFile(path.join(bundleRoot, part.file));
+                    const b = await fs.readFile(path.join(bundleDirectory, part.file));
                     if (b.length !== part.bytes || sha(b) !== part.checksum)
                         throw Error(`Document bundle integrity failure: ${part.file}`);
                     full.update(b);
@@ -65,13 +79,13 @@ export async function restoreDocuments(docs, missing, target, cache) {
         const options = { maxBuffer: 1024 * 1024, timeout: 120000 };
         const names = (await exec('tar', ['-tzf', archive], options)).stdout.trim().split('\n');
         const detail = (await exec('tar', ['-tvzf', archive], options)).stdout.trim().split('\n');
-        const expected = new Set(docs.map(a => path.basename(a.file)));
-        if (names.length !== docs.length || new Set(names).size !== docs.length || names.some(n => !expected.has(n) || !/^[a-f\d]{20}\.[a-z\d]+$/.test(n)) || detail.length !== docs.length || detail.some(line => !line.startsWith('-')))
+        const expected = new Set(bundled.map(a => path.basename(a.file)));
+        if (names.length !== bundled.length || new Set(names).size !== bundled.length || names.some(n => !expected.has(n) || !/^[a-f\d]{20}\.[a-z\d]+$/.test(n)) || detail.length !== bundled.length || detail.some(line => !line.startsWith('-')))
             throw Error('Unsafe or unexpected document archive entries');
         const temp = await fs.mkdtemp(path.join(cache, 'extract-'));
         try {
             await exec('tar', ['--no-same-owner', '-xzf', archive, '-C', temp], options);
-            for (const a of docs)
+            for (const a of bundled)
                 if (!await matches(path.join(temp, path.basename(a.file)), a.checksum))
                     throw Error(`Document checksum failure: ${a.file}`);
             for (const a of missing) {

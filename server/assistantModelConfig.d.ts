@@ -1,5 +1,5 @@
 export function withAssistantModel<T>(
-  settings: { model: string; reasoning?: "low" | "medium" | "high" },
+  settings: { model?: string; reasoning?: "low" | "medium" | "high" },
   work: () => T,
 ): T;
 export function assistantModelOverride(): string | undefined;

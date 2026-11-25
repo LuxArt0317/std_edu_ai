@@ -1323,8 +1323,62 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] [Issue #100] Dorm fees/applications70; checkout80; repair75; dorm Wi-Fi90.
 - [ ] [Issue #100] Remaining25 cases; prioritize existing public sources and retain private-session requirements.
 
-## [Issues #100/#101] User-requested publication and cloud overwrite
+## [Issues #100/#101] Earlier publication phase — superseded by local-only instruction
+
+Do not resume deployment or cloud overwrite. Production was rolled back; staged candidate remains unpromoted. The latest user instruction is local work only.
 - [ ] Prepare isolated release preserving current production shared-admin access.
 - [ ] Validate build, publish through GitHub/Vercel and verify exact live revision.
 - [ ] Back up cloud lab privately, replace with local53-question/151-run snapshot and verify stored equality.
 - [ ] Resume quality goal afterward;29/53 reached target before publication.
+
+## Phase Next: [Issue #100] Local chatbot model and thinking slash commands
+- [x] Add /model and /thinking controls with keyboard selection.
+- [x] Apply validated request-scoped settings to public and account chat.
+- [x] Preserve selected settings in saved responses and verify locally.
+- [x] Use GPT-6 Luna answers / GPT-6.1 Terra grading locally; do not change production.
+
+## [Issue #100] Local Luna/Terra continuation
+- [x] Preserve failed Q34 rechecks; investigate actual retrieval/verification failures.
+- [x] Restore directory labels and equivalent local URL validation without exposing private records.
+- [x] Confirm Q34 at85 on Luna/Terra, then move to Q36.
+- [ ] Complete remaining questions and cumulative agent regressions; skip unchanged prepared answers.
+
+## [Issue #100] Parallel source coverage (local only)
+- [x] Campus lost-property guidanceQ37 reached75; stop tuning.
+- [x] Native DTM submissionQ23 reached75; unchanged prepared guidance excluded from repeated regression.
+- [x] Library discoveryQ25 reached70; stop tuning.
+- [x] SafetyQ48=75 and fee-discountQ04=70.
+- [x] Academic attendance/graduationQ20=75, verified1 after source-derived workflow coverage and real curriculum-plan navigation; stop tuning.
+- [x] Funding-programQ08=70; Q04=70; stop tuning both.
+- [x] Office-contactQ36=70 using native partial contact directory. Complete original extension book remains source gap #102.
+- [ ] Cumulative previous retrieval-agent recheck after this shared-source batch; no expected-answer leakage.
+
+- [x] StaffparkingQ51 improved40→85 from actual staffsections; stop tuning.
+- [x] Q50=70 and Q53=80 from actual source-backed modules; stop tuning.
+- [ ] Dedicated Codex browser/Computer Use connection needed for UI/private verification. Desktop/headless alternatives remain stopped per user.
+- [x] Current cumulative regression Q19=90 and Q31=80 (API-only).
+- [ ] Repair current regression failures Q45=45 and Q30=15; historical best scores are not current passes.
+
+## [Issue #100] Current-version quality continuation
+- [x] Q09=75 after complete scholarship source coverage; stop tuning.
+- [x] Q30=70 and Q37=80 current regression repairs accepted.
+- [x] Q25/Q34/Q38/Q40/Q41 current API-only regressions passed.
+- [ ] Finish remaining retrieval-agent regressions and authenticated current-version private cases; preserve browser/session gate.
+
+## Authorized publication [Issues #100/#101]
+- [x] User explicitly requested deploying all current changes through the existing GitHub pipeline.
+- [x] Runtime-import lint291files/0errors; isolated JS-only packaging passes without provider calls.
+- [ ] Reconcile11remote release commits with555local commits in isolated release integration; retain shared-admin actor/workspace access and current agent logic.
+- [ ] Run required lint/tests/build gates, publish by authenticated owner GitHub merge, verify exact production revision and hosted lab operation.
+- [ ] Resume unfinished quality/authenticated evaluations after publication; do not mark53-case goalcomplete.
+
+## Authorized production release —25 November2026 [Issue #100, Issue #101]
+
+- [x] Integrate latest GitHub main without overwriting shared lab/admin fixes.
+- [x] Verify runtime import lint and JavaScript-only hosted packaging.
+- [x] Run API/unit/build/handoff/dependency gates; repair integration regression failures.
+- [ ] Pass the complete assistant evaluation suite on the final release tree.
+- [ ] Publish through owner-authenticated GitHub PR/main pipeline and verify exact deployed revision.
+- [ ] Verify public lab entry, assets and unauthorized API boundary; record remaining signed-in acceptance.
+
+All53question quality goal remains open; this release does not claim full private-account or rendered-browser acceptance.

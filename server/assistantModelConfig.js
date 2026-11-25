@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-// Request-scoped model overrides are installed only by the local evaluation
+// Request-scoped overrides come from validated chat settings or the evaluation
 // adapter. Concurrent chats never mutate process.env or each other's settings.
 const requests = new AsyncLocalStorage();
 export function withAssistantModel(settings, work) {

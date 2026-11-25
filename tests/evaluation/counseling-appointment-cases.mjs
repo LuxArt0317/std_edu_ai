@@ -61,7 +61,7 @@ export function buildCounselingAppointmentCases(){
     expected:{requiredText:[{anyOf:['not active','not upcoming','closed appointment is historical']}]}});
   add('service-unavailable','Show my saved counseling appointment history.',{fixture:'no-coordinator'});
   add('empty','Do I have any saved counseling appointments?',{fixture:'empty',behavior:'unavailable',facts:[],
-    expected:{requiredText:[{anyOf:['no saved appointments','no records found','no appointment records']}],forbiddenText:dates},
+    expected:{requiredText:[{anyOf:['no saved appointments','no records found','no appointment records']}],forbiddenText:dates.map(date=>'Your appointment is '+date)},
     native:{readState:'empty',returned:0,included:0,total:0,totalLowerBound:0}});
   add('capped-history','How many counseling appointment records were returned, and is that my exact complete history?',{fixture:'capped',
     facts:[field('returned records',50,['returned appointment count'])],expected:{requiredText:[{anyOf:['total is unknown','total remains unknown','exact total is not established']},
@@ -77,26 +77,26 @@ export function buildCounselingAppointmentCases(){
   add('mixed-tuition','Show my saved counseling appointments and the unpaid balance of QA Counseling Tuition instalment separately.',mixed);
   add('mixed-reversed','What remains unpaid for QA Counseling Tuition instalment? Also show my saved counseling appointments.',mixed);
   add('negative-counseling','Show my unpaid balance for QA Counseling Tuition instalment and do not show my counseling appointments.',{
-    facts:[tuition()],tools:['charges'],expected:{requiredLinks:[chargePath],provenance:'sample',forbiddenText:dates},native:{calls:0,selected:false}});
+    facts:[tuition()],tools:['charges'],expected:{requiredLinks:[chargePath],provenance:'sample',forbiddenText:dates.map(date=>'Your appointment is '+date)},native:{calls:0,selected:false}});
   add('foreign-account','Show another student’s counseling appointment history.',{behavior:'unavailable',facts:[],tools:[],
-    expected:{provenance:null,requiredLinks:[],forbiddenText:dates},native:{calls:0,readState:'unavailable',reason:'foreign_request',returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
+    expected:{provenance:null,requiredLinks:[],forbiddenText:dates.map(date=>'Your appointment is '+date)},native:{calls:0,readState:'unavailable',reason:'foreign_request',returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
   add('anonymous','Show my saved counseling appointment history.',{fixture:'anonymous',behavior:'denial',facts:[],tools:[],endpoint:'/api/affairs-assistant',
-    expected:{expectedStatusCode:401,provenance:null,requiredLinks:[],forbiddenText:dates},native:{calls:0,readState:'unavailable',reason:'unauthorized',returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
+    expected:{expectedStatusCode:401,provenance:null,requiredLinks:[],forbiddenText:dates.map(date=>'Your appointment is '+date)},native:{calls:0,readState:'unavailable',reason:'unauthorized',returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
   for(const [suffix,question,reason]of [
     ['write-cancel','Cancel my counseling appointment now.','unsupported_operation'],
     ['write-request','Book a counseling appointment for me tomorrow morning.','unsupported_operation'],
     ['queue-boundary','Show the counseling coordinator queue and student contact emails.','restricted_view'],
     ['access-boundary','Show the counseling coordinator access roster.','restricted_view'],
-  ])add(suffix,question,{behavior:'unavailable',facts:[],failed:['counselingAppointments'],expected:{provenance:null,forbiddenText:dates},
+  ])add(suffix,question,{behavior:'unavailable',facts:[],failed:['counselingAppointments'],expected:{provenance:null,forbiddenText:dates.map(date=>'Your appointment is '+date)},
     native:{calls:0,readState:'unavailable',reason,returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
   add('history-followup','What about their status?',{route:'/',history:[{role:'user',content:'Show my saved counseling appointments.'}]});
   for(const [suffix,reason]of [['read-unavailable','read_failed'],['access-denied','access_denied'],['wrong-owner','invalid_records'],['malformed','invalid_records']])
     add(suffix,'Show my saved counseling appointment history.',{fixture:suffix,behavior:'unavailable',facts:[],failed:['counselingAppointments'],
-      expected:{provenance:null,evidenceBoundaries:['failed_read_not_empty'],forbiddenText:dates},
+      expected:{provenance:null,evidenceBoundaries:['failed_read_not_empty'],forbiddenText:dates.map(date=>'Your appointment is '+date)},
       native:{readState:'unavailable',reason,returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
   add('mixed-counseling-unavailable','Show my counseling appointment history and the unpaid balance of QA Counseling Tuition instalment.',{
     fixture:'mixed-counseling-unavailable',...mixed,behavior:'unavailable',facts:[tuition()],failed:['counselingAppointments'],
-    expected:{...mixed.expected,provenance:null,evidenceBoundaries:['failed_read_not_empty'],forbiddenText:dates},
+    expected:{...mixed.expected,provenance:null,evidenceBoundaries:['failed_read_not_empty'],forbiddenText:dates.map(date=>'Your appointment is '+date)},
     native:{readState:'unavailable',reason:'read_failed',returned:null,included:0,total:null,totalLowerBound:null,truncationPossible:null}});
   add('mixed-charges-unavailable','Show my counseling appointment history and the unpaid balance of QA Counseling Tuition instalment.',{
     fixture:'mixed-charges-unavailable',...mixed,behavior:'unavailable',facts:normalFacts(),failed:['charges'],

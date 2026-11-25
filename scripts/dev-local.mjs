@@ -31,7 +31,7 @@ const modules=new Map();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url||'/',`http://127.0.0.1:${port}`);
   if(url.pathname.startsWith('/__evaluation_lab/'))return evaluationLab(req,res);
-  if(url.pathname==='/evaluation-lab'||url.pathname==='/evaluation-lab/'){res.writeHead(302,{Location:'/tools/evaluation-lab/index.html'});res.end();return;}
+  if(url.pathname==='/evaluation-lab'||url.pathname==='/evaluation-lab/'){res.writeHead(302,{Location:'/tools/evaluation-lab/index.html'+url.search});res.end();return;}
   if(!url.pathname.startsWith('/api/'))return vite.middlewares(req,res);
   res.setHeader('X-STU-Local-Agent','hybrid-plan-react');
   res.setHeader('Cache-Control','no-store');

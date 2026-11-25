@@ -1,4 +1,6 @@
+import {assistantRequestDeadline} from '../server/assistantRequestBudget.js';
 import {conversationalGuidance} from '../server/conversationalGuidance.js';
+import {withUserAssistantSettings} from '../server/assistantUserSettings.js';
 import {isPublicScholarshipPolicyQuestion} from '../server/publicScholarshipIntent.js';
 import {isPublicDocumentRequestQuestion} from '../server/publicDocumentRequestIntent.js';
 import {isPublicClubQuestion} from '../server/publicClubIntent.js';
@@ -262,7 +264,7 @@ const readers={internshipRecords:dependencies.readers?.internshipRecords??readIn
   housingBed:dependencies.readers?.housingBed??readHousingBedEvidence,
   housingApplications:dependencies.readers?.housingApplications??readHousingApplicationEvidence};
 return async function handler(request:ApiRequest,response:ApiResponse) {
-  const deadline=Date.now()+55_000;
+  const deadline=assistantRequestDeadline(Date.now());
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
   if(request.method!=='POST') {response.setHeader('Allow','POST');response.status(405).json({error:'Method not allowed'});return;}
@@ -368,7 +370,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
 
-  const publishedHelp=!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)
+  const publishedHelp=!hasProbe&&!isElearningCatalogPageQuestion(question,route)&&!(Array.isArray(input?.images)&&input.images.length)
     ? publishedSchoolGuidance(question) : null;
   if(publishedHelp){for(const step of publishedHelp.activity)stream.progress(step.kind,step.label,step.detail,step.status);stream.send(200,await conversationalGuidance(question,history,publishedHelp,{deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));return;}
   const publicHelp=!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)?campusHelpGuide(question):null;
@@ -1171,4 +1173,4 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
 };
 }
 
-export default createAffairsAssistantHandler();
+export default withUserAssistantSettings(createAffairsAssistantHandler());

@@ -1,15 +1,60 @@
 # Changelog
 ## Unreleased
 
-- Fix hosted Answer Lab account execution by linking compiled chatbot handlers; add a JavaScript-only API packaging check to the production build.
+- Guard production backend imports with an AST linter and isolated JavaScript-only packaging check; compile the account assistant before tests/build.
+- Preserve shared Answer Lab administration, saved history and the common chatbot transport during release integration.
+- Restore fresh-checkout source documents with validated supplemental files instead of rebuilding the large archive.
+- Keep private payment history, personal club attendance and authenticated catalog queries out of public-information routing.
 
-- Show saved Answer Lab evaluations across all models by default; keep explicit model filters and reference-version checks.
 
-- Explain failed Moodle material reads with a specific local destination and preserve independent facts; keep remote-learning Moodle navigation separate from DTM.
+- Version evidence-aware public grading with server-verified registered snapshots, bounded hosted retrieval and preserved earlier score history.
+- Include the actual language graduation clauses and scoped Registrar teaching-feedback contacts without universalizing their scope.
 
-- Keep personal tuition amounts owed out of published-rate guidance; preserve shared conversation-history limits in compiled client checks.
+- Include exact verified funding-source aliases in destination validation without permitting arbitrary URLs.
+- Preserve faculty-training resource coverage and retain local lab filter parameters through redirects.
 
-- Correct public club/calendar routing so personal attendance and membership use caller-owned records; align compiled client checks with the shared per-call transport and conversation context. Publication remains pending release verification.
+- Preserve source-based admission language and timeline distinctions through drafting and review.
+- Add a Run shown option for filtered evaluation subsets and an account-filter deep link; neither starts a run automatically.
+
+- Carry source-derived scholarship process coverage through drafting and review, including complete exception alternatives.
+- Add verified curriculum-plan navigation and an offline latest-versus-best quality summary scoped to current case versions.
+
+- Repair malformed links once against the same public sources before unrelated retrieval; independently audit every corrected draft.
+- Forward initial drafting notes and source-derived workflow coverage through mixed public answer review.
+- Retrieve the signed scholarship application form and highlight actual Student Affairs inquiry navigation for lost property.
+
+- Derive scholarship net amounts and subtotal checks from literal prospectus operands, preserving conditional and mixed-year scope.
+- Add a bounded server-only local request-budget setting while preserving parent deadlines and the production default.
+- Bind housing contract duration to its actual new-student source heading.
+
+- Retrieve financial-obligation notes alongside scholarship calculations and distinguish native records from hypothetical deductions.
+- Explain relevant source-backed alternatives when a requested goal is not generally permitted, without promising eligibility or results.
+
+- Keep degree-rule applicability attached to each clause and expose related procedure evidence without treating a broad section title as universal eligibility.
+
+- Add literal suspension/credit-transfer procedures, cohort-scoped admission milestones, precise housing student categories and specific communication channels.
+
+- Preserve lookup scope when describing missing features instead of asserting unsupported site-wide absence.
+
+- Replace the broken imported phone-directory route with a partial, source-backed native contact page; preserve unknown extensions.
+- Keep public guidance mode consistent through correction, add verified faculty/communication/academic contact evidence, and label API-only evaluations explicitly.
+
+- Recover staff parking policy from verified source sections and correct relevant saved-source drafts once before unnecessary new searches, without skipping independent verification.
+
+- Add verified public funding, learning-resource, safety/contact and academic-rule evidence plus the native DTM file-submission guide; retain supplied source links and sanitized search questions.
+- Preserve the explicitly configured independent source auditor when a user selects an answer model.
+
+- Isolate focused browser evaluations from Vite development reloads so local edits do not destroy in-flight model requests.
+
+- Preserve directory buttons in office/contact evidence, avoid assumed destinations, verify drafts citing any supplied source, and accept equivalent encoded local links without widening destination access.
+
+- Reject backend runtime TypeScript imports before builds, with file locations, production failure reasons and corrective actions.
+
+- Add local /model and /thinking controls with request-scoped validation and saved answer metadata; include GPT-6 Luna in the available catalog and use Terra for independent local grading.
+
+- Retrieve map, directory and verified office-contact evidence together for campus directions.
+
+- Default evaluation results to the selected model, all scores/statuses and highest score first.
 
 - Route student-ID replacement questions to the actual card information source without confusing activation and replacement fees.
 

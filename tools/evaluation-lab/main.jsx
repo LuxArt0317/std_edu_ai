@@ -115,15 +115,15 @@ function App() {
   const [data, setData] = useState(null),
     [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
-    [filter, setFilter] = useState("all");
-  const [scoreFilter,setScoreFilter]=useState('all'),[scoreModel,setScoreModel]=useState('all'),
-    [minimumScore,setMinimumScore]=useState(0),[maximumScore,setMaximumScore]=useState(100),[scoreSort,setScoreSort]=useState('question');
+    [filter, setFilter] = useState(() => new URLSearchParams(window.location.search).get("filter")==="account"?"account":"all");
+  const [scoreFilter,setScoreFilter]=useState('all'),[scoreModel,setScoreModel]=useState('selected'),
+    [minimumScore,setMinimumScore]=useState(0),[maximumScore,setMaximumScore]=useState(100),[scoreSort,setScoreSort]=useState('high');
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(null),
     [live, setLive] = useState({}),
-    [concurrency, setConcurrency] = useState(3),
+    [concurrency, setConcurrency] = useState(() => new URLSearchParams(window.location.search).get("filter")==="account"?1:3),
     [autoJudge, setAutoJudge] = useState(true),
     [judging, setJudging] = useState(false);
   const [model, setModel] = useState(""),
@@ -156,8 +156,9 @@ function App() {
             localStorage.getItem("stu-answer-lab-models") || "{}",
           );
         } catch {}
-        setModel(preferred.model || value.model);
-        setEvaluatorModel(preferred.evaluatorModel || value.model);
+        const restore=hosted||preferred.defaultModel===value.model;
+        setModel(restore&&preferred.model||value.model);
+        setEvaluatorModel(restore&&preferred.evaluatorModel||value.evaluatorModel||value.model);
         void loadModels();
       })
       .catch((reason) => setError(reason.message));
@@ -232,14 +233,14 @@ function App() {
         );
       } catch {}
       setModel((value) =>
-        result.models.includes(saved.model)
+        (hosted||saved.defaultModel===result.defaultModel)&&result.models.includes(saved.model)
           ? saved.model
           : result.models.includes(value)
             ? value
             : result.defaultModel,
       );
       setEvaluatorModel((value) =>
-        result.models.includes(saved.evaluatorModel)
+        (hosted||saved.defaultModel===result.defaultModel)&&result.models.includes(saved.evaluatorModel)
           ? saved.evaluatorModel
           : result.models.includes(value)
             ? value
@@ -258,7 +259,7 @@ function App() {
       try {
         localStorage.setItem(
           "stu-answer-lab-models",
-          JSON.stringify({ model, evaluatorModel, reasoning }),
+          JSON.stringify({ model, evaluatorModel, reasoning,...(!hosted?{defaultModel:data?.model}:{}) }),
         );
       } catch {}
   }, [model, evaluatorModel, reasoning]);
@@ -348,6 +349,7 @@ function App() {
   });
   const domains = [...new Set(filteredQuestions.map((item) => item.domain))];
   const enabled = cases.filter((item) => item.enabled && !item.archivedAt);
+  const shownEnabled = filteredQuestions.filter(item=>item.enabled&&!item.archivedAt);
   async function updateCase(value) {
     const result = await request("case", { case: value });
     setData((previous) => ({
@@ -841,6 +843,12 @@ function App() {
               AI review after each answer
             </label>
             <div>
+              {!busy && shownEnabled.length !== enabled.length && (
+                <button className="button" disabled={judging || saving || !shownEnabled.length}
+                  onClick={() => void execute(shownEnabled.map(item=>item.id))}>
+                  <Play size={15} /> Run shown <span>{shownEnabled.length}</span>
+                </button>
+              )}
               {busy ? (
                 <button
                   className="button danger"
@@ -1197,7 +1205,7 @@ function App() {
                           {run.response.grounding?.source === "conversation"
                             ? `Conversation reply · selected ${run.model}`
                             : `Selected ${run.model}`}
-                          {run.execution && <><span>·</span>{run.execution.authenticated ? "Signed-in chat" : "Guest chat"}<span>·</span>{run.execution.dispatched.length ? run.execution.dispatched.join(", ") : "Native client response"}</>}
+                          {run.execution && <><span>·</span>{run.execution.client === "api-only" ? "API-only evaluation · UI not checked" : run.execution.authenticated ? "Signed-in chat" : "Guest chat"}<span>·</span>{run.execution.dispatched.length ? run.execution.dispatched.join(", ") : "Native client response"}</>}
                           <span>·</span>HTTP {run.statusCode || "—"}
                         </footer>
                       </>
@@ -1348,9 +1356,10 @@ function App() {
                           )}
                           <small className="muted">
                             {run.judge.model} ·{" "}
-                            {run.judge.reasoning || "default"} reasoning · Model
-                            opinion against the supplied reference, not
-                            independent source verification.
+                            {run.judge.reasoning || "default"} reasoning · {run.judge.methodVersion==='public-source-context-v1'
+                              ? 'Reference plus server-checked public snapshots. This is reconstructed context, not proof of original retrieval.'
+                              : 'Reference-only review; no independent source context.'}
+                            {run.judge.methodVersion==='public-source-context-v1'&&' Method: public-source-context-v1. Earlier reference-only scores are not directly comparable.'}
                           </small>
                         </>
                       ) : (

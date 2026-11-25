@@ -67,4 +67,16 @@ The question list, answer badge, history and overview show the separate AI evalu
 
 Use **Scores for** to inspect the selected answer model, any saved model, or all models. Filter below70%, at least70%, 85–100%, a custom inclusive range, unrun, unreviewed, failed, or outdated. Sort by score within each topic. Score filters do not change the Agent model used to generate a new answer. The summary shows review coverage as well as the average, so untested questions are not mistaken for passes. On phones the list can be closed and closes when a question is selected.
 
-The score overview defaults to **All models**, so imported evaluations remain visible even when a different model is selected for the next run. Use **Scores for → Selected model** for model-specific results, and **Refresh shared data** to load runs added by another administrator. Scores from older reference versions remain labelled outdated.
+Default score controls: Selected answer model, All scores and statuses, Highest score first. Select All answer models to view stored scores from other models.
+
+Local development defaults are GPT-6 Luna answers and a separate GPT-6.1 Terra evaluator. Existing history retains the model used for each run and judgment. Local model defaults are refreshed once when the configured default changes, while later explicit choices remain saved. Hosted configuration is unchanged.
+
+The focused browser-client runner uses an isolated same-origin document without development HMR. It still calls the website assistant and lab transport; it is a client/API evaluation, not proof of interactive or visual UI acceptance.
+
+New CLI bank runs display API-only evaluation / UI not checked. Execution metadata is sanitized server-side, retaining only bounded known provenance fields. Existing run history is not relabeled as browser verification.
+
+Use **Run shown** to run only enabled questions currently visible under the search/score/scope filters. **Run enabled** retains its whole-bank behavior. The `?filter=account` view opens the signed-in subset without starting any requests; private runs still require the real browser session and use the same website assistant client.
+
+The account-filter deep link starts with sequential execution. It does not sign in or start the batch. If using the direct Vite page, use `/tools/evaluation-lab/index.html?filter=account`; the development shortcut preserves the query after the next server restart.
+
+Public grading can use **public-source-context-v1**: the server reconstructs bounded, checksum-verified registered snapshots, including a fixed stu.best static-capture fallback when hosted files are absent. Client verification flags and supplied excerpts are not trusted. The four criteria, weights, reference and70 target are unchanged; older reference-only scores are retained and are not directly comparable. Reconstructed evidence is not proof of the original retrieval, personal records or current policy. No historical runs are rejudged automatically.

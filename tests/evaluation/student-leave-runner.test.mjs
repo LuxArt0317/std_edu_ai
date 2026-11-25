@@ -3,7 +3,7 @@ import * as actions from '../../server/accountActionIntent.js';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {runInNewContext} from 'node:vm';
+import {runAssistantClientInNewContext as runInNewContext} from './client-vm.mjs';
 import ts from 'typescript';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
 import * as materialIntent from '../../server/dtmMaterialIntent.js';

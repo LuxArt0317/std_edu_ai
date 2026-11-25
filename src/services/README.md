@@ -90,3 +90,5 @@ Written requests about the Moodle assignment-list view go through the signed-in 
 `assistantLanguage.js` keeps an English surrounding request in English when it contains an isolated parenthesized Chinese interface label. Explicit current or prior user language preferences continue to take precedence.
 
 `websiteAssistant.ts` is the shared website/Answer Lab entry point. It selects the existing public or authenticated client from the actual session user. `assistantTransport.ts` permits request-scoped evaluation configuration without changing routing or global fetch.
+
+`assistantPreferences.js` parses /model and /thinking commands separately from ordinary path questions. `websiteAssistant.ts` applies selected settings through the existing transport and checks server acknowledgement before attaching settings to a saved answer. Commands never enter message history.

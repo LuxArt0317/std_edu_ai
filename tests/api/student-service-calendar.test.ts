@@ -67,11 +67,21 @@ test('the calendar destination has six verified academic-year PDFs in the commit
   });
   const bundle = JSON.parse(await readFile('vendor/school-documents/manifest.json', 'utf8')) as {
     version:number;documents:number;documentKey:string;archiveBytes:number;archiveChecksum:string;
-    parts:Array<{file:string;bytes:number;checksum:string}>;
+    parts:Array<{file:string;bytes:number;checksum:string}>; supplementalDocuments:DocumentAsset[];
   };
   assert.equal(bundle.version, 1);
-  assert.equal(bundle.documents, manifest.length);
-  assert.equal(bundle.documentKey, documentKey(manifest));
+  assert.equal(bundle.supplementalDocuments.length,3);
+  const supplementalFiles=new Set(bundle.supplementalDocuments.map(document=>document.file));
+  const bundled=manifest.filter(document=>!supplementalFiles.has(document.file));
+  assert.equal(bundle.documents,bundled.length);
+  assert.equal(bundle.documentKey,documentKey(bundled));
+  for(const supplemental of bundle.supplementalDocuments){
+    const reviewed=manifest.find(document=>document.file===supplemental.file);
+    assert.ok(reviewed);assert.equal(reviewed.checksum,supplemental.checksum);assert.equal(reviewed.bytes,supplemental.bytes);
+    const content=await readFile('public'+supplemental.file);
+    assert.equal(content.length,supplemental.bytes);assert.equal(sha(content),supplemental.checksum);
+  }
+  for(const document of calendarDocuments)assert.ok(bundled.some(row=>row.file===document.file),'All six calendar PDFs remain in the original archive');
   assert.match(bundle.archiveChecksum, /^[a-f\d]{64}$/);
   assert.ok(Number.isSafeInteger(bundle.archiveBytes) && bundle.archiveBytes > 0);
   assert.ok(Array.isArray(bundle.parts) && bundle.parts.length > 0);

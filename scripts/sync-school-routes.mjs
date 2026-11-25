@@ -8,8 +8,13 @@ const config = JSON.parse(fs.readFileSync(file, 'utf8'));
 const captures = [...directSchoolPages(root)]
   .filter(([route]) => route !== '/')
   .sort(([left], [right]) => Number(right.includes('?')) - Number(left.includes('?')) || left.localeCompare(right));
-// Preserve account API aliases when regenerating copied-page routes.
-const rewrites = [{source:'/api/affairs-conversations',destination:'/api/affairs-data?resource=conversations'}];
+// Keep the standalone lab outside the SPA fallback and preserve account aliases.
+const rewrites = [
+  {source:'/evaluation-lab',destination:'/tools/evaluation-lab/index.html'},
+  {source:'/evaluation-lab/',destination:'/tools/evaluation-lab/index.html'},
+  {source:'/tools/evaluation-lab/index.html',destination:'/tools/evaluation-lab/index.html'},
+  {source:'/api/affairs-conversations',destination:'/api/affairs-data?resource=conversations'},
+];
 for (const [route, page] of captures) {
   const url = new URL(route, 'https://stu.best');
   const has = [...url.searchParams].map(([key, value]) => ({ type: 'query', key, value }));

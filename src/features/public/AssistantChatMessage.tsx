@@ -39,6 +39,7 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               ) : message.phase === 'working' && !message.content ? <p className="text-sm text-muted-foreground">Preparing your answer…</p> : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
+              {message.result?.modelSettings&&<p className="text-xs text-muted-foreground">Model setting: {message.result.modelSettings.model} · Thinking: {message.result.modelSettings.thinking}</p>}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
               {message.result?.verification && <p className="text-xs text-muted-foreground">
                 {message.result.verification.status === 'verified'

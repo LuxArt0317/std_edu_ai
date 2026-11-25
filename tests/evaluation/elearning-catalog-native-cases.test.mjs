@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
+import {runAssistantClientInNewContext} from './client-vm.mjs';
 import ts from 'typescript';
 import {createAffairsAssistantHandler} from '../../api/affairs-assistant.ts';
 import {createResearchAssistantHandler} from '../../server/researchAssistantHandler.js';
@@ -218,7 +219,7 @@ test('registered catalog cases run through authenticated handler, shared graph a
         stream:true,consentedResearchUse:false}):undefined;
       const result=await invoke(guest?createResearchAssistantHandler():accountHandler,{...scenario,requestBody,token:guest?'':account.token});
       assert.equal(result.statusCode,200);
-      assert.equal(transport.mock.callCount(),scenario.catalogOracle.attempts);
+      assert.equal(transport.mock.callCount(),scenario.catalogOracle.attempts,JSON.stringify(result.body));
       for(const id of scenario.catalogOracle.ids){
         const title=coursesById.get(id).title;
         assert.ok(result.body.answer.replace(/&#(\d+);/gu,(_,code)=>String.fromCodePoint(Number(code))).includes(title));
@@ -449,7 +450,7 @@ test('compiled signed-in client sends exact filters directly to the authenticate
   const code=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
   const exports={},requests=[];
   let owner=account.user.id;
-  runInNewContext(code,{exports,require:specifier=>{
+  runAssistantClientInNewContext(code,{exports,require:specifier=>{
     if(specifier.endsWith('campusEntryContract.js'))return {campusEntryIntent};
     if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
     if(specifier.endsWith('learningEntryContract.js'))return {learningEntryIntent};

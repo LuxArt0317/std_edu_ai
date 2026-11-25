@@ -1,5 +1,6 @@
 import {MAX_ASSISTANT_RECORD_COLUMNS,boundedAssistantActivity,boundedAssistantText,boundedConversationMessages} from '../src/services/assistantActivityBudget.js';
 import {maxPublicAnswerVerificationChecks} from '../src/services/assistantVerificationLimits.js';
+import {sanitizeAssistantPreferences} from '../src/services/assistantPreferences.js';
 
 const text=boundedAssistantText;
 const url=value=>typeof value==='string'&&/^(?:https?:\/\/|\/(?!\/))/.test(value)?text(value,2000):'';
@@ -7,6 +8,7 @@ function activity(value){return boundedAssistantActivity([],value);}
 function result(value){
   if(!value||!['answered','clarification','abstained','handoff'].includes(value.status)||typeof value.answer!=='string')return undefined;
   return {answer:text(value.answer,8000),status:value.status,
+    ...(sanitizeAssistantPreferences(value.modelSettings)?{modelSettings:sanitizeAssistantPreferences(value.modelSettings)}:{}),
     citations:Array.isArray(value.citations)?value.citations.slice(0,12).filter(row=>row&&url(row.url)).map(row=>({chunkId:text(row.chunkId,200),claim:text(row.claim,300),title:text(row.title,200),sourceName:text(row.sourceName,160),url:url(row.url),locator:text(row.locator,500)||null,effectiveAt:text(row.effectiveAt,50)||null,reviewedAt:text(row.reviewedAt,50)||null})):[],
     suggestedQuestions:Array.isArray(value.suggestedQuestions)?value.suggestedQuestions.slice(0,3).map(item=>text(item,180)):[],activity:activity(value.activity),
     ...(value.grounding?{grounding:{source:text(value.grounding.source,80),checkedAt:text(value.grounding.checkedAt,50),webSearched:value.grounding.webSearched===true,degraded:value.grounding.degraded===true}}:{}),

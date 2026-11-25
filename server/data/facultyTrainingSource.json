@@ -1,0 +1,136 @@
+{
+  "version": 1,
+  "documents": {
+    "faculty": {
+      "title": "教職員工 – 樹德科技大學",
+      "url": "/%E6%95%99%E8%81%B7%E5%93%A1%E5%B7%A5/",
+      "source": "https://www.stu.edu.tw/%E6%95%99%E8%81%B7%E5%93%A1%E5%B7%A5/",
+      "capturedOn": "2026-11-03",
+      "captureFile": "/school-pages/c84ff482250f1836e2b8.html",
+      "checksum": "c4a6c8e5a14e1a10e4b3d69786c3097e6ddb2e09324111bf39e96e49dfca8609",
+      "sections": {
+        "heading": "常用服務與連結",
+        "serviceLinks": [
+          {
+            "label": "校務資訊系統",
+            "href": "/school-affairs"
+          },
+          {
+            "label": "電子信箱",
+            "href": "/student-sso"
+          },
+          {
+            "label": "電子公文",
+            "href": "/school-sites/edi3.stu.edu.tw/"
+          },
+          {
+            "label": "會議室系統",
+            "href": "/school-sites/infosys.stu.edu.tw/StuMeeting/Login/Signin"
+          },
+          {
+            "label": "教學文件網站",
+            "href": "/school-sites/help.ecc.stu.edu.tw/"
+          },
+          {
+            "label": "GO!服務",
+            "href": "/school-sites/go.stu.edu.tw/"
+          },
+          {
+            "label": "VPN服務",
+            "href": "/school-sites/vpn2.stu.edu.tw/global-protect/login.esp"
+          },
+          {
+            "label": "TronClass 創課(遠距教學)",
+            "href": "/school-sites/tc.stu.edu.tw/"
+          },
+          {
+            "label": "Moodle數位學園(遠距教學)",
+            "href": "/school-sites/elearning.stu.edu.tw/login/index.php"
+          },
+          {
+            "label": "Moodle數位教材網",
+            "href": "/school-sites/dtm.stu.edu.tw/login/index.php"
+          },
+          {
+            "label": "密碼變更",
+            "href": "/school-sites/sso.stu.edu.tw/chpswd/"
+          },
+          {
+            "label": "人力資源網",
+            "href": "/school-sites/info.stu.edu.tw/HRO/HR/hrindex.asp"
+          }
+        ]
+      }
+    },
+    "exchange": {
+      "title": "師資培訓 | 樹德科技大學 國際及兩岸事務處",
+      "url": "/school-sites/www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+      "source": "https://www.oica.stu.edu.tw/%E5%B8%AB%E8%B3%87%E5%9F%B9%E8%A8%93/",
+      "capturedOn": "2026-11-03",
+      "captureFile": "/school-pages/17609a9f5f1f038f3914.html",
+      "checksum": "fe31809cc633768a61d611f59168a5f3c71534b50c27c9f49b727840a24443f2",
+      "sections": {
+        "purpose": "為增進兩岸師資交流，提升教學成效與教學知能，特規劃各類專業課程，提升教師專業及學校行政主管不同的創意思維。",
+        "courseItems": [
+          "樹德科技大學博士級專業師資及業界教師共同安排授課",
+          "臺灣現行教育現況、制度、體系…介紹",
+          "產學研合作模式交流",
+          "可依需求，客制化主題內容"
+        ],
+        "conditions": [
+          "由各校組織15位以上教師，統一辦理入台行程，即可成行。",
+          "研修期間(含來回航班時間)建議至少1週。",
+          "研修期間除課程及講座互動交流，可配合安排企業或學校參訪。",
+          "研修期間可安排臺灣各地文化參訪及體驗。"
+        ],
+        "examples": [
+          "☆協助如何榮獲國際競賽成功方針",
+          "☆大學治理的創新與創能",
+          "☆專業實務技能培育策略",
+          "☆菁英教育",
+          "☆投資理財巴菲特-現金流課程體驗",
+          "☆應用型人才培養及課程體系建設",
+          "☆高等教育成功創新轉型",
+          "☆學校資料管理",
+          "☆心理諮商技巧在教學上應用",
+          "☆核心能力培養與迴圈式教學",
+          "☆大學創辦衍生企業之規劃與實施",
+          "☆校際交流的邊際效益與推動經驗分享",
+          "☆永不放棄的“迴圈式教學”"
+        ]
+      }
+    },
+    "notice": {
+      "title": "【For 導師】115-1 導師輔導知能研習-芳療與心靈的對話-紓壓增能工作坊 - 校園新聞",
+      "url": "/latestnews-single/?id=234451",
+      "source": "https://www.stu.edu.tw/latestnews-single/?id=234451",
+      "capturedOn": "2026-11-03",
+      "captureFile": "/school-pages/b1c07b21415ce739b7fb.html",
+      "checksum": "956b8e2095ac5961239ad3bfb482e6f252a3944f1dc4112fe3e2263adcf2a196",
+      "sections": {
+        "title": "【For 導師】115-1 導師輔導知能研習-芳療與心靈的對話-紓壓增能工作坊",
+        "topic": "研習主題：芳療與心靈的對話－紓壓增能工作坊",
+        "description": "本次研習以「芳療與心靈的對話」為主題，透過香氣體驗與調香實作，陪伴老師覺察自己的情緒與壓力，練習放鬆，為忙碌的日常留一段喘息的時間。",
+        "audienceInvitation": "誠摯邀請各位導師參加，一起在香氣中放慢腳步、整理心情，為自己補充能量。",
+        "date": "日期：115年12月1日（二）",
+        "time": "時間：10:30－12:00",
+        "location": "地點：圖資大樓 LB103",
+        "publicationLabel": "30 2026 Oct",
+        "organizer": {
+          "unit": "學務處身心健康中心",
+          "phone": "07-6158000#2157"
+        },
+        "registrationLinks": [
+          {
+            "label": "【請點我報名】",
+            "href": "/school-sites/infosys.stu.edu.tw/CampusAction/Action/GetActionDetail/64ED926C4036E122F3E5CD92615B380AEF6D7A0C677BE121"
+          },
+          {
+            "label": "https://infosys.stu.edu.tw/CampusAction/Action/GetActionDetail/F102619D50900B20E900CF69365D35410E08895716676C38",
+            "href": "/school-sites/infosys.stu.edu.tw/CampusAction/Action/GetActionDetail/F102619D50900B20E900CF69365D35410E08895716676C38"
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {runInNewContext} from 'node:vm';
+import {runAssistantClientInNewContext as runInNewContext} from './client-vm.mjs';
 import ts from 'typescript';
 import {dtmAssignmentCases as bank,dtmAssignmentFixture as f,dtmAssignmentRaw,dtmAssignmentRoute as route} from './dtm-assignment-native-cases.mjs';
 import {readDtmAssignmentEvidence} from '../../server/accountDtmAssignmentEvidence.js';

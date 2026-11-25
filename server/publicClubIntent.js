@@ -9,7 +9,7 @@ export function isPublicClubQuestion(question){
  return typeof question==='string'&&question.length<=2000
   &&/\b(?:clubs?|student associations?)\b|社團/iu.test(question)
   &&/\b(?:what|which|exist|available|join|apply|find|contact|where|recommend)\b|有哪些|參加|加入|申請|推薦|聯絡|在哪/iu.test(question)
-  &&!/\b(?:my|mine|am i|i (?:have |had )?(?:attended|joined|participated)|their|his|her|another|other student|joined|membership status|credits?|requirements? completed)\b|我的|我已|我(?:目前|現在)?(?:加入|參加|隸屬)|其他學生|他人|學分|已參加/iu.test(question);
+  &&!/\b(?:my|mine|am i|did i|i (?:have |had )?(?:attended|joined|participated)|their|his|her|another|other student|joined|membership status|credits?|requirements? completed)\b|我的|我已|我(?:目前|現在)?(?:加入|參加|隸屬)|其他學生|他人|學分|已參加/iu.test(question);
 }
 
 /** Keep source text, but avoid spending model context on duplicate menu/footer lines and tracking URLs. */

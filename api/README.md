@@ -153,4 +153,6 @@ General dorm prices/application/checkout questions use public policy research be
 
 Public student-card replacement instructions share public research; personal application status and actual card issuance remain separate.
 
-`affairs-data.ts` statically links the shared account chatbot handler for hosted evaluation. Root TypeScript compilation rewrites relative source extensions to emitted JavaScript. The production build verifies the compiled API graph in a temporary directory containing no TypeScript sources, before publication.
+Backend runtime source imports are checked by `npm run lint:runtime-imports`. Hosted evaluation loads generated JavaScript rather than importing another API TypeScript source at runtime.
+
+Public and account assistant handlers use the same server-only assistantRequestBudget helper and preserve parent deadlines. The default remains55seconds within the unchanged60-second hosting configuration. Longer local budgets do not authorize or configure a longer hosted function.

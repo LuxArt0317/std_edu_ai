@@ -140,7 +140,7 @@ test('Student Leave form directions select only the application page through bot
         const body=await request(question,question===row.question?'/':historyPath);
         assert.deepEqual(body.citations.map(item=>item.url),[row.expected.requiredLinks[0]],question);
         const observed={...envelope(row,body.answer),body,events:[]};
-        assert.deepEqual(gradeCase(row,observed).failures,[],question);
+        assert.deepEqual(gradeCase(row,observed).failures,[],JSON.stringify({question,answer:body.answer}));
         if(question===row.question){
           const misdirected={...observed,body:{...body,citations:[...body.citations,{url:historyPath}]}};
           assert.ok(gradeCase(row,misdirected).failures.some(item=>item.id==='links.forbidden.0'));

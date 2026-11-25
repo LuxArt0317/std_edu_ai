@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "title": "聯絡資訊與分機查詢",
+  "path": "/%E5%88%86%E6%A9%9F%E8%A1%A8/",
+  "records": [
+    {
+      "id": "school-phone",
+      "name": "學校電話聯絡",
+      "phone": "(+886) 7-615-8000",
+      "extensions": [],
+      "email": null,
+      "address": null,
+      "source": {
+        "title": "樹德科技大學 – 愛上宜學、宜居、宜行、宜樂的山水校園",
+        "url": "/",
+        "source": "https://www.stu.edu.tw/",
+        "captureFile": "/school-pages/812a41999d5c86de24d4.html",
+        "checksum": "747c7a550ad7916b9965ec551a014b18578657fcb4238295aeb3d7b81a781f32",
+        "capturedOn": "2026-11-03",
+        "locator": "div",
+        "text": "電話聯絡\n (+886) 7-615-8000 \n 本校位置\n 高雄市燕巢區橫山路59號 \n 電子郵件\n 連結"
+      }
+    },
+    {
+      "id": "academic-affairs",
+      "name": "教務處",
+      "phone": "+886-7-6158000",
+      "extensions": [],
+      "email": "course@stu.edu.tw",
+      "address": "82445高雄市燕巢區橫山路59號行政大樓1樓",
+      "source": {
+        "title": "學期成績開放查詢及申請列印 | 樹德科技大學 教務處",
+        "url": "/school-sites/www.aca.stu.edu.tw/2024/02/01/%E5%AD%B8%E6%9C%9F%E6%88%90%E7%B8%BE%E9%96%8B%E6%94%BE%E6%9F%A5%E8%A9%A2%E5%8F%8A%E7%94%B3%E8%AB%8B%E5%88%97%E5%8D%B0/",
+        "source": "https://www.aca.stu.edu.tw/2024/02/01/%E5%AD%B8%E6%9C%9F%E6%88%90%E7%B8%BE%E9%96%8B%E6%94%BE%E6%9F%A5%E8%A9%A2%E5%8F%8A%E7%94%B3%E8%AB%8B%E5%88%97%E5%8D%B0/",
+        "captureFile": "/school-pages/93e914d92ace74d27ca4.html",
+        "checksum": "0e5332e8f2b7f1ca67b4a46a449f06071dd2ffae472a80e81b9a1e5d9a42dccd",
+        "capturedOn": "2026-11-03",
+        "locator": "#text-12",
+        "text": "聯絡資訊 | Contact Us 82445高雄市燕巢區橫山路59號行政大樓1樓\nNo.59, Hengshan Rd., Yanchao, Kaohsiung County 82445, Taiwan (R.O.C.)｜\nTel： +886-7-6158000 ext. list｜\nE-Mail： course@stu.edu.tw｜"
+      }
+    },
+    {
+      "id": "registrar-teaching-feedback",
+      "name": "教務處註冊課務組（課程教學意見反應）",
+      "phone": "+886-7-6158000",
+      "extensions": [
+        "2007",
+        "2009",
+        "2010",
+        "2012",
+        "2014",
+        "2016"
+      ],
+      "email": "course@stu.edu.tw",
+      "address": null,
+      "source": {
+        "title": "教學意見反應管道宣導 | 樹德科技大學 教務處",
+        "url": "/school-sites/www.aca.stu.edu.tw/2019/06/13/%E6%95%99%E5%AD%B8%E6%84%8F%E8%A6%8B%E5%8F%8D%E6%87%89%E7%AE%A1%E9%81%93%E5%AE%A3%E5%B0%8E/",
+        "source": "https://www.aca.stu.edu.tw/2019/06/13/%E6%95%99%E5%AD%B8%E6%84%8F%E8%A6%8B%E5%8F%8D%E6%87%89%E7%AE%A1%E9%81%93%E5%AE%A3%E5%B0%8E/",
+        "captureFile": "/school-pages/3d6b6ee6b69b7eef87d2.html",
+        "checksum": "e70d89cda993fd7d3ed3867afee3eef25626eabbb004f81a8ff1fee58ba3f1ee",
+        "capturedOn": "2026-11-03",
+        "locator": "article#post-1602 p (course-teaching-feedback contact and attribution); #text-12 (same-page ACA phone)",
+        "text": "除了藉由校務資訊系統反應外，也可e-mail至course@stu.edu.tw信箱提出課程教學上的問題，或直接來電教務處反應，分機2007, 2009, 2010, 2012, 2014, 2016。\n教務處註冊課務組啟\nTel： +886-7-6158000 ext. list｜"
+      }
+    },
+    {
+      "id": "international-affairs",
+      "name": "國際及兩岸事務處",
+      "phone": "+886-7-6158000",
+      "extensions": [
+        "1610",
+        "1603",
+        "1606"
+      ],
+      "email": "oica@stu.edu.tw",
+      "address": "824台灣高雄市燕巢區橫山路59號\n行政大樓四樓A0428",
+      "source": {
+        "title": "聯絡資訊 | 樹德科技大學 國際及兩岸事務處",
+        "url": "/school-sites/www.oica.stu.edu.tw/%E8%81%AF%E7%B5%A1%E8%B3%87%E8%A8%8A/",
+        "source": "https://www.oica.stu.edu.tw/%E8%81%AF%E7%B5%A1%E8%B3%87%E8%A8%8A/",
+        "captureFile": "/school-pages/c9abaefc689375e06805.html",
+        "checksum": "c1070182600f435d3cf6c36ed121faed16061c7bba6c66689e5a6eed40a35a97",
+        "capturedOn": "2026-11-03",
+        "locator": "#footer",
+        "text": "聯絡我們824台灣高雄市燕巢區橫山路59號\n行政大樓四樓A0428\nPhone : +886-7-6158000\n分機 1610\n1603\n1606\nE-mail : oica@stu.edu.tw\n Statistics線上訪客: 2今日瀏覽量: 690總瀏覽量: 1,812,967\n 相關資訊網站 教育部國際及兩岸教育\n交通部中央氣象局\n內政部移民署全球資訊網\n海外聯合招生委員會\n陸生聯招會\n外交部領事事務局全球資訊網/留學生出國登錄專區"
+      }
+    },
+    {
+      "id": "general-affairs",
+      "name": "總務處事務組",
+      "phone": "07-6158000",
+      "extensions": [
+        "2242",
+        "2239"
+      ],
+      "email": null,
+      "address": null,
+      "source": {
+        "title": "停車證申辦流程 - 樹德科技大學 總務處事務組",
+        "url": "/school-sites/things.stu.edu.tw/%E5%81%9C%E8%BB%8A%E8%AD%89%E7%94%B3%E8%BE%A6%E6%B5%81%E7%A8%8B/",
+        "source": "https://things.stu.edu.tw/%E5%81%9C%E8%BB%8A%E8%AD%89%E7%94%B3%E8%BE%A6%E6%B5%81%E7%A8%8B/",
+        "captureFile": "/school-pages/bb0e6fce05ca73165032.html",
+        "checksum": "c222f2b1d1515e700c0b7a17f10742cbe3748bf8a036e630776f90a0efc1dc42",
+        "capturedOn": "2026-11-03",
+        "locator": "如有任何問題請電洽總務處事務組",
+        "text": "如有任何問題請電洽總務處事務組07-6158000涂欣佐助理(#2242)黃治培助理(#2239)"
+      }
+    }
+  ],
+  "coverage": "Only the listed public contacts from verified saved captures are included. This is not a complete university phone book or a live directory. Empty fields mean not recorded here, not that no contact exists. No staff role, recipient availability, office authority, delivery or private record is established."
+}

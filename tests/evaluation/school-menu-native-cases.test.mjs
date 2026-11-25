@@ -73,7 +73,7 @@ function assertResponse(item,result){
   assert.equal(body.grounding.webSearched,false);
   assert.ok(body.activity.some(step=>step.kind==='directory'&&step.status==='complete'));
   assert.deepEqual(body.citations.map(({title,url,locator})=>({title,url,locator})),
-    rowsFor(item).slice(0,12).map(({title,url,locator})=>({title,url,locator})));
+    rowsFor(item).slice(0,12).map(({title,url,locator})=>({title,url:locator||url,locator})));
   for(const citation of body.citations){
     assert.ok(body.answer.includes('['+citation.title+']('+citation.locator+')'),citation.title);
     assert.ok(body.answer.includes(']('+citation.url+')'),citation.url);
