@@ -1,5 +1,9 @@
 # Server helpers
 
+`publicClubIntent.js` retains exact named Instagram contacts from the verified club-directory capture, with64-contact/8KB bounds and strict HTTPS/profile/query validation. These are outgoing source-published contact links, not mirrored social pages, verified meeting locations, live account content or membership outcomes. An ambiguous club name needs clarification.
+
+Own course-planning advice uses mixed factual/guidance review and only the selected course-selection and graduation-review tools. The bounded bilingual grammar excludes factual lookups, foreign-student requests, write commands and mixed-domain requests. It supplies no course recommendation, next-term mapping, credit threshold or authorization to enroll; missing selectors still require clarification.
+
 Scholarship response-needs notes use only source-present form, policy, tier and obligation sections. They explicitly separate the applicant group, programme obligations and award conditions, and include a repayment consequence only when the supplied policy text contains it. They contain no expected-answer values.
 
 `evaluation_match_review` uses up to its caller's existing30-second deadline rather than the planner's15-second transport cap. It keeps the explicitly selected grader and2400-token output budget; source-auditor selection and planner limits are unchanged.

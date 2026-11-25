@@ -1,5 +1,13 @@
 # Task Plan
 
+## Club contact projection and course-planning intent [Issue #100]
+
+- [x] Audit Q43 actual captured contacts and identify URL removal during compaction.
+- [x] Preserve bounded named contacts and exact allowed URLs; keep location/membership scope explicit.
+- [x] Recognize Q16-family mixed course-planning advice with two owned record tools and safe exclusions.
+- [x] Verify focused source/intent/privacy checks, API types and runtime import lint.
+- [ ] Reload and evaluate Q43 once; Q16 still requires a verified signed-in run.
+
 ## Coverage-feedback and checker-interruption repair [Issue #100]
 
 - [x] Retain validated focus-gap labels as untrusted repair hints while preserving rejection/reference checks.

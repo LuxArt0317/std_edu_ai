@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Retain bounded source-published club Instagram contacts through compaction and link verification, keeping club names distinct and meeting locations unconfirmed.
+- Recognize bounded bilingual course-planning advice as mixed guidance with selected course-selection/graduation records, without inferring terms, thresholds or enrollment actions.
+
 - Clarify scholarship source coverage for applicant scope, programme/award obligations and source-present repayment consequences. Add optional independent source-audit reasoning effort without changing answer/grading settings or unset production defaults.
 
 - Let evaluation grading use its already configured30-second deadline instead of the shared15-second planner timeout; retain the selected grader, token budget and request deadline.
