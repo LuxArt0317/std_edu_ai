@@ -185,5 +185,22 @@
       "bytes": 17981440,
       "checksum": "7919e280692022d09eeddee4341e258d4615a5cec4a003d015f7852b7cd898f7"
     }
+  ],
+  "supplementalDocuments": [
+    {
+      "file": "/school-assets/e44f25b3f3d059cea3e3.pdf",
+      "checksum": "e44f25b3f3d059cea3e31bc618cd09239def01feb4bb46ddb25a574f89ed1f2e",
+      "bytes": 429158
+    },
+    {
+      "file": "/school-assets/6bff0a223ccf7873e1f1.pdf",
+      "checksum": "6bff0a223ccf7873e1f1c162fc6d1de60615e1e99b2650ef5634f397b11cd8b0",
+      "bytes": 146065
+    },
+    {
+      "file": "/school-assets/e4596ecbaaafd37a1a13.pdf",
+      "checksum": "e4596ecbaaafd37a1a13f8045c1dade2b2bc95bb0994c811e9a608efd8065e94",
+      "bytes": 196504
+    }
   ]
 }

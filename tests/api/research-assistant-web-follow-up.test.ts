@@ -1271,6 +1271,16 @@ test('an evergreen omission gets another review after a bounded temporary source
   }
 });
 
+// Current public mixed-response reviews audit every server-numbered paragraph.
+function publicReviewFixture(call:any,value:any){
+ const context=JSON.parse(call.input[0].content[0].text);
+ if(call.text.format.schema.required.includes('parts')){
+  const {claims,...review}=value;
+  value={...review,parts:context.answerParts.map((part:any)=>({id:part.id,kind:'factual',accepted:value.supported,claims}))};
+ }
+ return provider(value);
+}
+
 test('verified public detail can advance through four checks and survives stalled or rejected follow-ups',async()=>{
   const admissible='The STU library archive exhibition has free admission.';
   const entrance='Visitors enter the STU archive exhibition through the North Reading Room.';
@@ -1355,7 +1365,7 @@ test('verified public detail can advance through four checks and survives stalle
       if(outcome==='outage'&&index===2)return Response.json({error:{code:'service_unavailable'}},{status:503});
       if(outcome==='rejected-then-recovered'&&index===2){
         assert.match(context.answer,/REJECTED_DRAFT_MARKER/u);
-        return provider({supported:false,answersQuestion:false,missingRequestedDetails:['opening time'],claims:[{
+        return publicReviewFixture(call,{supported:false,answersQuestion:false,missingRequestedDetails:['opening time'],claims:[{
           claim:'The opening time remains unsupported. REJECTED_FEEDBACK_MARKER.',supported:false,evidenceId:found(2).id,quotes:[],jsonPaths:[],
         }]});
       }
@@ -1367,7 +1377,7 @@ test('verified public detail can advance through four checks and survives stalle
       let missing=missingAt(index);
       if(swapped)missing=['admission','opening time'];
       else if(index===2)missing=outcome==='same-gaps-with-lead'?missingAt(1):[outcome==='relabeled'?'start time':' Ｏｐｅｎｉｎｇ   Ｔｉｍｅ ',...unresolved];
-      return provider({supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
+      return publicReviewFixture(call,{supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
     };
     const progress:Progress[]=[];
     const answer=await invoke({question:question+(unresolved.length?' Are guide handouts available?':'')},run,'verified-public-continuation-'+outcome,progress);
@@ -1495,6 +1505,7 @@ test('a managed verified partial searches fresh public evidence while preserving
         assert.doesNotMatch(call.input,/PRIVATE_|my attendance/u);
         return controlledFetch(input,init);
       }
+      if(name==='compose_grounded_answer')return provider({status:'answered',answer:baseline,sourceIds:[managedExcerpt.chunk_id]});
       if(name==='public_grounded_answer')return provider({status:'answered',answer:baseline,
         citations:[{chunkId:managedExcerpt.chunk_id,claim:priorClaim}],suggestedQuestions:[]});
       const context=JSON.parse(call.input[0].content[0].text);
@@ -1512,9 +1523,9 @@ test('a managed verified partial searches fresh public evidence while preserving
       const managed=context.evidence.find((item:{id:string})=>item.id===managedExcerpt.chunk_id);
       const web=context.evidence.find((item:{url:string})=>item.url===officialNotice);
       if(web)assert.deepEqual(context.previousMissingRequestedDetails,[pending[0].toLowerCase()]);
-      if(!web&&rejectedFirst&&++managedReviews===1)return provider({supported:false,answersQuestion:false,missingRequestedDetails:pending,
+      if(!web&&rejectedFirst&&++managedReviews===1)return publicReviewFixture(call,{supported:false,answersQuestion:false,missingRequestedDetails:pending,
         claims:[{claim:'The first managed draft needs rechecking',supported:false,evidenceId:managed.id,jsonPaths:[],quotes:[]}]});
-      return provider({supported:true,answersQuestion:true,missingRequestedDetails:web?[]:pending,claims:[
+      return publicReviewFixture(call,{supported:true,answersQuestion:true,missingRequestedDetails:web?[]:pending,claims:[
         {claim:priorClaim,supported:true,evidenceId:managed.id,jsonPaths:['/content'],quotes:[]},
         ...(web?[{claim:'Exhibition opening time',supported:true,evidenceId:web.id,jsonPaths:[],quotes:[noticeContent]}]:[]),
       ]});
@@ -1523,7 +1534,7 @@ test('a managed verified partial searches fresh public evidence while preserving
       {role:'user',content:'What are my attendance records at STU?'},
       {role:'assistant',content:'PRIVATE_HISTORY_SENTINEL'},
     ]},attempt.run,'managed-verified-partial-fresh-'+rejectedFirst,progress);
-    assert.deepEqual(stages,['public_grounded_answer','answer_evidence_review',
+    assert.deepEqual(stages,['compose_grounded_answer','public_grounded_answer','answer_evidence_review',
       ...(rejectedFirst?['correct_grounded_answer','answer_evidence_review']:[]),'stu_web_answer','correct_grounded_answer','answer_evidence_review']);
     const checks=rejectedFirst?3:2;
     assert.deepEqual(measuredCoverage,Array(checks).fill(true));
@@ -1557,6 +1568,7 @@ test('managed public recovery keeps verified text and citations through stalls, 
         assert.doesNotMatch(call.input,/PRIVATE_|exhibition time and entrance are unverified/u);
         return Response.json(searchPayload([officialNotice],noticeContent));
       }
+      if(name==='compose_grounded_answer')return provider({status:'answered',answer:baseline,sourceIds:[managedExcerpt.chunk_id]});
       if(name==='public_grounded_answer')return provider({status:'answered',answer:baseline,
         citations:[{chunkId:managedExcerpt.chunk_id,claim:'Contact guidance'}],suggestedQuestions:[]});
       const context=JSON.parse(call.input[0].content[0].text);
@@ -1573,7 +1585,7 @@ test('managed public recovery keeps verified text and citations through stalls, 
       const claims=web&&outcome==='lost-known-detail'
         ?[{claim:'Exhibition opening',supported:true,evidenceId:web.id,quotes:[noticeContent],jsonPaths:[]}]
         :[{claim:'Archive visitor contact guidance',supported:true,evidenceId:managedExcerpt.chunk_id,quotes:[],jsonPaths:['/content']}];
-      return provider({supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
+      return publicReviewFixture(call,{supported:true,answersQuestion:true,missingRequestedDetails:missing,claims});
     };
     const answer=await invoke({question},run,'managed-partial-'+outcome,progress,outcome==='no-time'?start+23_900:undefined);
     const improvedRead=['same-coverage','lost-known-detail','uncited-new-source'].includes(outcome);
@@ -1623,6 +1635,7 @@ test('a managed excerpt permits one original-page read and reviews only genuinel
         assert.doesNotMatch(call.input,/PRIVATE_|opening time is unverified|my attendance/u);
         return Response.json(searchPayload([pageUrl],unsafeDraft));
       }
+      if(name==='compose_grounded_answer')return provider({status:'answered',answer:baseline,sourceIds:[managedExcerpt.chunk_id]});
       if(name==='public_grounded_answer')return provider({status:'answered',answer:baseline,
         citations:[{chunkId:managedExcerpt.chunk_id,claim:'Verified staff contacts'}],suggestedQuestions:[]});
       const context=JSON.parse(call.input[0].content[0].text);
@@ -1638,7 +1651,7 @@ test('a managed excerpt permits one original-page read and reviews only genuinel
       assert.equal(name,'answer_evidence_review');
       reviews++;
       if(original)assert.deepEqual(context.previousMissingRequestedDetails,['opening time private_gap_label']);
-      return provider({supported:true,answersQuestion:true,missingRequestedDetails:original?[]:['opening time PRIVATE_GAP_LABEL'],
+      return publicReviewFixture(call,{supported:true,answersQuestion:true,missingRequestedDetails:original?[]:['opening time PRIVATE_GAP_LABEL'],
         claims:[
           {claim:'Verified staff contact guidance',supported:true,evidenceId:managedExcerpt.chunk_id,jsonPaths:['/content'],quotes:[]},
           ...(original?[{claim:'Verified exhibition opening time',supported:true,evidenceId:original.id,jsonPaths:[],quotes:[noticeContent]}]:[]),

@@ -90,3 +90,8 @@ Moodle login, both grade destinations and third-party grade access returned grou
 | survey-faq-q53 | Can the website provide a way to communicate with students? | public | records/research | records/research |
 
 Validation checkpoint: 18 targeted public/source checks and 49 existing native Student Leave checks passed (67 total), plus API and frontend TypeScript compilation. No full-bank accuracy score or full signed-in acceptance is claimed.
+
+## Local parallel evaluation findings —25 November2026
+The current lab grader receives question, reference, contract and answer text only; it does not receive retrieved source content or saved citations/verification. Therefore its score measures reference agreement, not independent source truth. Additional true details absent from a reference may be marked unsupported. Q04/Q20 also have real completeness gaps; this limitation is not grounds to declare them passing. Keep the current rubric unchanged during this goal so scores remain comparable. A future evidence-aware grader should use bounded server-resolved source content with checked claims, version its method, distinguish reconstructed evidence and preserve earlier scores. Never trust a client-submitted verified flag alone.
+
+Public grader context now has an explicit method version (public-source-context-v1). It reconstructs only registered public captures with byte hashes and bounded transport, preserves prior judge history, and distinguishes additional supported facts from facts absent from the reference. Rubric criteria/weights and question references remain unchanged. Account grading remains reference-only. This is not a claim of original retrieval provenance or live policy verification.

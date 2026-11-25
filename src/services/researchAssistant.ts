@@ -4,6 +4,7 @@ import {readAssistantReply} from './assistantStreamReader.js';
 
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
+  modelSettings?:import('./assistantPreferences.js').AssistantPreferences;
   proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'update_display_name'|'set_assignment_status'|'cancel_club_equipment'|'counseling_cancel'|'cancel_facility_repair'|'withdraw_learning_support'|'submit_learning_support'|'create_student_leave_draft';label:string;payload:Record<string,string>;requestId?:string;url?:string};
   grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
   verification?: {status:'verified'|'unverified';attempts:number;reason?:string};

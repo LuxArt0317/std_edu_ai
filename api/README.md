@@ -153,4 +153,6 @@ General dorm prices/application/checkout questions use public policy research be
 
 Public student-card replacement instructions share public research; personal application status and actual card issuance remain separate.
 
-Hosted evaluation uses a generated JavaScript module compiled from `affairs-assistant.ts` before packaging. The combined data entry does not import another API TypeScript entry at runtime. The production build checks the generated handler and combined API in a temporary tree containing no TypeScript sources.
+Backend runtime source imports are checked by `npm run lint:runtime-imports`. Hosted evaluation loads generated JavaScript rather than importing another API TypeScript source at runtime.
+
+Public and account assistant handlers use the same server-only assistantRequestBudget helper and preserve parent deadlines. The default remains55seconds within the unchanged60-second hosting configuration. Longer local budgets do not authorize or configure a longer hosted function.

@@ -70,4 +70,28 @@ Verification fallback assertions expect conversational uncertainty wording. Stor
 
 Heading-only card extraction and stable paragraph locators are covered in knowledge-acquisition.test.ts. answer-verification-provider.test.ts checks that registered public-page composition cannot replace mixed account contracts and that quota failures are not presented as a brief wait.
 
-`public-personal-intent-boundary.test.ts` checks public club/calendar routing against personal attendance and membership while preserving public navigation. Compiled client tests use `tests/evaluation/client-vm.mjs` to execute the actual transport and history normalization with test-local fetch stubs.
+`public-office-directions.test.ts` verifies actual captured office locations outside main-article text and rejects tampered contact content before it reaches model evidence.
+
+`runtime-import-lint.test.ts` verifies source import detection, file locations, explanatory diagnostics, and allowed type-only/JavaScript dependencies. `assistant-user-settings.test.ts` covers slash preferences and request isolation.
+
+`answer-navigation-url.test.ts` checks URL equivalence through the real answer-link verifier and rejects foreign-host or changed-selector destinations. Office-source checks cover actual administrative-directory labels and keep private grades outside public contact intent.
+
+Public campus-support, funding, learning-resource, academic-rule and DTM-submission tests check actual source projections or mounted workflow contracts, intent/privacy boundaries and source tampering. The provider tests verify that a selected answer model cannot overwrite the configured independent auditor. Shared public recovery/context checks passed65cases after the sanitized-question routing correction.
+
+Staff parking checks verify exact source sections and exclude private approvals/student prices. Office-handler tests prove a rejected but relevant saved-source draft is corrected and independently reviewed before new search, while public-context recovery tests still require new source reads for drafts that do not answer the question.
+
+Public guidance repair tests exercise consistent mixed guidance across rejection and correction. Contact-directory tests verify literal published fields, unknown extensions, native route precedence, page context and the actual handler without duplicate source reads. Faculty/communication/academic source tests preserve source boundaries.
+
+Enrollment evidence tests preserve admission selectors and event roles. Study-option tests validate literal procedure clauses and source scope; housing terminology tests prevent continuing/resuming student categories from merging.
+
+public-prospectus-financial-context.test.ts checks that deduction queries retain the subsidy timing source and separate sign-in-required native record links, while language eligibility avoids irrelevant financial navigation.
+
+assistant-request-budget.test.ts rejects malformed/unbounded budgets and proves nested requests cannot extend parent deadlines. Financial projection tests check parsed source operands, conditional tiers, gross-vs-reduced subtotal arithmetic and delayed subsidy scope. Housing scope tests bind contract clauses to their actual audience heading.
+
+Saved-public-link tests cover eligible/denied correction boundaries and an actual handler sequence with no web fallback. Mixed coverage tests prove initial focus notes and reviewer missing-details survive. Academic response-needs tests derive coverage only from available public clauses and navigation.
+
+Prospectus response-needs tests require actual section-role evidence, reject unsupported contexts and preserve exception alternatives. Academic navigation tests distinguish curriculum plans from graduation-review aliases and avoid asserting universal placement/activity requirements.
+
+Admission coverage tests validate source-gated language and timeline focus notes without hardcoded expected dates/thresholds.
+
+The guidance history test now validates the existing24-message/64kB/8000-character context contract, role filtering and Unicode-safe clipping instead of an obsolete six-message cap.

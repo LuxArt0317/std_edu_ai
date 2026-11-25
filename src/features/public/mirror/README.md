@@ -9,3 +9,5 @@ The release serves each captured document directly at its `stu.best` route. `scr
 Run `npm run sync:school-routes` after changing `pages.json`, then `npm run build` and `npm run test:school-mirror`. See [mirror QA](../../../../docs/qa/SCHOOL_MIRROR.md) for provenance, coverage and limits. Do not edit a captured HTML file without updating its checksum and provenance.
 
 The School Map capture’s transparent placeholder was repaired using the original registered publisher image. `scripts/repair-campus-map.mjs` updates its local source and asset checksums while preserving all other captured markup. The original capture date remains historical; this is an asset repair, not a claim that page content was recaptured. Other missing-media warnings remain untouched.
+
+The local asset registry includes the checksum-verified bilingual1150202 academic-rules PDF used by the assistant source projection. See [source data](../../../../server/data/README.md) for its importer and scope.

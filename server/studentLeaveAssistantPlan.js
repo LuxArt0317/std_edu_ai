@@ -77,7 +77,7 @@ export function studentLeaveBoundary(plan, question) {
   const messages = [];
   if (plan.formNavigation) {
     messages.push(say(
-      'Open School Affairs → Student Affairs → Student Leave to prepare and save your request on stu.best. A saved draft is not an approved leave.',
+      'Open School Affairs → Student Affairs → Student Leave form to prepare and save your request on stu.best. A saved draft is not an approved leave. Official submissions require the university’s Student Leave system.',
       '請開啟校務系統的學生請假表單，在 stu.best 填寫並儲存假單。正式請假請使用校方請假系統。'));
   } else if (plan.navigation) {
     messages.push(say(
@@ -111,7 +111,7 @@ export function studentLeaveBoundary(plan, question) {
 export function studentLeaveNavigation(plan, question) {
   if (!plan.navigation) return null;
   const zh = assistantLanguage(question)==='zh-Hant';
-  const links = [[studentLeaveBasePath, zh ? '請假表單' : 'Leave form']];
+  const links = [[studentLeaveBasePath, zh ? '請假表單' : 'Student Leave form']];
   if (!plan.formNavigation) links.push(
     [studentLeaveBasePath+'/history', zh ? '請假紀錄' : 'Leave history'],
     [studentLeaveBasePath+'/archive', zh ? '舊請假紀錄' : 'Archived leave'],

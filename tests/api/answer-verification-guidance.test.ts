@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {assistantContext,ASSISTANT_CONTEXT_MESSAGES} from '../../src/services/assistantContext.js';
 import {test} from 'node:test';
 import {composeEvidenceAnswer,repairEvidenceAnswer,verifyEvidenceAnswer} from '../../server/answerVerificationModel.js';
 import {runAnswerVerification} from '../../server/answerVerification.js';
@@ -155,12 +154,19 @@ test('guidance does not authorize invented links, missing snapshot provenance or
 test('initial composition uses bounded evidence and history, never the generic profile draft or producer approval',async()=>{
   const action={kind:'create_task',payload:{title:'Prepare one project example'}},prior={...candidate('SECRET_GENERIC_PROFILE_DUMP'),proposedAction:action,citations:[{chunkId:source.id,url:source.url}],verification:{status:'verified'}};
   await mocked([{status:'answered',answer:[advice,template,followup].join('\n\n'),sourceIds:[],proposedAction:{kind:'delete_account'}}],async requests=>{
-    const output=await composeEvidenceAnswer({...context(),candidate:prior,evidence:[],responseIntent:'coaching',history:Array.from({length:8},(_,i)=>({role:i===7?'system':'user',content:i===6?'甲😀'.repeat(400):String(i)+'x'.repeat(1200)}))});
+    const output=await composeEvidenceAnswer({...context(),candidate:prior,evidence:[],responseIntent:'coaching',history:Array.from({length:30},(_,i)=>({role:i===29?'system':i%2?'assistant':'user',content:i===29?'SYSTEM_HISTORY_MUST_NOT_PASS':i===28?'甲😀'.repeat(400):'TURN_'+i+':'+('x'.repeat(9000))}))});
     assert.equal(requests[0].text.format.name,'compose_grounded_answer');
     const input=JSON.parse(requests[0].input[0].content[0].text);
     assert.equal(input.previousAnswer,undefined);assert.equal(input.answer,undefined);assert.doesNotMatch(JSON.stringify(input),/SECRET_GENERIC_PROFILE_DUMP/);
-    assert.ok(input.history.length<=ASSISTANT_CONTEXT_MESSAGES);assert.ok(input.history.every((entry:any)=>entry.content.length<=8000&&entry.role==='user'));
-    assert.deepEqual(input.history,assistantContext(Array.from({length:8},(_,i)=>({role:i===7?'system':'user',content:i===6?'甲😀'.repeat(400):String(i)+'x'.repeat(1200)}))));
+    // Saved conversations retain up to 24 turns with a 64 kB text budget,
+    // rather than the obsolete six-turn/1,000-character profile prompt.
+    assert.ok(input.history.length>6&&input.history.length<=24);
+    assert.ok(input.history.every((entry:any)=>entry.content.length<=8000&&['user','assistant'].includes(entry.role)));
+    assert.ok(input.history.some((entry:any)=>entry.role==='assistant'));
+    assert.ok(input.history.reduce((total:number,entry:any)=>total+Buffer.byteLength(entry.content,'utf8'),0)<=64000);
+    assert.doesNotMatch(JSON.stringify(input.history),/SYSTEM_HISTORY_MUST_NOT_PASS|TURN_0:/);
+    assert.equal(input.history.at(-1).content,'甲😀'.repeat(400));
+    assert.ok(input.history.every((entry:any)=>!/[\uD800-\uDBFF]$/u.test(entry.content)), 'Clipping must not split a Unicode surrogate pair.');
     assert.deepEqual(output.proposedAction,action);assert.deepEqual(output.citations,[]);assert.equal(output.verification,undefined);
     assert.match(requests[0].instructions,/Never invent a sourceId for advice/);
   });

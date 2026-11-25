@@ -18,10 +18,10 @@ const request=async(op,body,timeout=45000)=>{const r=await fetch(origin+'/__eval
 const write=async(name,value)=>{const target=path.join(directory,name),temp=target+'.tmp';await fs.writeFile(temp,JSON.stringify(value,null,2)+'\n',{mode:0o600});await fs.rename(temp,target)};
 const emit=value=>console.log(JSON.stringify({...value,at:new Date().toISOString()}));
 try{
- const state=await request('state'),latest=state.runs.at(-1);
- const model=option('model',latest?.model||'gpt-6.1-sol'),evaluatorModel=option('evaluator-model',state.runs.filter(r=>r.judge?.model).at(-1)?.judge.model||model),reasoning=option('reasoning','medium');
+ const state=await request('state');
+ const model=option('model',state.model||'gpt-6-luna'),evaluatorModel=option('evaluator-model',state.evaluatorModel||'gpt-6.1-terra'),reasoning=option('reasoning','medium');
  const cases=state.cases.filter(c=>!c.archivedAt&&(scope==='all'||c.scope===scope)&&(!only.length||only.includes(c.id))).sort((a,b)=>a.id.localeCompare(b.id));
- const batchId='bank-'+randomUUID(),manifest={label,origin,model,evaluatorModel,reasoning,batchId,createdAt:new Date().toISOString(),cases:cases.map(({id,version,scope})=>({id,version,scope})),referencePolicy:'Question reference is sent only to the separate judge via saved run ID, never to the answering endpoint.'};
+ const batchId='bank-'+randomUUID(),manifest={label,origin,model,evaluatorModel,reasoning,batchId,createdAt:new Date().toISOString(),cases:cases.map(({id,version,scope})=>({id,version,scope})),executionMethod:'api-only; no browser, UI or signed-in client acceptance is implied',referencePolicy:'Question reference is sent only to the separate judge via saved run ID, never to the answering endpoint.'};
  await write('manifest.json',manifest);emit({event:'start',label,cases:cases.length,model,evaluatorModel,concurrency});
  const pace=createPacedDispatch(5200);const observed=[];
  const pool=await runParallelCases(cases,{concurrency,signal:controller.signal,run:async(item,control)=>{
@@ -32,11 +32,12 @@ try{
   emit({event:'answer-start',caseId:item.id});const start=Date.now();let body={},statusCode=0,error=null;
   try{
    const images=await Promise.all((item.attachments||[]).map(async(file)=>{const r=await fetch(origin+'/__evaluation_lab/attachment?id='+encodeURIComponent(file.id));if(!r.ok)throw Error('Attachment unavailable');return{name:file.name,dataUrl:'data:'+(r.headers.get('Content-Type')||'image/png')+';base64,'+Buffer.from(await r.arrayBuffer()).toString('base64')}}));
-   const r=await fetch(origin+item.endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-STU-Evaluation-Model':model,'X-STU-Evaluation-Reasoning':reasoning,...(item.scope==='account'?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({question:item.question,route:item.route,history:item.history||[],images,stream:false,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(70000)])});statusCode=r.status;body=await r.json();if(!r.ok)error=body.error||'Assistant failed';
+   const r=await fetch(origin+item.endpoint,{method:'POST',headers:{'Content-Type':'application/json','X-STU-Evaluation-Model':model,'X-STU-Evaluation-Reasoning':reasoning,...(item.scope==='account'?{Authorization:'Bearer '+token}:{})},body:JSON.stringify({question:item.question,route:item.route,history:item.history||[],images,stream:false,consentedResearchUse:false}),signal:AbortSignal.any([controller.signal,AbortSignal.timeout(125000)])});statusCode=r.status;body=await r.json();if(!r.ok)error=body.error||'Assistant failed';
    if(r.ok&&r.headers.get('X-STU-Evaluation-Model')!==model)error='Selected model was not acknowledged';
   }catch(e){error=e.message;}
-  const saved=await request('result',{caseId:item.id,caseVersion:item.version,batchId,response:body,statusCode,model,reasoning,elapsedMs:Date.now()-start,error});
-  const value={caseId:item.id,caseVersion:item.version,runId:saved.run.id,model,evaluatorModel,statusCode,error,answer:body.answer||'',response:body,elapsedMs:Date.now()-start};
+  const execution={client:'api-only',entryPoint:'api-only',route:item.route,dispatched:[item.endpoint]};
+  const saved=await request('result',{caseId:item.id,caseVersion:item.version,batchId,execution,response:body,statusCode,model,reasoning,elapsedMs:Date.now()-start,error});
+  const value={caseId:item.id,caseVersion:item.version,runId:saved.run.id,execution,model,evaluatorModel,statusCode,error,answer:body.answer||'',response:body,elapsedMs:Date.now()-start};
   observed.push(value);await write(item.id+'.json',value);emit({event:'answer-saved',caseId:item.id,statusCode,error,ms:value.elapsedMs});
   if(statusCode===429){control.stop();return;}
   if(body.answer&&!error&&!control.isStopped()){

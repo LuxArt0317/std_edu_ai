@@ -6,7 +6,7 @@ const reserved = /^\/(?:app|api|assets|site-pages|school-assets|school-pages|sch
 /** Exact local routes for the already captured public HTML; no runtime fetch. */
 export function directSchoolPages(root) {
   const pages = JSON.parse(fs.readFileSync(path.join(root, 'src/features/public/mirror/pages.json'), 'utf8'));
-  const routes = new Map();
+  const routes = new Map(), sourceRoutes = new Set();
   for (const page of pages) {
     if (typeof page.route !== 'string' || typeof page.file !== 'string') throw new Error('Invalid school page manifest');
     const url = new URL(page.route, 'https://stu.best');
@@ -14,7 +14,10 @@ export function directSchoolPages(root) {
     if (reserved.test(url.pathname)) throw new Error(`Reserved school route: ${url.pathname}`);
     if (!/^\/school-pages\/[a-f0-9]{20}\.html$/.test(page.file)) throw new Error(`Invalid school capture: ${page.file}`);
     const key = url.pathname + url.search;
-    if (routes.has(key)) throw new Error(`Duplicate school route: ${key}`);
+    if (sourceRoutes.has(key)) throw new Error(`Duplicate school route: ${key}`);
+    sourceRoutes.add(key);
+    // Keep the capture for provenance; its broken directory route now belongs to the native contact view.
+    if (decodeURIComponent(url.pathname).replace(/\/$/, '') === '/分機表') continue;
     routes.set(key, page);
   }
   if (!routes.has('/')) throw new Error('School homepage capture is missing');

@@ -1,0 +1,334 @@
+{
+  "version": 1,
+  "documents": [
+    {
+      "role": "moe-remission",
+      "title": "教育部學雜費減免 | 樹德科技大學 學務處-生活輔導組",
+      "url": "/school-sites/life.sao.stu.edu.tw/%E6%95%99%E8%82%B2%E9%83%A8%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%B8%9B%E5%85%8D/",
+      "source": "https://life.sao.stu.edu.tw/%E6%95%99%E8%82%B2%E9%83%A8%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%B8%9B%E5%85%8D/",
+      "capturedOn": "2026-11-03",
+      "checksum": "6059201c1534ff22f85d1700a04a4e34927acf13766fe4ba10ae2eaed6a8ba67",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "減免類別及相關規定\n學雜費減免申請公告\n學雜費減免申請流程\n學雜費減免申請須知\n相關資訊及表單下載\n學雜費減免Q&A"
+        }
+      ],
+      "headings": [],
+      "scopeConstraints": [],
+      "destinations": [
+        {
+          "label": "減免類別及相關規定",
+          "destinationAvailable": false
+        },
+        {
+          "label": "學雜費減免申請公告",
+          "destinationAvailable": false
+        },
+        {
+          "label": "學雜費減免申請流程",
+          "url": "/school-assets/6f224d05e7ba05d64250.pdf"
+        },
+        {
+          "label": "學雜費減免申請須知",
+          "destinationAvailable": false
+        },
+        {
+          "label": "相關資訊及表單下載",
+          "destinationAvailable": false
+        },
+        {
+          "label": "學雜費減免Q&A",
+          "destinationAvailable": false
+        }
+      ]
+    },
+    {
+      "role": "tuition-gap-index",
+      "title": "行政院減免學雜費(拉近方案) | 樹德科技大學 學務處-生活輔導組",
+      "url": "/school-sites/life.sao.stu.edu.tw/%E8%A1%8C%E6%94%BF%E9%99%A2%E6%B8%9B%E5%85%8D%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88/",
+      "source": "https://life.sao.stu.edu.tw/%E8%A1%8C%E6%94%BF%E9%99%A2%E6%B8%9B%E5%85%8D%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88/",
+      "capturedOn": "2026-11-03",
+      "checksum": "dadefaca83621497a57bed372c6afd2ee12a97100707343b62f634cd412a8974",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "行政院減免學雜費(拉近方案)減免資格及原則\n行政院減免學雜費(拉近方案)使用說明\n如何填寫調查表單\n常見Q&A\n教育部補助私立大專校院減免學雜費差額要點"
+        }
+      ],
+      "headings": [],
+      "scopeConstraints": [],
+      "destinations": [
+        {
+          "label": "行政院減免學雜費(拉近方案)減免資格及原則",
+          "url": "/school-assets/0ed1f826a1a543505d9b.pdf"
+        },
+        {
+          "label": "行政院減免學雜費(拉近方案)使用說明",
+          "url": "/school-assets/663323a4f5becbebe922.pdf"
+        },
+        {
+          "label": "如何填寫調查表單",
+          "url": "/school-assets/692a4693fb77f19e8040.pdf"
+        },
+        {
+          "label": "常見Q&A",
+          "destinationAvailable": false
+        },
+        {
+          "label": "教育部補助私立大專校院減免學雜費差額要點",
+          "url": "/school-assets/8b185cde5357c521d0a6.pdf"
+        }
+      ]
+    },
+    {
+      "role": "tuition-gap-optout",
+      "title": "減免資格及原則 | 樹德科技大學 學務處-生活輔導組",
+      "url": "/school-sites/life.sao.stu.edu.tw/%E8%A1%8C%E6%94%BF%E9%99%A2%E6%B8%9B%E5%85%8D%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88/%E6%B8%9B%E5%85%8D%E5%B0%8D%E8%B1%A1%E5%8F%8A%E5%8E%9F%E5%89%87/",
+      "source": "https://life.sao.stu.edu.tw/%E8%A1%8C%E6%94%BF%E9%99%A2%E6%B8%9B%E5%85%8D%E5%AD%B8%E9%9B%9C%E8%B2%BB%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88/%E6%B8%9B%E5%85%8D%E5%B0%8D%E8%B1%A1%E5%8F%8A%E5%8E%9F%E5%89%87/",
+      "capturedOn": "2026-11-03",
+      "checksum": "acb1a70c760daa06c10d6851806d12e6c59a452ce62d66c27fee63058c69a05d",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "線上申請步驟\n一、新生、轉學生、復學生其註冊繳費單，皆統一設定為「使用」行政院減免學雜費，若確定「使用」行政院減免學雜費，請直接下載註冊繳費單於期限內完成繳費即可。\n二、若要申請教育部各類學雜費減免或其他政府部會補助時，請務必於115/9/9(三)前填報【調查表單】，更改為「不使用」行政院減免學雜費(拉近方案)。（請以樹德科大學生帳號登入）"
+        }
+      ],
+      "headings": [
+        "一、新生、轉學生、復學生其註冊繳費單，皆統一設定為「使用」行政院減免學雜費，若確定「使用」行政院減免學雜費，請直接下載註冊繳費單於期限內完成繳費即可。"
+      ],
+      "scopeConstraints": [],
+      "destinations": [
+        {
+          "label": "調查表單",
+          "destinationAvailable": false
+        }
+      ]
+    },
+    {
+      "role": "disadvantaged-aid",
+      "title": "115學年度第1學期不利處境學生助學辦理須知 | 樹德科技大學 學務處-生活輔導組",
+      "url": "/school-sites/life.sao.stu.edu.tw/%E4%B8%8D%E5%88%A9%E8%99%95%E5%A2%83%E5%AD%B8%E7%94%9F%E5%8A%A9%E5%AD%B8/%E8%BE%A6%E7%90%86%E9%A0%88%E7%9F%A5-2/",
+      "source": "https://life.sao.stu.edu.tw/%E4%B8%8D%E5%88%A9%E8%99%95%E5%A2%83%E5%AD%B8%E7%94%9F%E5%8A%A9%E5%AD%B8/%E8%BE%A6%E7%90%86%E9%A0%88%E7%9F%A5-2/",
+      "capturedOn": "2026-11-03",
+      "checksum": "bee598a6c5ebf0665c1aad383c42c185a2df2d2b86687fb720ce3d84d7d9767d",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "[:zh]115學年度第1學期不利處境學生助學辦理須知(原弱勢助學)\n一、申請資格及對象：\n　　（一）轉學生於原學校申請115學年度不利處境學生助學審核通過者。（申請表下載）\n　　（二）住宿優惠：低收入戶校內免費住宿。\n　　（三）生活助學金：需符合不利處境助學金資格者，經本校「學生獎助學金委員會」審議後，核發每生每月新台幣6,000元之生活助學金(含多元生理用品經費補助)；領取生活助學金之學生需參與生活服務學習(申請表下載)。\n二、申請時間：即日起至10月20日止。（逾期恕無法辦理）\n三、辦理流程：\n　　符合資格者：\n　　（一）轉學生：請於10月20日前填寫不利處境助學金申請表-轉學生，簽核完畢後送至生輔組。\n　　（二）低收入戶免費住宿者：請於10月20日前上網填寫不利處境助學金申請表並列印，經生輔組(二)辦公室簽核完畢後連同證明文件一同送至生輔組(一)辦公室。\n（三）生活助學金：請於10月20日前填寫生活助學金申請表，經服務單位簽核完畢後送至生輔組。\n＊系統路徑「校務資訊系統」→搜尋「不利處境助學金管理」\n四、檢附文件：請於10月20日前繳交（逾期恕無法受理）\n　　（一）轉學生：不利處境助學金申請表-轉學生。（申請表下載）\n　　（二）低收入戶免費住宿：不利處境助學金申請表及當年度有效日之低收入戶證明文件。\n（三）生活助學金：生活助學金申請表。(申請表下載)\n　　其他文件： 家庭困難切結書(申請表下載)\n五、服務學習：\n　　低收入戶校內免費住宿者，依規定需完成宿舍服務時數，未完成者，將無法提出下期之申請。\n　　宿舍費10,000元者，每學期需完成15小時\n　　宿舍費11,000元者，每學期需完成20小時\n　　宿舍費13,000元者，每學期需完成30小時\n　　宿舍費16,000元者，每學期需完成45小時\n～學務處生活輔導組關心您～\n[:]"
+        }
+      ],
+      "headings": [],
+      "scopeConstraints": [],
+      "destinations": [
+        {
+          "label": "申請表下載",
+          "url": "/school-assets/963c0187ddbeb5a600d1.pdf"
+        },
+        {
+          "label": "申請表下載",
+          "destinationAvailable": false
+        },
+        {
+          "label": "申請表下載",
+          "url": "/school-assets/963c0187ddbeb5a600d1.pdf"
+        },
+        {
+          "label": "申請表下載",
+          "destinationAvailable": false
+        },
+        {
+          "label": "申請表下載",
+          "url": "/school-assets/cf3ad634f38a6f7dfabb.pdf"
+        }
+      ]
+    },
+    {
+      "role": "scholarship-index",
+      "title": "獎助學金 | 樹德科技大學 學務處-生活輔導組",
+      "url": "/school-sites/life.sao.stu.edu.tw/%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "source": "https://life.sao.stu.edu.tw/%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "capturedOn": "2026-11-03",
+      "checksum": "bc573b4168dd729de702607a52b0b7a902d5181b334aa1e024ac616ada775982",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "校內獎助學金\n校外獎助學金\n校內獎助學金獲獎名單\n校外獎助學金獲獎名單\n就學獎助學金執行成效"
+        }
+      ],
+      "headings": [],
+      "scopeConstraints": [],
+      "destinations": [
+        {
+          "label": "校內獎助學金",
+          "destinationAvailable": false
+        },
+        {
+          "label": "校外獎助學金",
+          "destinationAvailable": false
+        },
+        {
+          "label": "校內獎助學金獲獎名單",
+          "destinationAvailable": false
+        },
+        {
+          "label": "校外獎助學金獲獎名單",
+          "destinationAvailable": false
+        },
+        {
+          "label": "就學獎助學金執行成效",
+          "destinationAvailable": false
+        }
+      ]
+    },
+    {
+      "role": "international-internal",
+      "title": "校內獎助學金 | 樹德科技大學 國際及兩岸事務處",
+      "url": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E5%85%A7%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "source": "https://www.oica.stu.edu.tw/%E6%A0%A1%E5%85%A7%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "capturedOn": "2026-11-03",
+      "checksum": "a59c47248e08ac345f4bafd535450a902382bd2a5026b7264bea9b5889668838",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "校內獎助學金 \n 校內獎助學金 \n 校內獎助學金 \n 樹德科技大學境外生獎助學金申請表\n 境外生（含外國學生、僑生及港澳生）\n各項專班不適用(如:海青班、新南向IPIAC專班、產攜合作專班…)\n 《新生入學獎助學金》\n入學第一學期\n50% 學雜費獎助學金\n應繳文件:\n1. 境外生獎助學金申請表\n2. 須提供校長、師長或留臺同學會等推薦信函\n3. 回覆報到意願確認函\n申請時間：\n1. 參加本校辦理之單獨招生者，應於報名時一併提出申請。\n2. 參加海外招生聯合委員會之招生管道入學者，應於確認入學報到時向國際及兩岸事務處提出申請。\n3. 國內升學管道者，不得同時申請本國生入學獎助學金，應於確認入學報到時向國際及兩岸事務處提出申請。\n注意：受領獎助學金之學生該學期應完成36 小時之愛校服務。\n(中央主管機關核定之授予正式學位專班之境外生，如需給予獎助學金，其獎助學金及相關愛校服務規定應專案簽請校長核定後再實施。)\n 《在學獎助學金》\n入學後第二學期起每學期之申請方式請參考獎助學金辦法\n 111~113學年度入學者：依據以下實施要點核發在學獎助學金\n 樹德科技大學境外生獎助學金實施要點\n 114學年度起入學者，依據以下實施要點核發在學獎助學金\n 樹德科技大學境外生獎助學金實施要點\n 115學年度起入學者，依據以下實施要點核發在學獎助學金\n 樹德科技大學境外生獎助學金實施要點\n 陸 生\n 申請資格：\n碩、博士班：大陸 985 工程畢業生以本校為第一志願者，奬助全額學雜費。(每年約新台幣 10 萬元)\n學士班：當年度所報考省分普通高等學校招生統一考試(以下簡稱高考文化課)，成績高於該省市本科一批分數線 50 分，並以本校為第一志願者，奬助全額學雜費，並核給每月生活津貼新台幣 1 萬元整。(每年約新台幣 22 萬元)\n當年度所報考省分高考文化課成績達該省市本科一批分數線，並以本校為第一志願者，奬助全額學雜費。(每年約新台幣 10 萬元)\n奬助期限：\n就讀大學部者至多奬助四年\n就讀碩士班者至多奬助二年\n就讀博士班者至多奬助三年，必要時得申請延長一年，休學期間，不得支領。\n申請程序：\n符合本校奬學金請領資格者，請於當年度大學校院聯合招生大陸地區碩博士班及學士班報名期間，將學生入學報名表以掃描方式製成 PDF 檔，寄至本校國際及兩岸事務處(oica@stu.edu.tw)；經分發錄取本校，並完成本校報到流程後，於開學後五週內，向本校國際及兩岸事務處提出申請，逾期未申請者，視同放棄本奬助學金之申請權利。\n 樹德科技大學陸生績優入學獎助學金實施辦法"
+        }
+      ],
+      "headings": [
+        "境外生（含外國學生、僑生及港澳生）",
+        "《新生入學獎助學金》",
+        "入學第一學期",
+        "《在學獎助學金》",
+        "入學後第二學期起每學期之申請方式請參考獎助學金辦法",
+        "陸 生"
+      ],
+      "scopeConstraints": [
+        "各項專班不適用(如:海青班、新南向IPIAC專班、產攜合作專班…)",
+        "申請時間：1. 參加本校辦理之單獨招生者，應於報名時一併提出申請。2. 參加海外招生聯合委員會之招生管道入學者，應於確認入學報到時向國際及兩岸事務處提出申請。3. 國內升學管道者，不得同時申請本國生入學獎助學金，應於確認入學報到時向國際及兩岸事務處提出申請。",
+        "111~113學年度入學者：依據以下實施要點核發在學獎助學金",
+        "114學年度起入學者，依據以下實施要點核發在學獎助學金",
+        "115學年度起入學者，依據以下實施要點核發在學獎助學金"
+      ],
+      "destinations": [
+        {
+          "label": "樹德科技大學境外生獎助學金申請表",
+          "destinationAvailable": false
+        },
+        {
+          "label": "樹德科技大學境外生獎助學金實施要點",
+          "url": "/school-assets/14ceda659dfbfd12d857.pdf"
+        },
+        {
+          "label": "樹德科技大學境外生獎助學金實施要點",
+          "destinationAvailable": false
+        },
+        {
+          "label": "樹德科技大學境外生獎助學金實施要點",
+          "destinationAvailable": false
+        },
+        {
+          "label": "樹德科技大學陸生績優入學獎助學金實施辦法",
+          "url": "/school-assets/f8ee1ff742551627530f.pdf"
+        }
+      ]
+    },
+    {
+      "role": "international-external",
+      "title": "校外獎助學金 | 樹德科技大學 國際及兩岸事務處",
+      "url": "/school-sites/www.oica.stu.edu.tw/%E6%A0%A1%E5%A4%96%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "source": "https://www.oica.stu.edu.tw/%E6%A0%A1%E5%A4%96%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",
+      "capturedOn": "2026-11-03",
+      "checksum": "9139220742aafe5ffdcdae9f89f55dfdc97e789d3bc9c2cc0ab8a22a42f975cb",
+      "coverage": "Published article text only. A linked title is navigation, not proof of the linked document contents. Dates and entry-cohort restrictions remain part of the source; this is not a personal award or deduction.",
+      "sections": [
+        {
+          "locator": "html:article",
+          "text": "校外獎學金 \n 校外獎學金 \n 校外獎學金 \n僑生（含港澳生）\n 僑務委員會補助清寒僑生參加全民健康保險費用（pdf.)\n僑務委員會獎勵學行優良僑生獎學金核發要點　（pdf.）20130820 \n僑務委員會僑生傷病醫療保險作業要點　　　　（pdf.）20191129\n僑務委員會補助僑生工讀金及學習扶助金要點　（pdf.）20161226\n獎勵頂尖及傑出僑生來台就讀大學校院獎學金\n 外籍生\n 高雄市國際學生獎學金申請辦法　　　（pdf.）20160526\n高雄市國際學生獎學金審查及排序原則（pdf.）201806\n教育部臺灣獎學金作業要點　　　（pdf.）20151209\n 樹德科技大學陸生績優入學獎助學金實施辦法"
+        }
+      ],
+      "headings": [
+        "僑生（含港澳生）",
+        "外籍生"
+      ],
+      "scopeConstraints": [],
+      "destinations": [
+        {
+          "label": "僑務委員會補助清寒僑生參加全民健康保險費用（pdf.)",
+          "destinationAvailable": false
+        },
+        {
+          "label": "僑務委員會獎勵學行優良僑生獎學金核發要點 （pdf.）20130820",
+          "destinationAvailable": false
+        },
+        {
+          "label": "醫療保險作業要點 （pdf.）20191129",
+          "destinationAvailable": false
+        },
+        {
+          "label": "僑務委員會補助僑生工讀金及學習扶助金要點 （pdf.）20161226",
+          "destinationAvailable": false
+        },
+        {
+          "label": "獎勵頂尖及傑出僑生來台就讀大學校院獎學金",
+          "destinationAvailable": false
+        },
+        {
+          "label": "高雄市國際學生獎學金申請辦法 （pdf.）20160526",
+          "destinationAvailable": false
+        },
+        {
+          "label": "高雄市國際學生獎學金審查及排序原則（pdf.）201806",
+          "destinationAvailable": false
+        },
+        {
+          "label": "教育部臺灣獎學金作業要點 （pdf.）20151209",
+          "destinationAvailable": false
+        },
+        {
+          "label": "樹德科技大學陸生績優入學獎助學金實施辦法",
+          "url": "/school-assets/f8ee1ff742551627530f.pdf"
+        }
+      ]
+    },
+    {
+      "role": "tuition-gap-rules",
+      "title": "行政院減免學雜費(拉近方案) 減免資格及原則",
+      "url": "/school-assets/0ed1f826a1a543505d9b.pdf",
+      "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/28/2026/01/1.114-2%E6%8B%89%E8%BF%91%E6%96%B9%E6%A1%88-%E6%B8%9B%E5%85%8D%E8%B3%87%E6%A0%BC%E5%8F%8A%E5%8E%9F%E5%89%87.pdf",
+      "capturedOn": "2026-11-03",
+      "checksum": "0ed1f826a1a543505d9bdb17ab1929830a5585bfcc4e15ca46bf80587a743482",
+      "coverage": "Source URL identifies114-2; do not present as a later term's current application notice.",
+      "pageCount": 1,
+      "sections": [
+        {
+          "locator": "pdf:page:1",
+          "text": "《 樹德科技大學 》 減免資格  本國籍且就讀國內私立大專校院具有學籍。  於修業年限內之學士班 ( 含學士後學系 ) 及副學士班 ( 含二專、五專後兩年 ) 學生。 減免原則  不發放現金，直接於上、下學期註冊繳費單扣減。  日間部學士班每學期學雜費減免 17,500 元，一學年最高減免 35,000 元。 進修部學士班每學期實修學分學雜費減免 50% ，一學期最高減免 17,500 元。 進修部學費採預收學分制，故其金額先以預收學分學雜費核算，待加退選結束後，再依實際學分學雜費辦理多退少補作業  轉學 ( 系 ) 、休學、退學或開除學籍，其後重讀、復學或再行入學所就讀之相當學期、年級已減免者， 不得重複減免。  行政院減免學雜費與教育部學雜費減免或政府其他部會獎助學金均屬政府補助方案，僅能擇一申請。 弱勢助學金、行政院農漁民子女就學金、恆春鎮教育獎助學金及農業部林業及自然保育署 ( 阿里山 ) 不 在此限。 行政院減免學雜費 ( 拉近方案 ) 減免資格及原則 【 行政院拉近方案與教育部各類就學減免或其他部會就學補助僅能擇一 】"
+        }
+      ],
+      "destinations": []
+    },
+    {
+      "role": "moe-categories",
+      "title": "樹德科技大學學雜費減免申辦流程 · 減免類別",
+      "url": "/school-assets/6f224d05e7ba05d64250.pdf",
+      "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/28/2019/08/E5ADB8E99B9CE8B2BBE6B89BE5858DE794B3E8AB8BE6B581E7A88B.pdf",
+      "capturedOn": "2026-11-03",
+      "checksum": "6f224d05e7ba05d6425041b985a4f2154aa4ec1327546bc7ed78923311476501",
+      "coverage": "Only the published category list on PDF page3 is selected, not an authenticated application or current deadline.",
+      "pageCount": 8,
+      "sections": [
+        {
+          "locator": "pdf:page:3",
+          "text": "流程 ５  進入 注意事項 畫面，為 確保自身權益，請詳細 閱讀  點選 我已了解上 述注意事項 - > 進入申請 畫面 流程 ６  選擇 減免類別  輸入 學 生手機號碼 ( 連續數 字，不加任何符號 ) 減免類別 ：  極重度 / 重度 、中度、輕 度 身心障礙學生  學習 ( 情緒 ) 障礙 、身體病 弱 學生  極重度 / 重度、中度、輕 度 身心障礙人士子女  低收入戶子女  中低收入戶子女  特殊境遇家庭子女孫子女  原住民族籍學生  現役軍人子女  軍公教遺族學生  若 無 減免資格，請勿填寫"
+        }
+      ],
+      "destinations": []
+    }
+  ]
+}

@@ -1,3 +1,4 @@
+import {withAssistantModel} from '../../server/assistantModelConfig.js';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {repairEvidenceAnswer,verificationModelCall,verifyEvidenceAnswer} from '../../server/answerVerificationModel.js';
@@ -155,4 +156,19 @@ test('public review is scoped while mixed account review retains its contracts',
   await verificationModelCall('answer_evidence_review',{},'ACCOUNT CONTRACT SENTINEL',{evidence:[{id:'public-document:test',content:'Published facts'},{id:'account:grades',content:'Private record'}]},Date.now()+10000);
   assert.equal(requests[1].instructions,'ACCOUNT CONTRACT SENTINEL');
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
+});
+
+test('an answer-model selection preserves the independently configured source auditor',async()=>{
+ const nativeFetch=globalThis.fetch,names=['OPENAI_API_KEY','OPENAI_VERIFICATION_MODEL'] as const;
+ const previous=Object.fromEntries(names.map(name=>[name,process.env[name]]));
+ process.env.OPENAI_API_KEY='unit-test';process.env.OPENAI_VERIFICATION_MODEL='independent-review-model';
+ const requests:any[]=[];
+ globalThis.fetch=async(_url,options)=>{requests.push(JSON.parse(String(options?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{}'}]}]});};
+ try{
+  await withAssistantModel({model:'selected-answer-model',reasoning:'medium'},async()=>{
+   await verificationModelCall('compose_grounded_answer',{},'Compose',{},Date.now()+5000);
+   await verificationModelCall('answer_evidence_review',{},'Review',{},Date.now()+5000);
+  });
+  assert.equal(requests[0].model,'selected-answer-model');assert.equal(requests[1].model,'independent-review-model');
+ }finally{globalThis.fetch=nativeFetch;for(const name of names){if(previous[name]===undefined)delete process.env[name];else process.env[name]=previous[name];}}
 });

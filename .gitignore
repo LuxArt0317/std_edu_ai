@@ -54,6 +54,6 @@ artifacts/
 # Private local assistant evaluation answers and run history
 .evaluation-lab/
 
-# Build-derived assistant module; the TypeScript source remains authoritative.
+# Derived shared handler for hosted evaluation; generated before packaging.
 /server/affairsAssistantRuntime.js
 /server/affairsAssistantRuntime.js.tmp

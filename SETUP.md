@@ -11,3 +11,7 @@ The [DTM preview](src/features/public/dtm/README.md) uses the existing School Af
 For local chatbot source retrieval, the development runner sets a restricted loopback capture origin automatically. Model/data providers remain online. Source refresh and manual evaluation details: [server](server/README.md), [source importer](scripts/README.md), [Answer Lab setup](tools/evaluation-lab/SETUP.md).
 
 Question/reference source and sync behavior: [Q&A README](docs/question-answer/README.md), [Answer Lab setup](tools/evaluation-lab/SETUP.md). Restart the local server and refresh the lab after editing the canonical reference file.
+
+For local evaluation model defaults and slash controls, see [Answer Lab setup](tools/evaluation-lab/SETUP.md) and [server documentation](server/README.md). Production remains independently configured.
+
+For local source refresh and independent source-audit model configuration, see [server helpers](server/README.md) and [source projection scripts](scripts/README.md). These changes do not deploy or replace cloud evaluation data.

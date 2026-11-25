@@ -47,7 +47,7 @@ async function execute(t,selected=cases){
     let statusCode,body;
     const sink={setHeader(){},status(status){statusCode=status;return sink;},json(value){body=value;}};
     await (oracle.guest?guest:account)({method:'POST',headers,body:{question:row.question,route:row.route,history:row.history}},sink);
-    assert.equal(statusCode,200,row.id);
+    assert.equal(statusCode,200,row.id+" "+JSON.stringify(body));
     assert.deepEqual(calls.slice(start),oracle.read?[oracle.page]:[],row.id);
     assert.deepEqual(studentReads.slice(studentStart),oracle.tuitionUnlinked?[owners[0]]:[],row.id);
     const envelope={statusCode,body,events:body.activity??[],execution:'deterministic',fixtureKey:row.fixtureKey,

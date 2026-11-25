@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 const LocalPageIndex = lazy(() =>
   import("./mirror/SourceMirror").then((m) => ({ default: m.LocalPageIndex })),
 );
+const ContactDirectory = lazy(() => import("./site/ContactDirectory"));
 const SourceMirror = lazy(() => import("./mirror/SourceMirror"));
 import { PublicCampusDirectory } from "./PublicCampusDirectory";
 import { PublicAssistant } from "./PublicAssistant";
@@ -91,6 +92,7 @@ export default function PublicSite() {
       />
       <Routes>
         <Route path="/" element={<SourceMirror />} />
+        <Route path="/分機表" element={<ContactDirectory />} />
         <Route path="/campus-assistant" element={<main className="mirror-index"><h1>校園助理</h1><p>Ask about the university, services and announcements. Open the assistant below to start a conversation.</p><a href="/">Return to the university homepage</a></main>} />
         <Route path="/campus-directory" element={<main className="mirror-index"><h1>校園導覽</h1><p>Browse campus services and copied school pages.</p><a href="/local-pages">Browse copied pages</a><br /><a href="/">Return to the university homepage</a></main>} />
         <Route path="/local-pages" element={<LocalPageIndex key={search} />} />

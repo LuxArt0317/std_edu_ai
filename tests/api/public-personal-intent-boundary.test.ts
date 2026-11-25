@@ -24,6 +24,9 @@ test('personal event attendance cannot be redirected to public club or calendar 
 test('public club navigation and institution calendar questions remain available',()=>{
   assert.equal(isPublicClubQuestion('Which clubs am I a member of, and which memberships are active?'),false);
   assert.equal(isPublicClubQuestion('Where can I join a club?'),true);
+  assert.equal(isPublicClubQuestion('How can I join a club?'),true);
+  assert.equal(isPublicClubQuestion('Which club events did I attend? Show page 2.'),false);
+  assert.equal(isPublicClubQuestion('Which clubs have I joined?'),false);
   assert.equal(isPublicClubQuestion('Which clubs are available?'),true);
   assert.equal(isPublicCalendarDateQuestion('When does the semester start?'),true);
   assert.equal(isPublicCalendarDateQuestion('What events are scheduled this year?'),true);

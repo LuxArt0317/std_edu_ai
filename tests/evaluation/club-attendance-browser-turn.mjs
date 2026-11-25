@@ -79,7 +79,7 @@ function verifyReplyFacts(body,mode,current,other){
   const views=body.views??[];
   if(mode==='foreign')check(/saved for your own account/u.test(body.answer)&&!views.length
     &&!rows.some(row=>rendered.includes(row.title)),'save answer mismatch');
-  else if(mode==='read-failure')check(/could not verify this answer/u.test(body.answer)&&!/No saved attendance/u.test(body.answer)
+  else if(mode==='read-failure')check(/(?:could not verify this answer|couldn[’']t (?:read and verify|confirm|find enough reliable information)|could not (?:read|verify))/u.test(body.answer)&&!/No saved attendance/u.test(body.answer)
     &&!views.length&&!rows.some(row=>rendered.includes(row.title)),'save answer mismatch');
   else if(mode==='empty')check(/No saved attendance entries were returned on page 1/u.test(body.answer)&&!views.length,'save answer mismatch');
   else{

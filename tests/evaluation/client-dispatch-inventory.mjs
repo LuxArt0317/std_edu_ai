@@ -91,7 +91,12 @@ export function inspectClientDispatchSource(source){
   if(!transport?.body)throw new Error('Missing account graph transport.');
   visit(entry.body);
   visit(transport.body);
-  const api=calls.filter(call=>call.name==='assistantFetch'&&call.firstLiteral==='/api/affairs-assistant');
+  const transportImports=file.statements.filter(node=>ts.isImportDeclaration(node)&&node.moduleSpecifier.text==='./assistantTransport');
+  const fetchBindings=transportImports.flatMap(node=>node.importClause?.namedBindings&&ts.isNamedImports(node.importClause.namedBindings)
+    ?node.importClause.namedBindings.elements.filter(item=>(item.propertyName?.text||item.name.text)==='assistantFetch'&&!item.isTypeOnly).map(item=>item.name.text):[]);
+  if(fetchBindings.length!==1)throw new Error('Expected exactly one imported shared assistant transport binding.');
+  const api=calls.filter(call=>[fetchBindings[0],'fetch'].includes(call.name)&&call.firstLiteral==='/api/affairs-assistant');
+  if(api.some(call=>call.name!==fetchBindings[0]))throw new Error('Account endpoint bypassed the imported shared transport.');
   const graphCalls=calls.filter(call=>call.name==='askVerifiedAccount');
   const fallback=graphCalls.at(-1);
   if(api.length!==1||graphCalls.length!==2||!fallback)throw new Error('Expected one shared account graph transport and final fallback.');

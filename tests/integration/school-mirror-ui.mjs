@@ -4,8 +4,12 @@ import { chromium } from 'playwright-core';
 
 const origin = process.env.PUBLIC_SITE_ORIGIN || 'http://127.0.0.1:5173';
 if (!['localhost', '127.0.0.1'].includes(new URL(origin).hostname)) throw new Error('Local-only UI verification');
+const contactDirectory=JSON.parse(await readFile('server/data/publicContactDirectory.json','utf8'));
+const isNative=item=>decodeURIComponent(item.route).replace(/\/$/u,'')==='/分機表';
 const pages = JSON.parse(await readFile('src/features/public/mirror/pages.json', 'utf8'));
-for (const item of pages) {
+const nativePages=pages.filter(isNative);
+assert.equal(nativePages.length,1,'Native contact directory remains registered');
+for (const item of pages.filter(item=>!isNative(item))) {
   const response = await fetch(origin + item.route);
   const html = await response.text();
   assert.equal(response.status, 200, `${item.route}: HTTP ${response.status}`);
@@ -72,6 +76,31 @@ try {
       assert.equal(await page.locator('[data-stu-boot]').count(), 0, href);
       await page.goto(origin, { waitUntil: 'domcontentloaded' });
     }
+    // This registered route is rendered by the native SPA, not copied HTML.
+    await page.goto(origin+contactDirectory.path,{waitUntil:'domcontentloaded'});
+    await page.locator('#contact-query').waitFor({state:'visible'});
+    assert.equal(await page.locator('h1').textContent(),contactDirectory.title);
+    const rows=page.locator('.public-contact-table-region tbody tr');
+    assert.equal(await rows.count(),contactDirectory.records.length);
+    for(const [index,record] of contactDirectory.records.entries()){
+      const row=rows.nth(index);
+      assert.equal(await row.locator('th').textContent(),record.name);
+      assert.ok((await row.innerText()).includes(record.phone));
+      for(const extension of record.extensions)assert.ok((await row.innerText()).includes(extension));
+      assert.equal(await row.locator('details a').getAttribute('href'),record.source.url);
+    }
+    const selected=contactDirectory.records.find(row=>row.extensions.length);
+    assert.ok(selected,'Search must exercise a published extension');
+    await page.locator('#contact-query').fill(selected.extensions[0]);
+    const matches=contactDirectory.records.filter(row=>[row.name,row.phone,...row.extensions,row.email||'',row.address||''].some(value=>value.toLowerCase().includes(selected.extensions[0].toLowerCase())));
+    await page.waitForFunction(count=>document.querySelectorAll('.public-contact-table-region tbody tr').length===count,matches.length);
+    await page.locator('#contact-query').fill('unmatched-contact-fixture-919191');
+    await page.locator('.public-contact-empty').waitFor({state:'visible'});
+    await page.getByRole('button',{name:'清除',exact:true}).click();
+    await page.waitForFunction(count=>document.querySelectorAll('.public-contact-table-region tbody tr').length===count,contactDirectory.records.length);
+    assert.equal(await page.locator('iframe.stu-assistant-frame').count(),0,'Native page uses its own assistant component');
+    assert.ok(await page.getByRole('button',{name:/Open campus assistant|開啟 AI 校園助理/}).count(),'Native assistant remains available');
+    assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'Native phonebook avoids horizontal page overflow');
     assert.deepEqual(errors, []);
     await context.close();
   }
@@ -81,4 +110,4 @@ try {
   assert.ok((await page.locator('body').innerText()).length > 100);
   await noScript.close();
 } finally { await browser.close(); }
-console.log(JSON.stringify({ status: 'ok', directPages: pages.length, audienceCards: 10, widths: [1440, 390], noJavaScript: true }));
+console.log(JSON.stringify({ status: 'ok', directPages: pages.length-nativePages.length, nativeContactPages:nativePages.length, audienceCards: 10, widths: [1440, 390], noJavaScript: true }));

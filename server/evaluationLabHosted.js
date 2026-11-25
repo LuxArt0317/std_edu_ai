@@ -36,7 +36,7 @@ async function rpc(account, name, body = {}) {
   }
   return response.json();
 }
-export async function serveEvaluationLab(req, res) {
+export async function serveEvaluationLab(req, res, {accountHandler} = {}) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
   try {
@@ -64,7 +64,8 @@ export async function serveEvaluationLab(req, res) {
         throw new LabError("Invalid reasoning effort.", 400);
       res.setHeader("X-STU-Evaluation-Model", model);
       const handler = operation === "run-account"
-        ? (await import("./affairsAssistantRuntime.js")).default : publicAssistant;
+        ? accountHandler || (await import("./affairsAssistantRuntime.js")).default
+        : publicAssistant;
       if (typeof handler !== "function")
         throw new LabError("The evaluation handler is unavailable in this release.");
       await withAssistantModel({ model, reasoning }, () => handler(req, res));

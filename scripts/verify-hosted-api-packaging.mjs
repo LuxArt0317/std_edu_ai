@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
-import {mkdtemp,readFile,writeFile,mkdir,symlink,rm} from 'node:fs/promises';
+import {mkdtemp,readFile,writeFile,mkdir,symlink,rm,readdir} from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import {pathToFileURL} from 'node:url';
@@ -9,10 +8,18 @@ import ts from 'typescript';
 // Execute compiled JavaScript, without the source .ts files that Vercel omits.
 const root=process.cwd(),temporary=await mkdtemp(path.join(os.tmpdir(),'stu-api-package-'));
 
-const files=execFileSync('git',['ls-files','-z','api','server','src','tools/evaluation-lab','tests/evaluation'],{encoding:'utf8'}).split('\0')
-  .filter(name=>/\.(?:[mc]?js|tsx?|json)$/.test(name)&&! /\.d\.(?:ts|mts|cts)$/.test(name));
-files.push('server/affairsAssistantRuntime.js');
+const files=[];
+async function sourceFiles(directory){
+ for(const item of await readdir(path.join(root,directory),{withFileTypes:true})){
+  const name=path.join(directory,item.name);
+  if(item.isDirectory())await sourceFiles(name);
+  else if(item.isFile()&&/\.(?:[mc]?js|tsx?|json)$/.test(name)&&!/\.d\.(?:ts|mts|cts)$/.test(name))files.push(name);
+ }
+}
+for(const directory of ['api','server','src','tools/evaluation-lab','tests/evaluation'])await sourceFiles(directory);
 const originalFetch=globalThis.fetch;
+const environmentKeys=['VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY'];
+const originalEnvironment=Object.fromEntries(environmentKeys.map(key=>[key,process.env[key]]));
 try{
   await writeFile(path.join(temporary,'package.json'),'{"type":"module"}\n');
   await symlink(path.join(root,'node_modules'),path.join(temporary,'node_modules'),'dir');
@@ -31,7 +38,30 @@ try{
   const response={setHeader(){},status(value){status=value;return this;},json(value){body=value;return this;}};
   await handler({method:'GET',headers:{},query:{resource:'evaluation-lab',op:'state'}},response);
   assert.equal(status,401,JSON.stringify(body));
-  console.log(JSON.stringify({compiledApiImport:true,sourceTypeScriptAbsent:true,publicAndAccountHandlersLinked:true,unauthenticatedDenied:true,providerCalls:0}));
+  // Traverse the actual hosted run-account branch, rather than merely importing
+  // its target. All network responses below are local fixtures; unexpected calls fail.
+  process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';
+  process.env.VITE_SUPABASE_PUBLISHABLE_KEY='packaging-fixture-not-a-credential';
+  const observed=[];
+  globalThis.fetch=async target=>{
+    const url=String(target);observed.push(url);
+    if(url==='https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user')
+      return Response.json({id:'00000000-0000-4000-8000-000000000001',email:'fixture@example.invalid',identities:[{provider:'google'}]});
+    if(url==='https://xiftudmvxphxcjtmfmib.supabase.co/rest/v1/rpc/evaluation_lab_access')return Response.json(true);
+    if(url==='https://api.openai.com/v1/models')return Response.json({data:[{id:'gpt-6-luna'}]});
+    throw Error('Unexpected packaging fixture request: '+url);
+  };
+  status=0;body=undefined;
+  await handler({method:'POST',headers:{authorization:'Bearer '+ 'fixture'.repeat(8),'x-stu-evaluation-model':'gpt-6-luna'},
+    query:{resource:'evaluation-lab',op:'run-account'},body:{question:''}},response);
+  assert.equal(status,400,JSON.stringify(body));
+  assert.match(body.error,/Provide a question/u);
+  assert.ok(observed.some(url=>url.endsWith('/rpc/evaluation_lab_access')));
+  assert.equal(observed.length,3);
+  console.log(JSON.stringify({compiledApiImport:true,sourceTypeScriptAbsent:true,publicAndAccountHandlersLinked:true,
+    authenticatedHostedAccountDispatch:true,unauthenticatedDenied:true,providerCalls:0,fixtureRequests:observed.length}));
 }finally{
-  globalThis.fetch=originalFetch;await rm(temporary,{recursive:true,force:true});
+  globalThis.fetch=originalFetch;
+  for(const key of environmentKeys){if(originalEnvironment[key]===undefined)delete process.env[key];else process.env[key]=originalEnvironment[key];}
+  await rm(temporary,{recursive:true,force:true});
 }

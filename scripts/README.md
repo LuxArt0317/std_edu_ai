@@ -34,8 +34,28 @@ The local adapter also serves [Answer Lab](../tools/evaluation-lab/README.md) at
 
 `node scripts/import-housing-policy.mjs` refreshes housing source sections from registered captures; `node scripts/import-wireless-source.mjs` refreshes public wireless text, validates registration/network/setup markers and derives contact fields. Both verify source checksums and never read FAQ expected answers.
 
-`sync-evaluation-lab-cloud.mjs` validates the local case/run snapshot and client project before cloud replacement. It defaults to a read-only comparison. `--apply` first saves and verifies a private ignored backup, then replaces only the shared evaluation workspace and its referenced attachments in one locked transaction with read-back digest checks. See the script’s `--local-state` and `--env-file` arguments; credentials and lab state must never enter Git. Run only after the matching release is live.
+Focused and bank runners default to GPT-6 Luna answers and GPT-6.1 Terra independent grading; --model and --evaluator-model override them. The runtime compiler produces the ignored hosted assistant JavaScript artifact from the maintained TypeScript source. The packaging check runs that artifact without any TypeScript source present.
 
-`verify-hosted-api-packaging.mjs` compiles tracked backend dependencies into a temporary JavaScript-only tree, imports the actual combined API entry, and verifies signed-out lab access is denied with no provider calls. It runs during `npm run build` and catches source-only imports that pass local type checking but fail in Vercel. Temporary output is removed on success or failure.
+`npm run lint:runtime-imports` checks backend runtime imports before lint/build. Each failure includes a clickable file:line:column, the production failure reason, and the JavaScript/type-only fix. `npm run verify:api-packaging` additionally exercises the generated runtime without TypeScript sources.
 
-`compile-affairs-assistant.mjs` emits the ignored `server/affairsAssistantRuntime.js` directly from the maintained account handler source before each production build. Its parent-relative imports remain valid because `api/` and `server/` are siblings. The packaging check imports this actual generated module, rejects source-only backend imports, and verifies combined API startup. No Vercel extension-rewrite assumption or duplicated hand-maintained chatbot logic is used.
+The focused browser runner mounts a minimal same-origin document, without Vite HMR, and imports the real website assistant and lab transport. It checks browser-client routing/API behavior, not a visual click-through; source edits cannot reload the runner during a paid request.
+
+`import-public-funding-source.mjs` verifies nine registered page/PDF checksums and emits dated funding-program evidence. `import-academic-rules-source.mjs` verifies the source directory, exact linked document, PDF hash/page count and article boundaries before projecting the public academic rules. Both run locally and do not publish or mutate a database.
+
+`import-staff-parking-source.mjs` checks the registered procedure capture hash before extracting staff car/motorcycle/contact blocks. It produces a server source record without runtime filesystem reads.
+
+Source importers for academic contacts, faculty training, public communication and the partial contact directory validate registered captures without reading evaluation references. The API bank runner records explicit API-only provenance; these runs do not prove rendered UI or a signed-in browser session.
+
+import-academic-study-options.mjs verifies the regulations-directory capture, linked PDF signatures/checksums, page counts and literal article boundaries before projecting procedure clauses. Two individually pinned PDF assets are registered rather than duplicating a document archive.
+
+The local API bank runner allows125seconds for an answering request to cover the bounded115-second local server budget plus transport. The judge remains separate. Increasing this client ceiling does not extend server or hosting deadlines.
+
+Scholarship application retrieval distinguishes the signed AnnexIV form and scholarship policy from general admission-document checklists; financial calculations retain their own source selection.
+
+`node scripts/summarize-answer-lab-quality.mjs` is an offline current-case-version audit. It separates latest judged scores from historical bests and unjudged cases. Use `--producer gpt-6-luna` to isolate local producer trials or `--json` for case IDs/run provenance; it prints no answers or expected references and makes no model/network calls.
+
+The local `/evaluation-lab` redirect retains query parameters so filtered lab links survive navigation.
+
+`npm test` first builds the ignored JavaScript assistant runtime and restores checksum-pinned documents from the committed bundle. This keeps fresh checkouts and CI equivalent to prepared local workspaces without downloading school files.
+
+The isolated packaging check also follows the authenticated hosted `run-account` dynamic import with local auth/model fixtures and an invalid question, requiring the actual compiled handler’s400 response. It makes no live provider/database requests.

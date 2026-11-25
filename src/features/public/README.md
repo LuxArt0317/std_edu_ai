@@ -29,3 +29,5 @@ Chat language preferences control the assistant title, starter questions and fee
 
 ## Shared assistant message UI
 `AssistantChatMessage.tsx` and its CSS own the live message presentation (Markdown, attachments, record views, verification, activity, citations and action reviews). `PublicAssistant` supplies authenticated callbacks; Answer Lab reuses the renderer read-only inside a style-isolated shadow root. Keep message rendering changes in this component instead of creating a second lab renderer.
+
+`AssistantCommands.tsx` supplies slash-command menus, keyboard selection, local preference persistence and thinking/model controls to the shared public/account chatbot. The shared message renderer shows saved settings per answer, rather than relabelling old messages with the current choice.

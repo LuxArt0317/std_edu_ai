@@ -1,9 +1,24 @@
+import {publicAdmissionResponseNeeds} from './publicAdmissionResponseNeeds.js';
+import {publicProspectusResponseNeeds} from './publicProspectusResponseNeeds.js';
+import {composeSavedPublicSource} from './composeSavedPublicSource.js';
+import {publicAcademicResponseNeeds} from './publicAcademicResponseNeeds.js';
+import {assistantRequestDeadline} from './assistantRequestBudget.js';
+import {isPublicEnrollmentDateQuestion,publicEnrollmentContext} from './publicEnrollmentEvidence.js';
+import {isPublicContactDirectoryQuestion,publicContactDirectoryContext,publicContactDirectoryResponseNeeds} from './publicContactDirectoryEvidence.js';
+import {isPublicCommunicationQuestion,publicCommunicationContext} from './publicCommunicationEvidence.js';
+import {isPublicFacultyTrainingQuestion,publicFacultyTrainingContext,publicFacultyTrainingResponseNeeds} from './publicFacultyTrainingEvidence.js';
+import {isPublicStaffParkingQuestion,publicStaffParkingContext} from './publicStaffParkingEvidence.js';
+import {publicAcademicRulesContext,isPublicGraduationAttendanceQuestion} from './publicAcademicRulesEvidence.js';
+import {publicFundingContext,publicFundingIntent} from './publicFundingEvidence.js';
+import {isPublicLearningResourceQuestion,publicLearningResourceRoute,focusLearningResourceContext} from './publicLearningResources.js';
+import {publicCampusSupportIntent,campusSupportRoute,focusCampusSupportContext,loadCampusSupportEvidence} from './publicCampusSupportEvidence.js';
 import {conversationalGuidance} from './conversationalGuidance.js';
 import {isPublicScholarshipPolicyQuestion} from './publicScholarshipIntent.js';
 import {isPublicDocumentRequestQuestion} from './publicDocumentRequestIntent.js';
 import {isPublicClubQuestion,isPublicClubRecommendationQuestion,compactClubDirectoryContext} from './publicClubIntent.js';
 import {publicCalendarContext,isPublicCalendarDateQuestion} from './publicCalendarEvidence.js';
 import {isPublicHousingPolicyQuestion} from './publicHousingPolicyIntent.js';
+import {isPublicOfficeDirectionsQuestion,loadOfficeDirectionsEvidence,publicOfficeCaptureRoute,focusOfficeContactContext} from './publicOfficeDirections.js';
 import {publicHousingContext} from './publicHousingEvidence.js';
 import {isPublicStudentCardReplacementQuestion,focusStudentCardContext} from './publicStudentCardIntent.js';
 import {publishedSchoolGuidance} from './publishedSchoolGuidance.js';
@@ -133,6 +148,7 @@ export function detectEvidenceConflict(retrieved) {
 const requestWindows = new Map();
 const MAX_REQUESTS_PER_MINUTE = 12;
 export const config = { maxDuration: 60 };
+const publicSourceResponseNeeds=(question,evidence)=>[...publicAcademicResponseNeeds(question,evidence),...publicProspectusResponseNeeds(question,evidence),...publicAdmissionResponseNeeds(question,evidence),...publicFacultyTrainingResponseNeeds(question,evidence),...publicContactDirectoryResponseNeeds(question,evidence)];
 function value(input) {
     return Array.isArray(input) ? input[0] : input;
 }
@@ -886,6 +902,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.progress(step.kind, step.label, step.detail, step.status);
         }
         const publicStudyGuidance = !input.images.length && !personalQuestion && !kind.irrelevant && publicStudyPlanningQuestion(input.question);
+        const publicGuidanceReply = !input.images.length && !personalQuestion && (publicStudyGuidance || [
+            isPublicContactDirectoryQuestion,isPublicClubRecommendationQuestion,isPublicOfficeDirectionsQuestion,publicCampusSupportIntent,isPublicLearningResourceQuestion,
+            publicFundingIntent,isPublicGraduationAttendanceQuestion,isPublicStaffParkingQuestion,isPublicCommunicationQuestion,isPublicFacultyTrainingQuestion,isPublicEnrollmentDateQuestion,
+        ].some(select=>Boolean(select(input.question))));
         const firstWeekPlan = !input.images.length && !personalQuestion && !kind.irrelevant
             ? publicFirstWeekPlan(input.question)
             : null;
@@ -896,7 +916,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
             return;
         }
         const publicGuidanceHistory = publicStudyGuidance ? input.history.filter(item => item.role === 'user' && questionKind(item.content).school && !personalPublicQuestion(item.content) && !questionKind(item.content).irrelevant) : input.history;
-        const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
+        const pageQuestion = !input.images.length && !personalQuestion && !kind.irrelevant && !isPublicOfficeDirectionsQuestion(input.question) && Boolean(normalizePublicPageRoute(input.route)) && isPublicPageQuestion(input.question);
         const libraryRequest = !personalQuestion && !kind.personal && !kind.irrelevant && !input.images.length && !pageQuestion
             && findOfficialLibraryServiceLeads(input.question).length > 0;
         const libraryLanguage = libraryRequest ? libraryAnswerLanguage(input.question) : undefined;
@@ -935,7 +955,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 return;
             }
         }
-        const navigation = !input.images.length && !kind.irrelevant && !pageQuestion ? answerCampusNavigation(input.question) : null;
+        const navigation = !input.images.length && !kind.irrelevant && !pageQuestion && !isPublicContactDirectoryQuestion(input.question) && !isPublicStaffParkingQuestion(input.question) && !isPublicCommunicationQuestion(input.question) && !isPublicFacultyTrainingQuestion(input.question) && !isPublicEnrollmentDateQuestion(input.question) ? answerCampusNavigation(input.question) : null;
         if (navigation) {
             stream.progress('directory', 'Checked campus services', 'Found a verified service link.', 'complete');
             stream.send(200, navigation);
@@ -947,7 +967,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     : (chinese ? "您好！我可以幫您查詢樹德科技大學的聯絡方式、招生、課程、住宿、交通與公告。我會先查知識庫，資料不足時再查官方網站與相關網路來源。您想了解什麼？" : "Hello! I can help with Shu-Te University contacts, admissions, courses, accommodation, transport and announcements. I check managed knowledge first, then official school pages and related web sources when needed. What would you like to know?"), citations: [], suggestedQuestions: [], grounding: { source: "assistant-help", webSearched: false } });
             return;
         }
-        const directoryEligible = !input.images.length && !kind.personal && !personalQuestion && !kind.irrelevant;
+        const directoryEligible = !input.images.length && !kind.personal && !personalQuestion && !kind.irrelevant && !isPublicContactDirectoryQuestion(input.question) && !isPublicStaffParkingQuestion(input.question) && !isPublicCommunicationQuestion(input.question) && !isPublicFacultyTrainingQuestion(input.question) && !isPublicEnrollmentDateQuestion(input.question);
         const notice = !input.images.length && !kind.irrelevant ? answerSchoolServiceNotice(input.question,input.route) : null;
         if(notice){
             const [step]=notice.activity;
@@ -975,12 +995,18 @@ export function createResearchAssistantHandler(dependencies = {}) {
             process.env.SUPABASE_PUBLISHABLE_KEY;
         const researchConfigured = Boolean(openAiKey && supabaseUrl && publishableKey);
         const unconfigured = () => sendWithDirectory(503, publicDirectory ? {} : { error: "The research assistant is not configured." });
-        const publicQuestion = !input.images.length && (isPublicStudentCardReplacementQuestion(input.question) || isPublicHousingPolicyQuestion(input.question) || isPublicCalendarDateQuestion(input.question) || isPublicClubQuestion(input.question) || isPublicDocumentRequestQuestion(input.question) || publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
-            item.role === 'user' && !personalPublicQuestion(item.content))));
-        const documentContext = (!kind.fresh || isPublicCalendarDateQuestion(input.question)) && !personalQuestion && !pageQuestion && !publicStudyGuidance && publicQuestion
-            ? publicHousingContext(input.question) || publicCalendarContext(input.question) || publicTuitionContext(input.question) || publicProspectusContext(input.question,input.route) : null;
+        const publicQuestion = !input.images.length ? publicSchoolQuestion(input.question, publicGuidanceHistory.filter(item =>
+            item.role === 'user' && !personalPublicQuestion(item.content))) : null;
+        const documentContext = (!kind.fresh || isPublicCalendarDateQuestion(input.question) || isPublicEnrollmentDateQuestion(input.question)) && !personalQuestion && !pageQuestion && !publicStudyGuidance && publicQuestion
+            ? publicEnrollmentContext(input.question) || publicContactDirectoryContext(input.question) || publicCommunicationContext(input.question) || publicFacultyTrainingContext(input.question) || publicStaffParkingContext(input.question) || publicAcademicRulesContext(input.question) || publicFundingContext(input.question) || publicHousingContext(input.question) || publicCalendarContext(input.question) || publicTuitionContext(input.question) || publicProspectusContext(input.question,input.route) : null;
         const preferredCapture = documentContext?.page || (!kind.fresh && !personalQuestion && !pageQuestion && !publicStudyGuidance &&
-            publicQuestion && (isPublicStudentCardReplacementQuestion(input.question)
+            publicQuestion && (isPublicLearningResourceQuestion(input.question)
+              ? publicPageForRoute(publicLearningResourceRoute)
+              : publicCampusSupportIntent(input.question)
+              ? publicPageForRoute(campusSupportRoute)
+              : isPublicOfficeDirectionsQuestion(input.question)
+              ? publicPageForRoute(publicOfficeCaptureRoute(input.question))
+              : isPublicStudentCardReplacementQuestion(input.question)
               ? publicPageForRoute('/school-sites/freshman.stu.edu.tw/2020/05/13/%E5%AD%B8%E7%94%9F%E8%AD%89/')
               : isPublicClubQuestion(input.question)
               ? publicPageForRoute('/school-sites/activity.sao.stu.edu.tw/%E6%B4%BB%E5%8A%9B%E7%A4%BE%E5%9C%98%E4%BB%8B%E7%B4%B9/')
@@ -991,7 +1017,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         if (!researchConfigured && !exactLibraryWeekday && !exactInstitutionalFact) { unconfigured(); return; }
         const started = Date.now();
         const verificationQuestion = input.question;
-        const deadline = Math.min(started + 55_000, Number.isFinite(context?.deadline) ? context.deadline : Infinity);
+        const deadline = assistantRequestDeadline(started, context?.deadline);
         const timeFor = maximum => Math.max(1, Math.min(maximum, deadline - Date.now()));
         const verificationProgress = (step) => stream.progress(step.kind, step.label, step.detail, step.status);
         if (deadline - started < 500) {
@@ -1012,11 +1038,13 @@ export function createResearchAssistantHandler(dependencies = {}) {
             // school resources, even if a reviewer accepts its suggestions.
             if (publicStudyGuidance && !hasCitedPublicResource(context.candidate, context.evidence))
                 return Promise.resolve({ ok: false, reason: 'evidence_unavailable', feedback: ['Include a clickable citation to at least one relevant supplied public school resource, or withhold the unsupported plan.'] });
-            return verifyEvidenceAnswer(publicStudyGuidance || isPublicClubRecommendationQuestion(input.question) ? { ...context, responseIntent: 'mixed' } : context, input.images);
+            return verifyEvidenceAnswer({...context,...(publicGuidanceReply?{responseIntent:'mixed'}:{}),responseNeeds:publicSourceResponseNeeds(context.question,context.evidence)},input.images);
         };
-        const repairPublicAnswer = context => repairEvidenceAnswer(publicStudyGuidance || isPublicClubRecommendationQuestion(input.question)
-            ? { ...context, ...localizedLibrary, responseIntent: 'mixed', feedback: [...(context.feedback || []), publicStudyGuidanceInstructions] }
-            : { ...context, ...localizedLibrary }, input.images);
+        const repairPublicAnswer = context => repairEvidenceAnswer({ ...context, ...localizedLibrary,
+            responseNeeds:publicSourceResponseNeeds(context.question,context.evidence),
+            ...(publicGuidanceReply ? {responseIntent:'mixed'} : {}),
+            ...(publicStudyGuidance ? {feedback:[...(context.feedback||[]),publicStudyGuidanceInstructions]} : {}),
+        }, input.images);
         const language = libraryLanguage || assistantLanguage(input.question,input.history);
         const model = assistantModelOverride() || process.env.OPENAI_PUBLIC_MODEL ||
             process.env.OPENAI_MODEL ||
@@ -1471,7 +1499,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     deeperReview: previousChecks === maxAnswerVerificationChecks - 1,
                     hasKnownNoticeLink,
                     ...localizedLibrary,
-                    ...(publicStudyGuidance ? { responseIntent: 'mixed', feedback: [publicStudyGuidanceInstructions] } : {}),
+                    ...(publicGuidanceReply ? {responseIntent:'mixed'} : {}),
+                    ...(publicStudyGuidance ? {feedback:[publicStudyGuidanceInstructions]} : {}),
                 }).catch(() => null);
                 if (composed?.status !== 'answered') {
                     publicStop = verificationStopActivity(verificationQuestion, composed ? 'no_usable_evidence' : 'repair_unavailable');
@@ -1483,6 +1512,8 @@ export function createResearchAssistantHandler(dependencies = {}) {
             let foundOnlyMirroredContent = false;
             let reviewedUnresolvedSources = false;
             let focusRepairPending = false;
+            let checkedSourceCorrectionUsed = false;
+            let checkedSourceCorrectionEligible = false;
             const hasUnreadPublicLead = () => [...pendingLeads.keys()].some(url => canRead(url) && !readAttempts.has(url));
             const canExtendReview = () => canRecover && (
                 addedEvidenceOnLastPass || [...pendingLeads.keys()].some(canRead)
@@ -1498,6 +1529,11 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 if(focusRepairPending&&capture&&usefulFeedback&&!interrupted&&!extended){
                     focusRepairPending=false;
                     progress({kind:'source-focus-repair',label:'Refocusing the answer',detail:'The facts matched the source; revising the answer to address the question before searching elsewhere.',status:'complete'});
+                    return evidence;
+                }
+                if(capture&&checkedSourceCorrectionEligible&&!checkedSourceCorrectionUsed&&usefulFeedback&&previousFailure==='unsupported_claims'&&!interrupted&&!extended){
+                    checkedSourceCorrectionUsed=true;
+                    progress({kind:'checked-source-correction',label:'Correcting the draft against checked sources',detail:'Using the reviewer feedback for one correction before looking for another source. The corrected draft still requires independent verification.',status:'complete'});
                     return evidence;
                 }
                 foundOnlyMirroredContent = false;
@@ -1578,6 +1614,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
                     const review = await verifyPublicAnswer({ ...context, hasKnownNoticeLink, trackPublicCoverage: canRecover&&!publicStudyGuidance,
                         deeperReview: context.attempt + previousChecks >= maxAnswerVerificationChecks });
                     focusRepairPending=review.answerFocusOnly===true;
+                    checkedSourceCorrectionEligible=review.draftAddressesQuestion===true;
                     // A completed deeper check of distinct sources can point to a
                     // different publication even when the latest search returned no URLs.
                     if (context.attempt + previousChecks === maxAnswerVerificationChecks && triedDeeperSearch && context.evidence.length > 1
@@ -1619,12 +1656,19 @@ export function createResearchAssistantHandler(dependencies = {}) {
             const stepKind = 'saved-public-source';
             const label = chinese ? '查閱已儲存的學校資料' : 'Checked a saved school source';
             stream.progress(stepKind, label, chinese ? '正在核對公開頁面。' : 'Reading the saved public page.');
-            const capture = await (documentContext ? Promise.resolve(documentContext) : loadPublicPage(preferredCapture.route, Math.min(deadline, started + 4_000))).then(context => {
+            const campusEvidence=publicCampusSupportIntent(input.question)
+              ? await loadCampusSupportEvidence(loadPublicPage,Math.min(deadline,started+5000),publicCampusSupportIntent(input.question)) : [];
+            const officeEvidence=!documentContext?.evidence.id.startsWith('public-document:contact-directory:')&&isPublicOfficeDirectionsQuestion(input.question)
+              ? await loadOfficeDirectionsEvidence(loadPublicPage,Math.min(deadline,started+5000)) : [];
+            const capture = await (documentContext ? Promise.resolve(documentContext) : loadPublicPage(preferredCapture.route, Math.min(deadline, started + 7_000),isPublicOfficeDirectionsQuestion(input.question)?{includeContactSections:true,includeDirectoryLinks:true}:{})).then(context => {
                 if (!context?.contentAvailable) return null;
+                if(isPublicOfficeDirectionsQuestion(input.question))context=focusOfficeContactContext(context);
+                if(isPublicLearningResourceQuestion(input.question))context=focusLearningResourceContext(context);
+                if(publicCampusSupportIntent(input.question))context=focusCampusSupportContext(context);
                 if(isPublicClubQuestion(input.question))context=compactClubDirectoryContext(context);
                 if(isPublicStudentCardReplacementQuestion(input.question))context=focusStudentCardContext(context);
-                const evidence = { ...boundedPublicPageEvidence(context, {budget:documentContext || isPublicClubQuestion(input.question) || isPublicStudentCardReplacementQuestion(input.question) ? 16000 : 6000}), urls: [context.page.route, preferredCapture.source] };
-                const additionalEvidence=(documentContext?.additionalEvidence||[]).filter(source=>validEvidence([source]));
+                const evidence = { ...boundedPublicPageEvidence(context, {budget:documentContext || isPublicClubQuestion(input.question) || isPublicStudentCardReplacementQuestion(input.question) ? 16000 : 6000}), urls: [...new Set([...(context.evidence.urls||[]),context.page.route, preferredCapture.source])] };
+                const additionalEvidence=[...(documentContext?.additionalEvidence||[]),...officeEvidence,...campusEvidence].filter((source,index,all)=>source.id!==evidence.id&&all.findIndex(other=>other.id===source.id)===index&&validEvidence([source]));
                 return validEvidence([evidence]) ? { context, evidence, additionalEvidence } : null;
             }).catch(() => null);
             const savedPublicSource = { kind: stepKind, label, status: capture ? 'complete' : 'unavailable',
@@ -1650,12 +1694,17 @@ export function createResearchAssistantHandler(dependencies = {}) {
                 }
                 if (!researchConfigured) { unconfigured(); return; }
                 const seed = { ...publicPageCandidate(context, input.question), activity: captureActivity };
-                const candidate = await composeEvidenceAnswer({ question: verificationQuestion, candidate: seed,
-                    ...(isPublicClubRecommendationQuestion(input.question)?{responseIntent:'mixed'}:{}),
-                    evidence: [evidence,...capture.additionalEvidence], deadline: Math.min(deadline-22_000, Date.now()+28_000) }).catch(error => {
+                const savedEvidence=[evidence,...capture.additionalEvidence];
+                const candidate = await composeSavedPublicSource({question:verificationQuestion,candidate:seed,
+                    ...(publicGuidanceReply?{responseIntent:'mixed'}:{}),
+                    responseNeeds:publicSourceResponseNeeds(verificationQuestion,savedEvidence),
+                    evidence:savedEvidence,deadline},{compose:composeEvidenceAnswer,repair:repairPublicAnswer,
+                    onActivity:step=>{captureActivity.push(step);verificationProgress(step);}}).catch(error => {
                       console.warn('Saved source answer preparation unavailable',{code:error?.code||'UNAVAILABLE',invalidLinks:error?.invalidLinks===true,invalidSourceIds:error?.invalidSourceIds===true});return null;
                     });
-                if (candidate?.status === 'answered' && candidate.citations.some(citation => citation.chunkId === evidence.id)) {
+                // A supported secondary directory/contact source can answer the question
+                // without citing the initially selected map. Verify every supplied source.
+                if (candidate?.status === 'answered' && candidate.citations.some(citation => [evidence,...capture.additionalEvidence].some(source=>source.id===citation.chunkId))) {
                     await verifyPublicSources(candidate, { capture: { evidence, additionalEvidence:capture.additionalEvidence, originalUrl: preferredCapture.source } });
                     return;
                 }

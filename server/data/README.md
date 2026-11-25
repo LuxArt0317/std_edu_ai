@@ -9,3 +9,7 @@
 `calendarText.json` is derived from registered calendar PDF bytes by `scripts/import-calendar-text.mjs`. It retains the checksum, original pages, derived event rows and page locators. The115 English edition has supported bullet markers; the114 edition is explicitly skipped by this event parser rather than guessed. It is a dated public calendar, not a live event feed or personal graduation record.
 
 `housingPolicy.json` preserves compact sections from two checksum-verified public price/application pages. `wirelessGuide.json` preserves public wireless/device-source text (including tab/div content missed by generic paragraph extraction), source-derived SSIDs and contact fields, and whether a dorm-registration capture exists. These are source projections, not evaluation answers, account values or an active registration service.
+
+`publicFundingSources.json` projects nine existing registered public article/PDF sources with per-source checksum, date and scope. Rebuild with `node scripts/import-public-funding-source.mjs`. `academicRules115.json` stores the verified28-page bilingual1150202 academic regulations, with selected literal Articles23,24,38,40; rebuild with `node scripts/import-academic-rules-source.mjs`. These contain public source text, never FAQ references or private student records.
+
+`staffParkingSource.json` is refreshed by `node scripts/import-staff-parking-source.mjs`; literal staff sections and exact office contacts are kept separate from student fees and contractor policy.

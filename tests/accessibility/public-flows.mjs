@@ -19,7 +19,7 @@ async function installPublicFixtures(page){
   let enrolled=false;
   await page.route("**/api/research-assistant",route=>json(route,route.request().postDataJSON()?.question?.includes('STU registrar')
     ? {answer:"The registrar office is listed in the STU directory.\n\nWeb sources: [1](https://reg.aca.stu.edu.tw/contact/)",status:"answered",citations:[{chunkId:"web:official-contact",claim:"Live web source; not a reviewed knowledge-base document.",title:"Registrar office",sourceName:"STU official website · Live web",url:"https://reg.aca.stu.edu.tw/contact/",locator:null,effectiveAt:null,reviewedAt:null,origin:"web"}],suggestedQuestions:["How do I contact admissions?"],grounding:{source:"web",webSearched:true,officialOnly:true}}
-    : {answer:"招生資訊應以校方招生頁面為準。",status:"answered",citations:[{chunkId:"official-admissions",claim:"Use the official admissions page.",title:"招生資訊",sourceName:"STU official website",url:"https://www.stu.edu.tw/",locator:"招生專區",effectiveAt:"2026-07-01T00:00:00.000Z",reviewedAt:"2026-07-01T00:00:00.000Z"}],suggestedQuestions:[],feedback:{token:"f".repeat(64),expiresAt:"2026-07-20T00:00:00.000Z"}}));
+    : {answer:"招生資訊應以校方招生頁面為準。",status:"answered",citations:[{chunkId:"official-admissions",claim:"Use the official admissions page.",title:"招生資訊",sourceName:"STU official website",url:"https://www.stu.edu.tw/",locator:"招生專區",effectiveAt:"2026-07-01T00:00:00.000Z",reviewedAt:"2026-07-01T00:00:00.000Z"}],suggestedQuestions:[],feedback:{token:"f".repeat(64),expiresAt:new Date(Date.now()+3600000).toISOString()}}));
   await page.route("**/api/research-feedback",route=>json(route,{status:"recorded"}));
   await page.route("**/api/campus-route",route=>route.request().method()==="GET"?json(route,{places}):json(route,{status:"verified",origin:places[0],destination:places[1],wheelchair:true,distanceMeters:120,estimatedSeconds:150,steps:[{edgeId:"edge-a11y",distanceMeters:120,estimatedSeconds:150,environment:"outdoor",traversalType:"walkway",wheelchairSuitable:true,instructionZh:"沿無障礙通道前往行政大樓",instructionEn:"Follow the accessible walkway to the Administration Building"}],disclaimer:"This route uses the latest institutionally verified graph; follow posted signs and temporary closure notices."}));
   await page.route("**/api/research-session**",route=>{
@@ -64,12 +64,16 @@ try{
   const page=await context.newPage();
   await installPublicFixtures(page);
 
-  await fresh(page,"/campus-assistant");await page.getByRole("heading",{name:"校園助理 · Assistant"}).waitFor();await axeEvidence(page,"assistant-open");
-  await page.getByPlaceholder("Ask a school question…").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"Send",exact:true}).click();await page.getByRole("list",{name:"Sources"}).waitFor();await axeEvidence(page,"assistant-citation-feedback",['[role="log"][aria-live="polite"]']);
+  await fresh(page,"/campus-assistant");await page.getByRole("heading",{name:"Campus assistant",exact:true}).waitFor();await axeEvidence(page,"assistant-open");
+  await page.getByPlaceholder("Ask a school question…").fill("招生資訊在哪裡？");await page.getByRole("button",{name:"Send",exact:true}).click();await page.getByRole("list",{name:"Sources"}).waitFor();await page.getByRole("heading",{name:"校園助理",exact:true}).waitFor();await axeEvidence(page,"assistant-citation-feedback",['[role="log"][aria-live="polite"]']);
   await page.getByRole("button",{name:"需要修正"}).click();await page.getByRole("button",{name:"送出意見"}).waitFor();await axeEvidence(page,"assistant-correction-expanded");
   await page.getByPlaceholder("Ask a school question…").fill("Where is the STU registrar?");await page.getByRole("button",{name:"Send",exact:true}).click();await page.getByText("Found online · See sources below.").waitFor();
+  // The latest user question controls the conversation chrome and feedback,
+  // including earlier messages. Locale zh-TW does not force Chinese replies.
+  await page.getByRole("heading",{name:"Campus assistant",exact:true}).waitFor();
+  await page.getByRole("button",{name:"Send feedback",exact:true}).waitFor();
   const webAnswer=page.getByRole("log").getByRole("article").last();
-  if(!await webAnswer.getByRole("link",{name:"Registrar office"}).count() || await webAnswer.getByRole("button",{name:"需要修正"}).count() || !await webAnswer.getByRole("button",{name:"How do I contact admissions?"}).count())throw Error('Web answer source/feedback/follow-up UI failed');
+  if(!await webAnswer.getByRole("link",{name:"Registrar office"}).count() || await webAnswer.getByRole("button",{name:/^(?:Needs improvement|需要修正)$/}).count() || !await webAnswer.getByRole("button",{name:"How do I contact admissions?"}).count())throw Error('Web answer source/feedback/follow-up UI failed');
   await axeEvidence(page,"assistant-web-citation-no-feedback");
 
   await fresh(page,"/campus-directory");await page.getByRole("button",{name:/開啟校園導覽/}).click();await page.getByRole("heading",{name:"驗證地點與文字路線"}).waitFor();await axeEvidence(page,"campus-directory");

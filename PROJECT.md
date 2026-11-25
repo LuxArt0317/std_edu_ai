@@ -92,4 +92,6 @@ Local chatbot task strategies and verified public-source imports are documented 
 
 The canonical spreadsheet-based evaluation reference is [School questions and answers](docs/question-answer/README.md); the local lab versions references while preserving prior runs. See [lab architecture](tools/evaluation-lab/README.md).
 
-Hosted evaluation packaging and compiled-runtime validation are documented in [API README](api/README.md) and [scripts README](scripts/README.md).
+Local chatbot slash settings, model catalog and request-scoped overrides are described in [server documentation](server/README.md), [public UI documentation](src/features/public/README.md) and [Answer Lab documentation](tools/evaluation-lab/README.md). No new dependency was added.
+
+The local assistant source coverage and independent-auditor configuration are documented in [server helpers](server/README.md); public source projections and their refresh commands are in [server data](server/data/README.md).

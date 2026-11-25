@@ -8,6 +8,6 @@ export function isPublicPageSummaryQuestion(question:unknown):boolean;
 export function institutionalPublicCapture(question:unknown,route?:string):PublicCapture|null;
 export function institutionalFactRequest(question:unknown):'founding-and-mission'|'founding-year'|'motto'|null;
 export function institutionalFactAnswer(context:PublicPageContext,question:string):VerificationCandidate|null;
-export function loadPublicPageContext(route:string,deadline:number,dependencies?:{captures?:PublicCapture[];fetchCapture?:typeof fetch}):Promise<PublicPageContext|null>;
+export function loadPublicPageContext(route:string,deadline:number,dependencies?:{captures?:PublicCapture[];fetchCapture?:typeof fetch;includeContactSections?:boolean;includeDirectoryLinks?:boolean}):Promise<PublicPageContext|null>;
 export function boundedPublicPageEvidence(context:PublicPageContext,options?:{budget?:number}):VerificationEvidence;
 export function publicPageCandidate(context:PublicPageContext,question:string,options?:{summary?:string|null}):VerificationCandidate;

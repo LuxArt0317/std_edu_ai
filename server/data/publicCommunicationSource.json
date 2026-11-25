@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "home": {
+    "title": "樹德科技大學 – 愛上宜學、宜居、宜行、宜樂的山水校園",
+    "url": "/",
+    "source": "https://www.stu.edu.tw/",
+    "capturedOn": "2026-11-03",
+    "checksum": "747c7a550ad7916b9965ec551a014b18578657fcb4238295aeb3d7b81a781f32",
+    "captureFile": "/school-pages/812a41999d5c86de24d4.html"
+  },
+  "links": [
+    {
+      "label": "服務品質信箱",
+      "url": "https://sites.google.com/stu.edu.tw/stu-contacts/",
+      "external": true,
+      "destinationBodyRead": false,
+      "localRoute": null
+    },
+    {
+      "label": "電子郵件",
+      "url": "https://sites.google.com/stu.edu.tw/stu-contacts/",
+      "external": true,
+      "destinationBodyRead": false,
+      "localRoute": null
+    }
+  ],
+  "coverage": "Only the homepage anchor labels and destinations were read. No linked Google Sites body, form, recipient list, email address or delivery result was read or inferred."
+}

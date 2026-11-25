@@ -430,7 +430,7 @@ test("equally ranked conflicting official sources hand off without model guessin
     document_id: "22222222-2222-4222-8222-222222222222",
     source_id: "33333333-3333-4333-8333-333333333333",
     source_url: "https://www.stu.edu.tw/a",
-    content: "Registration closes Monday.",
+    content: "Visitor confirmation is due Monday.",
     fused_score: 0.2,
     content_checksum: "a".repeat(64),
   };
@@ -440,7 +440,7 @@ test("equally ranked conflicting official sources hand off without model guessin
     document_id: "66666666-6666-4666-8666-666666666666",
     source_id: "77777777-7777-4777-8777-777777777777",
     source_url: "https://www.stu.edu.tw/b",
-    content: "Registration closes Friday.",
+    content: "Visitor confirmation is due Friday.",
     fused_score: 0.19,
     content_checksum: "b".repeat(64),
   };
@@ -459,12 +459,12 @@ test("equally ranked conflicting official sources hand off without model guessin
         JSON.stringify([
           {
             id: first.document_id,
-            logical_key: "registration-deadline",
+            logical_key: "visitor-confirmation-deadline",
             content_checksum: first.content_checksum,
           },
           {
             id: second.document_id,
-            logical_key: "registration-deadline",
+            logical_key: "visitor-confirmation-deadline",
             content_checksum: second.content_checksum,
           },
         ]),
@@ -481,7 +481,7 @@ test("equally ranked conflicting official sources hand off without model guessin
   };
   const response = await invoke(
     {
-      question: "When does registration close?",
+      question: "When is STU visiting-lecturer confirmation due?",
       sessionToken: "u".repeat(64),
     },
     "conflict",
@@ -507,7 +507,7 @@ test('anonymous personal-course questions request sign-in without reading accoun
 
 test('web answers require both retrieved page contents and an independent review without curated trace IDs',async()=>{
  configured();let searchCalls=0, traceCalls=0;
- const source='https://www.stu.edu.tw/office/';
+ const source='https://www.stu.edu.tw/research-note/';
  globalThis.fetch=async(input,init)=>{
   const url=String(input);
   if(url.includes('/embeddings'))return Response.json({data:[{embedding:embedding()}]});
@@ -516,17 +516,17 @@ test('web answers require both retrieved page contents and an independent review
    const request=JSON.parse(String(init?.body));
    if(request.text?.format?.name==='answer_evidence_review') {
     const data=JSON.parse(request.input[0].content[0].text);
-    assert.equal(data.evidence[0].content,'Office information is available on this STU office page.');
-    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:true,claims:[{claim:'Office page',supported:true,evidenceId:data.evidence[0].id,quote:'Office information is available on this STU office page.'}]})}]}]});
+    assert.equal(data.evidence[0].content,'The STU saffron-research information is available on this page.');
+    return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:true,claims:[{claim:'Research note',supported:true,evidenceId:data.evidence[0].id,quotes:['The STU saffron-research information is available on this page.'],jsonPaths:[]}]})}]}]});
    }
    assert.equal(request.tools[0].type,'web_search');searchCalls++;
-   return Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url:source,title:'STU office'}]}},{type:'message',content:[{text:JSON.stringify({status:'answered',answer:'You can find office information on the STU office page.',source_urls:[source]})}]}]});
+   return Response.json({output:[{type:'web_search_call',status:'completed',action:{sources:[{url:source,title:'STU research note'}]}},{type:'message',content:[{text:JSON.stringify({status:'answered',answer:'You can find office information on the STU research note page.',source_urls:[source]})}]}]});
   }
   if(url.includes('record_public_ai_exchange')){traceCalls++;return trace();}
   return Response.json(null);
  };
- const run=createResearchAssistantHandler({readSources:async(citations)=>citations.map(citation=>({id:citation.chunkId,url:citation.url,title:citation.title,content:'Office information is available on this STU office page.'}))});
- const result=await invoke({question:'Where can I find STU office information?'},'web-fallback',run);
+ const run=createResearchAssistantHandler({readSources:async(citations)=>citations.map(citation=>({id:citation.chunkId,url:citation.url,title:citation.title,content:'The STU saffron-research information is available on this page.'}))});
+ const result=await invoke({question:'Where can I find STU research note information?'},'web-fallback',run);
  const body=result.body as {status:string;answer:string;feedback?:unknown;citations:Array<{url:string;reviewedAt:unknown}>;grounding:{source:string;webSearched:boolean}};
  assert.equal(result.statusCode,200);assert.equal(body.status,'answered');assert.equal(body.grounding.source,'web');assert.equal(body.grounding.webSearched,true);assert.equal(body.citations[0].url,source);assert.equal(body.citations[0].reviewedAt,null);assert.match(body.answer,/\[1\]\(/);assert.equal(body.feedback,undefined);assert.equal(traceCalls,0);assert.equal(searchCalls,1);
 });
