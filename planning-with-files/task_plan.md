@@ -1,5 +1,12 @@
 # Task Plan
 
+## Public guidance parity after sign-in [Issue #100]
+
+- [x] Audit all41public questions through the authenticated handler with private reads/network/models forbidden; identify7wrong private selections.
+- [x] Reuse shared source predicates and strict public-route forwarding; retain personal/foreign/write boundaries.
+- [x] Verify22dispatch contracts, API types/import lint and41case audit with0private selections/errors.
+- [ ] Include real signed-in UI/model acceptance when browser access permits; fixtures do not prove it.
+
 ## Club contact projection and course-planning intent [Issue #100]
 
 - [x] Audit Q43 actual captured contacts and identify URL removal during compaction.

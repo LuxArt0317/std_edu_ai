@@ -1,3 +1,4 @@
+import {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute} from '../server/publicSignedInDispatch.js';
 import {assistantRequestDeadline} from '../server/assistantRequestBudget.js';
 import {conversationalGuidance} from '../server/conversationalGuidance.js';
 import {withUserAssistantSettings} from '../server/assistantUserSettings.js';
@@ -367,10 +368,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   // account path; public dispatch never receives account history or credentials.
   const publicFundingOrEnrollment=!/\b(?:my|our|mine|am i|did i|have i|for me|on my behalf|another student|someone else's)\b|我的|我們的|幫我|帮我|其他學生|其他学生/iu.test(question)
     &&Boolean(publicFundingIntent(question)||isPublicEnrollmentDateQuestion(question));
-  if(!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)&&(publicFundingOrEnrollment||isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
+  const additionalPublicGuidance=isAdditionalPublicGuidanceQuestion(question);
+  if(!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)&&(additionalPublicGuidance||publicFundingOrEnrollment||isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
     try{
       const research=await dispatchPublicResearch(publicResearch,{method:'POST',headers:{'content-type':'application/json'},
-        body:{question,history:[],route:publicFundingOrEnrollment&&/^(?:\/admissions\/?|\/school-sites\/[^?#]+)$/u.test(route)?route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,
+        body:{question,history:[],route:additionalPublicGuidance?additionalPublicGuidanceRoute(route):publicFundingOrEnrollment&&/^(?:\/admissions\/?|\/school-sites\/[^?#]+)$/u.test(route)?route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,
         step=>stream.progress(step.kind,step.label,step.detail,step.status));
       stream.send(research.status,research.result);
     }catch{stream.send(503,{error:'I could not load the public procedure just now. Your personal records have not been checked.'});}

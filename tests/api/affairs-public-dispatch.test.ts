@@ -302,3 +302,56 @@ test('in-process deadline closes the bridge and ignores late public progress and
 test('expired deadlines do not invoke the public handler',async()=>{
   let calls=0;await assert.rejects(dispatchPublicResearch(async()=>{calls++;},{headers:{}},Date.now()-1,()=>{}),/deadline exceeded/);assert.equal(calls,0);
 });
+
+test('additional public guidance families use authenticated public dispatch without history or private reads',async()=>{
+ const {isAdditionalPublicGuidanceQuestion}=await import('../../server/publicSignedInDispatch.js');
+ const questions=[
+  'Can I graduate without attending classes?',
+  'Can you recommend books or videos to supplement my learning?',
+  'How can I file a facility repair report?',
+  'Where are the department offices located?',
+  'Where can I find contact details for my department office?',
+  'What teacher training workshops are available?',
+  'How do staff apply for parking permits?',
+ ];
+ const requests:any[]=[];
+ const handler=createAffairsAssistantHandler({loadSnapshot:async()=>assert.fail('Private snapshots are forbidden for public guidance'),answerAccount:async()=>assert.fail('Private model path forbidden'),publicResearch:async(request,response)=>{requests.push(request);response.status(200).json(answer);}});
+ for(const question of questions){
+  assert.equal(isAdditionalPublicGuidanceQuestion(question),true,question);
+  const result=await invoke(handler,{question,route:'/',history:[{role:'assistant',content:'PRIVATE_CONTEXT'}]});
+  assert.equal(result.status,200,question);
+  assert.deepEqual(result.body,answer);
+  const request=requests.at(-1);
+  assert.deepEqual(request.body,{question,route:'/',history:[],images:[],stream:false,consentedResearchUse:false});
+  assert.doesNotMatch(JSON.stringify(request),/PRIVATE_CONTEXT|Bearer|authorization/iu);
+ }
+});
+test('additional guidance classifier preserves own-record compounds, foreign requests and writes',async()=>{
+ const {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute}=await import('../../server/publicSignedInDispatch.js');
+ for(const question of [
+  'Can I graduate without attending classes and what are my grades?',
+  'Recommend books and show my assignments.',
+  'Where is the department office and what is my tuition balance?',
+  "Where is the office and show another student's records?",
+  'Submit a facility repair report for me.',
+  'What is my repair request status?',
+  'Register me for teacher training workshops.',
+  'Apply for staff parking permits on my behalf.',
+  'Submit staff parking permit application.',
+  'Where is the department office and what is my most recent scholarship application status?',
+  'Where is the office and show my own profile and email.',
+  "Where is the office and show John's grades?",
+  'Where is the office and show my schedule?',
+  '辦公室在哪？請查我的上學期成績。',
+ ])assert.equal(isAdditionalPublicGuidanceQuestion(question),false,question);
+ assert.equal(additionalPublicGuidanceRoute('/school-affairs'),'/');
+ assert.equal(additionalPublicGuidanceRoute('/?private=1'),'/');
+ assert.equal(additionalPublicGuidanceRoute('/%E5%88%86%E6%A9%9F%E8%A1%A8/'),'/%E5%88%86%E6%A9%9F%E8%A1%A8/');
+});
+
+test('qualified own-record compounds never dispatch to public research',async()=>{
+ let publicCalls=0;
+ const handler=createAffairsAssistantHandler({publicResearch:async(_request,response)=>{publicCalls++;response.status(200).json(answer);},loadSnapshot:async()=>{throw new Error('Offline account route selected');}});
+ for(const question of ['Where is the department office and what is my most recent scholarship application status?', 'Where is the office and show my own profile and email.', '辦公室在哪？請查我的上學期成績。'])await invoke(handler,{question,route:'/school-affairs'});
+ assert.equal(publicCalls,0);
+});

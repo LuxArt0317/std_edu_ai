@@ -1,5 +1,7 @@
 # HTTP API
 
+`publicSignedInDispatch.js` reuses the public source predicates for graduation/attendance policy, learning resources, repair how-to, office directions/contacts, faculty training and staff parking before selecting account records. Personal/foreign-record compounds and writes retain the account path. Only a registered public route and current question are forwarded; history and credentials stay private. The41-case offline public-bank routing audit has zero private selections/errors, distinct from real signed-in browser/model acceptance.
+
 Signed-in public funding-discovery and admission-date questions delegate to the same in-process public research handler before account-record selection. Only the current question and validated public page route are forwarded; credentials and account history are excluded. Mixed personal questions remain on the account path.
 
 `affairs-data.ts?scope=graduation-clearance` reads private applications, available periods and office decisions. The `manage` view takes a term and optional candidate. Dedicated student and administrator actions are versioned and retry-safe.

@@ -1,5 +1,7 @@
 # Server helpers
 
+`publicSignedInDispatch.js` keeps public-source guidance public after authentication using the same domain predicates as research. It distinguishes generic repair instructions from report/status/write requests and treats harmless “my department”/“my learning” as public context while rejecting qualified own/foreign-record compounds. It forwards only registered public page routes; account routes, query strings, history and credentials are excluded.
+
 `publicClubIntent.js` retains exact named Instagram contacts from the verified club-directory capture, with64-contact/8KB bounds and strict HTTPS/profile/query validation. These are outgoing source-published contact links, not mirrored social pages, verified meeting locations, live account content or membership outcomes. An ambiguous club name needs clarification.
 
 Own course-planning advice uses mixed factual/guidance review and only the selected course-selection and graduation-review tools. The bounded bilingual grammar excludes factual lookups, foreign-student requests, write commands and mixed-domain requests. It supplies no course recommendation, next-term mapping, credit threshold or authorization to enroll; missing selectors still require clarification.

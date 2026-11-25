@@ -1,5 +1,7 @@
 # API contract checks
 
+The authenticated dispatch suite also covers the seven formerly misrouted public families, public route registration and qualified personal/foreign/write compounds. Private reads and non-auth network calls are forbidden by fixtures. The separate41-case offline bank audit verifies route selection only, not model quality or a real browser session.
+
 `public-club-source-contacts.test.ts` verifies actual captured music-club contacts survive compaction and link checks, rejects unsafe/unrelated URLs and bounds the projection. `course-planning-intent.test.ts` checks bilingual/paraphrased advice selects only mixed course/degree records while factual, foreign, write and multi-domain requests keep their existing boundaries. These are offline contracts, not signed-in acceptance.
 
 The provider suite also checks optional source-audit effort does not alter answer or grader reasoning and invalid settings preserve request behavior. Scholarship response-needs checks require source-present roles/conditions and exclude reference amounts, grades and language thresholds from the instructions.

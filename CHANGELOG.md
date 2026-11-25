@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep seven additional public-guidance families on the public research path after sign-in; protect personal compounds, qualified record requests and writes, and forward no history or credentials.
+
 - Retain bounded source-published club Instagram contacts through compaction and link verification, keeping club names distinct and meeting locations unconfirmed.
 - Recognize bounded bilingual course-planning advice as mixed guidance with selected course-selection/graduation records, without inferring terms, thresholds or enrollment actions.
 
