@@ -76,3 +76,5 @@
 - Q18 actual source-selector audit found graduation evidence excluded by grade/rank compound. Added bounded bilingual mixed intent retaining independent grades/graduation evidence and original scope/non-prediction limits. Offline focused/existing contracts and types/import lint pass; signed-in acceptance pending.
 
 - Audited all53 exact-version cases without provider calls. Separated latest attempts from latest judged answers:41public historical/current passes,1private historicalpass,11private below/missing. Confirmed Q22/Q27 source selections; retained passing prepared guidance and all later failure history. No new signed-in runs detected.
+
+- Final private gate check: no new private runs, local login200, Codex browser controls unavailable. Same blocker persisted across three goal turns. Saved restartable handoff; goal blocked rather than falsely completed. No deployment or additional paid tests.
