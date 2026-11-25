@@ -35,3 +35,9 @@
 -2026-11-25: Complete assistant evaluation suite:1678passed,0failed,22skipped. Fixed real privatepayment/attendance/catalog routing boundaries and maintained independent ownership/read assertions. Strengthened packaging check through actual authenticated hosted dynamic dispatch with only3localfixture responses and0liveprovider calls. Finalbuildpassed; API2091/2092 identifiedandfixed an overlybroadclubjoin exclusion; finalAPIrerunpending.
 
 -2026-11-25: Final API suite2092/2092passed; lint/handoffpassed. Release remainsunpublishedpending ownerGitHubPRpipeline and exactproductionverification.
+
+
+## Concurrent release record retained
+
+- Live startup failure caught and production rolled back to7aa9d0bd; authenticated lab state53/154/138 and imported151 intact. Corrected build emits explicit JS handler artifact and Node trace confirms inclusion284 files/0warnings. New candidate will be staged and checked before domain promotion. User changed default filter to Selected model / All statuses / Highest score.
+
