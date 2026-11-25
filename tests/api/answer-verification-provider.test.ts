@@ -138,15 +138,46 @@ test('verified public captures use bounded public composition without replacing 
 test('focus-only repair still rejects the draft and requires valid references',async()=>{
  const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='test';
  const evidence=[{id:'public-document:test',content:JSON.stringify({rule:'Complete and sign the application form.'})}],candidate={status:'answered',answer:'Complete and sign the application form.',citations:[]};
- let reference='/rule';
- globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:false,claims:[{claim:candidate.answer,supported:true,evidenceId:evidence[0].id,quotes:[],jsonPaths:[reference]}]})}]}]});
+ let reference='/rule',missing=['application submission procedure'];
+ globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:false,missingRequestedDetails:missing,claims:[{claim:candidate.answer,supported:true,evidenceId:evidence[0].id,quotes:[],jsonPaths:[reference]}]})}]}]});
  try{
-  const verdict=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000});
+  const verdict=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});
   assert.equal(verdict.ok,false);assert.equal(verdict.answerFocusOnly,true);assert.ok(verdict.feedback?.length);
+  assert.equal(verdict.missingRequestedDetails,undefined,'Rejected focus drafts are not verified partial answers.');
+  assert.ok(verdict.feedback.some(note=>note.includes('application submission procedure')&&note.includes('not facts')));
   reference='/missing';
-  const invalid=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000});assert.equal(invalid.answerFocusOnly,false);
+  const invalid=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});assert.equal(invalid.answerFocusOnly,false);
+  assert.ok(!invalid.feedback.some(note=>note.includes('application submission procedure')));
+  reference='/rule';missing=['x'.repeat(161)];
+  const oversized=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});
+  assert.equal(oversized.ok,false);assert.ok(!oversized.feedback.some(note=>note.includes('x'.repeat(161))));
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
+test('the verification loop passes rejected coverage labels to repair and independently checks the correction',async()=>{
+ const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='test';
+ const facts={form:'Sign the application form.',submission:'Submit it through the application portal.'};
+ const evidence=[{id:'public-document:fixture',content:JSON.stringify(facts)}];
+ let checks=0,repairs=0;
+ globalThis.fetch=async(_url,init)=>{
+  const request=JSON.parse(String(init?.body)),input=JSON.parse(request.input[0].content[0].text);
+  checks++;const complete=input.answer.includes(facts.submission);
+  const claims=Object.entries(facts).filter(([,value])=>input.answer.includes(value)).map(([key,value])=>({claim:value,supported:true,evidenceId:evidence[0].id,quotes:[],jsonPaths:['/'+key]}));
+  return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:complete,claims,missingRequestedDetails:complete?[]:['submission procedure']})}]}]});
+ };
+ try{
+  const result=await runAnswerVerification({question:'How do I submit my application?',initialAnswer:{status:'answered',answer:facts.form,citations:[]},
+   deadline:Date.now()+20000,loadEvidence:async()=>evidence,
+   verify:context=>verifyEvidenceAnswer({...context,trackPublicCoverage:true}),
+   repair:async({feedback,evidence:current})=>{
+    repairs++;assert.ok(feedback.some(note=>note.includes('submission procedure')));
+    assert.deepEqual(current,evidence);
+    return {status:'answered',answer:Object.values(JSON.parse(current[0].content)).join(' '),citations:[]};
+   }});
+  assert.equal(checks,2);assert.equal(repairs,1);assert.equal(result.verification.status,'verified');
+  assert.match(result.answer,/application portal/u);
+ }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
+});
+
 test('public review is scoped while mixed account review retains its contracts',async()=>{
  const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY,requests:any[]=[];process.env.OPENAI_API_KEY='test';
  globalThis.fetch=async(_url,init)=>{requests.push(JSON.parse(String(init?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{"ok":true}'}]}]});};

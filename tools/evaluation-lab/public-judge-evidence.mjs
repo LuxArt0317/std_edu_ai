@@ -5,8 +5,9 @@ import {createHash} from 'node:crypto';
 import {publicPageForRoute,loadPublicPageContext} from '../../server/publicPageContext.js';
 import captures from '../../src/features/public/mirror/pages.json' with {type:'json'};
 import prospectus from '../../server/data/ipiac115.json' with {type:'json'};
+import {publicContactDirectoryPageContext} from '../../server/publicContactDirectoryEvidence.js';
 
-export const publicJudgeMethodVersion='public-source-context-v1';
+export const publicJudgeMethodVersion='public-source-context-v2';
 const registered=[...captures,{route:prospectus.url,source:prospectus.source,title:prospectus.title,file:prospectus.captureFile,checksum:prospectus.captureChecksum,capturedOn:prospectus.capturedOn}];
 const maxSources=4,maxCharacters=24000,maxIdentifiers=24,maxBytes=4000000;
 function identifier(value){
@@ -36,6 +37,38 @@ async function hostedBytes(page,deadline){
  catch(error){await reader.cancel().catch(()=>{});throw error;}
  return Buffer.concat(parts,length);
 }
+async function checkedBytes(page,publicRoot,hosted,deadline){
+ if(!/^\/school-pages\/[a-f0-9]{20}\.html$/u.test(page.file))throw Error('capture_file');
+ let bytes,transport='local-filesystem';
+ try{
+  if(!publicRoot)throw Object.assign(Error('capture_missing'),{code:'ENOENT'});
+  const filename=await realpath(resolve(publicRoot,'.'+page.file));
+  if(!filename.startsWith(publicRoot+sep))throw Error('capture_file');
+  const info=await stat(filename);if(!info.isFile()||info.size>maxBytes)throw Error('capture_size');
+  bytes=await readFile(filename,{signal:AbortSignal.timeout(Math.max(1,Math.min(4000,deadline-Date.now())))});
+ }catch(error){
+  if(!hosted||!['ENOENT','ENOTDIR'].includes(error.code))throw error;
+  bytes=await hostedBytes(page,deadline);transport='pinned-stu-best-static';
+ }
+ if(bytes.length>maxBytes||createHash('sha256').update(bytes).digest('hex')!==page.checksum)throw Error('capture_integrity');
+ return {bytes,transport};
+}
+
+async function checkedNativeDirectory(context,publicRoot,hosted,deadline){
+ const data=JSON.parse(context.evidence.content),normalize=text=>text.normalize('NFKC').replace(/\s/gu,'');
+ if(!Array.isArray(data.contacts)||!data.contacts.length||data.contacts.length>12)throw Error('catalog_shape');
+ const checks=await Promise.allSettled(data.contacts.map(async row=>{
+  const pin=registered.find(page=>page.file===row.source?.captureFile&&page.checksum===row.source?.checksum);
+  if(!pin||typeof row.source.text!=='string')throw Error('catalog_pin');
+  const {bytes}=await checkedBytes(pin,publicRoot,hosted,deadline),text=normalize(load(bytes.toString('utf8')).root().text());
+  // The catalog may combine literal lines from different page sections.
+  if(!row.source.text.split('\n').filter(line=>line.trim()).every(line=>text.includes(normalize(line))))throw Error('catalog_text');
+  if(![row.phone,...row.extensions,row.email,row.address].filter(Boolean).every(value=>normalize(row.source.text).includes(normalize(value))))throw Error('catalog_fields');
+ }));
+ if(checks.some(check=>check.status==='rejected'))throw Error('catalog_integrity');
+ return {title:data.pageTitle,scope:data.nativePageScope,contacts:data.contacts.map(({name,phone,extensions,email,address,source})=>({name,phone,extensions,email,address,sourceText:source.text,sourceUrl:source.url,sourceChecksum:source.checksum})),
+  scopeLimit:'Current native contact catalog, not the old imported university directory capture. Each contact text and field was checked against its registered source bytes. Purpose-specific extensions retain their published purpose; this is not the complete university extension book.'};
+}
 /** Reconstruct public evidence from deployed server registrations, not run flags or supplied excerpts.
  * This does not attest which evidence was retrieved when the historical answer was generated.
  * No arbitrary network requests or private/native record reads occur. Hosted missing files
@@ -53,25 +86,29 @@ export async function resolvePublicJudgeEvidence(root,run,{deadline=Date.now()+5
  const seen=new Set();let remaining=maxCharacters;
  for(const value of selectedIdentifiers(run)){
   if(Date.now()>=deadline){result.unresolved.push({reason:'deadline'});break;}
-  const route=identifier(value),page=route&&publicPageForRoute(route);
+  const route=identifier(value),native=route&&publicContactDirectoryPageContext(route);
+  if(native){
+   if(seen.has(native.page.route))continue;
+   seen.add(native.page.route);
+   if(result.sources.length>=maxSources){result.unresolved.push({identifier:value,reason:'source_limit'});continue;}
+   try{
+    const content=JSON.stringify(await checkedNativeDirectory(native,publicRoot,hosted,deadline));
+    const excerpt=content.slice(0,Math.min(6000,remaining));remaining-=excerpt.length;
+    result.sources.push({id:native.evidence.id,url:native.page.route,originalSource:'https://stu.best'+native.page.route,title:native.page.title,
+     checksum:createHash('sha256').update(content).digest('hex'),capturedOn:native.page.capturedOn,transport:'source-pinned-native-catalog',
+     locator:'Native catalog fields and literal source lines verified against registered capture bytes',excerpt,excerptTruncated:excerpt.length<content.length,
+     coverage:'Native local page supersedes its old imported capture; partial published contact coverage only, not live service availability.'});
+    result.destinationMappings.push({localUrl:native.page.route,originalUrl:'https://stu.best'+native.page.route,identifier:value,contentAvailable:true});
+   }catch{result.unresolved.push({identifier:value,reason:'native_catalog_unavailable_or_integrity_failed'});}
+   continue;
+  }
+  const page=route&&publicPageForRoute(route);
   if(!page){result.unresolved.push({identifier:value,reason:'not_registered_public_capture'});continue;}
   if(seen.has(page.route))continue;
   seen.add(page.route);
   if(result.sources.length>=maxSources){result.unresolved.push({identifier:value,reason:'source_limit'});continue;}
   try{
-   if(!/^\/school-pages\/[a-f0-9]{20}\.html$/u.test(page.file))throw Error('capture_file');
-   let bytes,transport='local-filesystem';
-   try{
-    if(!publicRoot)throw Object.assign(Error('capture_missing'),{code:'ENOENT'});
-    const filename=await realpath(resolve(publicRoot,'.'+page.file));
-    if(!filename.startsWith(publicRoot+sep))throw Error('capture_file');
-    const info=await stat(filename);if(!info.isFile()||info.size>maxBytes)throw Error('capture_size');
-    bytes=await readFile(filename,{signal:AbortSignal.timeout(Math.max(1,Math.min(4000,deadline-Date.now())))});
-   }catch(error){
-    if(!hosted||!['ENOENT','ENOTDIR'].includes(error.code))throw error;
-    bytes=await hostedBytes(page,deadline);transport='pinned-stu-best-static';
-   }
-   if(bytes.length>maxBytes||createHash('sha256').update(bytes).digest('hex')!==page.checksum)throw Error('capture_integrity');
+   const {bytes,transport}=await checkedBytes(page,publicRoot,hosted,deadline);
    const context=await loadPublicPageContext(page.route,deadline,{captures:[page],fetchCapture:async()=>new Response(bytes,{headers:{'content-type':'text/html'}})});
    if(!context?.contentAvailable)throw Error('capture_unreadable');
    const metadata=JSON.parse(context.evidence.content);

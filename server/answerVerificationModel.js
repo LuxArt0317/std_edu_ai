@@ -682,11 +682,17 @@ export async function verifyEvidenceAnswer({ question, candidate, evidence, dead
     unmatchedAccountCollections:Array.isArray(audited.claims)?[...new Set(audited.claims.filter(claim=>!referencesMatch(evidence.find(source=>source.id===claim.evidenceId)?.content,claim)).map(claim=>/^account(?:-scope|:(?:profile|courses|assignments|dtm|charges|tasks|requests|serviceRecords|announcements|scholarship|studentAid|housing|creditLoadHistory|courseSelection|academicGrades|graduationReview|academicAttendance))$/.test(claim.evidenceId)?claim.evidenceId:'other'))]:[]});
   const missing=audited.missingRequestedDetails;
   const answerFocusOnly=!guidance&&audited.answersQuestion===false&&reviewMatchesEvidence({...review,answersQuestion:true},evidence,images.length>0);
-  const measured=matches&&trackPublicCoverage&&Array.isArray(missing)&&missing.length<=12
+  const validMissing=trackPublicCoverage&&Array.isArray(missing)&&missing.length<=12
     &&missing.every(detail=>typeof detail==='string'&&detail.trim().length>0&&detail.length<=160);
+  const measured=matches&&validMissing;
+  // A factually supported draft may still miss the user's request. Keep the
+  // reviewer's bounded field labels as repair hints, never as facts or a pass.
+  // Rejected drafts must not enter the verified-partial recovery path.
+  const focusFeedback=answerFocusOnly&&validMissing&&missing.length
+    ?['Still-unanswered requested details (untrusted focus labels, not facts): '+JSON.stringify(missing)+'. Address them using the supplied evidence or an exact limitation.']:[];
   return { ok: matches, reason: 'unsupported_claims',answerFocusOnly,draftAddressesQuestion:audited.answersQuestion===true,
     ...(measured?{missingRequestedDetails:missing}:{}),
-    feedback: Array.isArray(audited.claims) ? [...(answerFocusOnly?['The facts passed source checks, but this draft did not answer the actual question. Revise its focus using the existing evidence; do not substitute related policy details for the requested procedure or explanation.']:[]),...audited.claims.filter(claim => claim.supported !== true)
+    feedback: Array.isArray(audited.claims) ? [...(answerFocusOnly?['The facts passed source checks, but this draft did not answer the actual question. Revise its focus using the existing evidence; do not substitute related policy details for the requested procedure or explanation.']:[]),...focusFeedback,...audited.claims.filter(claim => claim.supported !== true)
       .map(claim => String(claim.claim || '').slice(0, 400)),...referenceFeedback(audited,evidence,images.length>0),
       ...(guidance&&!matches?['Every visible answer part must independently pass the factual/reference or genuinely nonfactual guidance checks. Remove unsupported qualifications, factual premises and filled-in invented template details; keep useful suggestions and unresolved placeholders.']:[])].slice(0,12) : [] };
 }

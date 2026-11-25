@@ -1,5 +1,19 @@
 # Task Plan
 
+## Coverage-feedback and checker-interruption repair [Issue #100]
+
+- [x] Retain validated focus-gap labels as untrusted repair hints while preserving rejection/reference checks.
+- [x] Add one safe public review-only retry within existing time/check bounds; no reread or rewrite on checker interruption.
+- [x] Verify graph/provider contracts and existing core verification behavior (29focusedchecks).
+- [ ] Load changes after the baseline regression terminates, then diagnose/rerun the failed cases one at a time.
+
+## Native public grading context [Issue #101]
+
+- [x] Verify Q36 grader used an obsolete imported error page instead of the current native catalog.
+- [x] Add source-pin/literal-field reconstruction and v2 history labels; keep rubric/weights/target unchanged.
+- [x] Verify13source/contextchecks, APItypes and runtime-importlint; UI syntax lint has0errors/5pre-existingwarnings.
+- [ ] Grade the existing Q36answer once after server restart; preserve v1 and avoid regenerating its answer.
+
 ## Graduation requirements evidence [Issue #100]
 
 - [x] Audit existing curriculum-plan and report destinations; distinguish directory availability from unread PDFs.

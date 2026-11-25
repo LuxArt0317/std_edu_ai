@@ -1358,11 +1358,11 @@ function App() {
                           )}
                           <small className="muted">
                             {run.judge.model} ·{" "}
-                            {run.judge.reasoning || "default"} reasoning · {run.judge.methodVersion==='public-source-context-v1'
+                            {run.judge.reasoning || "default"} reasoning · {['public-source-context-v1','public-source-context-v2'].includes(run.judge.methodVersion)
                               ? 'Reference plus server-checked public snapshots. This is reconstructed context, not proof of original retrieval.'
                               : run.judge.methodVersion==='account-source-context-v1' ? 'Reference plus current caller records. Current reconstruction only; historical execution ownership is not attested.' : 'Reference-only review; no independent source context.'}
                             {run.judge.methodVersion==='account-source-context-v1'&&' Method: account-source-context-v1. Earlier reference-only scores are not directly comparable.'}
-                            {run.judge.methodVersion==='public-source-context-v1'&&' Method: public-source-context-v1. Earlier reference-only scores are not directly comparable.'}
+                            {['public-source-context-v1','public-source-context-v2'].includes(run.judge.methodVersion)&&` Method: ${run.judge.methodVersion}. Earlier source-method versions and reference-only scores are not directly comparable.`}
                           </small>
                         </>
                       ) : (

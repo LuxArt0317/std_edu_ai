@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Preserve validated missing-detail labels as untrusted repair hints after focus-only rejection, without approving the rejected draft. Allow one budgeted recheck of an interrupted public review using the same draft and evidence.
+- Version public grading as v2 to reconstruct the current native contact catalog from source-pinned literal fields instead of its obsolete imported error page; retain earlier grades and unchanged scoring criteria.
+
 - Include the existing curriculum-plan directory and selected report capabilities in personal graduation evidence, preserving current/legacy report separation and missing-cohort limits.
 
 - Give scholarship answers page-backed navigation, period/history fields and review/payment distinctions as model evidence, while retaining caller-owned records and confirmation boundaries.

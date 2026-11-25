@@ -1,5 +1,7 @@
 # API contract checks
 
+`answer-verification-provider.test.ts` verifies focus-only rejection forwards bounded detail labels into repair, rejects invalid references/oversized labels and independently checks the correction. `answer-verification-review-retry.test.ts` verifies one public checker-only recovery without new reads or rewrites, including repeated interruption, short budget, quota and proposed-action boundaries. These use provider fixtures, not real-model acceptance.
+
 The native academic evidence suite checks that graduation guidance links the actual curriculum directory while retaining the requested current/legacy report kind. It also checks that page capabilities do not expose private values or turn current year level/total credits into an entry cohort or eligibility decision.
 
 `scholarship-workspace.test.ts` binds assistant navigation/evidence to the catalog's scholarship destination, preserves period and application fields, and prevents pending review from becoming an award/payment claim. It retains caller-only reads and confirmed student/manager writes.

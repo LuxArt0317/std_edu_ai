@@ -1,5 +1,7 @@
 # Server helpers
 
+Focus-only verification rejection retains bounded missing-detail labels as repair hints. They supply no facts or authorization, and the rejected draft never becomes a verified partial answer. Public review interruption can use one review-only retry when an answered draft, existing evidence, no proposed action and at least25seconds remain; quota exhaustion and time limits still stop. This rechecks the same draft without another read/rewrite and stays within the existing check/request limits.
+
 `graduationPageGuide.js` links the implemented curriculum-plan directory with the selected current or legacy graduation report. It describes programme/department/admission-year selectors and the report's explicit requirement/language fields. It supplies no universal graduation threshold or eligibility decision and does not claim every curriculum PDF is available or has been read. The account evidence link allowlist includes the real curriculum directory for graduation lookups.
 
 `scholarshipRecords.js` exposes a page guide tied to the existing service catalog entry and scholarship workspace fields. Account evidence includes this guide only when scholarship records are selected. Navigation questions receive a useful starting draft; the model can rewrite it against the same evidence. Pending review, award approval and payment remain distinct. No evaluation reference is imported into the producer.

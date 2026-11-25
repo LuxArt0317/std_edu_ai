@@ -102,7 +102,7 @@ export async function runAnswerVerification({
   // evidence and draft; the graph state contains only bounded control metadata.
   let candidate = initialAnswer, evidence = [], feedback = [], checks = previousChecks;
   const activity = [];
-  let verifiedPartial, missingRequestedDetails, partialFollowUps = 0;
+  let verifiedPartial, missingRequestedDetails, partialFollowUps = 0, reviewOnlyRetries = 0;
   const emit = (kind, label, detail, status = 'complete') => {
     const step = { kind, label, detail, status };
     const existing = activity.findIndex(item => item.kind === kind);
@@ -135,6 +135,9 @@ export async function runAnswerVerification({
   const canFollowLead = attempt => attempt + previousChecks < maxAnswerVerificationChecks || canExtendReview?.() === true;
   const canRecoverFromInterruption = attempt => publicRecovery && safeToContinue() && attempt + previousChecks < maxChecks
     && hasUnreadPublicLead?.() === true && canFollowLead(attempt) && enoughTimeToContinue(attempt);
+  const canRecheckInterruptedReview = attempt => publicRecovery && safeToContinue() && reviewOnlyRetries===0
+    && candidate?.status==='answered' && evidence.length>0 && attempt+previousChecks<maxChecks
+    && deadline-Date.now()>=25_000;
   const nextSourceDeadline = attempt => deadline - continuationBudget(attempt) - 1_000;
   const reviewDeadlineFor = attempt => {
     // Leave a review window for a concrete, unread public source.
@@ -298,6 +301,12 @@ export async function runAnswerVerification({
       if (verdict?.ok !== true) verdict = { ok: false, reason: verdict?.reason || 'unsupported_claims' };
       return { verdict };
     })
+    .addNode('recheck', state => {
+      reviewOnlyRetries++;
+      emit('verification-review-retry','Retrying the interrupted answer check',
+        'Checking the same draft against the same evidence again; no new answer or source is assumed verified.');
+      return {attempt:state.attempt+1,verdict:null};
+    })
     .addNode('retry', state => {
       const nextCheck = state.attempt + previousChecks + 1;
       if (verifiedPartial) candidate = verifiedPartial.candidate;
@@ -336,6 +345,7 @@ export async function runAnswerVerification({
       if(state.attempt + previousChecks >= maxChecks || !withinBudget()
         || ['source_exhausted',sourceReadTimeLimit].includes(state.verdict.reason))return END;
       if(state.verdict.reason==='provider_quota_exhausted')return hasLocalCorrection&&state.attempt===1?'retry':END;
+      if(reviewInterruptions.has(state.verdict.reason)&&canRecheckInterruptedReview(state.attempt))return 'recheck';
       if(publicRecovery&&publicEvidenceInterruption(state.verdict.reason))
         return canRecoverFromInterruption(state.attempt)?'retry':END;
       if(state.verdict.ok){
@@ -358,6 +368,7 @@ export async function runAnswerVerification({
       if(previousChecks>0)return canRetryAfterSourceSwitch(state.verdict) && enoughTimeToContinue(state.attempt) ? 'retry' : END;
       return (state.attempt < standardChecks && (!publicRecovery || enoughTimeToContinue(state.attempt))) || (shouldDeepen(state.verdict) && enoughTimeToContinue(state.attempt)) ? 'retry' : END;
     })
+    .addEdge('recheck','verify')
     .addEdge('retry', 'plan')
     .compile();
   function verified(candidate,attempts){

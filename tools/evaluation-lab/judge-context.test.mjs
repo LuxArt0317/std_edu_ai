@@ -9,7 +9,7 @@ const publicRun={id:'fixture-public-run',caseId:'survey-faq-q45',scope:'public',
 
 test('public context adds checked source facts without trusting a saved verification flag',async()=>{
  const context=await prepareEvaluationJudgeContext(root,publicRun);
- assert.equal(context.methodVersion,'public-source-context-v1');
+ assert.equal(context.methodVersion,'public-source-context-v2');
  assert.match(JSON.stringify(context.input.independentPublicSources.sources),/May 20|5 月 20|5月20/u);
  assert.equal(context.input.reference,publicRun.expectedAnswer);assert.equal(context.input.response,publicRun.response.answer);
  assert.equal(context.input.verification,undefined);
@@ -36,7 +36,7 @@ test('shared judge endpoint versions context and appends history without changin
   let result,status;const response={setHeader(){},set statusCode(value){status=value;},end(value){result=JSON.parse(value);}};
   await handler({url:'/__evaluation_lab/judge',method:'POST',headers:{host:'127.0.0.1:5173','content-type':'application/json'},body:{runId:publicRun.id,model:'gpt-6.1-terra'}},response);
   assert.equal(status,200);assert.equal(reviewed,true);assert.equal(result.judge.score,80);
-  assert.equal(result.judge.methodVersion,'public-source-context-v1');assert.equal(state.runs[0].judgeHistory.length,2);
+  assert.equal(result.judge.methodVersion,'public-source-context-v2');assert.equal(state.runs[0].judgeHistory.length,2);
   assert.deepEqual(state.runs[0].judgeHistory[0],prior);assert.equal(state.runs[0].response.answer,publicRun.response.answer);
  }finally{globalThis.fetch=beforeFetch;if(key===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=key;}
 });
