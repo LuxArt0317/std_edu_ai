@@ -24,7 +24,7 @@ All53 cases must reach70 with natural, grounded answers. Luna produces test answ
 - Q53 existing answer:75.
 - Q52 existing answer passed75 after the confirmed15s-versus30s grading-timeout fix. All baseline answers are now graded:19pass/5below. The grade-only fix preserved the answer and earlier history.
 - Recovery receipt: `.evaluation-lab/diagnostics/regression-grade-recovery-20261125.json`. Exec51219 TERMINAL.
-- Local store:53cases/313runs at last read; last cloud merge287runs/rev116. New local results have NOT been uploaded/deployed.
+- Local store:53cases/315runs at last read; last cloud merge287runs/rev116. New local results have NOT been uploaded/deployed.
 
 ## Local fixes and verification
 
@@ -37,8 +37,8 @@ All53 cases must reach70 with natural, grounded answers. Luna produces test answ
 
 ## Next actions
 
-1. Commit/reload the latest Q09 source-needs/audit-effort patch; local server currently exec22589 caches backend modules. Do not restart during an active model/grade process.
-2. Run fresh Q09 with Luna/Terra6.1 after reload. The first post-feedback HTTP run still failed20 from two checker timeouts. Current-code first-review diagnostic supported15claims but rejected coverage: applicant scope, programme-versus-award obligations, and suspension/withdrawal repayment. Diagnostic intentionally blocked later calls and is not acceptance.
+1. Q09 repair is loaded and accepted; local server currently exec40598 serves the latest f24c0a18 source and local audit-effort configuration. Do not restart during an active model/grade process.
+2. Stop tuning Q09: latest fresh run scored95, verified2checks,46.5s producer. Continue Q20 next. The first post-feedback HTTP run still failed20 from two checker timeouts. Current-code first-review diagnostic supported15claims but rejected coverage: applicant scope, programme-versus-award obligations, and suspension/withdrawal repayment. Diagnostic intentionally blocked later calls and is not acceptance.
 3. Continue Q20,Q30,Q43,Q44 one at a time. Q43 omitted published club social links; confirm the actual source projection before changing it. Q30/Q44 failed review timeouts; Q09 focus-only coverage feedback was previously dropped.
 4. Complete real signed-in acceptance for the12private cases. Nine have historical authenticated production answers; Q17/Q27/Q49 have no saved private answer. Do not export browser tokens or impersonate the user. Dedicated Codex computer controls remain unavailable; no desktop/headless browser fallback is authorized.
 5. After the next behavior batch, regress prior retrieval cases as required; skip unchanged prepared guidance and do not repeatedly retune scores already at70.
@@ -49,3 +49,6 @@ No new deployment, provider configuration, database/schema change or account-rol
 
 ## Latest Q09 diagnostic/configuration
 The first diagnostic resolved through the private-store symlink into the preserved old checkout. It was stopped and its trace explicitly renamed wrong-checkout-aborted; no scored run affected. Corrected diagnostic imports absolute current-checkout modules and completed the first review in38s. New neutral response-needs notes follow its source-backed gaps without inserting expected-answer values. OptionalOPENAI_VERIFICATION_REASONING_EFFORTkeepsunsetbehaviorunchanged;localignored.env.localnowsetslowfortheTerra6.1sourceauditoronly.AnswerLuna/mediumandgraderTerra6.1/mediumunchanged.12focusedsource/providercheckspassed;APItypes/lintpassedbeforefinalwording-onlyedit.Newcombinedconfigurationawaitsfreshmodelacceptance.
+
+## Latest accepted Q09
+Freshlabelq09-scope-audit-effort-20261125onf24c0a18scored95withLuna/mediumanswerandTerra6.1/mediumgrading;Terra6.1sourceauditorusedlocalloweffort.Answerverifiedafteronefocusedcorrection(2checks),46.5sproducer.Runandsource/configcheckpointstoredprivately;notbrowser/private/productionacceptance.Exec10675TERMINAL.StopQ09tuning.Fourretrievalcasesremainbelowtarget:Q20,Q30,Q43,Q44;private12casegatealsoremainsopen.Passinglatestresultsspanrecordedcheckpoints,notuniformlatest-codeacceptance.Newserverexec40598isactive;nopaidmodelrunactiveatthischeckpoint.
