@@ -1,5 +1,7 @@
 # API contract checks
 
+The provider suite checks evaluation grading receives its configured time window while preserving the selected model/output cap and shorter caller deadlines. Planner calls retain their15-second transport limit.
+
 `answer-verification-provider.test.ts` verifies focus-only rejection forwards bounded detail labels into repair, rejects invalid references/oversized labels and independently checks the correction. `answer-verification-review-retry.test.ts` verifies one public checker-only recovery without new reads or rewrites, including repeated interruption, short budget, quota and proposed-action boundaries. These use provider fixtures, not real-model acceptance.
 
 The native academic evidence suite checks that graduation guidance links the actual curriculum directory while retaining the requested current/legacy report kind. It also checks that page capabilities do not expose private values or turn current year level/total credits into an entry cohort or eligibility decision.

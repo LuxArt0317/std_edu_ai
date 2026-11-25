@@ -178,6 +178,25 @@ test('the verification loop passes rejected coverage labels to repair and indepe
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
 
+test('evaluation grading uses its allotted deadline without changing the chosen grader or planner budget',async()=>{
+ const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY,savedAuditor=process.env.OPENAI_VERIFICATION_MODEL;
+ const originalTimeout=AbortSignal.timeout,limits:number[]=[],requests:any[]=[];
+ process.env.OPENAI_API_KEY='test';process.env.OPENAI_VERIFICATION_MODEL='test-source-auditor';
+ AbortSignal.timeout=(milliseconds:number)=>{limits.push(milliseconds);return originalTimeout(milliseconds);};
+ globalThis.fetch=async(_url,init)=>{requests.push(JSON.parse(String(init?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{"score":80}'}]}]});};
+ try{
+  await withAssistantModel({model:'test-selected-grader',reasoning:'medium'},()=>verificationModelCall('evaluation_match_review',{},'Grade only',{},Date.now()+30000));
+  assert.ok(limits[0]>29000&&limits[0]<=30000);assert.equal(requests[0].model,'test-selected-grader');
+  assert.equal(requests[0].max_output_tokens,2400);
+  await verificationModelCall('evaluation_match_review',{},'Grade only',{},Date.now()+5000);
+  assert.ok(limits[1]>4000&&limits[1]<=5000);
+  await verificationModelCall('account_lookup_plan',{},'Plan only',{},Date.now()+30000);
+  assert.ok(limits[2]<=15000);
+ }finally{AbortSignal.timeout=originalTimeout;globalThis.fetch=savedFetch;
+  if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;
+  if(savedAuditor===undefined)delete process.env.OPENAI_VERIFICATION_MODEL;else process.env.OPENAI_VERIFICATION_MODEL=savedAuditor;}
+});
+
 test('public review is scoped while mixed account review retains its contracts',async()=>{
  const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY,requests:any[]=[];process.env.OPENAI_API_KEY='test';
  globalThis.fetch=async(_url,init)=>{requests.push(JSON.parse(String(init?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{"ok":true}'}]}]});};

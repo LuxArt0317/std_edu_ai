@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Let evaluation grading use its already configured30-second deadline instead of the shared15-second planner timeout; retain the selected grader, token budget and request deadline.
+
 - Preserve validated missing-detail labels as untrusted repair hints after focus-only rejection, without approving the rejected draft. Allow one budgeted recheck of an interrupted public review using the same draft and evidence.
 - Version public grading as v2 to reconstruct the current native contact catalog from source-pinned literal fields instead of its obsolete imported error page; retain earlier grades and unchanged scoring criteria.
 

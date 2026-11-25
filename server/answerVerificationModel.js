@@ -19,6 +19,7 @@ export async function verificationModelCall(name, schema, instructions, input, d
   // budget also includes reasoning tokens; a planner-sized cap truncates audits
   // of detailed academic reports before the JSON can be completed.
   const review = name === 'answer_evidence_review';
+  const evaluationReview = name === 'evaluation_match_review';
   const standardModel=process.env.OPENAI_VERIFICATION_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
   // Selecting an answer model must not replace an explicitly configured
   // independent source auditor. Composition still uses the request override.
@@ -59,7 +60,7 @@ export async function verificationModelCall(name, schema, instructions, input, d
   try { response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(Math.min(review ? publicEvidenceOnly ? 40_000 : 25_000 : sourceOnlyComposition ? 28_000 : 15_000, Math.max(1, deadline - Date.now()))),
+    signal: AbortSignal.timeout(Math.min(review ? publicEvidenceOnly ? 40_000 : 25_000 : evaluationReview ? 30_000 : sourceOnlyComposition ? 28_000 : 15_000, Math.max(1, deadline - Date.now()))),
     body: JSON.stringify({
       model,
       store: false, reasoning: { effort: assistantReasoning(deeperReview) }, max_output_tokens: review ? 8192 : deeperReview ? 4096 : 2400,
