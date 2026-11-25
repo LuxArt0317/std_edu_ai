@@ -69,3 +69,5 @@ No credentials or answers are printed in conflict summaries. Test the pure merge
 with `node --test tests/evaluation/evaluation-lab-merge.test.mjs`.
 
 Cloud sync enforces the deployed lab’s3MB mutation limit, even though the database permits20MB. Increase it only together with the hosted application limit; existing cloud history is never trimmed automatically.
+
+The local API adapter optionally verifies a private grading request’s existing Bearer session before invoking the same caller-scoped charge reader. Missing or invalid sessions perform no record read and remain reference-only. Isolated QA worktrees can point their ignored `.evaluation-lab` path to the preserved private store; no secrets or evaluation state enter Git.

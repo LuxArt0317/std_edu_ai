@@ -41,8 +41,9 @@ const apiUrl = (operation) => {
     : "/__evaluation_lab/" + operation;
 };
 const imageUrls = new Map();
-async function authHeaders() {
-  if (!hosted) return {};
+async function authHeaders(optionalLocalAccount=false) {
+  if (!hosted&&!optionalLocalAccount) return {};
+  if(!hosted){try{const {data}=await affairsClient.auth.getSession();return data.session?{Authorization:"Bearer "+data.session.access_token}:{};}catch{return {};}}
   const { data } = await affairsClient.auth.getSession();
   if (!data.session)
     throw new Error(
@@ -68,11 +69,11 @@ async function hydrateImages(payload) {
     imageUrls.set(file.id, URL.createObjectURL(await response.blob()));
   }
 }
-async function request(operation, body, signal) {
+async function request(operation, body, signal, optionalLocalAccount=false) {
   const response = await fetch(apiUrl(operation), {
     method: body ? "POST" : "GET",
     headers: {
-      ...(await authHeaders()),
+      ...(await authHeaders(optionalLocalAccount)),
       ...(body ? { "Content-Type": "application/json" } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
@@ -464,6 +465,7 @@ function App() {
         "judge",
         { runId: value.id, model: evaluatorModel, reasoning },
         signal,
+        value.scope==="account",
       );
       setData((previous) => previous ? ({
         ...previous,
@@ -1358,7 +1360,8 @@ function App() {
                             {run.judge.model} ·{" "}
                             {run.judge.reasoning || "default"} reasoning · {run.judge.methodVersion==='public-source-context-v1'
                               ? 'Reference plus server-checked public snapshots. This is reconstructed context, not proof of original retrieval.'
-                              : 'Reference-only review; no independent source context.'}
+                              : run.judge.methodVersion==='account-source-context-v1' ? 'Reference plus current caller records. Current reconstruction only; historical execution ownership is not attested.' : 'Reference-only review; no independent source context.'}
+                            {run.judge.methodVersion==='account-source-context-v1'&&' Method: account-source-context-v1. Earlier reference-only scores are not directly comparable.'}
                             {run.judge.methodVersion==='public-source-context-v1'&&' Method: public-source-context-v1. Earlier reference-only scores are not directly comparable.'}
                           </small>
                         </>

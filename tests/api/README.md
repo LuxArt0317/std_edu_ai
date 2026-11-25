@@ -95,3 +95,5 @@ Prospectus response-needs tests require actual section-role evidence, reject uns
 Admission coverage tests validate source-gated language and timeline focus notes without hardcoded expected dates/thresholds.
 
 The guidance history test now validates the existing24-message/64kB/8000-character context contract, role filtering and Unicode-safe clipping instead of an obsolete six-message cap.
+
+Account-judge evidence tests enforce current-caller ownership, exact saved case scope, read failures versus empty records, and redacted summaries; saved chatbot flags and views never become independent evidence. Admission/training tests also cover bounded approval-year clauses and registration/schedule source projections.

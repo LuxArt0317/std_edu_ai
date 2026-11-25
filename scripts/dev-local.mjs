@@ -7,6 +7,8 @@ import {createServer as createViteServer,loadEnv} from 'vite';
 import {createEvaluationLab} from '../tools/evaluation-lab/server.mjs';
 import {validateEvaluationModel} from '../tools/evaluation-lab/models.mjs';
 import {withAssistantModel} from '../server/assistantModelConfig.js';
+import {verifyAffairsToken} from '../server/affairsWorkspace.js';
+import {resolveAccountJudgeEvidence} from '../server/accountJudgeEvidence.js';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const port=Number(process.env.LOCAL_PORT||5173);
@@ -26,7 +28,14 @@ process.env.STU_LOCAL_CAPTURE_ORIGIN=`http://127.0.0.1:${port}`;
 const {default:configFactory}=await import('../vite.config.ts');
 const config=typeof configFactory==='function'?await configFactory({command:'serve',mode:'development'}):configFactory;
 let vite;
-const evaluationLab=createEvaluationLab(root);
+const evaluationLab=createEvaluationLab(root,{resolveAccountJudgeEvidence:async(run,snapshot,request)=>{
+  const header=request.headers.authorization;
+  let account=null;
+  if(typeof header==='string'&&header.startsWith('Bearer ')){
+    try{account=await verifyAffairsToken(header.slice(7));}catch{/* No record read without a verified session. */}
+  }
+  return resolveAccountJudgeEvidence(account,run,snapshot);
+}});
 const modules=new Map();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url||'/',`http://127.0.0.1:${port}`);

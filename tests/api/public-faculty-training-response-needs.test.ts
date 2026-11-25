@@ -9,6 +9,8 @@ test('training guidance uses actual selected entry, example-presence and event-r
  assert.match(notes[0],/Faculty and Staff entry page/u);
  assert.match(notes[1],/cannot establish that the page has no examples/u);
  assert.match(notes[2],/date, eligibility/u);
+ assert.match(notes[2],/published date, time and venue/u);
+ assert.match(notes[2],/do not say the notice has no registration link/u);
  assert.match(notes[2],/staff role/u);
  assert.ok(notes.every(note=>note.length<=650));
  assert.doesNotMatch(notes.join('\n'),/2157|234451|Aromatherapy|115年/u);

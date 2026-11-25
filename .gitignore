@@ -57,3 +57,6 @@ artifacts/
 # Derived shared handler for hosted evaluation; generated before packaging.
 /server/affairsAssistantRuntime.js
 /server/affairsAssistantRuntime.js.tmp
+
+# Also ignore a private evaluation-store symlink in isolated QA worktrees.
+/.evaluation-lab

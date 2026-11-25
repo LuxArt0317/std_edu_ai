@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Add current-caller charge evidence to Q03 evaluation without exposing private values in saved grading summaries; preserve reference-only history and historical-drift limits.
+- Preserve source-qualified admission clauses and published workshop schedules/registration labels during answer composition.
+
+
 - Merge local and shared evaluation histories by stable IDs with conflict checks, verified recovery backups and hosted storage limits; retain cloud-only runs and judge history.
 
 

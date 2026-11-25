@@ -21,7 +21,6 @@ export function publicFacultyTrainingContext(question){
  if(!isPublicFacultyTrainingQuestion(question))return null;
  const {faculty,exchange,notice}=source.documents;
  const exchangeDetails=/\b(?:exchange|cross[- ]strait|group|customi[sz]ed|minimum|how many|duration)\b|兩岸|两岸|交流|團體|团体|幾位|几位|客製|客制|研修期間/iu.test(question);
- const noticeDetails=/\b(?:when|date|time|schedule|aromatherapy|stress|tutors?)\b|日期|幾點|几点|何時|何时|芳療|芳疗|紓壓|纾压|導師|导师/iu.test(question);
  const facultyEvidence=evidence('entry',faculty,{serviceLabels:faculty.sections.serviceLinks.map(link=>link.label),
   excerpt:faculty.sections.heading+'\n'+faculty.sections.serviceLinks.map(link=>link.label).join('\n'),excerptTruncated:true,
   coverage:'Faculty and Staff service-card labels and their parent page only. Human Resources is a listed service label; its destination body was not read and this does not establish a teacher-training catalog or registration workflow. These three selected captures do not establish a complete or current internal workshop list.'});
@@ -33,10 +32,10 @@ export function publicFacultyTrainingContext(question){
   coverage:'Organized cross-strait teacher-exchange training, not a live internal faculty workshop catalog or an individual registration page. Conditions apply to the group service described here. Examples do not establish currently offered courses, open places or eligibility for the caller.'});
  const destinations=new Set(notice.sections.registrationLinks.map(link=>link.href));
  const noticeEvidence=evidence('notice',notice,{topic:notice.sections.topic,description:notice.sections.description,audienceInvitation:notice.sections.audienceInvitation,
-  organizer:notice.sections.organizer,...(noticeDetails?{date:notice.sections.date,time:notice.sections.time,location:notice.sections.location,publicationLabel:notice.sections.publicationLabel}:{}),
-  registration:{linkCount:notice.sections.registrationLinks.length,distinctDestinations:destinations.size,destinationBodiesRead:false,verifiedDirectRegistrationUrl:null,
-   scope:'The notice contains registration and reference links to different event destinations. Those destination bodies, authentication requirements, current availability and which destination applies were not verified. Open the supplied local notice page and confirm the event with its organizer rather than inventing or choosing a registration form.'},
-  excerpt:[notice.sections.topic,notice.sections.description,notice.sections.audienceInvitation,...(noticeDetails?[notice.sections.date,notice.sections.time,notice.sections.location]:[])].join('\n'),
+  organizer:notice.sections.organizer,date:notice.sections.date,time:notice.sections.time,location:notice.sections.location,publicationLabel:notice.sections.publicationLabel,
+  registration:{linkCount:notice.sections.registrationLinks.length,publishedButtonLabels:notice.sections.registrationLinks.filter(link=>!/^https?:/iu.test(link.label)).map(link=>link.label),distinctDestinations:destinations.size,destinationBodiesRead:false,verifiedDirectRegistrationUrl:null,
+   scope:'The notice contains registration and reference links to different event destinations. Those destination bodies, authentication requirements, current availability and which destination applies were not verified. The published button labels establish that the notice offers registration navigation, even though its destination was not read. Open the supplied local notice and use its labeled registration button, confirming the applicable destination with the organizer when the differing links are ambiguous.'},
+  excerpt:[notice.sections.topic,notice.sections.description,notice.sections.audienceInvitation,notice.sections.date,notice.sections.time,notice.sections.location].join('\n'),
   excerptTruncated:true,
   coverage:'One dated tutor-workshop notice, not a complete/current teacher-training catalog. Its listed audience and schedule do not prove the caller is eligible, registration remains open, a place is available, or any registration/submission/payment occurred.'});
  return {page:{title:faculty.title,route:faculty.url,source:faculty.source,capturedOn:faculty.capturedOn},contentAvailable:true,
@@ -59,7 +58,7 @@ export function publicFacultyTrainingResponseNeeds(question,evidence){
    notes.push('Distinguish organized exchange/group training from internal staff development. Preserve sourceSectionPresence and selectionScope: an overview omitting captured planning or example sections cannot establish that the page has no examples. Captured examples do not establish an upcoming calendar or open individual registration.'+cite);
   }
   if(item.id.startsWith('public-page:faculty-training-notice:')&&typeof data.audienceInvitation==='string'&&data.registration?.verifiedDirectRegistrationUrl===null){
-   notes.push('Treat this as one captured event notice, not the current training inventory. Explain that no direct registration destination was verified; use the supplied notice and organizer to confirm event date, eligibility and applicable registration route. Ask the relevant staff role and desired event/date when needed to select an announcement, without withholding the available entry-page guidance.'+cite);
+   notes.push('Treat this as one captured event notice, not the current training inventory. Include the published date, time and venue as a dated example. A published registration button is not a verified destination workflow: describe the supplied button label and link to the local notice; do not say the notice has no registration link. Distinguish unread or ambiguous destinations from current availability, and use the organizer to confirm date, eligibility and the applicable registration route. Ask the relevant staff role and desired event/date when needed to select an announcement, without withholding the available entry-page guidance.'+cite);
   }
  }
  return [...new Set(notes)].slice(0,3).map(note=>note.slice(0,650));

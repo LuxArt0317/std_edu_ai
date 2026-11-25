@@ -38,11 +38,16 @@ export function publicProspectusContext(question,route=''){
     const text=languageStart>=0?page.text.slice(languageStart,languageEnd).trim():policyStart>=0?page.text.slice(policyStart):page.text;
     return {locator:page.locator,text:text.slice(0,4000),truncated:text.length>4000};
   });
+  const languageObligationClauses=language?excerpts.filter(page=>languageObligations.some(source=>source.locator===page.locator)).flatMap(page=>{
+    const starts=[...page.text.matchAll(/(?:^|\s)([67])\.\s/gu)];
+    return starts.map((match,index)=>({locator:page.locator,paragraph:match[1],
+      text:page.text.slice(match.index,starts[index+1]?.index??page.text.length).trim()}));
+  }):[];
   const metadata={pageTitle:document.title,localUrl:document.url,originalSource:document.source,capturedOn:document.capturedOn,
     provenance:document.scope,sourceChecksum:document.checksum,contentAvailable:true,
     coverage:`Selected excerpts from ${selected.length} of ${document.pageCount} physical pages. Unselected or truncated text cannot establish that a condition is absent. The document is a 115-entry draft, not another cohort's rules, a current bill or a private award decision.`,
     ...(scholarshipApplication?{sectionRoles:{'pdf:page:27':'Annex IV application form, signature and application notes','pdf:page:12':'Scholarship application policy, not general admission checklist','pdf:page:29':'Award tiers and associated conditions','pdf:page:31':'Program rights and obligations'},applicationScope:'Separate initial application documents from later-semester award conditions; form submission is not an award decision.'}:{}),
-    ...(language?{languageSectionRoles:{'pdf:page:10':'Admission language proficiency for the specified teaching-language track','pdf:page:31':'Literal numbered obligations for language before graduation and scholarship timing; preserve their stated program and academic-year scope'},languageScope:'Compare the positive admission language-proof requirements with later language obligations. Selected excerpts cannot establish the absence of an enrollment prerequisite across the full document or other cohorts.'}:{}),
+    ...(language?{languageObligationClauses,languageSectionRoles:{'pdf:page:10':'Admission language proficiency for the specified teaching-language track','pdf:page:31':'Literal numbered obligations for language before graduation and scholarship timing; preserve their stated program and academic-year scope'},languageScope:'Compare the positive admission language-proof requirements with later language obligations. Selected excerpts cannot establish the absence of an enrollment prerequisite across the full document or other cohorts.'}:{}),
     ...(calculation?{financialArithmetic:publicProspectusFinancialProjection()}:{}),
     selectedPages:excerpts.map(p=>p.locator),excerpt:excerpts.map(p=>`${p.locator}${p.truncated?' (excerpt)':''}\n${p.text}`).join('\n\n'),excerptTruncated:excerpts.some(p=>p.truncated)||selected.length<document.pageCount,
     totalCharacters:document.pages.reduce((n,p)=>n+p.text.length,0),includedCharacters:excerpts.reduce((n,p)=>n+p.text.length,0)};

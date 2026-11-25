@@ -21,6 +21,9 @@ export function publicAdmissionResponseNeeds(question,evidence){
     notes.push('Explain how admission language requirements depend on the admission track and teaching language. Include the source-present English-taught admission proficiency requirement, its stated exemptions and alternative supporting evidence; compare these positive listed admission requirements with later language obligations; never infer a global absence of Mandarin enrollment prerequisites from selected excerpts.'+cite);
    if(/TOCFL|華語能力|華語文能力/u.test(text)&&/graduation|畢業|scholarship|獎助學金/u.test(text))
     notes.push('Keep admission requirements separate from source-present language expectations during study, graduation conditions and scholarship conditions. Explain the source’s positive obligations rather than claiming the document contains no admission prerequisite. Preserve each rule’s audience and timing; a later condition does not establish an enrollment prerequisite.'+cite);
+   if(/newly approved|新核定/u.test(text)&&Array.isArray(data.languageObligationClauses)&&data.languageObligationClauses.some(clause=>
+    typeof clause?.text==='string'&&/newly approved|新核定/u.test(clause.text)))
+    notes.push('The numbered language-obligation clauses contain a program-approval-year qualification. Preserve that qualification with its rule when summarizing the earlier general teaching-language guidance. An entry cohort is not evidence of when a program was approved. Use the literal languageObligationClauses; do not invent or broaden their applicability.'+cite);
    if(typeof data.coverage==='string'&&/draft|cohort/u.test(data.coverage))
     notes.push('Attach the source draft’s program and entry-cohort scope to language rules. The supplied cohort does not settle requirements for earlier cohorts or other tracks; explain the supported rules before asking which track or entry year applies.'+cite);
   }
