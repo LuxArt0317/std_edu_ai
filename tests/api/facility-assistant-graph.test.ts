@@ -11,6 +11,7 @@ import {facilityRepairLookupContext,requiredSupplementalTools,supplementalAccoun
 import {readFacilityRepairEvidence} from '../../server/accountFacilityRepairEvidence.js';
 import * as repairIntent from '../../server/facilityRepairEvidenceIntent.js';
 import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
+import {assistantContext} from '../../src/services/assistantContext.js';
 import {boundedAssistantText} from '../../src/services/assistantActivityBudget.js';
 
 const owner='20000000-0000-4000-8000-000000000001',report='a1000001-0000-4000-8000-000000000001';
@@ -209,7 +210,7 @@ test('actual browser service forwards both compound orders after same-user sessi
   for(const text of questions){const result=await exports.askSchoolAffairsAssistant(owner,text,[{role:'assistant',content:prior}],undefined,[],route);assert.equal(result.answer,'From verified graph');}
   assert.equal(requests.length,2);for(const request of requests){
     assert.equal(request.url,'/api/affairs-assistant');assert.equal(request.token,'Bearer BROWSER_TOKEN');assert.equal(request.body.route,route);
-    assert.deepEqual(request.body.history,[{role:'assistant',content:'甲😀'.repeat(666)+'甲'}]);
+    assert.deepEqual(request.body.history,assistantContext([{role:'assistant',content:prior}]));
   }
   sessionOwner='20000000-0000-4000-8000-000000000099';await assert.rejects(()=>exports.askSchoolAffairsAssistant(owner,question,[],undefined,[],route),/account changed/u);assert.equal(requests.length,2);
 });

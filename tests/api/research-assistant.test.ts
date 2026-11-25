@@ -91,7 +91,7 @@ function metadata(
 test("public drawer uses the live grounded endpoint and renders official citations", () => {
   const service = fs.readFileSync("src/services/researchAssistant.ts", "utf8");
   const app = fs.readFileSync("src/features/public/PublicAssistant.tsx", "utf8");
-  assert.match(service, /fetch\(["']\/api\/research-assistant["']/);
+  assert.match(service, /assistantFetch\(["']\/api\/research-assistant["']/);
   assert.doesNotMatch(
     service,
     /knowledgeBase|setTimeout|prototype currently focuses/,
@@ -543,7 +543,7 @@ test('a managed-retrieval outage still tries the independent school web search',
  assert.equal(result.statusCode,200);assert.equal(searched,true);
  const body=result.body as {answer:string;status:string;citations:unknown[];verification:{status:string;attempts:number}};
  assert.equal(body.status,'abstained');assert.equal(body.verification.status,'unverified');
- assert.equal(body.verification.attempts,2);assert.match(body.answer,/Sorry, I (?:couldn’t|’m having trouble)/u);assert.deepEqual(body.citations,[]);
+ assert.equal(body.verification.attempts,2);assert.match(body.answer,/could not (?:verify|read)/u);assert.deepEqual(body.citations,[]);
 });
 
 test('private conversation history never enters public retrieval or live web search',async()=>{

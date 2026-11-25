@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Keep personal tuition amounts owed out of published-rate guidance; preserve shared conversation-history limits in compiled client checks.
+
 - Correct public club/calendar routing so personal attendance and membership use caller-owned records; align compiled client checks with the shared per-call transport and conversation context. Publication remains pending release verification.
 
 - Route student-ID replacement questions to the actual card information source without confusing activation and replacement fees.

@@ -24,7 +24,7 @@ export function publicTuitionFacts(){
 export function publicTuitionAnswer(question){
   if(typeof question!=='string'||question.length>2000)return null;
   if(!/\b(?:how much|tuition (?:rates?|standards?|costs?))\b|學費多少|學雜費多少|學費標準/iu.test(question)||!/\btuition\b|學費|學雜費/iu.test(question))return null;
-  if(/\b(?:my|our)\b|\b(?:paid|payment|outstanding|balance|deduct|masters?|graduate|phd|doctoral|part.time)\b|我的|研究所|碩士|博士|進修|繳費|餘額|欠費/iu.test(question))return null;
+  if(/\b(?:my|our)\b|\b(?:owe|owing|remaining|paid|payment|outstanding|balance|deduct|masters?|graduate|phd|doctoral|part.time)\b|我的|研究所|碩士|博士|進修|繳費|餘額|欠費/iu.test(question))return null;
   const facts=publicTuitionFacts();if(!facts||!facts.foreignRule)return null;
   const zh=assistantLanguage(question)==='zh-Hant',money=n=>'NT$'+n.toLocaleString('en-US');
   const lines=[zh?'依據 **115 學年度（2026–2027）日間部大學部**收費標準，每學期學雜費如下：':'For **115 academic year (2026–2027), daytime undergraduate tuition and miscellaneous fees per semester** are:',

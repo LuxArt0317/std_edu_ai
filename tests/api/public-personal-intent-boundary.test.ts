@@ -2,6 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {isPublicClubQuestion} from '../../server/publicClubIntent.js';
 import {isPublicCalendarDateQuestion} from '../../server/publicCalendarEvidence.js';
+import {publicTuitionAnswer} from '../../server/publicTuitionAnswer.js';
+
+test('an amount still owed is personal, not a published tuition rate',()=>{
+  assert.equal(publicTuitionAnswer('How much tuition do I still owe?'),null);
+  assert.equal(publicTuitionAnswer('How much is my tuition?'),null);
+  assert.ok(publicTuitionAnswer('How much is tuition?'));
+});
 
 test('personal event attendance cannot be redirected to public club or calendar research',()=>{
   for(const question of [

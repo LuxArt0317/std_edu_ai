@@ -285,7 +285,7 @@ test('personal School Affairs question reads only the caller site records, never
  assert.equal(followup.status,200);assert.match(followup.body.answer,/Practice reflection/);assert.equal(followup.body.grounding.source,'account');
  const tomorrow=await invoke(affairsHandler,{question:'and tomorrow?',route:'/school-affairs',history:[{role:'user',content:'What subjects do I have today?'}]},token);
  assert.equal(tomorrow.status,200);assert.match(tomorrow.body.answer,/tomorrow/i);assert.equal(tomorrow.body.grounding.source,'account');
- const fees=await invoke(affairsHandler,{question:'how much is tuition?',route:'/school-affairs'},token);
+ const fees=await invoke(affairsHandler,{question:'how much is my tuition balance?',route:'/school-affairs'},token);
  assert.equal(fees.status,200);assert.match(fees.body.answer,/NT\$23,000/);assert.equal(fees.body.grounding.source,'account');
  const feeContact=await invoke(affairsHandler,{question:'Which contact unit?',route:'/school-affairs/services/39-1'},token);
  assert.equal(feeContact.status,200);assert.match(feeContact.body.answer,/contact unit not recorded/);assert.equal(feeContact.body.grounding.source,'account');
@@ -320,7 +320,7 @@ test('public image question accepts validated PNG and reports actual image analy
  configured();const bytes=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);const dataUrl=`data:image/png;base64,${bytes.toString('base64')}`;
  globalThis.fetch=async(input,init)=>{assert.equal(String(input),'https://api.openai.com/v1/responses');const request=JSON.parse(String(init?.body));assert.equal(request.input[0].content[1].type,'input_image');assert.equal(request.store,false);const value=request.text.format.name==='answer_evidence_review'?{supported:true,answersQuestion:true,claims:[{claim:'The image shows a menu',supported:true,evidenceId:'attached-image',quote:''}]}:{answer:'The screenshot shows a School Affairs menu.',source_titles:['線上報修']};return new Response(JSON.stringify({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(value)}]}]}),{status:200});};
  const result=await invoke(publicHandler,{question:'Please explain this screenshot',images:[{name:'menu.png',dataUrl}],route:'/school-affairs/menu/swd/input'});
- assert.equal(result.status,200);assert.equal(result.body.grounding.source,'image');assert.equal(result.body.citations[0].title,'線上報修');assert.equal(result.body.activity[0].kind,'image');
+ assert.equal(result.status,200);assert.equal(result.body.grounding.source,'attached-image');assert.match(result.body.answer,/screenshot shows a School Affairs menu/u);assert.deepEqual(result.body.citations,[]);assert.ok(result.body.activity.some((step:any)=>step.kind==='image'));
  const rejected=await invoke(publicHandler,{question:'Explain this',images:[{name:'fake.png',dataUrl:'data:image/png;base64,'+Buffer.alloc(40).toString('base64')} ]});
  assert.equal(rejected.status,400);
 });

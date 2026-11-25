@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {assistantContext,ASSISTANT_CONTEXT_MESSAGES} from '../../src/services/assistantContext.js';
 import {test} from 'node:test';
 import {composeEvidenceAnswer,repairEvidenceAnswer,verifyEvidenceAnswer} from '../../server/answerVerificationModel.js';
 import {runAnswerVerification} from '../../server/answerVerification.js';
@@ -158,8 +159,8 @@ test('initial composition uses bounded evidence and history, never the generic p
     assert.equal(requests[0].text.format.name,'compose_grounded_answer');
     const input=JSON.parse(requests[0].input[0].content[0].text);
     assert.equal(input.previousAnswer,undefined);assert.equal(input.answer,undefined);assert.doesNotMatch(JSON.stringify(input),/SECRET_GENERIC_PROFILE_DUMP/);
-    assert.ok(input.history.length<=6);assert.ok(input.history.every((entry:any)=>entry.content.length<=1000&&entry.role==='user'));
-    assert.equal(input.history.at(-1).content,'甲😀'.repeat(333)+'甲');
+    assert.ok(input.history.length<=ASSISTANT_CONTEXT_MESSAGES);assert.ok(input.history.every((entry:any)=>entry.content.length<=8000&&entry.role==='user'));
+    assert.deepEqual(input.history,assistantContext(Array.from({length:8},(_,i)=>({role:i===7?'system':'user',content:i===6?'甲😀'.repeat(400):String(i)+'x'.repeat(1200)}))));
     assert.deepEqual(output.proposedAction,action);assert.deepEqual(output.citations,[]);assert.equal(output.verification,undefined);
     assert.match(requests[0].instructions,/Never invent a sourceId for advice/);
   });

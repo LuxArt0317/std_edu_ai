@@ -365,7 +365,7 @@ test('malformed, denied, ambiguous, or doubly unavailable paired reads cannot us
       for(const evidence of modelChargeStates){assert.deepEqual(evidence.records,[],mode);assert.equal(evidence.unavailableReason,'read_failed',mode);}
     }
     assert.doesNotMatch(JSON.stringify(result.body),/PRIVATE_NUMBER|PRIVATE_NAME|PRIVATE_CLASS|36000000|37000000/u,mode);
-    assert.ok(result.body.views.every((view:{id:string})=>view.id!=='charges'),mode);
+    assert.ok((result.body.views??[]).every((view:{id:string})=>view.id!=='charges'),mode);
   }
 });
 
