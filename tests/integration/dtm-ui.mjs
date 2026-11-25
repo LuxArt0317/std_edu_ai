@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { mkdir } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
 import AxeBuilder from '@axe-core/playwright';
@@ -8,7 +9,21 @@ const base = process.env.PUBLIC_SITE_ORIGIN || 'http://127.0.0.1:5173';
 if (!['localhost','127.0.0.1'].includes(new URL(base).hostname)) throw Error('Local fixture only');
 const browser = await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
 await mkdir('artifacts/dtm', {recursive:true});
-const sample = {checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},student:null,courses:[],charges:[],assignments:[{id:'assignment-qa',title:'Practice reflection',details:'Sample work',dueAt:'2026-11-18T15:59:00Z',status:'open',submittedAt:null,sourceMode:'sample',enrollmentId:null,dtmCourseId:'course-qa',course:'DTM-SAMPLE-101'}],announcements:[],tasks:[],requests:[],dtm:{sourceMode:'sample',courses:[{id:'course-qa',code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',role:'student',sourceMode:'sample',materials:[{id:'material-qa',title:'Getting started guide',kind:'file',summary:'Sample guide.',position:1,sourceMode:'sample'}]}],notices:[{id:'notice-qa',title:'Welcome to DTM',body:'Sample notice.',publishedAt:'2026-11-05T00:00:00Z',sourceMode:'sample'}]}};
+const course={id:'b9ba580e-8e56-4df3-b151-dadcfcd777a1',userId:affairsTestUser.id,code:'DTM-SAMPLE-101',
+  title:'Digital Learning Orientation',term:'115學年度第1學期'};
+const material={id:'b9ba580e-8e56-4df3-b151-dadcfcd777a2',title:'Getting started guide',kind:'file',
+  summary:'Sample guide.',position:1,sourceMode:'sample'};
+const assignment={id:'b9ba580e-8e56-4df3-b151-dadcfcd777a3',title:'Practice reflection',details:'Sample work',
+  dueAt:'2026-11-18T15:59:00Z',status:'open',submittedAt:null,sourceMode:'sample',enrollmentId:null,dtmCourseId:course.id,course:course.code};
+const activities=[{kind:'assignment',id:assignment.id,title:assignment.title,details:assignment.details,dueAt:assignment.dueAt},
+  {...material,kind:'material',materialKind:material.kind,sourceUrl:null}];
+const content={course,content:null,activities,total:activities.length,limit:100,nextCursor:null,
+  revision:createHash('sha256').update(JSON.stringify(activities)).digest('hex'),unavailableReferenceCount:0};
+const sample={checkedAt:'2026-11-05T00:00:00Z',officialUniversityData:false,
+  profile:{userId:affairsTestUser.id,email:affairsTestUser.email,displayName:'QA Student',role:'student'},
+  student:null,courses:[],charges:[],assignments:[assignment],announcements:[],tasks:[],requests:[],
+  dtm:{sourceMode:'sample',courses:[{...course,role:'student',sourceMode:'sample',materials:[material]}],
+    notices:[{id:'notice-qa',title:'Welcome to DTM',body:'Sample notice.',publishedAt:'2026-11-05T00:00:00Z',sourceMode:'sample'}]}};
 try {
   const guest = await browser.newContext();
   await mockAffairsAuth(guest,{signedIn:false});
@@ -43,7 +58,32 @@ try {
   await mockAffairsAuth(signed);
   await signed.route('**/api/affairs-data*',route=>{
     assert.match(route.request().headers().authorization || '',/^Bearer /);
+    const query=new URL(route.request().url()).searchParams;
+    if(query.get('scope')==='dtm-course-resource'){
+      assert.equal(query.get('course_id'),course.id);
+      assert.equal(query.get('material_id'),material.id);
+      return route.fulfill({json:{course:{...course,sourceMode:'sample'},material:{...material,userId:course.userId,courseId:course.id,sourceUrl:null,targetUrl:null}}});
+    }
+    if(query.get('scope')==='dtm-course-content'){
+      assert.equal(query.get('course_id'),course.id);
+      return route.fulfill({json:content});
+    }
     return route.fulfill({json:sample});
+  });
+  await signed.route('**/api/affairs-conversations*',route=>{
+    const req=route.request();
+    assert.match(req.headers().authorization || '',/^Bearer /);
+    if(req.method()==='GET')return route.fulfill({json:{conversations:[]}});
+    const saved=req.postDataJSON();
+    return route.fulfill({json:{id:saved.id,title:saved.title,messages:saved.messages,version:saved.version+1,updated_at:new Date().toISOString()}});
+  });
+  const materialRequests=[];
+  await signed.route('**/api/affairs-assistant',route=>{
+    assert.match(route.request().headers().authorization || '',/^Bearer /);
+    const request=route.request().postDataJSON();
+    materialRequests.push(request);
+    return route.fulfill({json:{status:'answered',answer:'The verified saved material description is Sample guide.',
+      citations:[],suggestedQuestions:[],verification:{status:'verified',attempts:1},grounding:{source:'account',webSearched:false}}});
   });
   const page = await signed.newPage();
   const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -77,12 +117,31 @@ try {
   await page.getByRole('button',{name:'課程選單',exact:true}).click();
   await page.getByRole('menuitem',{name:'作業',exact:true}).click();
   await page.getByText('Practice reflection',{exact:true}).waitFor();
-  assert.equal(new URL(page.url()).pathname,'/dtm/course/course-qa/assignments');
+  assert.equal(new URL(page.url()).pathname,'/dtm/course/'+course.id+'/assignments');
   await page.locator('.dtm-user').click();
   await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
   await page.getByRole('dialog',{name:/Assistant/}).waitFor();
   await page.keyboard.press('Escape');
   await page.waitForFunction(()=>document.activeElement?.matches('.dtm-user'));
+  const materialRoute='/dtm/course/'+course.id+'/material/'+material.id;
+  for(const [index,width] of [1440,390].entries()){
+    await page.setViewportSize({width,height:900});
+    await page.goto(base+materialRoute);
+    await page.getByRole('heading',{name:material.title,exact:true}).waitFor();
+    await page.locator('.dtm-user').click();
+    await page.getByRole('menuitem',{name:'校園助理',exact:true}).click();
+    const chat=page.getByRole('dialog',{name:/Assistant/});
+    await chat.getByPlaceholder('Ask a school question…').fill('What is this saved material about?');
+    await chat.getByRole('button',{name:'Send',exact:true}).click();
+    const answers=chat.getByText('The verified saved material description is Sample guide.',{exact:true});
+    await answers.nth(index).waitFor();
+    assert.equal(await answers.count(),index+1,'each material question adds one answer to the restored chat');
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Material chat overflow at ${width}`);
+    await page.keyboard.press('Escape');
+  }
+  assert.deepEqual(materialRequests.map(request=>({route:request.route,question:request.question})),Array(2).fill({
+    route:materialRoute,question:'What is this saved material about?',
+  }));
   await page.goto(base+'/');
   await page.locator('body.home.page-id-243').waitFor();
   assert.equal(await page.locator('.stu-direct-notice, .stu-account-status, iframe[src="/account-status"]').count(),0);
@@ -93,5 +152,5 @@ try {
   await page.getByRole('heading',{name:'系統公告'}).waitFor();
   assert.deepEqual(errors,[]);
   await signed.close();
-  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,landingNoticeAbsent:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
+  console.log(JSON.stringify({status:'ok',guestRedirect:true,sharedGoogleSession:true,courseMaterials:true,materialChat:[1440,390],landingNoticeAbsent:true,alias:true,viewports:[1533,1440,768,390,320],seriousCriticalAccessibility:0}));
 } finally {await browser.close();}

@@ -58,7 +58,7 @@
 .dtm-error { padding: .65rem .75rem; color: #8b2020; background: #fff1f1; border: 1px solid #e5b9b9; }
 .dtm-saved { padding: .55rem .75rem; color: #135741; background: #eaf6ef; border: 1px solid #a5c6b8; }
 .is-signed-in .dtm-top { min-height: 50px; padding: 0 20px; gap: 0; border: 0; box-shadow: 0 1px 10px rgba(0,0,0,.1); }
-.is-signed-in .dtm-brand { align-self: flex-start; margin-left: -20px; padding: 15px 20px 10px; font-size: 20px; font-weight: 200; line-height: 20px; color: #777 !important; }
+.is-signed-in .dtm-brand { align-self: flex-start; margin-left: -20px; padding: 15px 20px 10px; font-size: 20px; font-weight: 200; line-height: 20px; color: #757575 !important; }
 .is-signed-in .dtm-language { margin-right: 10px; }
 .is-signed-in .dtm-language select { display: block; width: 173.2734375px; height: 50px; min-height: 50px; padding: 15px; border: 0; border-radius: 0; color: #3d3d3d; font-size: 16.8px; line-height: 20px; }
 .is-signed-in .dtm-top-account { gap: 3px; }

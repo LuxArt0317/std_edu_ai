@@ -57,3 +57,14 @@ export function clearanceQuestion(question){
   if(!/\bgraduation clearance\b|畢業離校|離校(?:申請|手續|審核)/iu.test(q))return null;
   return /\b(?:status|pending|approved|my|outstanding|history)\b|狀態|進度|紀錄|查詢|我的|還差/iu.test(q)?'status':'apply';
 }
+
+export function clearanceDirectoryAnswer(question,view,signedIn=false){
+  const zh=/[\u3400-\u9fff]/u.test(question),path=clearancePaths[view];
+  const url=signedIn?path:'/school-affairs/login?next='+encodeURIComponent(path);
+  const destination=view==='apply'?(zh?'畢業離校申請':'Graduation clearance application'):(zh?'畢業離校進度':'Graduation clearance status');
+  const title=signedIn?destination:zh?'登入校務系統': 'Sign in to School Affairs';
+  const answer=signedIn?'['+title+']('+url+')':zh?'['+title+']('+url+')後，即可開啟'+destination+'。'
+    :'['+title+']('+url+') to open '+destination.toLowerCase()+'.';
+  return {status:signedIn?'answered':'handoff',answer,citations:[{chunkId:'directory:graduation-clearance',title,url,claim:destination,
+    sourceName:'School Affairs',locator:null,effectiveAt:null,reviewedAt:null}],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
+}

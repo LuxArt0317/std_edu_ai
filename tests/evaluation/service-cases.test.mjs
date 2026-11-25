@@ -21,7 +21,7 @@ test('every catalog link has navigation, own-record, empty-record and action-bou
 
 test('generic tracker success cannot erase missing service workflow capability',()=>{
   const gaps=serviceCapabilityGaps();
-  for(const id of ['27-1','28-1','29-1','30-1','30-2','31-1','31-2','32-1','34-2','35-1','36-1','37-1','38-1']){
+  for(const id of ['27-1','30-1','30-2','31-1','31-2','32-1','35-1']){
     assert.equal(serviceCapabilities[id].level,'generic-tracker');
     assert.ok(gaps.some(row=>row.serviceId===id&&/No structured/.test(row.limitation)));
     const fixture=serviceNoteFixture(id,'own-account');
@@ -35,6 +35,48 @@ test('generic tracker success cannot erase missing service workflow capability',
     assert.equal(record.expected.provenance,'personal');
   }
   assert.throws(()=>serviceNoteFixture('34-1'),TypeError);
+  assert.equal(serviceCapabilities['36-1'].level,'partial');
+  assert.ok(gaps.some(row=>row.serviceId==='36-1'&&/metadata/.test(row.limitation)));
+  assert.throws(()=>serviceNoteFixture('36-1'),TypeError);
+  assert.equal(serviceCapabilities['29-1'].level,'partial');
+  assert.ok(gaps.some(row=>row.serviceId==='29-1'&&/appointment/.test(row.limitation)));
+  assert.equal(serviceNoteFixture('29-1').recordType,'note');
+  assert.equal(serviceNoteFixture('28-1').recordType,'note');
+  assert.equal(serviceCapabilities['28-1'].level,'partial');
+  const tutor=buildServiceCases().filter(row=>row.serviceId==='28-1');
+  for(const row of tutor.slice(1)){
+    assert.equal(row.domain,'tutorEvaluation');
+    assert.equal(row.fixtureRequirement,'native_tutor_evaluation_planned');
+    assert.equal(row.plannedFixture.setupEligible,false);
+  }
+});
+
+test('dormitory conduct, aid claims and student conduct catalog cases require their native sources',()=>{
+  const cases=buildServiceCases();
+  for(const [serviceId,domain,fixtureKey,emptyKey] of [
+    ['34-2','dormitoryConduct','dormitoryConduct:unknown','dormitoryConduct:missing'],
+    ['37-1','aidPayments','aidPayments','empty:aidPayments'],
+    ['38-1','studentConduct','studentConduct','empty:studentConduct'],
+  ]){
+    const rows=cases.filter(row=>row.serviceId===serviceId);
+    assert.equal(serviceCapabilities[serviceId].domain,domain);
+    assert.ok(serviceCapabilityGaps().some(row=>row.serviceId===serviceId&&row.level==='partial'));
+    assert.equal(serviceNoteFixture(serviceId).recordType,'note');
+    for(const [mode,key] of [['record',fixtureKey],['empty',emptyKey]]){
+      const row=rows.find(item=>item.mode===mode);
+      assert.equal(row.fixtureKey,key);
+      assert.deepEqual(row.expected.requiredTools,[domain]);
+      assert.deepEqual(row.expected.allowedTools,[domain]);
+      assert.ok(row.expected.forbidPublicResearch&&row.expected.noAction&&row.expected.requireUnchangedOwnedRecords);
+      const snapshot=fixtureForCase(row);
+      assert.ok(!snapshot.serviceRecords.some(item=>item.serviceKey===serviceId));
+      if(mode==='record'){
+        assert.ok(row.expected.facts.length);
+        assert.deepEqual(row.expected.requiredSourceBindings,[{sourceId:'account:'+domain,url:row.route}]);
+      }
+    }
+    assert.equal(rows.find(row=>row.mode==='action-boundary').expected.behavior,'unavailable');
+  }
 });
 
 test('native lookup criteria include literal evidence and never treat catalog as enrollment',()=>{
@@ -50,7 +92,7 @@ test('native lookup criteria include literal evidence and never treat catalog as
   assert.ok(serviceCapabilityGaps().some(row=>row.serviceId==='12-4'&&/independently bound existing published/.test(row.limitation)));
   assert.doesNotMatch(serviceCapabilities['12-4'].limitation,/no catalog read tool|not registered/);
   const officialChanges=buildServiceCases().filter(row=>row.mode==='action-boundary');
-  assert.ok(officialChanges.every(row=>row.expected.behavior==='unavailable'&&row.expected.forbiddenText.length));
+  assert.ok(officialChanges.every(row=>row.expected.behavior==='unavailable'&&(row.expected.forbiddenText.length||row.expected.noAction===true&&row.plannedFixture?.expectedNativeReadCalls===0)));
 });
 
 test('certificate coverage cannot pass using unrelated student identity fields',()=>{
@@ -86,4 +128,22 @@ test('readable certificate assessment never removes official file or assistant u
   const official=cases.find(row=>row.id==='account:enrollment-certificate-gap');
   assert.deepEqual(official.expected.requiredTools,['enrollmentCertificate']);
   assert.match(official.capability.limitation,/official issuance.*downloads.*unsupported/i);
+});
+
+
+test('counseling catalog criteria use the independent native appointment packet and remain unmounted',()=>{
+  const cases=buildServiceCases().filter(row=>row.serviceId==='29-1');
+  assert.equal(cases[0].expected.requiredLinks[0],'/school-affairs/services/29-1');
+  for(const row of cases.slice(1)){
+    assert.equal(row.fixtureRequirement,'native_counseling_appointments_planned');
+    assert.equal(row.plannedFixture.mounted,false);
+    assert.doesNotMatch(row.fixtureKey,/service-note:/u);
+    assert.equal(row.route,'/school-affairs/services/29-1/appointments');
+  }
+  assert.equal(cases[3].plannedFixture.expectedNativeReadCalls,0);
+  assert.equal(cases[3].expected.noAction,true);
+  assert.equal(buildAccountCases().some(row=>row.domain==='counselingAppointments'),false);
+  const planned=buildAccountCases({includePlannedCounselingAppointments:true}).filter(row=>row.domain==='counselingAppointments');
+  assert.equal(planned.length,21);
+  assert.equal(planned.filter(row=>row.plannedFixture.requiresAdditionalFixtures.includes('charges')).length,3);
 });

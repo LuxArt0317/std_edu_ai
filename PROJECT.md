@@ -80,8 +80,14 @@ The campus assistant streams server-observed directory, knowledge, web, image an
 
 Moodle course content placement is managed separately from activity records and submission state; [course content QA](docs/qa/DTM_COURSE_CONTENT.md) documents the additive schema, access boundaries and verification.
 
-## Private Answer Lab
+Local frontend/API execution for manual agent review is documented in [operations setup](docs/operations/SETUP.md#manual-local-agent-review).
 
-The [Answer Lab](tools/evaluation-lab/README.md) is an independent `/evaluation-lab` entry built with the school website. It uses the existing School Affairs administrator authorization and an owner-scoped database store. See [setup](tools/evaluation-lab/SETUP.md).
+## Local evaluation workspace
 
-The two approved [Answer Lab administrators](tools/evaluation-lab/README.md#shared-administrators) share questions, references, images and results. Membership is scoped to this workspace, and the Git production build applies its independent access migration before deployment.
+[Answer Lab](tools/evaluation-lab/README.md) provides standalone reference editing, model comparisons and persistent local assistant run history. See its [setup](tools/evaluation-lab/SETUP.md).
+
+Answer Lab is included in the multi-entry Vite build at `/evaluation-lab`, with hosted data operations multiplexed through the existing affairs-data Function. See [hosted setup](tools/evaluation-lab/SETUP.md) and [storage/security](tools/evaluation-lab/README.md).
+
+Local chatbot task strategies and verified public-source imports are documented in [server architecture](server/README.md) and the [answer strategy review](docs/guides/CHATBOT_ANSWER_STRATEGY_REVIEW.md).
+
+The canonical spreadsheet-based evaluation reference is [School questions and answers](docs/question-answer/README.md); the local lab versions references while preserving prior runs. See [lab architecture](tools/evaluation-lab/README.md).

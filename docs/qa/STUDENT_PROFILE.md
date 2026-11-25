@@ -6,7 +6,15 @@ The [stu.best form](https://stu.best/school-affairs/services/8-1) reads a baseli
 
 Only the final four characters of an identity number can be stored. The read and write functions require a Google-linked account. The administrator function also verifies the protected owner. Row-level security and revoked direct grants prevent direct table access. Private receipts contain revision and time, with a digest for replay. The chatbot calls the status-only reader and links to the form. The status response excludes names, phone numbers, addresses and identity numbers.
 
+When the signed-in student also asks for their recorded year, the assistant separately reads the year from that caller’s student record. It keeps the confirmed part of the reply if either read fails. A question about another student's profile is declined before dispatch. The controlled original-prompt replay runs with `node --experimental-strip-types --test tests/evaluation/student-profile-dispatch.test.mjs`.
+
+Issue #100 adds the three unchanged Student Profile browser cases for confirmed, confirmed plus year, and empty accounts. The protected relay allows one scoped workspace bootstrap, one exact answer request, one journaled conversation write, and one read on fresh restoration. The answer and saved conversation include only confirmation status and any requested year. The fixture checks both callers and both crossed credentials against the status RPC and the narrow year read. It removes the reserved profile and student and verifies the sample rows created by the enrollment trigger are gone.
+
+For controlled verification, run `node --experimental-strip-types --test tests/evaluation/student-profile-browser.test.mjs tests/evaluation/vercel-preview-browser-transport.test.mjs`. Set `STU_STUDENT_PROFILE_TEST_PGLITE_ENTRY` to the absolute PGlite module path for the migrated PostgreSQL checks, and `STU_STUDENT_PROFILE_TEST_CHROME` to Chrome’s executable for the compiled client dispatch check. These checks use disposable local records and controlled transport. Record protected Preview browser execution separately.
+
 ## Verification
+
+The protected runner accepts `--client-dispatch student-profile` for the three read-only browser cases. It binds both callers' confirmation and year responses to separate authenticated Supabase reads before and after the browser turn. Each case verifies one conversation save and a reload, then disposes the exact records and both fixture accounts. `--client-dispatch protected-native` also includes the mounted certificate and Announcement Email cases.
 
 ```sh
 npm run db:plan -- --only=20261114210000

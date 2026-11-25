@@ -1,11 +1,457 @@
 # Changelog
 ## Unreleased
 
-- Add the requested second Google administrator to shared Answer Lab data, preserving the existing questions, references, image inputs and run history. Keep lab membership separate from school administration; add manual shared refresh and stale-edit conflicts. [#101]
+- Correct public club/calendar routing so personal attendance and membership use caller-owned records; align compiled client checks with the shared per-call transport and conversation context. Publication remains pending release verification.
 
-- Include private Answer Lab at `/evaluation-lab`, with 53 editable survey FAQ references, question CRUD, selected-model run history, expandable Activity, authenticated screenshots and owner-scoped hosted persistence. Publish through the connected GitHub/Vercel pipeline; local data is excluded. [#101]
+- Route student-ID replacement questions to the actual card information source without confusing activation and replacement fees.
 
-- Answer campus Wi-Fi, semester leave, withdrawal and class-absence questions with the relevant school instructions and links. Refuse requests for another student's profile or announcement email settings before account or public research. Verify saved venue requests against caller-scoped records and retry eligible temporary failures. [#100]
+- Answer public dorm rates and application/checkout procedures from checked source pages without substituting private bed-record login links.
+- Provide source-backed dorm Wi-Fi registration/setup guidance while preserving missing-service and credential boundaries.
+
+- Retrieve checksum-verified calendar event rows with dated scope and preserve literal source tables when conversational rewriting cannot verify in time.
+- Scope public-only evidence reviews to relevant contracts and support same-source focus repair without approving unresponsive drafts.
+
+- Support independently reviewed club recommendations and retrieve cohort-specific admission-language evidence without treating suggestions as personal records or universal eligibility rules.
+
+- Preserve heading-only directory cards, retrieve club directory evidence and compact repeated link/navigation content.
+- Give verified public HTML sources the public composer path and drafting allowance while retaining independent review and account contracts.
+
+- Route public transcript application questions to the saved procedure notice instead of demanding private-record sign-in.
+
+- Ground school-background questions in the registered About page and distinguish course offerings, descriptions, curricula and personal selections in conversational guidance.
+
+- Provide source-backed calendar editions/downloads and School Map navigation; restore the original missing campus-map PNG and verify actual rendering.
+- Keep entry-year/version comparisons focused on supported versions instead of reciting unrelated policy details.
+
+- Show actual AI-evaluator percentages throughout Answer Lab, with model/score/status filters, within-topic sorting, honest current-reference aggregates and mobile list controls.
+- Include scholarship exceptions in broad public policy retrieval and fix the saved-document composition wrapper that cut requests off at12 seconds.
+
+- Compose and independently verify conversational wording for checked public financial/Moodle guidance; route IPIAC policy explanations to public sources while preserving private-award boundaries.
+- Answer Lab reuses the website chatbot client and authenticated routing, with isolated model selection and saved session/endpoint metadata.
+
+- Ground published tuition and payment guidance in checksum-pinned sources and share it across public/signed-in chat; keep personal fee lookups separate.
+
+- Refresh all 53 Q&A references from the supplied spreadsheet in docs/question-answer/README.md; sync case versions without clearing saved runs or user-managed flags.
+
+- Add bounded parallel Answer Lab runs (default 3, selectable 1–4), separate case activity and safe result/review merging with cancellation and rate-limit handling.
+
+- Enable Answer Lab AI review after each answer by default; keep the opt-out toggle.
+
+- Improve local chatbot task routing, source-grounded composition, Moodle/grade navigation and mixed-language labels; import the dated IPIAC source draft without training on expected answers.
+
+- Local Answer Lab reuses live chatbot message UI, attachments, sources and activity; saved expected answers stay separate from model output.
+
+- Package Answer Lab for `/evaluation-lab` with protected hosted operations, existing administrator authorization, private database state/images and conflict-safe saves. Hosted and local histories remain separate; no extra Vercel Function. [#101]
+
+- Replace Answer Lab’s old Q&A bank with the 53 survey FAQ entries and full expected answers. Back up the prior local state before one-time replacement, preserve later edits, and expose explicit question/answer edit, delete and restore controls. No evaluation runs or deployment. [#101, #102]
+
+- Add 53 survey-derived school FAQ answers with existing stu.best navigation, dated fee/calendar guidance, IPIAC calculation/source caveats, and P0 missing-source tracking. Documentation only; no chatbot import or deployment. [#102]
+
+- Add local Answer Lab with editable expected answers, 45 starter questions, model/effort selection, input screenshots, shared chat Activity, saved run snapshots and evaluator history. Archive/restore preserves past results. Runtime acceptance of the latest additions is deferred to manual testing at the user’s request. [#101]
+
+- Handle language-only instructions as conversation preferences instead of searches; apply English/Chinese preference to generated replies, starters, suggestions and feedback controls. [#100]
+
+- Route signed-in screenshot-content requests to validated image processing before private-record classification, including “give me the contents of this screenshot.” [#100]
+
+- Pass attached images through description, verification and correction; acknowledge received images when processing fails. Expand model context to the 24 retained messages within a shared input budget, and support configurable reasoning effort for local flagship-model review. [#100]
+
+- Answer conversational identity questions from the verified sign-in and explain wait-related follow-ups using the preceding reply. Stop account composition immediately on exhausted model credits and describe the real limitation. [#100]
+
+- Use conversational, reason-specific replies when an answer cannot be confirmed, and keep failed-check counts in Activity rather than beside the response. [#100]
+
+- Reject unusable encrypted environment placeholders before starting the local agent server, preventing a Supabase URL rendering crash. [#100]
+
+- Add a loopback-only local frontend/API runner for manual testing of the updated agent, without proxying API calls to production. [#100]
+
+- Combine high-level evidence plans with reactive observations and feedback-driven account replanning. Refresh third-pass account evidence and retain plan/observation activity in saved chats. Keep confirmation, ownership and deadline checks in force. [#100]
+
+- Verify combined venue and fee answers in the protected browser evaluation. Bind both independent reads, the displayed fee breakdown and the restored conversation. [#100]
+
+- Cover foreign student profile and announcement preference questions in the protected browser evaluator. Require a private conversation save and restore with zero answer lookups. [#100]
+
+- Recheck the same signed-in venue records after two temporary service failures and link directly to the records if the lookup remains unavailable. [#100]
+
+- Add protected signed-in Chromium evaluation for owned venue requests, empty accounts and other-student refusals. [#100]
+
+- Prepare a private Student Leave draft from explicit dates, category and class periods. Show the fields before confirmation and return a retry-safe link to the saved draft. [#100]
+
+- Answer natural variants of campus Wi-Fi setup, semester leave and class-absence form questions with their specific sign-in steps and links. [#100]
+
+- Exercise Membership privacy denial in the protected browser evaluator and dependency failure, retry and recovery in the local signed-in browser. [#100]
+
+- Add a protected browser check for saved club roles, the current-semester follow-up and an account with no memberships. [#100]
+
+- Answer campus Wi-Fi access, semester leave and withdrawal, and the class-absence form from the matching school guidance. Keep earlier private chat context out of these lookups. [#100]
+
+- Verify saved club membership roles and club status together with current semester subjects when requested. Retry the missing source and retain any verified section. [#100]
+
+- When the indexed notice remains unreadable, try a different school publication if the targeted lookup came back empty and time remains. [#100]
+
+- Name the missing details and keep the indexed school notice link when its public read fails. Require an observed sign-in redirect before reporting a sign-in requirement. [#100]
+
+- Create the two reserved browser-test profiles in the same transaction as the signed-in native fixtures. [#100]
+
+- Verify the saved record overview, current subjects and year, and standalone balances directly against their selected record fields and counts. Refresh the authorized read when those fields cannot be validated. [#100]
+
+- Add protected Chromium replay for Announcement Email preferences, Gmail limits and an empty profile, with exact two-account readback and cleanup. [#100]
+
+- Add protected Student Profile browser acceptance for confirmation status, the requested recorded year, and a verified empty account. Verify distinct sources, safe conversation restoration, crossed-account denial, and fixture cleanup. [#100]
+
+- Mount the five original Club Attendance questions in the guarded Chromium evaluator, including isolated tuition records, crossed-owner checks and verified fixture cleanup. [#100]
+
+- Verify five Club Attendance browser answers against a signed read receipt, the saved private transcript and both account owners’ before-and-after records. [#100]
+
+- Answer saved club attendance and tuition balance together from their separate signed-in records. Retry only a source that failed and keep the verified section if the other remains unavailable. [#100]
+
+- Answer standalone English and Traditional Chinese founding-year questions from the saved university About page. [#100]
+
+- Continue public answer verification with an unread school page after a temporary rewrite or review failure, when time remains to check the answer. Keep each completed check and the interruption in chat Activity. [#100]
+
+- Continue through queued public sources when the first group is unavailable or repeats evidence already checked, within the original read deadline. [#100]
+
+- Answer the signed-in Student Profile confirmation and recorded year together when requested. Distinguish an empty record, an unavailable source and an attempt to read somebody else’s profile. [#100]
+
+- Verify saved Leave periods, exact counts, and fee or next-class companions. Keep saved dates available when only their linked review cannot be read. [#100]
+
+- Report the saved announcement email activation status and distinguish a missing setting, Gmail delivery and another student's preference. Add the isolated 2-1 browser evaluation packet. [#100]
+
+- Add a protected Chromium replay for the original certificate status and bank receipt questions. Verify the visible answer, private conversation restore, and account isolation. [#100]
+
+- Add a protected Preview evaluator for the three original Tutor Evaluation and tuition questions with exact caller readback and cleanup. [#100]
+
+- Verify tutor questionnaire status and a named tuition balance from their separate saved records. Keep verified details during a single-source outage and skip the questionnaire when asked. [#100]
+
+- Verify named-course term absence hours directly against the caller's saved attendance statistics. [#100]
+
+- Answer natural monthly payment questions with the exact dated ledger, including compact month and year wording and verified empty periods. [#100]
+
+- Verify signed-in course-selection history, saved timetable slots and exact review remarks. Resolve the 11-1 and 11-2 page links and unsupported changes without loading private records. [#100]
+
+- Leave time to read a known school page when an earlier public review may time out. Verify any recovered detail against the new page and persist the observed checks. [#100]
+
+- Answer saved graduation credit totals, a named requirement’s course matches and the recorded status from the selected owner’s report. Keep the official eligibility decision separate. [#100]
+
+- Verify standalone Academic Attendance replies from the selected term and view. Distinguish a missing current-term setting, an empty result and an unavailable read. [#100]
+
+- Answer work permit renewal and campus service hour questions with the matching School Affairs links and the records that can be verified. State when an official update or submission cannot be made. [#100]
+
+- Read only the selected Academic Services or Legacy graduation review status when the student asks for it. [#100]
+
+- Keep the campus assistant available while the Teaching Assistant report and grant receipt notices are open. Explain each displayed notice and where Confirm returns. [#100]
+
+- Recover verified appointment details and a named fee balance after the automatic reviewer rejects the first answer or is unavailable. Keep either verified result when the other read fails. [#100]
+
+- Add a protected Preview check for both Counseling and tuition question orders and explicit appointment exclusion. Verify the two record sources separately for both fixture accounts. [#100]
+
+- Verify saved remote-learning Moodle enrollments and unfinished DTM assignments as separate owned sources without calling the model. [#100]
+
+- Keep verified course and year results when tailored interview wording is temporarily unavailable. Offer a clearly separated interview practice guide. [#100]
+
+- Read only the saved courses and explicitly requested year for a combined course-list and interview-writing question. Verify the answer against those same records. [#100]
+
+- Check the saved note, tracking status, and assistant access on seven School Affairs service pages. Verify the mobile Group Insurance sign-in return. [#100]
+
+- Add protected evaluation for 13 original teaching feedback questions, including exact empty-record checks, navigation, privacy and unsupported writes, using the existing isolated sample fixture. [#100]
+
+- Show the saved currency beside a named fee balance in Counseling questions and preserve the fee-only scope when appointments are excluded. [#100]
+
+- Reread a school page once after a temporary connection or server failure when an unanswered detail could still be verified. Keep checked facts when the reread cannot resolve the detail. [#100]
+
+- Follow an unread school source when a draft leaves the same details unanswered. Keep the best checked reply until new evidence verifies more. [#100]
+
+- Verify Student Leave dates and Moodle grades as separate records within one answer. Preserve the verified portion when one source is incomplete. [#100]
+
+- Answer facility repair status and notes directly from saved records. Verify the next-class portion separately and keep the supported details if one read fails. [#100]
+
+- Verify the selected certificate award separately from the aggregate menu and check both owned and crossed status requests. [#100]
+
+- Answer certificate award status and saved amounts from the selected record. Explicitly mark bank receipt as unverified when asked. [#100]
+
+- Evaluate both question orders that combine Student Leave and Moodle grades with independently checked ownership and source evidence. [#100]
+
+- Verify capped teaching feedback and mixed course questions against separate saved records. Ask for clarification before reading ambiguous requests, and confirm explicit exclusions without reading records. [#100]
+
+- Exercise Moodle assignment empty lists, sample fallback, foreign-course requests, and the display limit with both caller readbacks in protected evaluation. [#100]
+
+- Continue looking for missing details when a later review reaches its output limit. Keep the already verified facts until a different source supports a fuller answer. [#100]
+
+- Answer the university’s founding and mission and school motto from the checksum-verified About page. Include the source and its capture date. [#100]
+
+- Continue a public answer check with a distinct school source when an earlier reviewer reaches its response limit. [#100]
+
+- Evaluate Moodle assignment sample records and sign-in, ownership, file, grade, and bulk-submission boundaries with paired account readbacks. Include a request ID on accepted public assistant requests. [#100]
+
+- Answer teaching survey status, dates, course completion, and phase comparisons from saved survey records. Verify the same course and section before comparing its completion across phases. [#100]
+
+- Verify standalone Moodle questions about the student's saved courses, course role, meeting notes, next meeting, and attendance directly against their owned records. Add a protected evaluation of the five original questions with two callers. [#100]
+
+- Reconcile disposable Auth users after uncertain deletion responses and space out transient cleanup retries. [#100]
+
+- Verify student club records, scoped officer views, and separate student and manager review behavior in Chromium. [#100]
+
+- Verify the student’s owned repair list and detail, the assistant’s exact repair context, and student access denials on management routes. [#100]
+
+- Verify complete standalone Academic Services answers directly from their selected saved records. Match the answer, table and link without calling a model, and check unsupported grade views against their capability limits. [#100]
+
+- Read standalone Academic Services grades without initializing School Affairs or Moodle records. Add a protected evaluation of the 11 frozen grade questions with both caller scopes and exact cleanup. [#100]
+
+- Read only the selected private Academic Services view for explicit standalone grade questions without provisioning unrelated accounts or records. [#100]
+
+- Explain which public notice details could not be checked when the relevant source requires school sign-in. Keep its direct link in the reply. [#100]
+
+- Verify course and syllabus details, curriculum PDF loading, and substitution results in the signed-in browser checks. [#100]
+
+- Keep transcript grades, warning remarks, credits and rankings in the requested academic term, including compact semester references. Check the saved English requirement display independently of semester filters. [#100]
+
+- Verify synthetic Moodle records in the signed-in browser checks and confirm that copied assignment and grade pages send the exact page context to the assistant. [#100]
+
+- Verify combined health-record and tuition replies against independently fetched owned records on protected Preview. Include the second-page case and explicit health exclusion. [#100]
+
+- Keep the verified health metadata or named tuition balance when the other record service temporarily fails. Show which lookup is unavailable and link to both record pages. [#100]
+
+- Verify a selected health-record page and a separately named tuition charge against their own saved records. Respect explicit requests to leave health records unread. [#100]
+
+- Preserve the assignment or grade-report destination when a copied DTM link leads to sign-in. Connect the assistant there to the matching local records. Expand signed-in launcher checks to service subviews. [#100]
+
+- Add a protected Moodle material evaluation with caller-owned detail and list readbacks, crossed denials, and exact fixture cleanup. [#100]
+
+- Route exact unpaid-tuition questions to the caller’s fee records. Verify an unlinked account directly and report that a balance is unknown. [#100]
+
+- Check an explicit account display-name question against the signed-in caller’s saved profile. Distinguish a missing name from a read failure. [#100]
+
+- Derive the protected DTM browser’s exact asset allowlist from the pinned Preview shell and its selected runtime dependencies. [#100]
+
+- Verify fee-remission history directly against the selected saved period and distinguish empty, blank, missing and zero amounts. Check a separately named tuition charge against its own record and preserve both answers. [#100]
+
+- Stop remote evidence checks when the reviewer reports exhausted quota. When the records can be checked locally, reread them and verify the answer directly. [#100]
+
+- Verify explicitly requested regular weekday reading-area hours directly from the library’s published table. Preserve the capture date when using a saved copy and keep mixed holiday questions in the broader review. [#100]
+
+- Check a named tuition instalment against its selected saved charge and keep that scope if verification needs a fresh read. Recognize common tuition-and-fees balance wording. [#100]
+
+- Answer public library questions alongside a registrar contact or Wi-Fi setup request. Keep the verified directory details when library research cannot verify the second part. [#100]
+
+- Verify standalone tutor evaluation questions directly against the saved submission status, requested fields and questionnaire link. Preserve saved-record attribution and an exact answer when no submission exists. [#100]
+
+- Try a different school publication when a deeper, unsuccessful check has already reviewed distinct sources. Read unvisited leads first and verify again only when the alternate search adds usable evidence. [#100]
+
+- Check the university library’s opening-hours page before broader search. Use its dated public capture when needed and distinguish regular hours from listed holiday closures. [#100]
+
+- Let students review and confirm withdrawal of one owned learning-support request in chat. The withdrawal uses the native versioned receipt and preserves the exact command on retry. [#100]
+
+- Let signed-in students review and confirm a local learning-support submission in chat. The assistant verifies the quoted topic and details, and retries with the same native request ID after an uncertain receipt. [#100]
+- Extend protected learning support evaluation to verify submission drafts, one confirmed row and receipt, safe replay, and exact cleanup with two disposable callers. [#100]
+- Keep combined graduation-clearance status and window questions within the caller’s clearance records. Exercise both routes and deny chat approval and manager access in two-caller evaluation. [#100]
+- Add a protected graduation-clearance status and notes evaluation using disposable callers and two reviewed existing terms. [#100]
+- Verify exact graduation-clearance status and note answers from saved rows without a model call. Retry a transient read and refuse chat writes and manager access before querying records. [#100]
+- Keep graduation-clearance window and submission-inference questions in their native scope. Add isolated PostgreSQL replay for the three positive window questions. [#100]
+
+- Add a signed zero-read check for 14 Student Leave navigation and access questions while preserving the separate 18-case owned-record evaluation. [#100]
+
+- Verify saved aid-claim fields directly against the selected claim page, preserve conduct field questions that follow the report name, and return the dormitory notice link without reading records for a delete or change request. Catalog acceptance now checks the native sources for 34-2, 37-1 and 38-1. [#100]
+
+- Keep the subject of signed-in public campus contact follow-ups across turns, including English and Traditional Chinese. Account history and page selectors stay out of public research. [#100]
+
+- Use already-read school pages when time is too short for a new search, and try a different publication when a newly found page repeats existing evidence. Carry only checked school domains and page types into deeper public searches, and save the actual checks and outcomes in chat. [#100]
+
+- Read the school page behind a verified knowledge excerpt when discovery finds it again and the answer still has gaps. Repeated page contents leave the original answer in place. [#100]
+
+- Verify complete standalone teaching-feedback records and clearly scoped empty results directly against the saved fields. Retain their existing links and the student's comment choice. [#100]
+
+- Follow public sources when a verified managed answer still has unanswered details. Keep the checked text and citations whenever the additional lookup cannot verify more. [#100]
+
+- Verify the exact count of saved conduct entries at 38-1 using the signed-in account without retrieving conduct record details. [#100]
+
+- Register equipment history, new form and owned edit-page questions in the default evaluator. Keep separate paired-owner proof for protected results, and treat requests for pickup and return dates as reads. [#100]
+
+- Preserve the selected club equipment request when signing in from its edit page. Continue to handle invalid or extra selectors as ordinary sign-in redirects. [#100]
+
+- Verify combined Internship and next-class answers directly when the complete timetable has a unique upcoming meeting with a saved room. [#100]
+
+- Add protected evaluation for owned venue requests, pending counts, and cross-account boundaries using disposable records that do not reserve public rooms. [#100]
+
+- Add an isolated teaching-feedback Preview evaluation using existing sample sections, paired owner reads, signed evidence observations and exact cleanup. [#100]
+
+- Verify complete Internship and tuition-balance answers directly against both saved sources so corrections retain each contract status and exact balance. [#100]
+
+- Continue public verification when initial school pages cannot be read or the managed reviewer runs out of output. Recheck a transient read, look for a different official publication, and preserve the search outcome in the conversation. [#100]
+
+- Add a separate protected Internship and published sample timetable packet, with exact owned-enrollment receipts and independently dated meeting facts. [#100]
+
+- Use the saved bed-assignment reader for short housing questions on 34-1 and directly verify complete empty results. [#100]
+
+- Add protected checks for both orders of Internship and tuition balance questions, with separately signed reads for tuition and saved Internship records. [#100]
+
+- Verify complete standalone internship answers directly against the selected saved records. Keep each tracking or review status with its own record in English and Traditional Chinese. [#100]
+
+- Replay saved housing bed, costs and dormitory notice questions against a published term in scratch PostgreSQL, with paired owner isolation and unchanged-record checks. [#100]
+
+- Try a distinct public school publication when the indexed notice requires sign-in and targeted discovery comes up empty. Keep the discovered source separate from the unpublished notice content. [#100]
+
+- Verify complete Moodle grade overviews and all-item feedback directly against saved course and report rows. Preserve exact values beside their course or item. [#100]
+
+- Check the university library’s own FAQ and reservation pages for visitor access, discussion rooms and off-campus databases. Keep unread pages as clickable links and answer in the requested language. [#100]
+
+- Let public verification follow a fresh source after an improved partial answer or an actionable rejected draft. Preserve the best verified answer when evidence, time or review capacity runs out. Save the observed checks in chat. [#100]
+
+- Add independent protected Preview evaluation for saved internship contracts, self-assessments, company applications and the personal directory. [#100]
+
+- Let signed-in students review and confirm cancellation of a saved facilities repair report that is still submitted. Refresh the report after the verified receipt. [#100]
+
+- Answer directly when the saved Moodle grade report or course total is absent, or when a complete course lookup finds no match. Verify each result against its own account read and link. [#100]
+
+- Route exact Moodle grade-report questions to the signed-in report and test the record contents and crossed-account denials on protected Preview. [#100]
+
+- Localize the capture date on Traditional Chinese page summaries and distinguish a known school notice link from its unread contents. [#100]
+
+- Recognize Traditional Chinese requests for a student’s own saved tracking notes. Add signed-in evaluation for injury reporting, Student Health equipment, rental registration and insurance. [#100]
+
+- Add a protected Preview evaluator for counseling cancellation with paired student readbacks, confirmation and replay checks, and exact synthetic cleanup. [#100]
+
+- Let signed-in students confirm cancellation of one saved counseling or psychological assessment appointment from the campus assistant. Verify the native cancellation receipt before displaying the result. [#100]
+
+- Follow another public school source when a verified reply still leaves part of the question unanswered, and keep the verified facts when the extra search cannot fill the gap. [#100]
+
+- Summarize the services listed on the exact archived page, with its title, link and capture date. [#100]
+
+- Preserve relevant official notice links when public research reaches a school sign-in gate, with a clear access label and separate verification evidence. [#100]
+
+- Answer whether the selected Moodle submission was late using the saved submission time and the deadline recorded with that upload. [#100]
+
+- Keep looking after a failed public source read when an unread lead or retry can still fit the deadline. Recheck questions about archived pages against the same capture. [#100]
+
+- Review and confirm an exact saved club equipment cancellation in the School Affairs assistant. The chat verifies the revision and receipt before showing the updated record. [#100]
+
+- The School Affairs assistant verifies the signed-in student’s club equipment status, pickup and return dates, and item names against saved borrowing requests. Add protected Preview checks for record ownership, eligibility, guest boundaries and cleanup. [#100]
+
+- Let authorized School Affairs managers record and reverse dated payments from the selected student's charge. Preserve the same request when a receipt goes missing, including after reopening the page. [#100]
+
+- Follow new public evidence after a rejected draft. An incomplete office page can lead to a more specific notice, and a further independent source can support a fourth check within the request budget. Preserve the stop reason and activity after reload. [#100]
+
+- Add a protected Preview evaluator for eleven tutor questionnaire reads with two-caller RLS proof and exact no-submission and cleanup checks. [#100]
+- Serve caller-scoped dated tuition payment history and verify administrator receipts for local payments and reversals. [#100]
+
+- Answer straightforward student payroll questions from the exact saved period, net amount and tax fields. Preserve separate salary and claim links, omit unrelated payroll values when bank settlement is requested, and show the account boundary in Activity. [#100]
+
+- Add a protected Preview evaluator for confirmed task creation and completion. Check two-account isolation, exact replay, audit receipts and cleanup against independent database reads. [#100]
+- Mount 16 health-examination metadata evaluations on protected Preview with two disposable callers, exact scoped page readbacks and synthetic cleanup. [#100]
+
+- Keep public search leads beyond the initial draft's citations. After stalled verification the assistant can find and read a more specific source, then verify the revised answer and save the observed steps in chat. [#100]
+- Bind sixteen Digital Academy catalog evaluations to two disposable callers, frozen published course projections and exact protected Preview assistant requests. [#100]
+- Add a protected Preview evaluator for nine Moodle assignment-list questions with two-account readbacks, exact Taipei date and tracker-state checks, and verified fixture cleanup. [#100]
+
+- Let model-reviewed signed-in answers take a third verification pass using the same refreshed records, including single-source and fixed-scope questions. [#100]
+
+- Ask drafts to identify the missing field and omit unsupported quantities and dates. Verify the same boundary independently. [#100]
+- Verify private notes alongside the next saved class or named tuition balance. Cover both question orders and honor requests to skip notes. [#100]
+- Route private tracking note links to their local service pages and give an explicit handoff when a chat request combines editing a note with submitting it. [#100]
+- Keep injury reports, Student Health equipment, rental reporting and group-insurance questions on their School Affairs pages. Treat school outcomes separately from private notes. [#100]
+- Route direct tuition payment requests to the pending-fees page with a clear capability limit and no account record lookup. [#100]
+- Add a signed-in payment history page for dated tuition payments and reversals, with date filters and a separate notice for undated amounts. [#100]
+
+- Verify direct saved-note answers from the exact scoped records and keep each note title, text and tracking status together. [#100]
+- Add a protected Preview evaluator for 18 caller-owned Student Leave questions, with signed native read, completed provider review and response proofs. [#100]
+- Verify simple saved Student Leave answers by checking the exact native fields, table and link. The 18-case Preview suite distinguishes deterministic checks from model reviews. [#100]
+
+- Deploy the compatible UUIDv7 chat protocol and verify exact saved answers on the protected Preview. [#100]
+- Apply the authenticated Digital Academy metadata reader and verify Student Leave fixture data on the protected Preview. [#100]
+- Stop queued Moodle and supplemental account reads when the shared verification deadline expires. [#100]
+
+- Verify public founding, mission and motto questions from the approved About STU capture. Try a focused official source read after a rejected draft. [#100]
+- Let rejected public web answers search for a more specific official source and verify the resulting page content independently. [#100]
+- Try public school pages when managed excerpts fail verification and the request has time for an independent check. Keep both source paths visible in Activity. [#100]
+- Recover from unusable search drafts using independently read school pages. Let a useful public follow-up spend a remaining verification check and explain why a lookup stopped in saved Activity. [#100]
+- Show the active lookup in the chat timeline and distinguish intermediate draft checks from the final verification stop, including in restored chats. [#100]
+- Give eligible account and public answers a deeper verification check when the previous review identifies a resolvable gap and time remains. Preserve the observed check in chat history. [#100]
+- Recover signed-in overviews and fee balances from refreshed, caller-scoped fields. Explain each rejected draft in the activity log. [#100]
+- Lead routine personal answers with saved records, label sample entries where they appear, and retain precise limitations for explicit official-record requests. [#100]
+- Send Student Leave navigation questions to the application form and verify the embedded assistant's guest and signed-in behavior. [#100]
+
+- Recover the verified course list and year level from refreshed School Affairs fields when the answer reviewer rejects a draft. Label saved fee amounts and sample charges in revised answers. [#100]
+- Keep interview practice useful without reading student records unless the request calls for them. [#100]
+- Preserve the selected club attendance page at Google sign-in and explain where campus entry links lead. Verify assistant access across protected routes in Chromium. [#100]
+
+- Preserve the exact saved chat during the evaluator’s cleanup comparison by parsing the serialized transcript once in PostgreSQL. [#100]
+
+- Explain the shared Google sign-in for Digital Teaching Materials and Digital Academy and restore valid selected learning destinations. [#100]
+- Register the 80 private service-note questions with exact fixture support for 61 cases. [#100]
+- Run signed-in evaluations on a pinned Vercel Preview using an authorized Development identity. Verify club attendance fixtures and require the application’s exact cross-account Moodle denial. [#100]
+- Answer which Google account is signed in from the caller's verified session. [#100]
+- Verify Digital Academy category and notice details and the signed-in student's saved club attendance from the selected page. [#100]
+- Verify saved venue requests and tuition independently when a question asks for both. [#100]
+- End teaching feedback reads when their shared deadline expires. [#100]
+- Add versioned conversation saves and deletes with bounded deletion markers. Preserve drafts in tabs open during an upgrade and verify the four-turn replay with the current chat ID format. [#100]
+- Keep the selected course or syllabus through School Affairs sign-in and verify the requested catalog fields against its exact published sample. [#100]
+- Check the returned conversation and its activity before reporting an account save. Deleting a signed-in chat also requests account deletion when its save response was lost. [#100]
+- Verify saved venue request counts, dates, periods and status through caller-scoped reads. [#100]
+- Verify Digital Academy search and category course results from the exact open page. Preserve its filter and page through Google sign-in and retry a failed catalog read once. [#100]
+- Verify requested stu.best task, nickname, tracker, service-request and announcement changes before showing the confirmation button. Check the action receipt before showing success. [#100]
+- Answer saved Moodle assignment-list questions from the caller’s exact list and selected course. [#100]
+- Preserve exact Student Leave record IDs and bind offline requests to independent ownership and reader observations. [#100]
+
+- Answer Moodle assignment-list questions from the signed-in course or My assignments view. Verify saved deadlines and tracker status without reading submitted files or grade reports. [#100]
+
+- Answer route-specific School Affairs menu questions from local directory entries. Direct students to their own browser for Custom menu links. [#100]
+- Add a two-account Student Leave fixture with transaction recovery and verified cleanup. Keep live fixture admission explicit. [#100]
+
+- Answer Moodle material questions from the signed-in course list or exact resource. Keep the saved description and link availability separate from file contents. Retry a failed read once and keep independently verified fee answers. [#100]
+- Verify a student's saved internship contracts, self-assessments, company applications and local directory from their respective School Affairs views. Keep saved tuition and the next class tied to independent sources. [#100]
+- Add 30 internship evaluation cases and report missing live fixture bindings before any model request. [#100]
+
+- Verify saved leave history, archived dates, periods, exact forms and local review status in the signed-in assistant. Check explicitly requested balances, the next class and native Moodle grades through their respective sources. [#100]
+
+- Serve the legacy Moodle sign-in URL in local preview and improve contrast for the signed-in Moodle header. [#100]
+
+- Verify the saved Moodle assignment title, instructions, deadline and tracker fields from its exact course and assignment. Check native grade questions independently in the same reply, and withhold these results when verification fails. [#100]
+- Register 32 native Moodle assignment and grade questions in the systemwide evaluation. Report missing live fixture coverage explicitly. [#100]
+
+- Verify saved housing application receipts, submission times and academic terms separately from dormitory bed assignments. Keep related Moodle grades, tuition and the next class tied to their own sources. [#100]
+- Read native Moodle grades directly for focused grade questions. Preserve listed, blank, zero and unavailable grade values, and refresh the same source if the first verification fails. [#100]
+- Add independent housing receipt, native Moodle and teaching feedback evaluation cases. The report tracks unmounted teaching fixtures as unresolved. [#100]
+
+- Explain School Affairs keyword search and the General Affairs application and lookup menus from the local catalog. Keep account and public follow-up history within valid Unicode boundaries. [#100]
+- Show all requested sign-in destinations when guests ask about a dormitory bed, tuition and the next class. Recognize common first-person Chinese requests for a bed number. [#100]
+
+- Respect explicit exclusions and account boundaries in combined dormitory, timetable and tuition questions. Keep all eight record card columns after reopening saved chats and preserve complete Unicode characters in follow-up history. [#100]
+- Add the reported four-turn conversation to offline CI checks and prepare a protected Preview runner that verifies saved turns, fixture cleanup and independent review evidence. [#100]
+
+- Verify the signed-in student’s saved dormitory bed, term and requested amounts. A combined next-class or fee balance question checks the corresponding records separately. [#100]
+
+- Answer account overview questions from saved student and course metadata and exact record counts. Keep private request text, grades and other unrelated data outside the lookup. [#100]
+
+- Verify saved teaching evaluation completion and immediate teaching feedback through the account assistant. Keep selected course, tuition and timetable facts tied to their own records, and check each requested part before showing the answer. [#100]
+
+- Answer current-semester subjects and recorded year using only the two caller-owned School Affairs sources. Keep available facts when one source fails. [#100]
+
+- Verify the requested page of a student's saved salary or aid claims in the assistant. Keep each amount with its saved period or reason and preserve page links, independent fee and timetable questions, and caller ownership. [#100]
+
+- Keep requests about the student’s own conduct history on the verified account path. Preserve literal conduct fields, respect excluded and foreign requests, and keep dormitory, tuition and timetable evidence separate. [#100]
+
+- Link public tutor questionnaire navigation directly to the questionnaire page. Personal status and note lookups preserve the sign-in return destination. [#100]
+- Verify the signed-in user's private tracking notes for learning support, injury, equipment borrowing, international work and rental, campus service, and group insurance. Honor excluded services and keep any requested balance or next class tied to its own records. [#100]
+
+- Use the School Affairs timetable for personal weekday questions and offer a three-step campus directory guide for the public first-week question. [#100]
+- Preserve the named course and academic term in verified assistant answers and record tables. Career wording help avoids unrelated account reads. [#100]
+- Verify saved student conduct and loan records using the signed-in account. Preserve literal fields and show the relevant School Affairs links. [#100]
+- Add synthetic reproduction cases, independent helpfulness review and browser dispatch coverage tracking to the assistant evaluation. [#100]
+- Verify saved aid claim and salary details, including net pay and tax, through the account assistant. Keep confirmed actions and private chat history bound to the initiating account. [#100]
+- Answer Moodle grade questions from the signed-in student's native report. Preserve saved feedback, weights and course totals, and verify the exact report link. [#100]
+- Use published Shu-Te resources to support first-week study advice. Check school facts separately from planning suggestions. [#100]
+- Verify saved remote-learning Moodle enrollments and unfinished DTM assignments together when a student asks for both. Keep the two systems' coursework separate. [#100]
+- Require the live evaluation to match the deployed revision before fixture setup and throughout the test run. [#100]
+- Verify saved facility repair status and handling notes alongside the next class when both are requested. Preserve the report link and the limit on what a saved status can establish. [#100]
+- Read only the signed-in account’s fee records for straightforward balance questions, including when a second verification check is needed. [#100]
+- Verify saved tuition-remission history in chat and show it alongside the fee balance when requested. Preserve literal academic periods, blank amounts and zero. Give signed-out students a link to sign in. [#100]
+- Answer signed-in counseling appointment questions from saved School Affairs metadata. Distinguish preferred dates from scheduled times and check tuition through its separate records when asked. [#100]
+- Preserve the exact counseling status, dates, scheduled times and count limits after a rejected evidence review. [#100]
+- Preserve private, separate Health and Counseling replay reports and verify cleanup before starting the second packet. [#100]
+- Preserve the selected health examination page when a student signs in from a page link. [#100]
+- Verify saved graduation clearance decisions and requested office notes in chat. Answer combined next-class questions from the student’s saved enrollment timetable. [#100]
+- Verify saved tutor evaluation submissions in chat. Show only requested ratings and comments, and check any requested tuition balance through the separate fee ledger. [#100]
+- Answer signed-in health examination questions with the saved examination codes and report availability from the selected page. Preserve tuition as a separate source in combined questions. [#100]
+- Recover exact health examination page results after a rejected review and ask for one page when a student names multiple pages. [#100]
+- Verify saved dormitory notices and remote-learning activity links in signed-in chat. Preserve separate housing, tuition and enrollment answers when requested together. [#100]
+- Keep the exact saved dormitory notice result and its limits after a rejected review. Reread the selected records, check the rebuilt reply, and label bed numbers when housing is requested too. [#100]
 
 - Add student club and activity search, private participation history, and new-club applications with administrator review and assistant links. [#98]
 

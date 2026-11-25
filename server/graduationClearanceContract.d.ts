@@ -23,3 +23,9 @@ export function validClearanceAction(kind:unknown,body:unknown):boolean;
 export function parseClearance(value:unknown,userId:string,view:'student'|'manage',term?:string,target?:string):ClearanceData;
 export function parseClearanceReceipt(row:unknown,kind:string,payload:ClearanceAction['payload']):unknown;
 export function clearanceQuestion(question:string):ClearancePage|null;
+
+export function clearanceDirectoryAnswer(question:string,view:ClearancePage,signedIn?:boolean):{
+  status:'answered'|'handoff';answer:string;
+  citations:Array<{chunkId:string;title:string;url:string;claim:string;sourceName:string;locator:null;effectiveAt:null;reviewedAt:null}>;
+  suggestedQuestions:string[];grounding:{source:string;webSearched:boolean};
+};

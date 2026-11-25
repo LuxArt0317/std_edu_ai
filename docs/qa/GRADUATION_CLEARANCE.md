@@ -10,10 +10,35 @@ The university's flowchart documents an explicit decision to proceed after readi
 
 ## Verification
 
+- `node --test tests/evaluation/clearance-owned-packet.test.mjs` replays frozen questions through both School Affairs routes with two synthetic signed-in callers. It checks application-window and office-note scope, the empty account, denied assistant and native actions, and unchanged records before and after requests.
 - `node tests/integration/graduation-clearance-db.mjs --rollback-preflight` exercises the migration against the exact client schema and rolls all successful writes back. Use `--deployed` to test the installed schema. It covers manager-only actions, confirmed submission, appropriate offices, retries, stale writes and isolation.
 - `node --experimental-strip-types tests/integration/graduation-clearance-http.mjs --verify-client` exercises real Supabase sessions, exact fixture cleanup, and bilingual assistant status. Set `EXPECTED_RELEASE_REVISION` for the production handlers.
 - `node tests/integration/graduation-clearance-ui.mjs` exercises compiled navigation, acknowledgement, retry, administrator edits, saved status on reload, responsive rendering and the guest return. Set `PUBLIC_SITE_ORIGIN=https://stu.best` and `EXPECTED_RELEASE_REVISION` for the deployed bundle. The browser uses intercepted data, while the HTTP and rollback suites exercise persistence.
 
+The assistant checks standalone status and note answers against the selected native records in LangGraph. A transient read failure triggers a refresh of the same authorized lookup. Explicit requests to submit, approve or open the manager queue receive a scoped refusal before the reader queries records.
+
+## Protected status evaluation
+
+Run from the exact clean revision deployed to the approved protected Preview. Supply the reviewed newest and earlier existing term IDs. The runner checks their order, full shared-row fingerprint, and absence of configured periods for the selected terms before creating disposable callers.
+
+```sh
+node tests/evaluation/run-clearance-status-preview.mjs APPROVED_PREVIEW_ORIGIN FULL_SOURCE_REVISION NEWER_TERM_ID OLDER_TERM_ID
+```
+
+The 16-case status packet compares both callers' native page responses with independent SQL snapshots. It grades visible office statuses, authorized notes, empty results, navigation, and access and action denials. It pins all 80 application requests and verifies cleanup of the disposable accounts, profiles, applications and review rows. It records the three positive window questions as deferred pending approved period bindings. The redacted report records the request coverage and shared-row digest.
+
+## Positive windows in isolated PostgreSQL
+
+Set `STU_CLEARANCE_TEST_PG_SOCKET` to an owner-only scratch socket using the [evaluation PostgreSQL setup](../../tests/evaluation/README.md#housing-and-dormitory-conduct-in-scratch-postgresql) and directory prefix `stu100-clearance-pg.`. Run `node --test tests/evaluation/clearance-windows-scratch-postgres.test.mjs`. The original dated fixture requires the database clock to fall in November 2026 UTC. The test creates and drops a dedicated scratch database.
+
+The replay grades the three frozen positive window questions through the actual API handlers and native student RPC. One caller sees two owned applications and both assigned windows. The other sees the same windows with no submitted application. A separate unassigned window is absent from both response scopes. SQL verifies the records and receipts before and after each answer. The answer reviewer is controlled, and this replay supplies isolated database and handler evidence.
+
 ## Deployed evidence
 
 Production `e2671d6` is live as Vercel `7KsgCHrcNw7uXurhYpeFh4ecHtFF`. Only migration 20261114150000 was applied, bringing the client to 149 migrations and 173 RLS-protected public tables. The revision-pinned browser, 19 authenticated HTTP checks with student writes, replay and exact cleanup, two guest assistant sign-in returns, and eight public shell routes passed. Quality 43507889134 passed. The 94-destination local navigation inventory has 39 generic and 17 partial entries. Successful administrator changes and scope denial were verified by the exact-target rollback. The production browser used fixtures.
+
+## Protected status replay
+
+`639f81b` first rejected a future start date before fixture setup. The same revision then dispatched all 16 questions using two pre-existing terms that had started. Four answers passed. Nine status, notes and empty-state outcomes and three denied-operation replies did not meet the grader. The app's logs reported exhausted reviewer quota. All 80 application requests were pinned and both callers' native records, the protected owner and the original shared term and period rows matched their independent checks. All disposable fixtures were removed. Three positive window cases still require a suitable fixture because the existing terms have no configured periods.
+
+Exact protected `b9aa9b3` passed all 16 mounted questions after adding direct verification of complete saved statuses and notes, checked empty results, and exact refusals. All 80 app requests and 164 release checks finished. Paired native caller evidence, pre-existing terms and periods, protected owner and exact cleanup passed. Positive window fixtures remain deferred.

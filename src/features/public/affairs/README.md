@@ -1,5 +1,7 @@
 # School Affairs UI
 
+The portal and assistant share the captured menu selection for common, external, help, course selection, graduation and library links. The Custom menu shows service links saved in the signed-in user's browser.
+
 Service 29-1 opens the counseling entry and private appointment history. School Affairs administration can assign coordinators. See [counseling QA](../../../../docs/qa/COUNSELING.md).
 
 Services 44-1 and 47-1 open the venue application and weekly schedule. The administrator can review local requests. See [venue booking QA](../../../../docs/qa/VENUE_BOOKING.md).
@@ -43,6 +45,8 @@ The signed-in index follows the university's notice and menu layout. **請假填
 `/services/12-4` is the authenticated course-offering catalog, separate from enrollment. It retains source filters, the21-column result table, sorting, paging and distinct course details. Only the site administrator edits published local sample offerings. Native standalone services retain the existing floating assistant because they do not have the portal account menu.
 
 `/services/39-1` has the measured eight-column pending-fees table with stored occurrence date, category, contact and payment units. Positive outstanding balances remain read-only; manager edits use the existing audited charge RPC. `/services/11-3` has the measured six-column credit-load history with account-owned records and a versioned admin editor. The open-period7-1 application is not implemented by this history page.
+
+`/services/39-1/payment-history` shows signed-in students their saved dated payments and reversals. The pending fee menu links to it. Inclusive dates and pagination use the scoped payment-history endpoint, and an undated amount notice appears only when the account read returns that flag.
 
 `/services/11-1` and `/services/11-2` use separate academic-year/semester/selection-phase snapshots. The source-shaped query form displays seven history columns or all fourteen weekly periods, including multiple meetings and unscheduled courses. Administrators explicitly maintain timetable membership; source remarks are preserved without deriving selection success from them. Legacy assistant enrollment citations to `/records` now reach the portal index; this presentation change does not alter the assistant's stored evidence or paused evaluation work.
 
@@ -113,3 +117,5 @@ Service 8-1 uses the observed student information confirmation table, a saved mo
 Service 2-1 uses the source-shaped checkbox, confirm/cancel controls, and next-day activation. The form reports when sending is unavailable.
 
 Service 52-1 mounts the certificate application, catalog and record views. The protected administration panel maintains catalog, verified payout reference and review state.
+
+The School Affairs records manager opens dated payments from the selected student's charge. A manager records a received amount and date or selects a saved payment for reversal. A lost receipt retains the exact request in this tab across reload, scoped to the signed-in manager, student and charge. Confirmation or sign-out clears it. Once a charge uses dated entries, the existing editor takes the amount paid from the current charge and the ledger handles changes to it.

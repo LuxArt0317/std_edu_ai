@@ -4,7 +4,9 @@
 
 ## Account verification and chat regression checks
 
-`answer-verification*.test.ts` covers bounded graph repair, refreshed records, source-quote/link checks, timeouts, provider failures and no writes during retry. `account-assistant-actions.test.ts` covers exact owned targets, ambiguity, protected data, evidence-derived record views and safe persistence. `assistant-conversations.test.ts` verifies caller-derived ownership and stripping of executable data. Provider doubles in these tests are not real-model acceptance; run the integration suite below after release.
+`answer-verification*.test.ts` covers bounded graph repair, refreshed records, source-quote/link checks, timeouts, provider failures and no writes during retry. `account-assistant-actions.test.ts` covers exact owned targets, ambiguity, protected data, evidence-derived record views and safe persistence. `assistant-conversations.test.ts` verifies caller-derived ownership, stripping executable data and the exact deletion receipt. Provider doubles in these tests are not real-model acceptance; run the integration suite below after release.
+
+`student-leave-draft-action.test.ts` verifies that the assistant proposes a draft only from the current message, asks for missing fields, and directs guests back to Student Leave after sign-in. A restored chat retains the answer and expires the executable draft.
 
 
 Run with `npm test`. `affairs-assistant.test.ts` covers School Affairs directory breadth, account isolation, personal-record limits and image validation; the other suites cover protected and public API contracts.
@@ -21,7 +23,9 @@ Pending-fee suites verify complete pagination, caller/admin separation, strict A
 
 `course-selection.test.ts` verifies seven-column field mapping, all14 timetable periods, source-phase/term filtering, private ownership and complete pagination, validated manager transport, model-context exclusion and local history/timetable links. Class-location and next-class questions remain private queries; explicit page-opening questions use the directory. Current/relative-term questions do not silently reuse historical phase snapshots.
 
-`answer-verification-sources.test.ts` checks exact public-capture matching, dated provenance and checksum rejection when a source cannot be read.
+`answer-verification-sources.test.ts` checks exact public-capture matching, dated provenance and checksum rejection when a source cannot be read. `public-library-sources.test.ts` exercises the exact library-hours capture through the research handler, including independent weekday and holiday evidence, language, and discovery when the page cannot be read. It also checks separate directory and library clauses in both orders and retention of a verified directory result during library research failure. Exact weekday reading-area cases also run without a model key through both endpoints. Malformed or conflicting cells, hidden content, and non-primary redirects are rejected.
+
+`affairs-public-dispatch.test.ts` verifies that signed-in contact follow-ups can use an identified public service across languages. The public bridge receives only the constructed question, with no prior messages, route selectors, or old attachments. Mixed and private questions retain their account routing.
 
 Verification quote checks also cover pretty-printed JSON excerpts, altered values, invented joins and image-source presence during correction.
 
@@ -33,6 +37,8 @@ Structured evidence checks resolve exact JSON pointers, automatically include li
 The `dtm-submissions*`, `dtm-admin-selection`, and `enrollment-certificate*` suites cover strict helpers, authenticated handler dispatch, ownership, versioned retries, cleanup failure after a durable receipt and dedicated certificate query envelopes. `release-manifest` validates platform-derived revision metadata and routing. These mocked transport tests do not establish deployed persistence.
 
 The reference-catalog, empty-record and graduation-course-selection suites cover bounded evidence guidance and overlapping parent/child course titles. Activity-budget/persistence/schema suites cover full observed traces, Unicode and SQL payload bounds; they are offline contracts.
+
+`catalog-detail-assistant.test.ts` checks actual assistant handlers and the selected published detail RPC with controlled data. It covers exact links, a literal zero, missing grading weights, a wrong-ID retry, an empty lookup, and a failed lookup.
 
 `student-loan.test.ts` and `student-loan-handler.test.ts` check literal metadata, caller/admin isolation, strict API dispatch, replay envelopes, bounded errors and deadlines offline. [Scope and live limits](../../docs/qa/STUDENT_LOAN.md).
 
@@ -53,3 +59,15 @@ The student profile intent test checks bilingual separation of confirmation stat
 Announcement email tests check status intent, caller validation, worker authorization, provider idempotency and acknowledgement.
 
 The certificate award intent checks distinguish status from navigation and enrollment certificates.
+
+The housing bed tests cover the caller-only projection, field and term selection, signed-out handoff and mixed School Affairs questions through the real API handler with captured transports. The two-check tests exercise fresh evidence and confirm a twice rejected answer withholds the housing view.
+
+`learning-support-withdrawal-assistant.test.ts` uses the actual signed-in assistant and student action handlers with controlled database transport. It checks exact and ambiguous selection, guest and cross-account denial, stale state, and stable replay after a lost receipt. The rendered confirmation check is in `tests/unit/learning-support-routing.test.tsx`.
+
+Hybrid planning is covered by `hybrid-answer-planning.test.ts`: three-pass plan/read/observe/correct/check ordering, planner outage, action isolation, short budgets and immediate verified completion. `answer-verification-account.test.ts` exercises the real private handler and multipart replanning. `assistant-activity-persistence.test.ts` round-trips plan and observation events through the conversation API. All use synthetic transports and do not claim hosted model acceptance.
+
+Verification fallback assertions expect conversational uncertainty wording. Stored verification status, unsupported-value suppression and empty citations remain unchanged. The public-source fallback comparison uses the actual verification reason.
+
+Heading-only card extraction and stable paragraph locators are covered in knowledge-acquisition.test.ts. answer-verification-provider.test.ts checks that registered public-page composition cannot replace mixed account contracts and that quota failures are not presented as a brief wait.
+
+`public-personal-intent-boundary.test.ts` checks public club/calendar routing against personal attendance and membership while preserving public navigation. Compiled client tests use `tests/evaluation/client-vm.mjs` to execute the actual transport and history normalization with test-local fetch stubs.

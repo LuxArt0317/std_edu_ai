@@ -20,6 +20,8 @@ try{
   const id='10000000-0000-4000-8000-000000000001';
   const claim={id,reason:'QA claim',amount:0,approval_result:null,approval_status:'QA only'};
   const salary={id,...Object.fromEntries(aidPaymentsFields.salary.map(([key])=>[key,null])),appointment_type:'QA appointment',bank_last4:'0012',net:500};
+  const page2=aidPaymentsPaths.salary+'?page=2';
+  const assistantRoutes=[];
   let claimsFailure=true;
   await context.route('**/api/**',async route=>{
     const request=route.request(),url=new URL(request.url()),view=url.searchParams.get('view');
@@ -28,8 +30,23 @@ try{
       assert.match(request.headers().authorization??'',/^Bearer /u);
       const summary=url.searchParams.get('summary')==='1';
       if(claimsFailure&&view==='claims'){claimsFailure=false;return route.fulfill({status:503,json:{error:'Retry'}});}
-      return route.fulfill({json:{userId:user.id,view,total:view==='claims'?26:1,
-        rows:summary?[]:view==='salary'?[salary]:[{...claim,reason:url.searchParams.get('page')==='2'?'QA final claim':'QA claim'}]}});
+      return route.fulfill({json:{userId:user.id,view,total:26,
+        rows:summary?[]:view==='salary'?[{...salary,appointment_type:url.searchParams.get('page')==='2'?'QA final appointment':'QA appointment'}]
+          :[{...claim,reason:url.searchParams.get('page')==='2'?'QA final claim':'QA claim'}]}});
+    }
+    if(url.pathname==='/api/affairs-assistant'){
+      assert.equal(request.method(),'POST');
+      const token=(request.headers().authorization??'').split(' ')[1];
+      assert.equal(JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString()).sub,user.id);
+      const input=request.postDataJSON();
+      assistantRoutes.push(input.route);
+      const navigation=input.question==='Where can I see my student salary?';
+      const path=navigation?aidPaymentsPaths.salary:page2;
+      if(!navigation)assert.match(input.question,/page|net pay/u);
+      return route.fulfill({json:{status:'answered',answer:navigation?'[Open student salary records]('+path+')':'Your saved net pay on page 2 is 0 for the QA final appointment.',
+        grounding:{source:'account',webSearched:false},verification:navigation?undefined:{status:'verified',attempts:1},
+        citations:[{chunkId:'account:aidPayments',title:'Salary records',url:path,claim:'Salary records',sourceName:'School Affairs'}],
+        suggestedQuestions:[]}});
     }
     if(url.pathname==='/api/affairs-conversations'){
       if(request.method()==='GET')return route.fulfill({json:{conversations:[]}});
@@ -63,8 +80,18 @@ try{
   await page.getByPlaceholder('Ask a school question…').fill('Where can I see my student salary?');
   await page.getByRole('button',{name:'Send',exact:true}).click();
   const assistant=page.getByRole('dialog');
-  await assistant.getByText(/1 saved student salary record/).waitFor();
+  await assistant.getByRole('link',{name:'Open student salary records',exact:true}).waitFor();
   assert.equal(await assistant.getByText(/0012|QA appointment/).count(),0);
+  await page.keyboard.press('Escape');
+  await page.getByRole('link',{name:'下一頁'}).click();
+  await page.waitForURL(origin+page2);
+  await table.getByText('QA final appointment').waitFor();
+  await page.getByRole('button',{name:'開啟 AI 校園助理'}).click();
+  await assistant.getByPlaceholder('Ask a school question…').fill('What is the net pay on this page?');
+  await assistant.getByRole('button',{name:'Send',exact:true}).click();
+  await assistant.getByText(/saved net pay on page 2 is 0/).waitFor();
+  assert.deepEqual(assistantRoutes,[aidPaymentsPaths.salary,page2]);
+  assert.equal(await assistant.getByText(/0012/).count(),0);
   await page.keyboard.press('Escape');
   for(const width of [390,320]){
     await page.setViewportSize({width,height:750});
@@ -74,10 +101,15 @@ try{
   const guest=await browser.newContext({serviceWorkers:'block'});
   await mockAffairsAuth(guest,{signedIn:false});
   const login=await guest.newPage();
-  await login.goto(origin+aidPaymentsPaths.salary);
+  await login.goto(origin+page2);
   await login.waitForURL(url=>url.pathname==='/school-affairs/login');
-  assert.equal(new URL(login.url()).searchParams.get('next'),aidPaymentsPaths.salary);
+  assert.equal(new URL(login.url()).searchParams.get('next'),page2);
+  for(const query of ['page=202','page=2&page=1','page=2#extra']){
+    await login.goto(origin+aidPaymentsPaths.salary+'?'+query);
+    await login.waitForURL(url=>url.pathname==='/school-affairs/login');
+    assert.equal(new URL(login.url()).searchParams.get('next'),aidPaymentsPaths.salary+(query.includes('#')?'#extra':''));
+  }
   assert.deepEqual(errors,[]);
   await pin();
-  console.log('Aid claim and salary layouts, retry, pagination, masked bank data, assistant count, and sign-in return passed.');
+  console.log('Aid claim and salary layouts, pagination, masked bank data, verified assistant dispatch with the exact page and sign-in return passed.');
 }finally{await browser.close();}

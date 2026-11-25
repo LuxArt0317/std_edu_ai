@@ -51,5 +51,5 @@ artifacts/
 /public/school-assets/*.mp3
 /public/school-assets/*.odt
 
-# Private local evaluation questions, input images and results
+# Private local assistant evaluation answers and run history
 .evaluation-lab/

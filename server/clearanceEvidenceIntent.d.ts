@@ -1,0 +1,11 @@
+export type ClearanceOffice='library'|'academic'|'department'|'cashier'|'career'|'advisor'|'thesis'|'international';
+export type ClearanceEvidenceSelection={from:'question'|'route'|'history';notesRequested:boolean;noteOffices:ClearanceOffice[];offices:ClearanceOffice[];periodsRequested:boolean;applicationsRequested:boolean;documentsRequested:boolean;operation:boolean;reason:'invalid_route'|'foreign_request'|'restricted_view'|null};
+export function selectClearanceEvidence(question?:string,route?:string,history?:Array<{role:string;content:string}>):ClearanceEvidenceSelection|null;
+export function isClearanceEvidenceQuestion(question?:string,route?:string,history?:Array<{role:string;content:string}>):boolean;
+export function isClearanceFieldClause(value:string):boolean;
+export function isClearanceWindowSubmissionQuestion(value:string):boolean;
+export function clearanceNavigationView(question:string):'apply'|'status'|null;
+export function withoutExcludedClearanceClause(question:string):string;
+export function isExactClearanceNextClassQuestion(question:string):boolean;
+export function clearanceTimetableQuestion(question:string,pageContext:{clearanceAndNextClass:boolean;otherQuestion:string}):string|null;
+export function exactClearanceVerification(question:string,route?:string,history?:Array<{role:string;content:string}>):{selection:ClearanceEvidenceSelection;refusal:'restricted_view'|'unsupported_operation'|null}|null;

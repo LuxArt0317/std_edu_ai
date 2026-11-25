@@ -1,3 +1,4 @@
+import {isOwnFeeBalanceQuestion} from './pendingFeesAnswer.js';
 import {venueDate,venuePaths,venuePeriods,moveVenueDate} from '../src/features/public/affairs/venueContract.js';
 
 const requestTopic=/\b(?:(?:venue|room|classroom)\s+(?:booking|reservation|request|application)s?|venue\s+(?:records?|history)|my (?:saved )?venue status|(?:rooms?|venues?|classrooms?)\s+(?:(?:did i |have i |i )?(?:book(?:ed)?|reserve(?:d)?))|(?:booked|reserved)\s+(?:rooms?|venues?|classrooms?)|(?:did i|i have|i) (?:book|booked|reserve|reserved) (?:a |the )?(?:room|venue|classroom))\b|場地(?:借用|預約|申請|審核)|教室(?:借用|預約|申請|審核)/iu;
@@ -99,7 +100,27 @@ export function venueRequestSelection(question,route='',history=[],now=Date.now(
     submittedAt:/\b(?:when.{0,24}submit|submitted (?:at|on)|submission (?:date|time))\b|送出時間|申請時間/iu.test(text)};
 }
 
-export const isVenueRequestQuestion=(question,route,history)=>Boolean(venueRequestSelection(question,route,history));
+/** A pair needs two independently recognizable read-only clauses. The fee
+ * words never supply a room, date or another owner to the venue selector. */
+export function venueRequestPlan(question,route,history,now=Date.now()){
+  const whole=venueRequestSelection(question,route,history,now);
+  if(typeof question!=='string'||question.length>2600||whole?.reason&&whole.reason!=='mixed')
+    return whole?{selection:whole,feeQuestion:null,feeFirst:false}:null;
+  const parts=question.normalize('NFKC').split(/[;；。！？\n]|[.!?](?:\s+|$)|,\s+(?=(?:and|also|show|check|what|how)\b)|\s+(?:and|also|plus)\s+|以及、?|並且|還有/iu)
+    .map(part=>part.trim().replace(/^(?:also|and)\s+/iu,'')).filter(Boolean);
+  const feeIndexes=parts.map((part,index)=>isOwnFeeBalanceQuestion(part)
+    || /^(?:show|check|tell me) (?:the )?(?:school |tuition )?fee balance recorded on my account[.!?]?$/iu.test(part)?index:-1).filter(index=>index!==-1);
+  if(parts.length===2&&feeIndexes.length===1){
+    const feeIndex=feeIndexes[0],selected=venueRequestSelection(parts[1-feeIndex],route,history,now);
+    if(selected&&!selected.reason)return {selection:selected,feeQuestion:parts[feeIndex],feeFirst:feeIndex===0};
+  }
+  if(whole&&!whole.reason&&parts.length>1
+    &&parts.some(part=>/\b(?:fees?|tuition|balance|payments?|grades?|moodle|next class|availability)\b|學費|餘額|課表|成績|作業|可用時段/iu.test(part)))
+    return {selection:{reason:'mixed'},feeQuestion:null,feeFirst:false};
+  return whole?{selection:whole,feeQuestion:null,feeFirst:false}:null;
+}
+
+export const isVenueRequestQuestion=(question,route,history)=>Boolean(venueRequestPlan(question,route,history));
 
 export function venueRequestBoundary(selection,question,signedIn){
   const zh=/\p{Script=Han}/u.test(question),say=(en,cn)=>zh?cn:en;

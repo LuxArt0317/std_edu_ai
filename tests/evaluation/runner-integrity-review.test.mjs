@@ -12,7 +12,9 @@ const inventory={services:['39-1'],tools:['charges','dtm'],routeFamilies:[{id:'a
 const results=cases.map(row=>({caseId:row.id,fixtureKey:row.fixtureKey,passed:true,executed:true,checks:[{id:'independent-fact',passed:true}],failures:[],execution:'live-model',sourceRevision:revision}));
 const browserAcceptance={status:'passed',sourceRevision:revision,routeResults:cases.map(row=>({route:row.route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true}))};
 const assess=extra=>assessCoverage({cases,results,inventory,sourceRevision:revision,browserAcceptance,...extra});
-const healthyRun=()=>({mode:'live',results:structuredClone(results),cleanup:{complete:true},sourceUnchanged:true,dirty:false,deployment:{verified:true,sourceRevision:revision}});
+const healthyRun=()=>({mode:'live',results:results.map((row,index)=>({...structuredClone(row),response:{deploymentCheck:{verified:true,sourceRevision:revision,requestIndex:index+1}}})),
+  cleanup:{complete:true},sourceUnchanged:true,dirty:false,deployment:{verified:true,sourceRevision:revision},
+  deploymentPin:{status:'finished',failure:null,pendingRequest:null,sourceRevision:revision,manifest:{revision},identityKind:'release-manifest',deploymentId:null,issued:2,completed:2,rechecked:2,checked:8}});
 const assessRun=report=>{
   assert.equal(typeof runner.assessRun,'function','Runner must expose pure final assessment so setup/integrity checks can run without Git, models or a database.');
   return runner.assessRun(report,{cases,inventory,sourceRevision:revision,browserAcceptance,requestedSuite:'full'});

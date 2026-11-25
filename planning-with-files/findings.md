@@ -1,3 +1,27 @@
+## Confirmed actions and exact record access [Issue #100]
+
+Repair cancellation passed independently of the read-answer evaluator. Native records were accessible under the correct caller while the model reviewer was unavailable. For questions requiring literal saved status, note or count, prove the selected record and scope directly. Only a separately retrieved and verified timetable can support the next-class portion. The failed hosted run and subsequent changes are kept in [the November 16 archive](archive/progress_2026-11-16.md).
+
+An expected access acknowledgment must not be graded as an account record answer. The existing 40-question Teaching Feedback bank now preserves the original exclusion-only prompt and requires no private read or verification activity for it. The other 39 retain their original response rubrics.
+
+## Hosted answers and adaptive public retrieval [Issue #100]
+
+The four reported signed-in prompts passed independent grading on protected Preview `4eb1522`. The answer-only diagnostic carried each reply into the next request and verified the same disposable records throughout. No conversation endpoint ran. The account cleanup and protected owner preservation passed. GitHub Quality and the exact 394-outcome fixture-controlled Chromium matrix passed. The archive `progress_2026-11-15_hosted-preview.md` records the work that led to this checkpoint.
+
+The user's public-search trace exposes a different failure. The first two reads checked the same cited links, so an unresolved evidence gap could survive a correction. The next candidate will give the search workflow a targeted follow-up and reserve an additional evidence check when it can help. Sample provenance stays readable in ordinary answers while explicit official-record questions still receive a precise limitation.
+
+## Native internship evidence [Issue #100]
+
+The company directory and company application use the same owner-qualified saved subtype. Neither provides an institutional directory, placement, approval or receipt. The assistant reads distinct contract and self-assessment rows. A selected field can expose an own reflection or linked local review. Missing review data leaves that claim unavailable without changing the saved tracker status. Exact public guidance remains eligible for public lookup. The normal runner prevents unresolved native fixture cases from entering the legacy adapter.
+
+## Student leave evidence [Issue #100]
+
+An archived date is bound to the native cutoff and the queried date range. The reader verifies saved row state and requested linked review state independently. Scoped queries and retries avoid account initialization. When a compound question exceeds the supported leave, balance, timetable and native grade readers, the answer identifies the part that still needs a separate lookup.
+
+## Native Moodle assignment context [Issue #100]
+
+An assignment URL identifies two records. The caller-bound RPC validates both the parent course and assignment before any result reaches the assistant. Assignment metadata, native grade cells and committed file reviews come from separate sources. A grade citation must point to a grade cell or the recorded availability of that grade data. An unverified response withholds the scoped result cards.
+
 ## Remote-learning catalog expansion [Issue #98]
 
 The source selector exposed 43 categories and 191 visible listing pages. All were followed to an observed end. The archive contains 3,291 unique course IDs and titles. Only course metadata was extracted. The expansion preserves existing workshop enrollments and serves 20 results per page.
@@ -311,3 +335,32 @@ The source exposed empty attachment columns. Proposal and closeout uploads, prof
 ## Private club activity attachments [Issue #98]
 
 The university list showed both attachment columns. The upload and post-save views were unavailable. The local file controls accept one 2 MiB PDF per column. No university files were imported. Profile/roster editing, attendance import, equipment inventory and reports remain open.
+
+## Student club menu and foundation [Issue #98]
+
+University menu labels and destinations were verified. Each new source detail page returned CAPTCHA sign-in, so the rebuilt screens use the verified club shell with local controls. No student records were imported. Officer profile, roster and attendance maintenance and equipment management remain open.
+
+### Housing 34-1 evidence [Issue #100]
+
+A broad snapshot could miss an accommodation assignment question or read unrelated records on an exclusion. The dedicated projection only accepts verified caller identity and reads assignments plus their own referenced year and semester. The housing table stores demonstration values including nullable deposit and subsidy. The reader exposes availability separately and preserves literal amounts without inferring payment or current occupancy. The adjacent 26-1 application and 34-2 conduct sources remain independent.
+### Reported transcript [Issue #100]
+
+The four-turn conversation requires independent factual grading and two helpfulness reviews after collection. Successful transport, storage and cleanup are recorded separately. The retained journal and reconstructed digests bind the answer, visible cards and activity to the reported turn. A synthetic run cannot earn live acceptance.
+
+### Housing receipt and native DTM scope [Issue #100]
+
+The housing application receipt and bed readers can both contribute evidence in a single request. Direct native DTM grade questions use their own roster/report transport. A combined receipt and grade overview request needs neither the broad snapshot nor the planner. The shared budget keeps whole housing rows and records where the result is partial. A failed retrieval cannot establish empty records.
+
+## Moodle assignment-list sources [Issue #100]
+
+The course list uses the exact course in the URL. My assignments uses personal courses if any exist, including when those courses have zero matches. If none exist, it uses the saved sample courses. The UI renders tracker rows from School Affairs assignments with a Moodle course. The separate native assignment detail, submission workspace and grade report supply their own fields. The assistant's two owner qualifications match the course and student to the verified caller, even for an administrator.
+
+## Public recovery and exact grade facts [Issue #100]
+
+A passing review can still leave a requested detail unresolved. LangGraph keeps the best verified answer and can follow a distinct source when coverage improves or a proposed correction is rejected for a specific reason. The same four-check and deadline bounds apply. The third real review recovered after two failed checks in a pinned OneDrive replay. Another pinned replay used the known gated link when searches returned no usable evidence. A subsequent recovery uses a distinct publisher only when the exact indexed notice is gated and sufficient time remains.
+
+The library’s own FAQ and reservations are useful navigation even when an automated read is gated. Source contents support factual claims only after an independent read. Complete native Moodle availability, overview, totals and requested feedback/weights can be verified directly against the typed authorized record and exact response location. Hosted variability in prose motivated the direct projection. Separate hosted packets verify the case outcomes and paired fixture cleanup.
+
+Calendar rows can exceed review latency even when source content is compact. The current dense-date fallback projects parsed PDF rows rather than exposing an unchecked model draft or returning generic refusal. The evaluator sometimes labels source-supported details unsupported because its FAQ reference omits them; keep real sources and failed trials, do not rewrite references to inflate scores.
+
+Public wireless capture contains registration/support facts in tab/div text rather than ordinary paragraphs. A source-specific projection now preserves that content; a future general local-site retriever should account for readable containers, not assume paragraph extraction is complete. A local embedding/index retriever could reduce per-topic source routing, but do not import evaluation answers as evidence or write production knowledge data under the local-only instruction.

@@ -2,12 +2,16 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {readFile} from 'node:fs/promises';
+import {newConversationId} from '../../src/services/assistantConversationId.js';
+import {conversationDeleteProbeTitles} from './vercel-preview-transport.mjs';
 import {conversationFixture,validateConversationTarget,conversationResponseMatches,conversationExpectedVersion,
-  reconcileConversationWrite,reconcileConversationIdentity,allowedConversationBrowserRequest,assertConversationRecoveryClear,assertConversationDeleteIsolation,conversationResponseDiagnostic,openVerifiedConversationAssistant,boundedConversationDiagnostic} from '../integration/assistant-conversation-http-live.mjs';
+  reconcileConversationWrite,reconcileConversationIdentity,allowedConversationBrowserRequest,assertConversationRecoveryClear,assertConversationDeleteIsolation,conversationResponseDiagnostic,openVerifiedConversationAssistant,boundedConversationDiagnostic,
+  validatePreviewConversationDeleteTarget,runProtectedConversationDeleteChecks,readProtectedConversationDeleteState} from '../integration/assistant-conversation-http-live.mjs';
 
 const id='32475426-b5e7-4ce6-863f-91e2e7d20929',userId='c0d6abf1-ad94-43da-b7de-995d3ccbe320';
 const root=fileURLToPath(new URL('../../',import.meta.url)),origin='https://stu.best',revision='a'.repeat(40);
 const project='https://xiftudmvxphxcjtmfmib.supabase.co';
+const previewOrigin='https://stdedu-abcdef123-v1-d286.vercel.app';
 
 test('conversation target requires exact production revision and checkout before clients',()=>{
   assert.deepEqual(validateConversationTarget({origin,revision,cwd:root}),{origin,revision});
@@ -15,6 +19,13 @@ test('conversation target requires exact production revision and checkout before
     assert.throws(()=>validateConversationTarget({origin:wrong,revision,cwd:root}));
   for(const value of ['',undefined,'short','A'.repeat(40)])assert.throws(()=>validateConversationTarget({origin,revision:value,cwd:root}));
   assert.throws(()=>validateConversationTarget({origin,revision,cwd:'/tmp'}));
+});
+test('deletion probe requires an explicitly approved immutable Preview and exact revision',()=>{
+  const options={origin:previewOrigin,approvedPreviewOrigin:previewOrigin,revision,cwd:root};
+  assert.deepEqual(validatePreviewConversationDeleteTarget(options),{origin:previewOrigin,approvedPreviewOrigin:previewOrigin,revision});
+  for(const patch of [{origin},{approvedPreviewOrigin:undefined},{approvedPreviewOrigin:origin},{revision:'short'},{cwd:'/tmp'},
+    {origin:'https://stdedu-git-main-v1-d286.vercel.app',approvedPreviewOrigin:'https://stdedu-git-main-v1-d286.vercel.app'}])
+    assert.throws(()=>validatePreviewConversationDeleteTarget({...options,...patch}));
 });
 test('long synthetic turn explicitly is not model verification and preserves40 distinct observable steps',()=>{
   const fixture=conversationFixture(id),message=fixture.messages[1];
@@ -90,6 +101,72 @@ test('cross-account DELETE preserves the actual GET projection regardless of POS
   for(const changed of [{...get,version:2},{...get,messages:[]},{...get,title:'Changed'},null]){
     let first=true;await assert.rejects(assertConversationDeleteIsolation(async()=>{if(first){first=false;return get;}return changed;},async()=>{}));
   }
+});
+test('protected delete compares PostgreSQL result contents with plain expected arrays',async()=>{
+  class QueryResult extends Array {}
+  const owner={ownerId:userId,title:'Reserved title',callerIds:[userId]};
+  const row={id,user_id:userId,title:owner.title,version:1,messages:[]};
+  const marker={user_id:userId,conversation_id:id,expires_ms:'1794834180000'};
+  const query=(rows,markers)=>async ([statement],value)=>{
+    assert.equal(value,id);
+    return statement.includes('public.affairs_conversations')?rows:markers;
+  };
+  const empty=new QueryResult();
+  assert.deepEqual(await readProtectedConversationDeleteState(query(empty,empty),id,owner),{rows:[],markers:[]});
+  assert.deepEqual(await readProtectedConversationDeleteState(query(QueryResult.of(row),QueryResult.of(marker)),id,owner),
+    {rows:[row],markers:[marker]});
+  await assert.rejects(readProtectedConversationDeleteState(query(empty,QueryResult.of({...marker,user_id:id})),id,owner));
+});
+function deletionProbe(fault){
+  const owner={id:userId},other={id},creation=Date.UTC(2026,10,15,12,30),expiration=Date.UTC(2026,10,16,12,30);
+  const saved=conversationFixture(newConversationId(creation),conversationDeleteProbeTitles.saved);
+  const pending=conversationFixture(newConversationId(creation+200),conversationDeleteProbeTitles.pending);
+  const records=new Map(),observed=[];
+  const inspect=async conversationId=>structuredClone(records.get(conversationId)||{rows:[],markers:[]});
+  const request=async(actor,{id:requestedId,method='GET',body,status=200})=>{
+    const conversationId=requestedId??body.id;
+    const state=await inspect(conversationId),row=state.rows[0];
+    const marker=state.markers.find(entry=>entry.user_id===actor.id);
+    let result;
+    if(method==='DELETE'){
+      if(fault==='deleted_foreign_row'||row?.user_id===actor.id)state.rows=[];
+      if(!(fault==='missing_marker'&&actor===owner)){
+        const time=expiration+(conversationId===pending.id?200:0)+(fault==='wrong_expiry'?1:0);
+        if(!marker)state.markers.push({user_id:actor.id,conversation_id:conversationId,expires_ms:String(time)});
+        state.markers.sort((left,right)=>left.user_id.localeCompare(right.user_id));
+      }
+      result={status:200,body:{deleted:true}};
+    }else if(method==='POST'){
+      const submitted={id:conversationId,user_id:actor.id,title:body.title,messages:body.messages,version:1};
+      if(marker){
+        if(fault==='late_save_committed')state.rows=[submitted];
+        result={status:409,body:{error:'This conversation changed in another tab. Reload it before editing.'}};
+      }else if(row&&row.user_id!==actor.id){
+        result={status:403,body:{error:'This conversation is unavailable for your account.'}};
+      }else{
+        state.rows=[submitted];
+        result={status:200,body:submitted};
+      }
+    }else result=row?.user_id===actor.id?{status:200,body:row}:{status:404,body:{error:'Conversation not found.'}};
+    records.set(conversationId,state);
+    assert.equal(result.status,status);
+    observed.push({method,status,actor:actor===owner?'owner':'other',subject:conversationId===saved.id?'saved':'pending'});
+    return result.body;
+  };
+  return {owner,other,saved,pending,expectedMessages:saved.messages,request,inspect,observed};
+}
+test('the protected deletion probe requires both operation orderings, crossed denial, and exact durable evidence',async()=>{
+  const inputs=deletionProbe();
+  await runProtectedConversationDeleteChecks(inputs);
+  assert.deepEqual(inputs.observed.filter(row=>row.method!=='GET').map(row=>[row.actor,row.subject,row.method,row.status]),[
+    ['owner','saved','POST',200],['other','saved','POST',403],['other','saved','DELETE',200],
+    ['owner','saved','DELETE',200],['owner','saved','POST',409],['owner','pending','DELETE',200],
+    ['owner','pending','POST',409],['owner','pending','DELETE',200],
+  ]);
+  assert.equal((await inputs.inspect(inputs.saved.id)).markers.length,2);
+  assert.equal((await inputs.inspect(inputs.pending.id)).markers.length,1);
+  for(const fault of ['deleted_foreign_row','missing_marker','wrong_expiry','late_save_committed'])
+    await assert.rejects(runProtectedConversationDeleteChecks(deletionProbe(fault)),assert.AssertionError,fault);
 });
 test('browser diagnostics expose only fixed endpoint,status and method; never query,identity or response content',()=>{
   assert.deepEqual(conversationResponseDiagnostic('GET',origin+'/api/affairs-conversations?id=private&token=secret',200,project),{method:'GET',path:'/api/affairs-conversations',status:200});

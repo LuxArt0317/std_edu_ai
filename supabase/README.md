@@ -1,5 +1,7 @@
 # Supabase
 
+Conversation deletion migration `20261115230000` records only the caller and a deleted conversation ID. See [the migration notes](migrations/README.md).
+
 Migration 20261114170000 adds venue schedules, private requests and operation receipts. See [venue booking verification](../docs/qa/VENUE_BOOKING.md).
 
 Migration 20261114160000 creates the public permanent course catalog and description cache. See [data import and verification](../docs/qa/PERMANENT_COURSES.md).

@@ -1,0 +1,193 @@
+import {createHash,createHmac,timingSafeEqual} from 'node:crypto';
+import {maxAnswerVerificationChecks} from '../src/services/assistantVerificationLimits.js';
+
+const endpoint='/api/affairs-assistant';
+const keyPattern=/^[^\s\p{Cc}]{40,4096}$/u;
+const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u;
+const sha=/^[a-f0-9]{64}$/u;
+const revision=/^[a-f0-9]{40}$/u;
+const preview=/^https:\/\/stdedu-[a-z0-9]{9}-v1-d286\.vercel\.app$/u;
+const routePattern=/^\/(?:school-affairs\/services\/leave(?:\/(?:history|archive|periods|edit\/[a-f0-9-]{36}))?)?$/u;
+const boundaryOwnerRoute='/school-affairs/services/leave/history?user_id=';
+const boundaryRoute=route=>route==='/school-affairs/services/leave/index'
+  ||route.startsWith(boundaryOwnerRoute)&&uuid.test(route.slice(boundaryOwnerRoute.length));
+const requestKeys=['question','route','history','stream','consentedResearchUse'];
+const scopeKeys=['ownerId','runId','origin','sourceRevision','nonce'];
+const bindingKeys=[...scopeKeys,'issuedAt','requestDigest'];
+const boundaryDispositions=new Set(['navigation','foreign_request','invalid_route','ambiguous_selector',
+  'unsupported_operation','unsupported_field','requires_attendance_source','excluded']);
+const attemptKeys=['reads','evidenceDigest'];
+const modelOperations=new Set(['compose_grounded_answer','answer_evidence_review','correct_grounded_answer']);
+const maxModelOperations=maxAnswerVerificationChecks*2;
+const lifetimeMs=120000;
+export const leaveObservationHeader='X-Student-Leave-Observation';
+
+const exact=(value,keys)=>Boolean(value)&&typeof value==='object'&&[Object.prototype,null].includes(Object.getPrototypeOf(value))
+  &&Reflect.ownKeys(value).length===keys.length&&keys.every(key=>Object.hasOwn(Object.getOwnPropertyDescriptor(value,key)??{},'value'));
+const scopeValid=value=>scopeKeys.every(key=>typeof value[key]==='string')
+  &&uuid.test(value.ownerId)&&uuid.test(value.runId)&&preview.test(value.origin)
+  &&revision.test(value.sourceRevision)&&uuid.test(value.nonce);
+export const studentLeaveObservationDigest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+export const studentLeaveRowsDigest=rows=>studentLeaveObservationDigest(rows.map(row=>
+  Object.fromEntries(Object.keys(row).sort().map(key=>[key,row[key]]))));
+const requestDigest=(origin,request)=>studentLeaveObservationDigest({method:'POST',url:origin+endpoint,request});
+const isBoundaryBinding=value=>exact(value,[...bindingKeys,'purpose'])&&value.purpose==='boundary';
+const isGradeBinding=value=>exact(value,[...bindingKeys,'companion'])&&value.companion==='dtmGradeReport';
+const validRequest=(request,boundary)=>exact(request,requestKeys)&&typeof request.question==='string'
+  &&request.question.length>=2&&request.question.length<=2000&&typeof request.route==='string'
+  &&(routePattern.test(request.route)||boundary&&boundaryRoute(request.route))
+  &&Array.isArray(request.history)&&request.history.length<=6&&request.history.every(row=>exact(row,['role','content'])
+    &&['user','assistant'].includes(row.role)&&typeof row.content==='string'&&row.content.length<=1000)
+  &&request.stream===false&&request.consentedResearchUse===false;
+const keyIsValid=key=>typeof key==='string'&&keyPattern.test(key);
+
+function signature(domain,payload,key){
+  const scopedKey=createHmac('sha256',key).update('stu:student-leave-observation:v1:'+domain).digest();
+  return createHmac('sha256',scopedKey).update(payload).digest();
+}
+function seal(domain,value,key){
+  const payload=Buffer.from(JSON.stringify(value)).toString('base64url');
+  return payload+'.'+signature(domain,payload,key).toString('base64url');
+}
+function unseal(domain,value,key){
+  if(!keyIsValid(key)||typeof value!=='string'||value.length>4096||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/u.test(value))return null;
+  const [payload,mac]=value.split('.');
+  const supplied=Buffer.from(mac,'base64url');
+  if(supplied.length!==32||supplied.toString('base64url')!==mac||!timingSafeEqual(supplied,signature(domain,payload,key)))return null;
+  try{return JSON.parse(Buffer.from(payload,'base64url').toString('utf8'));}catch{return null;}
+}
+
+function createProbe(scope,request,key,now,boundary,grade=false){
+  if(!exact(scope,scopeKeys)||!scopeValid(scope)||!validRequest(request,boundary)||!keyIsValid(key)||!Number.isSafeInteger(now))
+    throw new Error('Invalid Student Leave observation request.');
+  const binding={...scope,issuedAt:now,requestDigest:requestDigest(scope.origin,request),...(boundary?{purpose:'boundary'}:grade?{companion:'dtmGradeReport'}:{})};
+  return {binding,body:{...request,evaluationLeaveProbe:seal('request',binding,key)}};
+}
+
+export function createStudentLeaveProbe(scope,request,key,now=Date.now()){
+  return createProbe(scope,request,key,now,false);
+}
+
+export function createStudentLeaveBoundaryProbe(scope,request,key,now=Date.now()){
+  return createProbe(scope,request,key,now,true);
+}
+
+export function createStudentLeaveGradeProbe(scope,request,key,now=Date.now()){
+  return createProbe(scope,request,key,now,false,true);
+}
+
+function canonicalJson(value){
+  if(Array.isArray(value))return value.map(canonicalJson);
+  if(value&&typeof value==='object')return Object.fromEntries(Object.keys(value).sort().map(name=>[name,canonicalJson(value[name])]));
+  return value;
+}
+export const studentLeaveGradeReadDigest=read=>studentLeaveObservationDigest(canonicalJson(read));
+
+function evidenceDigest(result){
+  const {content,id,title,url,urls,provenance}=result.evidence;
+  const {checkedAt,rules,...selected}=JSON.parse(content);
+  void checkedAt;void rules;
+  return studentLeaveObservationDigest({id,title,url,urls,provenance,dtoDigest:studentLeaveObservationDigest(selected)});
+}
+
+/** A normal request carries no probe. A protected probe can observe only the
+ * real native reader for the authenticated, reserved disposable caller. */
+export function openStudentLeaveObservation({body,identity,correlationId},env=process.env,now=Date.now()){
+  if(env.VERCEL_ENV!=='preview'||!exact(body,[...requestKeys,'evaluationLeaveProbe'])||!uuid.test(correlationId))return null;
+  const {evaluationLeaveProbe,...request}=body;
+  const key=env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_KEY;
+  const binding=unseal('request',evaluationLeaveProbe,key);
+  const boundary=isBoundaryBinding(binding),grade=isGradeBinding(binding);
+  if((!boundary&&!grade&&!exact(binding,bindingKeys))||!scopeValid(binding)||!validRequest(request,boundary)
+    ||binding.origin!=='https://'+env.VERCEL_URL||binding.sourceRevision!==env.VERCEL_GIT_COMMIT_SHA
+    ||binding.ownerId!==identity?.id||binding.runId!==identity?.runMarker||identity.email!=='evaluation.student@example.invalid'
+    ||!Number.isSafeInteger(binding.issuedAt)||!Number.isSafeInteger(now)||binding.issuedAt>now+5000||now-binding.issuedAt>lifetimeMs
+    ||binding.requestDigest!==requestDigest(binding.origin,request))return null;
+  const attempts=[],gradeAttempts=[],completedModelOperations=[];
+  let invalid=false,nativeChecked=false;
+  return {
+    purpose:boundary?'boundary':'read',companion:grade?'dtmGradeReport':null,
+    async observe(reader){
+      if(boundary){
+        invalid=true;
+        throw new Error('A Student Leave boundary probe cannot read records.');
+      }
+      const reads=[];
+      const attempt={reads,evidenceDigest:null};
+      if(attempts.length>=maxAnswerVerificationChecks)invalid=true;
+      else attempts.push(attempt);
+      const value=await reader({observeRead(digest){
+        if(reads.length>=2||!sha.test(digest))invalid=true;
+        else reads.push(digest);
+      }});
+      try{attempt.evidenceDigest=evidenceDigest(value);}catch{invalid=true;}
+      return value;
+    },
+    async observeGrade(reader){
+      if(!grade||gradeAttempts.length>=maxAnswerVerificationChecks){
+        invalid=true;
+        throw new Error('A Student Leave probe requires the exact Moodle grade scope.');
+      }
+      const reads=[];
+      const attempt={reads,evidenceDigest:null};
+      gradeAttempts.push(attempt);
+      const value=await reader({observeOverview(read){
+        if(reads.length||read.callerId!==binding.ownerId||read.method!=='POST'
+          ||read.path!=='/rest/v1/rpc/dtm_grade_report_overview'||!exact(read.body,[]))invalid=true;
+        else reads.push(studentLeaveGradeReadDigest(read));
+      }});
+      try{
+        if(value.evidence.id!=='account:dtmGradeReport'||value.evidence.url!=='/dtm/grades')invalid=true;
+        else attempt.evidenceDigest=evidenceDigest(value);
+      }catch{invalid=true;}
+      return value;
+    },
+    modelCompleted(operation){
+      if(boundary||nativeChecked||completedModelOperations.length>=maxModelOperations||!modelOperations.has(operation))invalid=true;
+      else completedModelOperations.push(operation);
+    },
+    nativeCheckCompleted(companion){
+      if(boundary||companion!==(grade?'dtmGradeReport':undefined)||nativeChecked||completedModelOperations.length)invalid=true;
+      else nativeChecked=true;
+    },
+    finish(payload){
+      if(boundary||invalid||!attempts.length||attempts.some(row=>!row.reads.length||!sha.test(row.evidenceDigest)))return null;
+      if(grade&&(gradeAttempts.length!==attempts.length||gradeAttempts.some(row=>row.reads.length!==1||!sha.test(row.evidenceDigest))
+        ||!nativeChecked&&!completedModelOperations.includes('answer_evidence_review')))return null;
+      const verificationMethod=nativeChecked?(grade?'native-paired':'native-exact'):'model';
+      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod,
+        ...(grade?{gradeAttempts}:{}),responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
+    },
+    finishBoundary(payload,boundaryDisposition){
+      if(!boundary||invalid||attempts.length||completedModelOperations.length||nativeChecked
+        ||!boundaryDispositions.has(boundaryDisposition))return null;
+      return seal('receipt',{binding,correlationId,attempts,completedModelOperations,verificationMethod:'none',boundaryDisposition,
+        responseDigest:studentLeaveObservationDigest({statusCode:200,body:payload})},key);
+    },
+  };
+}
+
+export function verifyStudentLeaveObservation({receipt,binding,correlationId,body},key){
+  const observed=unseal('receipt',receipt,key);
+  const boundary=isBoundaryBinding(binding),grade=isGradeBinding(binding);
+  const validAttempt=(row,max)=>exact(row,attemptKeys)&&sha.test(row.evidenceDigest)
+    &&Array.isArray(row.reads)&&row.reads.length>=1&&row.reads.length<=max&&row.reads.every(read=>sha.test(read));
+  const receiptKeys=['binding','correlationId','attempts','completedModelOperations','verificationMethod','responseDigest'];
+  if(!exact(observed,boundary?[...receiptKeys,'boundaryDisposition']:grade?[...receiptKeys,'gradeAttempts']:receiptKeys)
+    ||!(boundary?isBoundaryBinding(observed.binding):grade?isGradeBinding(observed.binding):exact(observed.binding,bindingKeys))
+    ||Object.keys(observed.binding).some(name=>observed.binding[name]!==binding?.[name])
+    ||!uuid.test(correlationId)||observed.correlationId!==correlationId
+    ||observed.responseDigest!==studentLeaveObservationDigest({statusCode:200,body})
+    ||!Array.isArray(observed.attempts)||!Array.isArray(observed.completedModelOperations))return null;
+  if(boundary)return observed.verificationMethod==='none'&&boundaryDispositions.has(observed.boundaryDisposition)
+    &&observed.attempts.length===0&&observed.completedModelOperations.length===0?observed:null;
+  const nativeMethod=grade?'native-paired':'native-exact';
+  if(observed.attempts.length<1||observed.attempts.length>maxAnswerVerificationChecks
+    ||observed.completedModelOperations.length>maxModelOperations||observed.completedModelOperations.some(operation=>!modelOperations.has(operation))
+    ||![nativeMethod,'model'].includes(observed.verificationMethod)
+    ||observed.verificationMethod===nativeMethod&&observed.completedModelOperations.length!==0
+    ||observed.attempts.some(row=>!validAttempt(row,2))
+    ||grade&&(!Array.isArray(observed.gradeAttempts)
+      ||observed.gradeAttempts.length!==observed.attempts.length||observed.gradeAttempts.some(row=>!validAttempt(row,1))))return null;
+  return observed;
+}

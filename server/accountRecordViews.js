@@ -1,5 +1,5 @@
 import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
-import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion} from './academicGrades.js';
+import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion,selectAcademicGradeCourses} from './academicGrades.js';
 import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamedCourseTitles,selectGraduationReviewCourses,isGraduationReviewQuestion} from './graduationReview.js';
 import {academicAttendancePaths,academicAttendanceQuery,academicAttendanceMatchingRows,isAcademicAttendanceQuestion} from './academicAttendance.js';
 import {selectAccountEvidence,selectServiceRecords,ownEvidenceRows} from './accountEvidenceSelection.js';
@@ -37,7 +37,7 @@ export function nativeAccountQuery(snapshot,key,context={}){
       selection=academicGradesQuery(question,route,history);
       const valid=!selection.invalid&&!selection.relativeTermUnresolved&&!selection.multipleScopes;
       const termMatches=row=>(selection.academicYear===undefined||row.academicYear===selection.academicYear)&&(selection.semester===undefined||row.semester===selection.semester);
-      matching.records=collection.records.filter(row=>valid&&row.recordKind===selection.view&&termMatches(row))
+      matching.records=selectAcademicGradeCourses(question,collection.records.filter(row=>valid&&row.recordKind===selection.view)).filter(termMatches)
         .sort((a,b)=>a.academicYear-b.academicYear||a.semester-b.semester||a.rowOrder-b.rowOrder||String(a.id).localeCompare(String(b.id)));
       matching.termSummaries=collection.termSummaries.filter(row=>valid&&row.summaryKind===selection.view&&termMatches(row));
       matching.rankings=collection.rankings.filter(row=>valid&&selection.view==='ranking'&&termMatches(row))
@@ -122,7 +122,7 @@ export function accountRecordViews(snapshot,tools,context={}){
   const assignmentCourses=[...new Set(assignments.map(row=>row.dtmCourseId).filter(Boolean))];
   const assignmentCourse=assignmentCourses.length===1?courseUrl(assignmentCourses[0]):assignments.length===0&&dtm.courses.length===1?courseUrl(dtm.courses[0].id):null;
   const serviceTitle=key=>studentServiceByKey(key)?.title||schoolServiceEntries.find(row=>row.id===key)?.title||'Unknown service';
-  const serviceScope=serviceSelection.selection.requestedReference&&serviceSelection.selection.matchedReference===false
+  const serviceScope=serviceSelection.selection.requestedTitle&&!serviceSelection.records.length?'No note matched the requested exact title.':serviceSelection.selection.requestedReference&&serviceSelection.selection.matchedReference===false
     ?'No saved note matched the requested reference; unrelated records were not substituted.'
     :'Only selected owned local tracking records are shown; notes/statuses do not establish university approval, payment or official submission.';
   const definitions={
@@ -132,15 +132,16 @@ export function accountRecordViews(snapshot,tools,context={}){
     tasks:['Your tasks','/school-affairs/records',['Task','Due (Taipei)','Status'],selectedRows('tasks'),row=>[row.title,date(row.dueAt),row.completedAt?'Complete':'Open']],
     requests:['Your service requests','/school-affairs/records',['Request','Type','Status'],selectedRows('requests'),row=>[row.title,row.type,row.status]],
     dtm:['DTM courses',dtmUrl,['Course','Term','Materials','Data'],dtm.courses,row=>[`${row.code} ${row.title}`,row.term,String(row.materials?.length||0),row.sourceMode],'Selected owned courses and materials only; omitted courses are not counted.'],
-    serviceRecords:['Your service records',serviceSelection.url,['Service','Record','Type','Status','Starts'],serviceSelection.records,row=>[serviceTitle(row.serviceKey),row.title,row.recordType,row.reviewStatus||row.status,row.startsOn],serviceScope],
+    serviceRecords:['Your service records',serviceSelection.url,['Service','Record','Type','Status','Starts'],serviceSelection.records,row=>[serviceTitle(row.serviceKey),row.title,row.recordType,row.recordType==='note'&&row.status==='filed'?'filed (self-marked)':row.reviewStatus||row.status,row.startsOn],serviceScope],
     ...nativeDefinitions(snapshot,context),
   };
   const route=typeof context.route==='string'?context.route.split(/[?#]/)[0].replace(/\/+$/,''):'';
   const priority=tools.filter(key=>Object.hasOwn(nativePredicates,key)&&(!context.question||nativePredicates[key](context.question,route,context.history||[])));
   return [...new Set([...priority,...tools])].filter(key=>Object.hasOwn(definitions,key)).slice(0,3).map(key=>{
     const [title,url,columns,records,values,scope,coverage]=definitions[key],native=Object.hasOwn(nativePredicates,key);
+    const shown=Math.min(12,records.length);
+    const count=native?`${shown}/${records.length} rows shown, history completeness unknown.`:`Showing ${shown} of ${records.length} selected rows.`;
     return {id:key,title,url,columns,rows:records.slice(0,12).map(row=>values(row).map(native?nativeClean:clean)),total:records.length,checkedAt:snapshot.checkedAt,
-      note:native?`Own loaded snapshot: ${Math.min(12,records.length)}/${records.length} rows shown. local_demo; no university sync; history completeness unknown. ${scope} Compact fields; long cells abbreviated.${coverage.projectionPartial?' Some source values were suppressed.':''}`
-        :`Retrieved stu.best records. “sample” means demonstration data. This is not a live university sync. Showing ${Math.min(12,records.length)} of ${records.length} selected rows. ${scope||'Collections may be limited as described in the answer.'}`};
+      note:[count,scope,native?'Sample records with long cells abbreviated.':'',coverage?.projectionPartial?'Some source values were suppressed.':''].filter(Boolean).join(' ')};
   });
 }

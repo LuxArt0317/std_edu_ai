@@ -1,0 +1,584 @@
+{
+  "directoryUrl": "/school-sites/www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/",
+  "documents": [
+    {
+      "title": "2026-2027 Academic Calendar_1150415",
+      "url": "/school-assets/37d6b8aa4582665ff784.pdf",
+      "academicYear": 115,
+      "edition": "english",
+      "checksum": "37d6b8aa4582665ff7847bb7cad886eb9a0796100efedd739d5f4d8747b5facf",
+      "source": "https://wpc.stu.edu.tw/wp-content/uploads/sites/21/2026/05/2026-2027-Academic-Calendar_1150415.pdf",
+      "capturedOn": "2026-11-03",
+      "pageCount": 2,
+      "parserVersion": "pdfjs-6.4.299@1",
+      "eventParserVersion": "calendar-bullets@1",
+      "events": [
+        {
+          "date": "2026-08-01",
+          "event": "Start of Fall Semester, Academic Year 2026–2027",
+          "locator": "pdf:page:1:event:1"
+        },
+        {
+          "date": "2026-08-03",
+          "event": "Application for credit transfer (until Sep 21)",
+          "locator": "pdf:page:1:event:2"
+        },
+        {
+          "date": "2026-08-03",
+          "event": "Application for course overload/underload (until Sep 21)",
+          "locator": "pdf:page:1:event:3"
+        },
+        {
+          "date": "2026-08-04",
+          "event": "Course selection (Phase 2: for readmitted, transferred, double major/minor students, etc.) (until Aug 10, 9:00 AM)",
+          "locator": "pdf:page:1:event:4"
+        },
+        {
+          "date": "2026-08-11",
+          "event": "Inquiry of course selection results (Phases 1 & 2)",
+          "locator": "pdf:page:1:event:5"
+        },
+        {
+          "date": "2026-08-15",
+          "event": "Freshman orientation & departmental briefings",
+          "locator": "pdf:page:1:event:6"
+        },
+        {
+          "date": "2026-08-30",
+          "event": "Dormitory opens for new students (9:00 AM–5:00 PM)",
+          "locator": "pdf:page:1:event:7"
+        },
+        {
+          "date": "2026-08-30",
+          "event": "Continuing education freshmen orientation",
+          "locator": "pdf:page:1:event:8"
+        },
+        {
+          "date": "2026-08-30",
+          "event": "Course selection briefing (continuing education & graduate students)",
+          "locator": "pdf:page:1:event:9"
+        },
+        {
+          "date": "2026-08-30",
+          "event": "Course selection (Phase 3: freshmen & first-year readmitted students) (until Sep 2, 9:00 AM)",
+          "locator": "pdf:page:1:event:10"
+        },
+        {
+          "date": "2026-08-31",
+          "event": "Registration reference date",
+          "locator": "pdf:page:1:event:11"
+        },
+        {
+          "date": "2026-08-31",
+          "event": "Deadline for thesis submission & graduation clearance (Spring 2026 graduates)",
+          "locator": "pdf:page:1:event:12"
+        },
+        {
+          "date": "2026-08-31",
+          "event": "Freshman orientation camp (until Sep 3)",
+          "locator": "pdf:page:1:event:13"
+        },
+        {
+          "date": "2026-09-01",
+          "event": "Withdrawal with 1/3 tuition fee charged (until Sep 7)",
+          "locator": "pdf:page:1:event:14"
+        },
+        {
+          "date": "2026-09-02",
+          "event": "Freshman health check (day division undergraduate)",
+          "locator": "pdf:page:1:event:15"
+        },
+        {
+          "date": "2026-09-02",
+          "event": "Course selection briefing for freshmen (day division undergraduate)",
+          "locator": "pdf:page:1:event:16"
+        },
+        {
+          "date": "2026-09-06",
+          "event": "Dormitory opens for returning students (9:00 AM–5:00 PM)",
+          "locator": "pdf:page:1:event:17"
+        },
+        {
+          "date": "2026-09-07",
+          "event": "First day of classes",
+          "locator": "pdf:page:1:event:18"
+        },
+        {
+          "date": "2026-09-07",
+          "event": "Add/drop period (until Sep 14, 9:00 AM)",
+          "locator": "pdf:page:1:event:19"
+        },
+        {
+          "date": "2026-09-07",
+          "event": "Undergraduate application to take graduate courses (until Sep 14)",
+          "locator": "pdf:page:1:event:20"
+        },
+        {
+          "date": "2026-09-07",
+          "event": "Registration for credit programs (until Oct 7)",
+          "locator": "pdf:page:1:event:21"
+        },
+        {
+          "date": "2026-09-08",
+          "event": "Withdrawal with 1/3 tuition & fees (until Oct 19)",
+          "locator": "pdf:page:1:event:22"
+        },
+        {
+          "date": "2026-09-15",
+          "event": "Additional add/drop (for closed-class students only) (until Sep 16, 9:00 AM)",
+          "locator": "pdf:page:1:event:23"
+        },
+        {
+          "date": "2026-09-16",
+          "event": "Online confirmation of course selection (until Sep 22)",
+          "locator": "pdf:page:1:event:24"
+        },
+        {
+          "date": "2026-09-17",
+          "event": "Registration/payment for extended study students (until Sep 23)",
+          "locator": "pdf:page:1:event:25"
+        },
+        {
+          "date": "2026-09-25",
+          "event": "Mid-Autumn Festival (holiday)",
+          "locator": "pdf:page:1:event:26"
+        },
+        {
+          "date": "2026-09-28",
+          "event": "Confucius’ Birthday (holiday)",
+          "locator": "pdf:page:1:event:27"
+        },
+        {
+          "date": "2026-09-29",
+          "event": "Application for major transfer (until Oct 8)",
+          "locator": "pdf:page:1:event:28"
+        },
+        {
+          "date": "2026-10-09",
+          "event": "Compensatory holiday (National Day falls on weekend)",
+          "locator": "pdf:page:1:event:29"
+        },
+        {
+          "date": "2026-10-10",
+          "event": "National Day (holiday)",
+          "locator": "pdf:page:1:event:30"
+        },
+        {
+          "date": "2026-10-17",
+          "event": "29th Anniversary Celebration, Fair & Sports Day",
+          "locator": "pdf:page:1:event:31"
+        },
+        {
+          "date": "2026-10-20",
+          "event": "Withdrawal with 2/3 tuition & fees (until Nov 30)",
+          "locator": "pdf:page:1:event:32"
+        },
+        {
+          "date": "2026-10-25",
+          "event": "Taiwan Retrocession Day & Battle of Guningtou Memorial Day",
+          "locator": "pdf:page:1:event:33"
+        },
+        {
+          "date": "2026-10-26",
+          "event": "Compensatory holiday",
+          "locator": "pdf:page:1:event:34"
+        },
+        {
+          "date": "2026-10-29",
+          "event": "Midterm teaching evaluation (until Nov 11)",
+          "locator": "pdf:page:1:event:35"
+        },
+        {
+          "date": "2026-11-02",
+          "event": "Midterm exams (until Nov 8)",
+          "locator": "pdf:page:1:event:36"
+        },
+        {
+          "date": "2026-11-02",
+          "event": "Midterm warning grades available",
+          "locator": "pdf:page:1:event:37"
+        },
+        {
+          "date": "2026-11-30",
+          "event": "Library Week (until Dec 6)",
+          "locator": "pdf:page:1:event:38"
+        },
+        {
+          "date": "2026-11-30",
+          "event": "Course withdrawal (until Dec 7, 9:00 AM)",
+          "locator": "pdf:page:1:event:39"
+        },
+        {
+          "date": "2026-12-01",
+          "event": "Withdrawal with full tuition & fees (until Jan 4)",
+          "locator": "pdf:page:1:event:40"
+        },
+        {
+          "date": "2026-12-07",
+          "event": "Online confirmation of course withdrawal results (until Dec 14)",
+          "locator": "pdf:page:1:event:41"
+        },
+        {
+          "date": "2026-12-09",
+          "event": "Graduation clearance begins (Fall semester graduates)",
+          "locator": "pdf:page:1:event:42"
+        },
+        {
+          "date": "2026-12-14",
+          "event": "Application for minor/double major (until Jan 13)",
+          "locator": "pdf:page:1:event:43"
+        },
+        {
+          "date": "2026-12-14",
+          "event": "Announcement of Spring semester course offerings",
+          "locator": "pdf:page:1:event:44"
+        },
+        {
+          "date": "2026-12-15",
+          "event": "Final teaching evaluation (until Jan 4, 9:00 AM)",
+          "locator": "pdf:page:1:event:45"
+        },
+        {
+          "date": "2026-12-21",
+          "event": "Course selection for Spring semester (Phase 1 until Jan 4, 9:00 AM)",
+          "locator": "pdf:page:1:event:46"
+        },
+        {
+          "date": "2026-12-21",
+          "event": "Application for early graduation (until Jan 13)",
+          "locator": "pdf:page:1:event:47"
+        },
+        {
+          "date": "2026-12-25",
+          "event": "Constitution Day (holiday)",
+          "locator": "pdf:page:1:event:48"
+        },
+        {
+          "date": "2026-12-28",
+          "event": "Graduating students give up minor/double major (until Jan 13)",
+          "locator": "pdf:page:1:event:49"
+        },
+        {
+          "date": "2027-01-01",
+          "event": "Founding Day of the Republic of China (holiday)",
+          "locator": "pdf:page:1:event:50"
+        },
+        {
+          "date": "2027-01-04",
+          "event": "Deadline for semester withdrawal applications",
+          "locator": "pdf:page:1:event:51"
+        },
+        {
+          "date": "2027-01-04",
+          "event": "Final exams (until Jan 10)",
+          "locator": "pdf:page:1:event:52"
+        },
+        {
+          "date": "2027-01-04",
+          "event": "Semester grades available",
+          "locator": "pdf:page:1:event:53"
+        },
+        {
+          "date": "2027-01-11",
+          "event": "Dormitory closes (move-out before 10:00 AM)",
+          "locator": "pdf:page:1:event:54"
+        },
+        {
+          "date": "2027-01-11",
+          "event": "Winter break begins",
+          "locator": "pdf:page:1:event:55"
+        },
+        {
+          "date": "2027-01-31",
+          "event": "Deadline for graduate thesis defense",
+          "locator": "pdf:page:1:event:56"
+        },
+        {
+          "date": "2027-01-31",
+          "event": "End of Fall Semester",
+          "locator": "pdf:page:1:event:57"
+        },
+        {
+          "date": "2027-02-01",
+          "event": "Start of Spring Semester",
+          "locator": "pdf:page:2:event:1"
+        },
+        {
+          "date": "2027-02-01",
+          "event": "Application for credit transfer (until Mar 4)",
+          "locator": "pdf:page:2:event:2"
+        },
+        {
+          "date": "2027-02-01",
+          "event": "Application for course overload/underload (until Mar 4)",
+          "locator": "pdf:page:2:event:3"
+        },
+        {
+          "date": "2027-02-02",
+          "event": "Course selection (Phase 2 for specific students until Feb 15, 9:00 AM)",
+          "locator": "pdf:page:2:event:4"
+        },
+        {
+          "date": "2027-02-04",
+          "event": "Lunar New Year Holiday and Compensatory Holidays (until Feb 12)",
+          "locator": "pdf:page:2:event:5"
+        },
+        {
+          "date": "2027-02-15",
+          "event": "Registration reference date",
+          "locator": "pdf:page:2:event:6"
+        },
+        {
+          "date": "2027-02-15",
+          "event": "Deadline for thesis submission & graduation clearance",
+          "locator": "pdf:page:2:event:7"
+        },
+        {
+          "date": "2027-02-16",
+          "event": "Withdrawal with 1/3 tuition (until Feb 22)",
+          "locator": "pdf:page:2:event:8"
+        },
+        {
+          "date": "2027-02-16",
+          "event": "Course selection results available",
+          "locator": "pdf:page:2:event:9"
+        },
+        {
+          "date": "2027-02-21",
+          "event": "Dormitory opens (9:00 AM–5:00 PM)",
+          "locator": "pdf:page:2:event:10"
+        },
+        {
+          "date": "2027-02-22",
+          "event": "First day of classes",
+          "locator": "pdf:page:2:event:11"
+        },
+        {
+          "date": "2027-02-22",
+          "event": "Add/drop period (until Mar 2, 9:00 AM)",
+          "locator": "pdf:page:2:event:12"
+        },
+        {
+          "date": "2027-02-22",
+          "event": "Undergraduate application for graduate courses (until Mar 2)",
+          "locator": "pdf:page:2:event:13"
+        },
+        {
+          "date": "2027-02-22",
+          "event": "Registration for credit programs (until Mar 22)",
+          "locator": "pdf:page:2:event:14"
+        },
+        {
+          "date": "2027-02-23",
+          "event": "Withdrawal with 1/3 tuition & fees (until Apr 7)",
+          "locator": "pdf:page:2:event:15"
+        },
+        {
+          "date": "2027-02-28",
+          "event": "Peace Memorial Day (holiday)",
+          "locator": "pdf:page:2:event:16"
+        },
+        {
+          "date": "2027-03-01",
+          "event": "Compensatory holiday",
+          "locator": "pdf:page:2:event:17"
+        },
+        {
+          "date": "2027-03-03",
+          "event": "Additional add/drop (closed classes only)",
+          "locator": "pdf:page:2:event:18"
+        },
+        {
+          "date": "2027-03-04",
+          "event": "Online confirmation of course selection (until Mar 10)",
+          "locator": "pdf:page:2:event:19"
+        },
+        {
+          "date": "2027-03-05",
+          "event": "Registration/payment for extended study students (until Mar 11)",
+          "locator": "pdf:page:2:event:20"
+        },
+        {
+          "date": "2027-03-15",
+          "event": "Application for major transfer (until Mar 24)",
+          "locator": "pdf:page:2:event:21"
+        },
+        {
+          "date": "2027-03-16",
+          "event": "Application for domestic exchange (AY 2027–2028) (until Apr 16)",
+          "locator": "pdf:page:2:event:22"
+        },
+        {
+          "date": "2027-03-17",
+          "event": "Blood donation event",
+          "locator": "pdf:page:2:event:23"
+        },
+        {
+          "date": "2027-04-04",
+          "event": "Children’s Day and Tomb Sweeping Day Holidays (including compensatory holiday) (until Apr 6)",
+          "locator": "pdf:page:2:event:24"
+        },
+        {
+          "date": "2027-04-08",
+          "event": "Withdrawal with 2/3 tuition & fees (until May 17)",
+          "locator": "pdf:page:2:event:25"
+        },
+        {
+          "date": "2027-04-12",
+          "event": "Midterm teaching evaluation (until Apr 25)",
+          "locator": "pdf:page:2:event:26"
+        },
+        {
+          "date": "2027-04-19",
+          "event": "Midterm exams (until Apr 25)",
+          "locator": "pdf:page:2:event:27"
+        },
+        {
+          "date": "2027-04-19",
+          "event": "Midterm warning grades available",
+          "locator": "pdf:page:2:event:28"
+        },
+        {
+          "date": "2027-04-30",
+          "event": "Compensatory holiday (Labor Day)",
+          "locator": "pdf:page:2:event:29"
+        },
+        {
+          "date": "2027-05-01",
+          "event": "Labor Day (holiday)",
+          "locator": "pdf:page:2:event:30"
+        },
+        {
+          "date": "2027-05-10",
+          "event": "Graduation clearance begins (Spring graduates)",
+          "locator": "pdf:page:2:event:31"
+        },
+        {
+          "date": "2027-05-18",
+          "event": "Course withdrawal (until May 24, 9:00 AM)",
+          "locator": "pdf:page:2:event:32"
+        },
+        {
+          "date": "2027-05-18",
+          "event": "Withdrawal with full tuition & fees (until Jun 18)",
+          "locator": "pdf:page:2:event:33"
+        },
+        {
+          "date": "2027-05-24",
+          "event": "Online confirmation of course withdrawal results (until May 30)",
+          "locator": "pdf:page:2:event:34"
+        },
+        {
+          "date": "2027-05-31",
+          "event": "Announcement of Fall semester course offerings",
+          "locator": "pdf:page:2:event:35"
+        },
+        {
+          "date": "2027-05-31",
+          "event": "Final teaching evaluation (graduating classes) (until Jun 7, 9:00 AM)",
+          "locator": "pdf:page:2:event:36"
+        },
+        {
+          "date": "2027-05-31",
+          "event": "Final teaching evaluation (non-graduating classes) (until Jun 21, 9:00 AM)",
+          "locator": "pdf:page:2:event:37"
+        },
+        {
+          "date": "2027-06-04",
+          "event": "Course selection for Fall semester (Phase 1 until Jun 21, 9:00 AM)",
+          "locator": "pdf:page:2:event:38"
+        },
+        {
+          "date": "2027-06-07",
+          "event": "Final exams (graduating classes) (until Jun 13)",
+          "locator": "pdf:page:2:event:39"
+        },
+        {
+          "date": "2027-06-07",
+          "event": "Application/withdrawal for minor & double major (until Jun 30)",
+          "locator": "pdf:page:2:event:40"
+        },
+        {
+          "date": "2027-06-09",
+          "event": "Dragon Boat Festival (holiday)",
+          "locator": "pdf:page:2:event:41"
+        },
+        {
+          "date": "2027-06-12",
+          "event": "Commencement Ceremony",
+          "locator": "pdf:page:2:event:42"
+        },
+        {
+          "date": "2027-06-14",
+          "event": "Application for early graduation (until Jun 30)",
+          "locator": "pdf:page:2:event:43"
+        },
+        {
+          "date": "2027-06-16",
+          "event": "Blood donation event",
+          "locator": "pdf:page:2:event:44"
+        },
+        {
+          "date": "2027-06-18",
+          "event": "Deadline for semester withdrawal applications",
+          "locator": "pdf:page:2:event:45"
+        },
+        {
+          "date": "2027-06-21",
+          "event": "Final exams (until Jun 27)",
+          "locator": "pdf:page:2:event:46"
+        },
+        {
+          "date": "2027-06-21",
+          "event": "Semester grades available",
+          "locator": "pdf:page:2:event:47"
+        },
+        {
+          "date": "2027-06-21",
+          "event": "Announcement of summer courses",
+          "locator": "pdf:page:2:event:48"
+        },
+        {
+          "date": "2027-06-28",
+          "event": "Summer break begins",
+          "locator": "pdf:page:2:event:49"
+        },
+        {
+          "date": "2027-06-28",
+          "event": "Dormitory closes (move-out before 10:00 AM)",
+          "locator": "pdf:page:2:event:50"
+        },
+        {
+          "date": "2027-07-31",
+          "event": "Completion of thesis defense & doctoral qualification exams",
+          "locator": "pdf:page:2:event:51"
+        },
+        {
+          "date": "2027-07-31",
+          "event": "End of Spring Semester",
+          "locator": "pdf:page:2:event:52"
+        }
+      ],
+      "notes": [
+        {
+          "locator": "pdf:page:1",
+          "text": "Class suspension due to natural disaster is subject to the announcement of Kaoshiung City Government. The Calendar will be abided by the Government Office Calendar, announced by Minister of Education, and be amended if it is updated. If there is any change, please refer to the announcement by Office of Academic Affairs as the amendment."
+        },
+        {
+          "locator": "pdf:page:2",
+          "text": "Class suspension due to natural disaster is subject to the announcement of Kaoshiung City Government. The Calendar will be abided by the Government Office Calendar, announced by Minister of Education, and be amended if it is updated. If there is any change, please refer to the announcement by Office of Academic Affairs as the amendment."
+        }
+      ],
+      "pages": [
+        {
+          "locator": "pdf:page:1",
+          "text": "ACADEMIC CALENDAR (2026-2027 Academic Year) Passed at the Administration Meeting on 15 Apr 202 6 Month Week MON TUE WED THU FRI SAT SUN Fall semester : August 2026~January 2027 , Events 2026 Aug. 1 2  Aug 1 – Start of Fall Semester, Academic Year 2026–2027  Aug 3 – Application for credit transfer (until Sep 21)  Aug 3 – Application for course overload/underload (until Sep 21)  Aug 4 – Course selection (Phase 2: for readmitted, transferred, double major/minor students, etc.) (until Aug 10, 9:00 AM)  Aug 11 – Inquiry of course selection results (Phases 1 & 2)  Aug 15 – Freshman orientation & departmental briefings  Aug 30 – Dormitory opens for new students (9:00 AM–5:00 PM)  Aug 30 – Continuing education freshmen orientation  Aug 30 – Course selection briefing (continuing education & graduate students)  Aug 30 – Course selection (Phase 3: freshmen & first-year readmitted students) (until Sep 2, 9:00 AM)  Aug 31 – Registration reference date  Aug 31 – Deadline for thesis submission & graduation clearance (Spring 2026 graduates)  Aug 31 – Freshman orientation camp (until Sep 3) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 2026 Sep. 1 2 3 4 5 6  Sep 1 – Withdrawal with 1/3 tuition fee charged (until Sep 7)  Sep 2 – Freshman health check (day division undergraduate)  Sep 2 – Course selection briefing for freshmen (day division undergraduate)  Sep 6 – Dormitory opens for returning students (9:00 AM–5:00 PM)  Sep 7 – First day of classes  Sep 7 – Add/drop period (until Sep 14, 9:00 AM)  Sep 7 – Undergraduate application to take graduate courses (until Sep 14)  Sep 7 – Registration for credit programs (until Oct 7)  Sep 8 – Withdrawal with 1/3 tuition & fees (until Oct 19)  Sep 15 – Additional add/drop (for closed-class students only) (until Sep 16, 9:00 AM)  Sep 16 – Online confirmation of course selection (until Sep 22)  Sep 17 – Registration/payment for extended study students (until Sep 23)  Sep 25 – Mid-Autumn Festival (holiday)  Sep 28 – Confucius’ Birthday (holiday)  Sep 29 – Application for major transfer (until Oct 8) W1 7 8 9 10 11 12 13 W2 14 15 16 17 18 19 20 W3 21 22 23 24 25 26 27 W4 28 29 30 2026 Oct. 1 2 3 4  Oct 9 – Compensatory holiday (National Day falls on weekend)  Oct 10 – National Day (holiday)  Oct 17 – 29th Anniversary Celebration, Fair & Sports Day  Oct 20 – Withdrawal with 2/3 tuition & fees (until Nov 30)  Oct 25 – Taiwan Retrocession Day & Battle of Guningtou Memorial Day  Oct 26 – Compensatory holiday  Oct 29 – Midterm teaching evaluation (until Nov 11) W5 5 6 7 8 9 10 11 W6 12 13 14 15 16 17 18 W7 19 20 21 22 23 24 25 W8 26 27 28 29 30 31 2026 Nov. 1  Nov 2 – Midterm exams (until Nov 8)  Nov 2 – Midterm warning grades available  Nov 30 – Library Week (until Dec 6)  Nov 30 – Course withdrawal (until Dec 7, 9:00 AM) W9 2 3 4 5 6 7 8 W10 9 10 11 12 13 14 15 W11 16 17 18 19 20 21 22 W12 23 24 25 26 27 28 29 W13 30 2026 Dec. 1 2 3 4 5 6  Dec 1 – Withdrawal with full tuition & fees (until Jan 4)  Dec 7 – Online confirmation of course withdrawal results (until Dec 14)  Dec 9 – Graduation clearance begins (Fall semester graduates)  Dec 14 – Application for minor/double major (until Jan 13)  Dec 14 – Announcement of Spring semester course offerings  Dec 15 – Final teaching evaluation (until Jan 4, 9:00 AM)  Dec 21 – Course selection for Spring semester (Phase 1 until Jan 4, 9:00 AM)  Dec 21 – Application for early graduation (until Jan 13)  Dec 25 – Constitution Day (holiday)  Dec 28 – Graduating students give up minor/double major (until Jan 13) W14 7 8 9 10 11 12 13 W15 14 15 16 17 18 19 20 W16 21 22 23 24 25 26 27 W17 28 29 30 31 2027 Jan. 1 2 3  Jan 1 – Founding Day of the Republic of China (holiday)  Jan 4 – Deadline for semester withdrawal applications  Jan 4 – Final exams (until Jan 10)  Jan 4 – Semester grades available  Jan 11 – Dormitory closes (move-out before 10:00 AM)  Jan 11 – Winter break begins  Jan 31 – Deadline for graduate thesis defense  Jan 31 – End of Fall Semester W18 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Note ： Class suspension due to natural disaster is subject to the announcement of Kaoshiung City Government. The Calendar will be abided by the Government Office Calendar, announced by Minister of Education, and be amended if it is updated. If there is any change, please refer to the announcement by Office of Academic Affairs as the amendment."
+        },
+        {
+          "locator": "pdf:page:2",
+          "text": "ACADEMIC CALENDAR (2027 Academic Year) Passed at the Administration Meeting on 1 5 Apr 202 6 Month Week MON TUE WED THU FRI SAT SUN Spring semester : February 2027~July 2027 , Events 2027 Feb. 1 2 3 4 5 6 7  Feb 1 – Start of Spring Semester  Feb 1 – Application for credit transfer (until Mar 4)  Feb 1 – Application for course overload/underload (until Mar 4)  Feb 2 – Course selection (Phase 2 for specific students until Feb 15, 9:00 AM)  Feb 4 – Lunar New Year Holiday and Compensatory Holidays (until Feb 12)  Feb 15 – Registration reference date  Feb 15 – Deadline for thesis submission & graduation clearance  Feb 16 – Withdrawal with 1/3 tuition (until Feb 22)  Feb 16 – Course selection results available  Feb 21 – Dormitory opens (9:00 AM–5:00 PM)  Feb 22 – First day of classes  Feb 22 – Add/drop period (until Mar 2, 9:00 AM)  Feb 22 – Undergraduate application for graduate courses (until Mar 2)  Feb 22 – Registration for credit programs (until Mar 22)  Feb 23 – Withdrawal with 1/3 tuition & fees (until Apr 7)  Feb 28 – Peace Memorial Day (holiday) 8 9 10 11 12 13 14 15 16 17 18 19 20 21 W1 22 23 24 25 26 27 28 2027 Mar. W2 1 2 3 4 5 6 7  Mar 1 – Compensatory holiday  Mar 3 – Additional add/drop (closed classes only)  Mar 4 – Online confirmation of course selection (until Mar 10)  Mar 5 – Registration/payment for extended study students (until Mar 11)  Mar 15 – Application for major transfer (until Mar 24)  Mar 16 – Application for domestic exchange (AY 2027–2028) (until Apr 16)  Mar 17 – Blood donation event W3 8 9 10 11 12 13 14 W4 15 16 17 18 19 20 21 W5 22 23 24 25 26 27 28 W6 29 30 31 2027 Apr. 1 2 3 4  Apr 4 – Children’s Day and Tomb Sweeping Day Holidays (including compensatory holiday) (until Apr 6)  Apr 8 – Withdrawal with 2/3 tuition & fees (until May 17)  Apr 12 – Midterm teaching evaluation (until Apr 25)  Apr 19 – Midterm exams (until Apr 25)  Apr 19 – Midterm warning grades available  Apr 30 – Compensatory holiday (Labor Day) W7 5 6 7 8 9 10 11 W8 12 13 14 15 16 17 18 W9 19 20 21 22 23 24 25 W10 26 27 28 29 30 2027 May. 1 2  May 1 – Labor Day (holiday)  May 10 – Graduation clearance begins (Spring graduates)  May 18 – Course withdrawal (until May 24, 9:00 AM)  May 18 – Withdrawal with full tuition & fees (until Jun 18)  May 24 – Online confirmation of course withdrawal results (until May 30)  May 31 – Announcement of Fall semester course offerings  May 31 – Final teaching evaluation (graduating classes) (until Jun 7, 9:00 AM)  May 31 – Final teaching evaluation (non-graduating classes) (until Jun 21, 9:00 AM) W11 3 4 5 6 7 8 9 W12 10 11 12 13 14 15 16 W13 17 18 19 20 21 22 23 W14 24 25 26 27 28 29 30 W15 31 2027 Jun. 1 2 3 4 5 6  Jun 4 – Course selection for Fall semester (Phase 1 until Jun 21, 9:00 AM)  Jun 7 – Final exams (graduating classes) (until Jun 13)  Jun 7 – Application/withdrawal for minor & double major (until Jun 30)  Jun 9 – Dragon Boat Festival (holiday)  Jun 12 – Commencement Ceremony  Jun 14 – Application for early graduation (until Jun 30)  Jun 16 – Blood donation event  Jun 18 – Deadline for semester withdrawal applications  Jun 21 – Final exams (until Jun 27)  Jun 21 – Semester grades available  Jun 21 – Announcement of summer courses  Jun 28 – Summer break begins  Jun 28 – Dormitory closes (move-out before 10:00 AM) W16 7 8 9 10 11 12 13 W17 14 15 16 17 18 19 20 W18 21 22 23 24 25 26 27 28 29 30 2027 Jul. 1 2 3 4  Jul 31 – Completion of thesis defense & doctoral qualification exams  Jul 31 – End of Spring Semester 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 Note ： Class suspension due to natural disaster is subject to the announcement of Kaoshiung City Government. The Calendar will be abided by the Government Office Calendar, announced by Minister of Education, and be amended if it is updated. If there is any change, please refer to the announcement by Office of Academic Affairs as the amendment."
+        }
+      ]
+    }
+  ]
+}

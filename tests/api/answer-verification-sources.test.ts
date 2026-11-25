@@ -17,6 +17,25 @@ test('blocked public source falls back only to an exact checksum-verified dated 
  assert.equal(calls.length,1,'Unmatched source must not fetch a guessed capture');
 });
 
+test('an exact archived source resolves a transient live failure without scheduling a reread',async()=>{
+ const source='https://www.stu.edu.tw/about/',bytes=new TextEncoder().encode('<html><body><main><p>The public founding record dates to 1997.</p></main></body></html>');
+ const citations=[{chunkId:'source-one',title:'About STU',url:source}],retryable:string[]=[];
+ const capture={source,file:'/school-pages/0123456789abcdef0123.html',route:'/about/',checksum:createHash('sha256').update(bytes).digest('hex'),capturedOn:'2026-11-03'};
+ const deps={
+  captures:[capture],
+  acquire:async()=>{throw Object.assign(new Error('Controlled upstream timeout'),{statusCode:504});},
+  onRetryableFailure:(url:string)=>retryable.push(url),
+  fetchCapture:async()=>new Response(bytes),
+ };
+ const captured=await readVerificationSources(citations,Date.now()+10_000,deps);
+ assert.equal(captured[0]?.capturedOn,capture.capturedOn);
+ assert.deepEqual(retryable,[]);
+ assert.deepEqual(await readVerificationSources(citations,Date.now()+10_000,{...deps,fetchCapture:async()=>new Response('tampered')}),[]);
+ assert.deepEqual(retryable,[source]);
+ assert.deepEqual(await readVerificationSources([{...citations[0],url:'https://outside.example.org/about/'}],Date.now()+10_000,deps),[]);
+ assert.deepEqual(retryable,[source]);
+});
+
 test('captured evidence cannot pass as live; correction visibly dates both answer and citation',async()=>{
  const evidence=[{id:'source-one',url:'https://www.stu.edu.tw/about/',title:'About STU',capturedOn:'2026-11-03',content:'The public founding record dates to 1997. Captured on 2026-11-03.'}];
  const candidate={status:'answered',answer:'The school was founded in 1997.',citations:[{chunkId:'source-one',url:evidence[0].url,sourceName:'Live web',reviewedAt:'2026-11-13'}]};
@@ -27,7 +46,8 @@ test('captured evidence cannot pass as live; correction visibly dates both answe
  globalThis.fetch=async()=>Response.json({output:[{content:[{type:'output_text',text:JSON.stringify({status:'answered',answer:candidate.answer,sourceIds:['source-one']})}]}]});
  try {
   const result=await repairEvidenceAnswer(context);
-  assert.match(result.answer,/Source snapshot: 2026-11-03 \(not a live source\)/);
+  assert.match(result.answer,/Source snapshot: 2026-11-03\./);
+  assert.equal(result.answer.match(/Source snapshot:/g)?.length,1);
   assert.equal(result.citations[0].sourceName,'Public page snapshot · 2026-11-03');
   assert.equal(result.citations[0].reviewedAt,null);
   assert.equal(snapshotProvenanceSupported(result,evidence),true);

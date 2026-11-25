@@ -14,3 +14,6 @@ export function counselingQuestion(question:string):'guide'|'status'|null;
 export function counselingGuide(question:string,intent:'guide'|'status',signedIn?:boolean):{
   status:'answered'|'handoff';answer:string;citations:Array<{chunkId:string;claim:string;title:string;url:string;sourceName:string;locator:null;effectiveAt:null;reviewedAt:null}>;
   suggestedQuestions:string[];grounding:{source:string;webSearched:boolean}};
+
+export const counselingAppointmentsPath:string;
+export function counselingDate(value:unknown):value is string;

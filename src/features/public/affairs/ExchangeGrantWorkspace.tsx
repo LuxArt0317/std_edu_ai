@@ -4,6 +4,8 @@ import {ChevronDown, House, Info, RotateCcw, Settings} from 'lucide-react';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle} from '@/components/ui/dialog';
 import {ExchangeGrantRecords} from './ExchangeGrantRecords';
+import {exchangeReceiptNotice} from './noticePages.js';
+import {ServiceNoticeAssistant} from './ServiceNoticeAssistant';
 import {referenceAsset} from '../site/reference';
 import {
   exchangeGrantDirections, exchangeGrantManual, exchangeGrantMenu, exchangeGrantPath,
@@ -76,9 +78,10 @@ function GrantIndex({receipt}: {receipt: boolean}) {
 function ReceiptNotice() {
   return <Dialog open>
     <DialogContent showCloseButton={false} role="alertdialog" className="exchange-grant-dialog" onEscapeKeyDown={event => event.preventDefault()} onInteractOutside={event => event.preventDefault()}>
-      <DialogTitle>目前沒有可列印的印領清冊。</DialogTitle>
+      <DialogTitle>{exchangeReceiptNotice.title}</DialogTitle>
       <DialogDescription>返回助學金申請管理系統。</DialogDescription>
       <DialogClose asChild><Link className="exchange-grant-button" to={exchangeGrantPath} replace>確定</Link></DialogClose>
+      <ServiceNoticeAssistant />
     </DialogContent>
   </Dialog>;
 }

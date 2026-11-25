@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {assistantPageRoute} from '../../src/services/assistantPageRoute.js';
+import {dtmAssignmentRoute} from '../../server/dtmAssignmentEvidenceIntent.js';
+import {learningEntryRoute} from '../../server/learningEntryContract.js';
 
 const location=(pathname='/campus-assistant',search='?embed=1',origin='https://stu.best')=>({origin,pathname,search});
 const host=parent=>({location:location(),parent});
@@ -19,6 +21,22 @@ test('embedded assistants use their same-origin host path and exact query identi
   assert.equal(assistantPageRoute(true,current),'/latestnews-single/?id=234368','Context is refreshed at submission, not cached across navigation.');
   current.parent.location=location('/%E5%9C%A8%E6%A0%A1%E5%AD%B8%E7%94%9F/','');
   assert.equal(assistantPageRoute(true,current),'/%E5%9C%A8%E6%A0%A1%E5%AD%B8%E7%94%9F/');
+});
+
+test('copied DTM course routes reach exact native readers without changing legacy sign-in context',()=>{
+  const course='45000000-0000-4000-8000-000000000003',assignment='45000000-0000-4000-8000-000000000005';
+  const root='/school-sites/dtm.stu.edu.tw',leaf='/course/'+course+'/assignment/'+assignment;
+  const route=assistantPageRoute(false,{location:location(root+leaf+'/edit','')});
+  assert.deepEqual(dtmAssignmentRoute(route),{courseId:course,assignmentId:assignment,url:'/dtm'+leaf});
+  const report='/course/'+course+'/grades/overview';
+  assert.equal(assistantPageRoute(true,host({location:location(root+report,'?mode=review')})),'/dtm'+report+'?mode=review');
+  for(const path of [root+'/',root+'/login/index.php']){
+    const context=assistantPageRoute(false,{location:location(path,'')});
+    assert.equal(context,path);
+    assert.equal(learningEntryRoute(context)?.platform,'dtm');
+  }
+  for(const path of [root+'/grade/report/overview/index.php',root+'.invalid'+leaf])
+    assert.equal(assistantPageRoute(false,{location:location(path,'?id=42')}),path+'?id=42');
 });
 
 test('same-origin parent is ignored when the assistant is not embedded',()=>{
@@ -50,5 +68,7 @@ test('context handling never reads referrer, parent document or fragment data',(
 test('PublicAssistant supplies the route helper to the existing authenticated/anonymous request flow',()=>{
   const source=readFileSync(new URL('../../src/features/public/PublicAssistant.tsx',import.meta.url),'utf8');
   assert.match(source,/import\s*\{assistantPageRoute\}\s*from ['"]\.\.\/\.\.\/services\/assistantPageRoute\.js/);
-  assert.match(source,/\(user \? askSchoolAffairsAssistant : askCampusAssistant\)\(\s*question,\s*messages,\s*controller\.signal,\s*attached,\s*assistantPageRoute\(embedded\),/);
+  assert.match(source,/const route\s*=\s*assistantPageRoute\(embedded\)/);
+  assert.match(source,/askSchoolAffairsAssistant\(user\.id,\s*question,\s*messages,\s*controller\.signal,\s*attached,\s*route,\s*onProgress\)/);
+  assert.match(source,/askCampusAssistant\(question,\s*messages,\s*controller\.signal,\s*attached,\s*route,\s*onProgress\)/);
 });

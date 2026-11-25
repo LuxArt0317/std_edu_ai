@@ -122,7 +122,7 @@ test("HTML extraction preserves structure and links while excluding executable, 
   );
   assert.ok(
     first.sections.every((section) =>
-      /^html:(p|li|table|form):\d+$/.test(section.sourceLocator),
+      /^html:(heading|p|li|table|form):\d+$/.test(section.sourceLocator),
     ),
   );
 });
@@ -264,4 +264,11 @@ test("the deployed acquisition boundary revalidates DNS redirects and records st
       ),
     );
   assert.doesNotMatch(restricted, /'support'/);
+});
+
+test('heading-only directory cards survive extraction without shifting body locators', () => {
+ const result=extractHtmlSections('<html><body><main><h2>Clubs</h2><h3><a href="https://example.com/photo">Photography</a></h3><h3>Guitar</h3><p>Office: 2118</p></main></body></html>','https://example.com/');
+ assert.ok(result.sections.some(section=>section.content.includes('Photography')&&section.content.includes('https://example.com/photo')));
+ assert.ok(result.sections.some(section=>section.content==='Guitar'));
+ assert.ok(result.sections.some(section=>section.content==='Office: 2118'&&section.sourceLocator==='html:p:1'));
 });

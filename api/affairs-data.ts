@@ -1,4 +1,5 @@
 import {serveEvaluationLab} from "../server/evaluationLabHosted.js";
+import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
 import { clubStudentScope } from '../server/clubStudentContract.js';
 import { clubDocumentScope,readClubDocuments } from '../server/clubActivityDocuments.js';
@@ -59,6 +60,8 @@ import { DtmDashboardLayoutError, loadDtmDashboardLayout } from '../server/dtmDa
 import { DtmGradeReportError, loadDtmGradeReport, loadDtmGradeReportAdmin, loadDtmGradeReportCoursesAdmin, loadDtmGradeReportOverview } from '../server/dtmGradeReport.js';
 import { DtmCourseContentError, loadDtmCourseContent, loadDtmCourseContentAdmin, loadDtmCourseContentCoursesAdmin, loadDtmCourseContentAssignment } from '../server/dtmCourseContent.js';
 import { DtmCourseResourceError, loadDtmCourseResource } from '../server/dtmCourseResource.js';
+import { readChargePaymentAdminHistory, readChargePaymentHistory } from '../server/chargePaymentHistory.js';
+import { chargePaymentAdminQuery, chargePaymentHistoryAdminScope, chargePaymentHistoryScope, chargePaymentQuery } from '../server/chargePaymentContract.js';
 
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;end?:(data:Buffer)=>void};
@@ -67,6 +70,23 @@ export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
   if(first(request.query?.resource)==='evaluation-lab')return serveEvaluationLab(request,response);
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
+  const chargePaymentScope=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(chargePaymentHistoryScope));
+  const chargePaymentAdminSelection=request.query?.scope===chargePaymentHistoryAdminScope?chargePaymentAdminQuery(request.query):null;
+  const chargePaymentSelection=request.query?.scope===chargePaymentHistoryScope?chargePaymentQuery(request.query):null;
+  if(chargePaymentScope&&!chargePaymentSelection&&!chargePaymentAdminSelection){
+    response.setHeader('Cache-Control','no-store, max-age=0');
+    response.setHeader('X-Content-Type-Options','nosniff');
+    response.status(400).json({error:'Invalid payment history filters.'});
+    return;
+  }
+  const learningSupportRequested=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(learningSupportScope));
+  const learningSupport=learningSupportRequested?parseLearningSupportQuery(request.query):null;
+  if(learningSupportRequested&&!learningSupport){
+    response.setHeader('Cache-Control','no-store, max-age=0');
+    response.setHeader('X-Content-Type-Options','nosniff');
+    response.status(400).json({error:'Invalid learning support query.'});
+    return;
+  }
   if (scopes.includes(clubStudentScope) &&
       (scopes.length!==1 || Object.keys(request.query ?? {}).some(key=>!['scope','view','q','page'].includes(key)))) {
     response.setHeader('Cache-Control','no-store, max-age=0');
@@ -108,7 +128,7 @@ export default async function handler(request:Request,response:Response) {
   if (scopes.includes('curriculum-plan')) return serveCurriculumPlan(request,response);
   if (scopes.includes('interdisciplinary-programs')) return serveInterdisciplinaryPrograms(request,response);
   const strictStudentScope=scopes.some(scope=>typeof scope==='string'&&(scope===elearningScope||scope===elearningCatalogScope||scope===elearningOutlineScope||scope===counselingScope||scope===certificateAwardScope||scope===announcementEmailScope||scope===studentProfileScope||scope===programRegistrationScope||scope.startsWith('tutor-evaluation')||scope.startsWith('exchange-grant')||scope.startsWith('fee-remission')||scope.startsWith('student-conduct')||scope.startsWith('student-loan')||scope.startsWith('dormitory-conduct')||scope.startsWith('dtm-dashboard-layout')||scope.startsWith('dtm-grade-report')||scope.startsWith('dtm-course-content')||scope.startsWith('dtm-course-resource')||scope.startsWith('teaching-feedback')||scope.startsWith(clearanceScope)));
-  if(first(request.query?.resource)==='conversations'&&!strictStudentScope&&!scopes.includes(aidPaymentsScope)&&!scopes.includes('venue-requests')&&!scopes.includes('facility-repairs')&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope)||scope.startsWith(creditTransferScope)||scope.startsWith(earlyGraduationScope))))return conversations(request,response);
+  if(first(request.query?.resource)==='conversations'&&!learningSupportRequested&&!strictStudentScope&&!scopes.includes(aidPaymentsScope)&&!scopes.includes('venue-requests')&&!scopes.includes('facility-repairs')&&!scopes.some(scope=>typeof scope==='string'&&(scope.startsWith(adjustmentScope)||scope.startsWith(withdrawalScope)||scope.startsWith(creditTransferScope)||scope.startsWith(earlyGraduationScope))))return conversations(request,response);
   const requestDeadline=Date.now()+17000;
   response.setHeader('Cache-Control','no-store, max-age=0');
   response.setHeader('X-Content-Type-Options','nosniff');
@@ -116,6 +136,18 @@ export default async function handler(request:Request,response:Response) {
   try {
     const authorization=first(request.headers.authorization);
     const account=await verifyAffairsToken(authorization?.startsWith('Bearer ')?authorization.slice(7):'');
+    if(learningSupport){
+      response.status(200).json(await readLearningSupport({...account,requestDeadline},learningSupport));
+      return;
+    }
+    if(chargePaymentAdminSelection){
+      response.status(200).json(await readChargePaymentAdminHistory({...account,requestDeadline},chargePaymentAdminSelection));
+      return;
+    }
+    if(chargePaymentSelection){
+      response.status(200).json(await readChargePaymentHistory({...account,requestDeadline},chargePaymentSelection));
+      return;
+    }
     const scope=request.query?.scope;
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
     if (scope === clubStudentScope) {
@@ -198,7 +230,7 @@ export default async function handler(request:Request,response:Response) {
         response.status(400).json({error:'Program registrations take no account selector.'});return;
       }
       const bounded={...account,requestDeadline};
-      response.status(200).json(answer ? await answerProgramRegistrations(bounded,answer)
+      response.status(200).json(answer === 'en' || answer === 'zh' ? await answerProgramRegistrations(bounded,answer)
         : {userId:account.user.id,records:await loadProgramRegistrations(bounded)});
       return;
     }

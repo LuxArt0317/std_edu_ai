@@ -7,7 +7,7 @@ import {schoolServiceSnapshot,schoolServiceReadFixture} from './helpers/school-s
 import {clearanceOffices,clearancePaths,validClearanceAction} from '../../server/graduationClearanceContract.js';
 
 const origin=process.env.PUBLIC_SITE_ORIGIN??'http://127.0.0.1:5184';
-assert.ok(['https://stu.best','http://127.0.0.1:5184'].includes(origin));
+assert.ok(['https://stu.best','http://127.0.0.1:5184','http://127.0.0.1:5298'].includes(origin));
 async function verifyRevision(){
   if(origin!=='https://stu.best')return;
   const revision=process.env.EXPECTED_RELEASE_REVISION;
@@ -44,9 +44,15 @@ async function contextFor(user){
             applications:target&&submitted?[application]:[]}});
         }
         assert.equal(url.searchParams.get('view'),'student');
-        if(url.searchParams.has('answer'))return route.fulfill({json:{status:'answered',answer:'1/8 offices cleared',citations:[],suggestedQuestions:[],
-          grounding:{source:'account',webSearched:false}}});
+        assert.equal(url.searchParams.has('answer'),false,'Assistant questions use the verified graph, not the native page reader.');
         return route.fulfill({json:{...empty(user,user.id),periods:candidateSaved?[period]:[],applications:submitted?[application]:[]}});
+      }
+      if(url.pathname==='/api/affairs-assistant'){
+        assert.equal(req.method(),'POST');assert.match(req.headers().authorization,/^Bearer /u);
+        const body=req.postDataJSON();assert.equal(body.question,'What is my graduation clearance status?');
+        assert.equal(body.route,clearancePaths.status);assert.equal(body.stream,true);
+        return route.fulfill({contentType:'text/event-stream',body:'event: result\ndata: '+JSON.stringify({status:'answered',answer:'1/8 offices cleared',
+          citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false},verification:{status:'verified',attempts:1}})+'\n\n'});
       }
       if(url.pathname==='/api/affairs-action'){
         const action=req.postDataJSON();studentWrites.push(action);assert.ok(validClearanceAction(action.kind,action.payload));

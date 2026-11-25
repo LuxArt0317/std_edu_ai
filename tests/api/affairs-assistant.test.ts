@@ -2,7 +2,7 @@ import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import affairsHandler from '../../api/affairs-assistant.ts';
 import publicHandler from '../../api/research-assistant.ts';
-import {answerDirectoryQuestion,directoryEntries} from '../../server/schoolAffairsDirectory.js';
+import {answerDirectoryQuestion,answerSchoolSystemSearch,directoryEntries} from '../../server/schoolAffairsDirectory.js';
 import {questionKind} from '../../server/schoolWebSearch.js';
 import {accountTools,requiredNativeTools} from '../../server/answerVerificationAccount.js';
 
@@ -103,25 +103,122 @@ test('signed School Affairs directory question never loads Nexus context or tran
  assert.deepEqual(streamed.filter(event=>event.type==='progress').map(event=>event.data.kind),['public','directory','directory','public']);
 });
 
+test('School Affairs search and General Affairs menu cases answer from their route when the model is unavailable',async()=>{
+ configured();
+ delete process.env.OPENAI_API_KEY;
+ const authCalls:string[]=[];
+ globalThis.fetch=async(input)=>{
+  const url=String(input);authCalls.push(url);
+  assert.equal(url,'https://xiftudmvxphxcjtmfmib.supabase.co/auth/v1/user');
+  return Response.json({id:'00000000-0000-4000-8000-000000000001',identities:[{provider:'google'}]});
+ };
+ const cases=[
+  {route:'/school-affairs/search', question:'How do I use the keyword field on this page to find a service?',
+    required:['keyword','線上報修','matching service link','/school-affairs/search'],excluded:[]},
+  {route:'/school-affairs/menu/swd/input',question:'這個頁面有哪些申請或輸入服務？',
+    required:['場地借用','線上報修','汽機車證'],excluded:['場地使用狀況查詢']},
+  {route:'/school-affairs/menu/swd/query/',question:'Which service lookups are shown on this page?',
+    required:['場地使用狀況查詢','使用者電匯付款查詢','學生帳戶繳交狀態查詢'],excluded:['線上報修','汽機車證申請']},
+ ];
+ for(const {route,question,required,excluded} of cases){
+  const body={route,question};
+  for(const [handler,authorization] of [[publicHandler,undefined],[affairsHandler,token]] as const){
+   const result=await invoke(handler,body,authorization);
+   assert.equal(result.status,200,route+' '+handler.name+' '+JSON.stringify(result.body)+' '+JSON.stringify(authCalls));
+   assert.equal(result.body.grounding?.source,'directory');
+   for(const value of required)assert.ok(result.body.answer.includes(value),value+' missing from '+result.body.answer);
+   for(const value of excluded)assert.ok(!result.body.answer.includes(value),value);
+   assert.equal(result.body.proposedAction,undefined);
+  }
+ }
+ assert.equal(authCalls.length,3);
+ assert.equal(answerSchoolSystemSearch('What does the keyword field search and what are my grades?','/school-affairs/search'),null);
+ assert.equal(answerSchoolSystemSearch('What does the keyword field on this page search?','/school-affairs/menu/swd/input'),null);
+ configured();
+});
+
 test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{
  configured();const calls:string[]=[];
  const userId='00000000-0000-4000-8000-000000000002';
+ const id=(part:number)=>'00000000-0000-4000-8001-'+String(part).padStart(12,'0');
+ const range=(rows:unknown[])=>Response.json(rows,{headers:{'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
+ let overview=false;
  globalThis.fetch=async(input,init)=>{
   const url=String(input);calls.push(url);const path=new URL(url).pathname;
   if(url==='https://api.openai.com/v1/responses') {
     assert.equal((init?.headers as Record<string,string>)?.Authorization,'Bearer test-key');
     const body=JSON.parse(String(init?.body));
     const name=body.text.format.name;
-    assert.ok(['account_lookup_plan','answer_evidence_review'].includes(name));
+    assert.ok(['account_lookup_plan','compose_grounded_answer','answer_evidence_review'].includes(name));
     assert.doesNotMatch(String(init?.body),/access_token|refresh_token|Bearer x{20}/);
     const payload=JSON.parse(body.input[0].content[0].text);
-    const value=name==='account_lookup_plan'?{tools:Object.keys(accountTools),publicTopics:[]}:
+    let value:unknown=name==='account_lookup_plan'?{tools:Object.keys(accountTools),publicTopics:[]}:
       {supported:true,answersQuestion:true,claims:[{claim:'The data is local account evidence',supported:true,evidenceId:'account-scope',quote:'stu.best account records'}]};
+    if(overview){
+      assert.equal(name,'answer_evidence_review');
+      const parts=[
+        ['profile','/records/student/program','Sample General Studies'],
+        ['profile','/records/student/yearLevel','Year level: 1'],
+        ['courses','/records/0/code','SAMP101 Campus Orientation'],
+        ['dtm','/records/0/code','DTM-SAMPLE-101 Digital Learning Orientation'],
+        ['assignments','/overview/total','1 assignment tracker record'],
+        ['charges','/overview/total','1 charge item'],
+        ['tasks','/overview/total','0 saved tasks'],
+        ['requests','/overview/total','0 service requests'],
+      ];
+      value={supported:true,answersQuestion:true,claims:parts.map(([key,pointer,claim])=>({claim,supported:true,evidenceId:'account:'+key,jsonPaths:[pointer],quotes:[]}))};
+    }
+    if(name==='compose_grounded_answer'){
+      assert.equal(payload.previousAnswer,undefined);
+      const sources=new Map<string,any>(payload.evidence.map((row:any)=>[row.id,JSON.parse(row.content)]));
+      const profile=sources.get('account:profile').records,courses=sources.get('account:courses').records,dtm=sources.get('account:dtm').records;
+      assert.equal(profile.student.studentNumber,undefined);
+      assert.equal(profile.profile.email,undefined);
+      assert.equal(profile.student.program,'Sample General Studies');
+      value={status:'answered',answer:`Saved sample records for ${profile.profile.displayName}: ${profile.student.program}, year ${profile.student.yearLevel}. Current subjects: ${courses.map((row:any)=>row.code+' '+row.title).join(', ')}. Separately saved DTM courses: ${dtm.courses.map((row:any)=>row.code+' '+row.title).join(', ')}.`,sourceIds:['account:profile','account:courses','account:dtm']};
+    }
     if(name==='answer_evidence_review')assert.ok(payload.evidence.every((row:any)=>row.id.startsWith('account')||row.id==='service-directory'));
     return Response.json({output:[{content:[{type:'output_text',text:JSON.stringify(value)}]}]});
   }
   if(path==='/auth/v1/user')return new Response(JSON.stringify({id:userId,email:'student@example.com',identities:[{provider:'google'}]}),{status:200});
   assert.equal((init?.headers as Record<string,string>)?.Authorization,token);
+  const selected=new URL(url).searchParams;
+  if(path==='/rest/v1/affairs_graduation_reviews'&&selected.get('select')==='user_id,report_kind,source_mode,review_status:report->graduationReview->>text'){
+    assert.equal(init?.method,'GET');
+    assert.equal(new Headers(init?.headers).get('prefer'),'count=exact');
+    assert.equal(selected.get('user_id'),'eq.'+userId);
+    assert.ok(['eq.academic_services','eq.legacy'].includes(selected.get('report_kind')??''));
+    return range([]);
+  }
+  if(path==='/rest/v1/affairs_course_selection_records'&&new Headers(init?.headers).get('prefer')==='count=exact'){
+    assert.equal(init?.method,'GET');
+    assert.equal(selected.get('user_id'),'eq.'+userId);
+    return range([]);
+  }
+  if(path==='/rest/v1/affairs_academic_attendance_metadata'&&new Headers(init?.headers).get('prefer')==='count=exact'){
+    assert.equal(init?.method,'GET');
+    assert.equal(selected.get('user_id'),'eq.'+userId);
+    return range([]);
+  }
+  if(overview){
+    const params=new URL(url).searchParams;
+    if(init?.method==='HEAD'){
+      const counts:Record<string,number>={affairs_assignments:1,affairs_charges:1,affairs_tasks:0,affairs_service_requests:0};
+      const resource=path.split('/').at(-1)!;
+      assert.ok(Object.hasOwn(counts,resource));
+      return new Response(null,{headers:{'content-range':'*/'+counts[resource]}});
+    }
+    assert.equal(init?.method,'GET');
+    if(path==='/rest/v1/affairs_profiles')return range([{user_id:userId,display_name:'Student',preferred_name:null}]);
+    if(path==='/rest/v1/affairs_students')return range([params.get('select')==='id,user_id'?{id:id(1),user_id:userId}:{
+      id:id(1),user_id:userId,program_id:id(2),year_level:1,source_mode:'sample',program:{id:id(2),name:'Sample General Studies',source_mode:'sample'},
+    }]);
+    if(path==='/rest/v1/dtm_courses')return range([{id:id(3),user_id:userId,code:'DTM-SAMPLE-101',title:'Digital Learning Orientation',term:'115學年度第1學期',source_mode:'sample'}]);
+    assert.equal(path,'/rest/v1/affairs_enrollments');
+    return range([{id:id(4),student_id:id(1),section_id:id(5),status:'enrolled',source_mode:'sample',student:{id:id(1),user_id:userId},
+      section:{id:id(5),course_id:id(6),term_id:id(7),weekday:1,starts_at:'09:00',ends_at:'10:30',room:'Sample Room',
+        course:{id:id(6),code:'SAMP101',title:'Campus Orientation'},term:{id:id(7),label:'Sample Fall 2026',starts_on:'2021-01-01',ends_on:'2098-01-15'}}}]);
+  }
   const tables:Record<string,unknown>={
    '/rest/v1/rpc/affairs_initialize_account':{user_id:userId},
    '/rest/v1/rpc/dtm_initialize_account':null,
@@ -172,10 +269,14 @@ test('personal School Affairs question reads only the caller site records, never
  assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')||url==='https://api.openai.com/v1/responses'));
  const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
+ overview=true;
  const account=await invoke(affairsHandler,{question:'what are all my school details',route:'/dtm'},token);
- assert.equal(account.status,200);assert.match(account.body.answer,/student@example.com/);assert.match(account.body.answer,/SAMP101/);assert.match(account.body.answer,/DTM-SAMPLE-101/);
+ assert.equal(account.status,200);assert.match(account.body.answer,/Sample General Studies/);assert.match(account.body.answer,/Year level: 1/u);assert.match(account.body.answer,/SAMP101/);assert.match(account.body.answer,/DTM-SAMPLE-101/);assert.doesNotMatch(account.body.answer,/student@example.com/);
  const known=await invoke(affairsHandler,{question:'what details do you know about me',route:'/school-affairs'},token);
- assert.equal(known.status,200);assert.match(known.body.answer,/SAMPLE-123/);assert.match(known.body.answer,/sample/i);
+ assert.equal(known.status,200);assert.match(known.body.answer,/Sample General Studies/);assert.match(known.body.answer,/Year level: 1/u);assert.match(known.body.answer,/sample/i);
+ overview=false;
+ const identity=await invoke(affairsHandler,{question:'What is my student number?',route:'/school-affairs'},token);
+ assert.equal(identity.status,200);assert.match(identity.body.answer,/SAMPLE-123/);
  const tools=await invoke(affairsHandler,{question:'what tools do you have?',route:'/dtm'},token);
  assert.equal(tools.status,200);assert.match(tools.body.answer,/prepare a task or service request/);assert.match(tools.body.answer,/cannot access or change official university records/i);
  const assignments=await invoke(affairsHandler,{question:'What are my Moodle assignments?',route:'/dtm'},token);

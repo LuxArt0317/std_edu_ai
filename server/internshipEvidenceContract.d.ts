@@ -1,0 +1,28 @@
+import type {VerificationEvidence} from './answerVerification.js';
+import type {InternshipField,InternshipSelection} from './internshipEvidenceIntent.js';
+export const internshipEvidenceMaxBytes:16000;
+export const internshipEvidenceRowLimit:25;
+export const internshipTrackerStatuses:readonly ['draft','filed','withdrawn'];
+export const internshipReviewStatuses:readonly ['open','in_review','resolved'];
+export type InternshipEvidenceState='ok'|'empty'|'partial'|'unavailable';
+export type InternshipTrackerStatus=typeof internshipTrackerStatuses[number];
+export type InternshipReviewStatus=typeof internshipReviewStatuses[number];
+export type InternshipEvidenceRecord={title:string;status?:InternshipTrackerStatus;startsOn?:string|null;endsOn?:string|null;notes?:string;
+  reviewStatus?:InternshipReviewStatus|null;reviewState?:'recorded'|'not_requested'|'unavailable'};
+export type InternshipEvidenceCounts={available:number|null;returned:number|null;included:number;omitted:number|null};
+export type InternshipEvidencePayload={collection:'internshipRecords';readState:InternshipEvidenceState;reason:string|null;checkedAt:string;
+  selection:InternshipSelection|null;complete:boolean;counts:InternshipEvidenceCounts;records:InternshipEvidenceRecord[];
+  provenance:{source:'saved_local';officialUniversityData:false;institutionalReviewVerified:false;internshipEnrollmentVerified:false;publicEnterpriseDirectory:false};rules:string};
+export type InternshipEvidenceResult={readState:InternshipEvidenceState;reason:string|null;evidence:VerificationEvidence&{id:'account:internshipRecords';provenance:'saved_local';urls:string[]}};
+export function internshipDataObject(value:unknown):value is Record<string,unknown>;
+export function internshipExact(value:unknown,keys:readonly string[]):value is Record<string,unknown>;
+export function internshipUuid(value:unknown):value is string;
+export function internshipText(value:unknown,max:number,options?:{required?:boolean}):value is string;
+export function internshipDate(value:unknown):value is string;
+export function validInternshipSelection(value:unknown):value is InternshipSelection;
+export function validInternshipRecord(value:unknown,fields:readonly InternshipField[]):value is InternshipEvidenceRecord;
+export function internshipEnvelope(state:InternshipEvidenceState,reason?:string|null,selection?:InternshipSelection|null,
+  records?:InternshipEvidenceRecord[],counts?:InternshipEvidenceCounts):InternshipEvidenceResult;
+export function unavailableInternshipEvidence(reason?:string):InternshipEvidenceResult;
+export function parseInternshipEvidence(value:unknown):InternshipEvidencePayload|null;
+export function formatInternshipEvidence(value:unknown,question?:string):{answer:string;title:string;url:string}|null;

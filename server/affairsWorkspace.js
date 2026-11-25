@@ -4,10 +4,18 @@ import {mapStudentAidRecords} from './studentAidRecords.js';
 import {mapHousingRecords} from './housingRecords.js';
 import {mapCreditLoadHistory} from './creditLoadHistory.js';
 import {mapCourseSelection} from './courseSelection.js';
-import {loadNativeAcademicRecords} from './nativeAcademicWorkspace.js';
+import {courseSelectionQuery,courseSelectionTable,mapOwnedCourseSelection} from './accountCourseSelectionRows.js';
+import {serviceNoteKeys} from './serviceNoteIntent.js';
+import {loadNativeAcademicRecords,loadNativeGradeView,loadNativeAttendanceView} from './nativeAcademicWorkspace.js';
+import {graduationReviewMaxPayloadBytes,graduationReviewReadSource,isGraduationReviewKind,projectGraduationReviewDetail} from './graduationReview.js';
+import {readFeeRemissionJson} from './feeRemissionContract.js';
+import {studentLeaveDraftAction,validStudentLeaveDraft} from './studentLeaveDraft.js';
 export class AffairsWorkspaceError extends Error {
   constructor(message, status = 503) { super(message); this.status = status; }
 }
+// A read outage can be reported alongside independent evidence. Invalid or
+// unauthorized responses retain their own error path even when returned as 503.
+export class AffairsWorkspaceReadUnavailableError extends AffairsWorkspaceError {}
 
 export function schoolAffairsDatabaseConfiguration() {
   const url = process.env.VITE_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -36,42 +44,335 @@ export async function verifyAffairsToken(token) {
 }
 
 async function request(account, table, options = {}) {
-  const {rpc=false,body,query={}}=options;
+  const {rpc=false,body,query={},exactCount=false,readJson,errorMessages,observeRead}=options;
   const target=new URL(`${account.url}/rest/v1/${rpc?'rpc/':''}${table}`);
   for (const [name,value] of Object.entries(query)) if (value !== undefined) target.searchParams.set(name,String(value));
+  const networkError='The School Affairs database did not respond. Please try again.';
+  const remaining=account.requestDeadline===undefined?12000:account.requestDeadline-Date.now();
+  if(remaining<=0)throw new AffairsWorkspaceError(networkError);
   let response;
   try {
-    const remaining=account.requestDeadline===undefined?12000:account.requestDeadline-Date.now();
-    if(remaining<=0)throw new Error('Record lookup budget exhausted');
-    response=await fetch(target,{method:rpc?'POST':'GET',headers:headers(account.token,account.key,rpc),...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
-  } catch { throw new AffairsWorkspaceError('The School Affairs database did not respond. Please try again.'); }
+    response=await fetch(target,{method:rpc?'POST':'GET',headers:{...headers(account.token,account.key,rpc),...(exactCount?{Prefer:'count=exact'}:{})},redirect:'error',...(rpc?{body:JSON.stringify(body||{})}:{}),signal:AbortSignal.timeout(Math.min(12000,remaining))});
+  } catch {
+    const ErrorType=rpc?AffairsWorkspaceError:AffairsWorkspaceReadUnavailableError;
+    throw new ErrorType(networkError);
+  }
   if (!response.ok) {
+    if (errorMessages) {
+      void response.body?.cancel().catch(()=>{});
+      if (Object.hasOwn(errorMessages,response.status)) throw new AffairsWorkspaceError(errorMessages[response.status],response.status);
+      throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
+    }
     if (response.status===401 || response.status===403) throw new AffairsWorkspaceError('This School Affairs action is not allowed for your account.',403);
     if (response.status===400) throw new AffairsWorkspaceError('The School Affairs request was invalid. Check the fields and try again.',400);
     if (response.status===409) throw new AffairsWorkspaceError(['affairs_scholarship_action','affairs_manage_student_aid_record','affairs_housing_action','affairs_manage_credit_load_history','affairs_manage_course_selection','affairs_manage_academic_grades','affairs_manage_graduation_review','affairs_manage_academic_attendance'].includes(table)
       ? 'This record or its application period changed. Refresh and try again.'
       : 'A matching School Affairs record already exists.',409);
+    if (!rpc&&(response.status>=500||response.status===408||response.status===429)) {
+      void response.body?.cancel().catch(()=>{});
+      throw new AffairsWorkspaceReadUnavailableError('School Affairs records could not be loaded. Please try again.');
+    }
     throw new AffairsWorkspaceError('School Affairs records could not be loaded. Please try again.');
+  }
+  if (readJson) {
+    try { return await readJson(response); }
+    catch { throw new AffairsWorkspaceError('School Affairs returned an invalid record.'); }
   }
   const raw=await response.text().catch(()=>{throw new AffairsWorkspaceError('School Affairs returned an unreadable record.');});
   if (!raw && rpc) return null; // PostgREST void RPCs may return 204 without JSON.
-  try { return JSON.parse(raw); }
+  try {
+    const value=JSON.parse(raw);
+    if(!exactCount){
+      observeRead?.({method:'GET',url:target.href,ownerId:account.user.id,rows:value});
+      return value;
+    }
+    const range=/^(?:(\d+)-(\d+)|\*)\/(\d+)$/u.exec(response.headers.get('content-range')||'');
+    if(!range||!Array.isArray(value)||query.offset!==undefined
+      ||(value.length?Number(range[1])!==0||Number(range[2])!==value.length-1:range[1]!==undefined)
+      ||Number(range[3])!==value.length)throw new Error('The count and selected rows differ.');
+    return value;
+  }
   catch { throw new AffairsWorkspaceError('School Affairs returned an invalid record.'); }
+}
+
+export function requestAffairsRpc(account,name,body,{readJson,errorMessages}={}) {
+  return request(account,name,{rpc:true,body,readJson,errorMessages});
 }
 
 const own=(userId,limit=50)=>({select:'*',user_id:`eq.${userId}`,limit});
 const byIds=(ids)=>ids.length?`in.(${ids.join(',')})`:'eq.00000000-0000-0000-0000-000000000000';
 // PostgREST caps each response. A student's past terms can span many pages.
-async function readAccountRows(account, table, query) {
+async function readAccountRows(account, table, query, observeRead) {
   const rows = [];
   const pageSize = 500;
   for (let offset = 0; ; offset += pageSize) {
-    const page = await request(account, table, {query:{...query,limit:pageSize,offset}});
+    const page = await request(account, table, {query:{...query,limit:pageSize,offset},observeRead});
     if (!Array.isArray(page)) throw new AffairsWorkspaceError('School Affairs returned invalid records.');
     rows.push(...page);
     if (page.length < pageSize) return rows;
   }
 }
+/** Read only the owned fields needed to review a learning-support withdrawal. */
+export async function loadOwnLearningSupportWithdrawalContext(account,selection,deadline){
+  const exact=selection.mode==='exact',unique=selection.mode==='unique';
+  const validUuid=/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/u;
+  const malformed=()=>new AffairsWorkspaceError('The learning-support withdrawal target could not be checked.');
+  if(!validUuid.test(account.user.id)||!['exact','latest','unique'].includes(selection.mode)
+    ||(exact?!validUuid.test(selection.id):selection.id!==''))throw malformed();
+  const query={select:'id,user_id,status,version,submitted_at',user_id:'eq.'+account.user.id,limit:exact?1:2,
+    ...(exact?{id:'eq.'+selection.id}:{order:'submitted_at.desc,id.asc'}),
+    ...(unique?{status:'in.(submitted,in_review)'}:{})};
+  const rows=await request({...account,requestDeadline:deadline},'affairs_learning_support_requests',{
+    query,readJson:response=>readFeeRemissionJson(response,4096),
+  });
+  const versions={submitted:[1],in_review:[2],reviewed:[3],withdrawn:[2,3]};
+  if(!Array.isArray(rows)||rows.length>query.limit)throw malformed();
+  for(const row of rows){
+    if(!row||Object.keys(row).sort().join()!=='id,status,submitted_at,user_id,version'||!validUuid.test(row.id)
+      ||row.user_id!==account.user.id||exact&&row.id!==selection.id||!Object.hasOwn(versions,row.status)
+      ||!versions[row.status].includes(row.version)||unique&&!['submitted','in_review'].includes(row.status)
+      ||typeof row.submitted_at!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(?:[.][0-9]{1,6})?(?:Z|[+-][0-9]{2}:[0-9]{2})$/u.test(row.submitted_at)
+      ||!Number.isFinite(Date.parse(row.submitted_at)))throw malformed();
+  }
+  if(rows.length===2&&(rows[0].id===rows[1].id||Date.parse(rows[0].submitted_at)<Date.parse(rows[1].submitted_at)))
+    throw malformed();
+  const row=rows[0];
+  return {ambiguous:rows.length===2&&(unique||Date.parse(row.submitted_at)===Date.parse(rows[1].submitted_at)),
+    row:row?{id:row.id,status:row.status,version:row.version,submittedAt:row.submitted_at}:null};
+}
+
+const chargeOrder = 'occurrence_on.desc.nullslast,id.asc';
+const chargeUuid = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu;
+function ownChargeAmount(value){
+  if(typeof value!=='number'&&(typeof value!=='string'||!/^\d+(?:\.\d{1,2})?$/u.test(value)))return false;
+  const amount=Number(value);
+  return Number.isFinite(amount)&&amount>=0&&amount<=9999999999.99&&Number(amount.toFixed(2))===amount;
+}
+function validExactOwnCharge(row){
+  const validText=value=>typeof value==='string'&&!/[\0\ud800-\udfff]/u.test(value);
+  return ['sample','verified'].includes(row.source_mode)&&[row.amount_due,row.amount_paid].every(ownChargeAmount)
+    &&Number(row.amount_paid)<=Number(row.amount_due)&&validText(row.label)
+    &&row.currency.length<=32&&!/[\p{Cc}\ud800-\udfff]/u.test(row.currency)
+    &&['due_on','occurrence_on','category','contact_unit','contact_extension','payment_unit'].every(key=>row[key]==null||validText(row[key]));
+}
+function mapAffairsCharge(row) {
+  return {id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),
+    currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode,occurrenceOn:row.occurrence_on??null,
+    category:row.category??null,contactUnit:row.contact_unit??null,contactExtension:row.contact_extension??null,
+    paymentUnit:row.payment_unit??null};
+}
+
+/** Minimal state used to prepare a reviewed action, using the caller's RLS.
+ * The reviewed RPC independently checks state and ownership again on confirmation. */
+export async function loadOwnAffairsActionContext(account,selection,{deadline=Date.now()+8000,onRead=()=>{}}={}){
+  const userId=account?.user?.id;
+  if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token||typeof account.key!=='string'||!account.key||!Number.isFinite(deadline))
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  const scoped={user:{id:userId},url:account.url,token:account.token,key:account.key,requestDeadline:Math.min(deadline,Date.now()+8000)};
+  const {kind,target}=selection;
+  const accountFields=kind==='update_display_name'?'user_id,preferred_name,display_name'
+    :kind==='publish_announcement'?'user_id,role':'user_id';
+  const invalid=()=>new AffairsWorkspaceError('The saved action context could not be verified.');
+  const readTools={affairs_profiles:'profile',affairs_tasks:'tasks',affairs_assignments:'assignments',dtm_courses:'dtm'};
+  const lookup=async(table,select,filters)=> {
+    const tool=readTools[table];
+    if(tool)onRead(tool,'running');
+    try{
+      const rows=await request(scoped,table,{query:{select,...filters,limit:2}});
+      if(!Array.isArray(rows)||rows.length>2)throw invalid();
+      if(tool)onRead(tool,'complete');
+      return rows;
+    }catch(error){
+      if(tool)onRead(tool,'unavailable');
+      throw error;
+    }
+  };
+  const profiles=await lookup('affairs_profiles',accountFields,{user_id:'eq.'+userId});
+  if(profiles.length>1||profiles.some(row=>row?.user_id!==userId))throw invalid();
+  const profile=profiles[0];
+  if(!profile)return {profileFound:false};
+  const context={profileFound:true,profile:{userId}};
+  if(kind==='update_display_name'){
+    const displayName=profile.preferred_name??profile.display_name;
+    if(typeof displayName!=='string'||displayName.length>300)throw invalid();
+    context.profile.displayName=displayName;
+  }
+  if(kind==='publish_announcement'){
+    if(!['admin','student'].includes(profile.role))throw invalid();
+    context.profile.role='student';
+    if(profile.role==='admin'){
+      const access=await request(scoped,'dtm_course_content_access',{rpc:true,body:{}});
+      if(access?.userId!==userId||typeof access.canManage!=='boolean'||Object.keys(access).length!==2)throw invalid();
+      if(access.canManage)context.profile.role='admin';
+    }
+  }
+  if(kind==='complete_task'&&target){
+    const tasks=await lookup('affairs_tasks','id,user_id,title,completed_at',{user_id:'eq.'+userId,title:'eq.'+target,completed_at:'is.null'});
+    if(tasks.some(row=>row?.user_id!==userId||typeof row.id!=='string'||!chargeUuid.test(row.id)||row.title!==target||row.completed_at!==null)
+      ||new Set(tasks.map(row=>row.id)).size!==tasks.length)throw invalid();
+    context.tasks=tasks.map(row=>({id:row.id,title:row.title,completedAt:null}));
+  }
+  if(kind==='set_assignment_status'&&target){
+    const students=await lookup('affairs_students','id,user_id',{user_id:'eq.'+userId});
+    if(students.length>1||students.some(row=>row?.user_id!==userId||typeof row.id!=='string'||!chargeUuid.test(row.id)))throw invalid();
+    context.assignments=[];
+    const student=students[0];
+    if(!student)return context;
+    const matches=await lookup('affairs_assignments','id,student_id,dtm_course_id,title,status,source_mode',
+      {student_id:'eq.'+student.id,title:'eq.'+target});
+    if(matches.some(row=>row?.student_id!==student.id||typeof row.id!=='string'||!chargeUuid.test(row.id)||row.title!==target
+      ||typeof row.dtm_course_id!=='string'&&row.dtm_course_id!==null||typeof row.dtm_course_id==='string'&&!chargeUuid.test(row.dtm_course_id)
+      ||!['open','submitted','graded'].includes(row.status)||!['sample','personal'].includes(row.source_mode))
+      ||new Set(matches.map(row=>row.id)).size!==matches.length)throw invalid();
+    const found=matches[0];
+    if(!found||matches.length>1)return context;
+    if(found.source_mode==='personal'&&found.dtm_course_id){
+      const courses=await lookup('dtm_courses','id,user_id,source_mode',{id:'eq.'+found.dtm_course_id,user_id:'eq.'+userId});
+      if(courses.length!==1||courses[0]?.user_id!==userId||courses[0].id!==found.dtm_course_id
+        ||!['personal','sample'].includes(courses[0].source_mode))throw invalid();
+      if(courses[0].source_mode!=='personal')return context;
+    }
+    context.assignments.push({id:found.id,title:found.title,status:found.status,sourceMode:found.source_mode,dtmCourseId:found.dtm_course_id});
+  }
+  return context;
+}
+
+/** Read only the caller's charges. Exact paired answers require evidence that
+ * satisfies the charge formatter before it can reach fallback composition. */
+export async function loadOwnAffairsCharges(account,{deadline=Date.now()+12000,observeRead,requireExactProjection=false}={}) {
+  const userId=account?.user?.id;
+  if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid School Affairs read deadline.');
+  const scoped={user:{id:userId},url:account.url,token:account.token,key:account.key,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const students=await request(scoped,'affairs_students',{query:{select:'id,user_id',user_id:`eq.${userId}`,limit:1},observeRead});
+  if(!Array.isArray(students)||students.length>1||students.some(row=>row?.user_id!==userId||typeof row.id!=='string'||!chargeUuid.test(row.id)))
+    throw new AffairsWorkspaceError('The student record could not be verified.');
+  const student=students[0];
+  if(!student)return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:false,charges:[]};
+  const fields='id,student_id,label,amount_due,amount_paid,currency,due_on,source_mode,occurrence_on,category,contact_unit,contact_extension,payment_unit';
+  const rows=await readAccountRows(scoped,'affairs_charges',{select:fields,student_id:`eq.${student.id}`,order:chargeOrder},observeRead);
+  const ids=new Set();
+  for(const row of rows){
+    if(row?.student_id!==student.id||typeof row.id!=='string'||!chargeUuid.test(row.id)||ids.has(row.id)
+      ||typeof row.label!=='string'||!row.label.trim()||typeof row.currency!=='string'||!row.currency.trim()
+      ||![row.amount_due,row.amount_paid].every(amount=>(typeof amount==='number'||typeof amount==='string'&&amount.trim())&&Number.isFinite(Number(amount)))
+      ||requireExactProjection&&!validExactOwnCharge(row))
+      throw new AffairsWorkspaceError('The fee records could not be verified.');
+    ids.add(row.id);
+  }
+  return {checkedAt:new Date().toISOString(),profile:{userId},studentRecordFound:true,charges:rows.map(mapAffairsCharge)};
+}
+
+export async function loadOwnAcademicGrades(account,view,{deadline=Date.now()+12000}={}){
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!['transcript','warning','ranking','english','gpa','current','transfer','cycle'].includes(view)||!Number.isFinite(deadline))
+    throw new AffairsWorkspaceError('Invalid academic grades inquiry.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
+  const academicGrades=await loadNativeGradeView(userId,view,(table,query)=>readAccountRows(scoped,table,query));
+  return {checkedAt:new Date().toISOString(),profile:{userId},academicGrades,academicGradesOnly:true,academicGradesView:view};
+}
+
+export async function loadOwnCourseSelection(account,scope,{deadline=Date.now()+12000}={}){
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid course selection deadline.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const rows=await request(scoped,courseSelectionTable,{query:{...courseSelectionQuery(scope),user_id:'eq.'+userId,limit:100},exactCount:true});
+  return mapOwnedCourseSelection(rows,userId,scope);
+}
+
+export async function loadOwnAcademicAttendance(account,question,route,{deadline=Date.now()+12000}={}){
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid academic attendance inquiry.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const read=(table,query)=>request(scoped,table,{query:{...query,limit:100},exactCount:true});
+  return await loadNativeAttendanceView(userId,question,route,read);
+}
+
+/** Projects only the requested fields from one caller-owned report kind. */
+export async function loadOwnGraduationReviewAnswer(account,selection,{deadline=Date.now()+12000}={}){
+  const {kind,view}=selection;
+  const userId=account?.user?.id;
+  if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  const detail=view==='credits'||view==='matchedCourse';
+  if(!isGraduationReviewKind(kind)||!Number.isFinite(deadline)||!(detail||view==='status'||view==='eligibility')
+    ||detail&&(typeof selection.name!=='string'||!selection.name.trim()||selection.name.length>100))
+    throw new AffairsWorkspaceError('Invalid graduation report inquiry.',400);
+  const scoped={user:{id:userId},url:account.url,key:account.key,token:account.token,requestDeadline:Math.min(deadline,Date.now()+12000)};
+  const field=detail?'categories':'review_status';
+  const projection=detail?'categories:report->categories':'review_status:report->graduationReview->>text';
+  const rows=await request(scoped,graduationReviewReadSource.table,{exactCount:true,query:{
+    select:'user_id,report_kind,source_mode,'+projection,
+    user_id:'eq.'+userId,report_kind:'eq.'+kind,limit:2,
+  },readJson:async response=>{
+    const limit=detail?graduationReviewMaxPayloadBytes+4096:4096;
+    const value=await readFeeRemissionJson(response,limit);
+    if(!Array.isArray(value)||value.length>1||response.headers.get('content-range')!==(value.length?'0-0/1':'*/0'))
+      throw new Error('Unverified selected report count.');
+    return value;
+  }});
+  const row=rows[0],expectedFields=[field,'report_kind','source_mode','user_id'].sort().join(',');
+  const checkedAt=new Date().toISOString();
+  if(!rows.length)return {reportKind:kind,view,found:false,checkedAt};
+  if(!row||typeof row!=='object'||Object.keys(row).sort().join(',')!==expectedFields
+    ||row.user_id!==userId||row.report_kind!==kind||row.source_mode!=='local_demo')
+    throw new AffairsWorkspaceError('The selected graduation report could not be verified.');
+  const value=row[field];
+  if(detail)return {reportKind:kind,view,found:true,detail:projectGraduationReviewDetail(value,selection),checkedAt};
+  if(value!==null&&(typeof value!=='string'||[...value].length>160||/[\u0000\ud800-\udfff]/u.test(value)))
+    throw new AffairsWorkspaceError('The selected graduation review status could not be verified.');
+  return {reportKind:kind,view,found:true,statusText:value,checkedAt};
+}
+
+/** Narrow read for explicitly selected private notes. A capped, inconsistent
+ * or unauthorized result is unavailable rather than an empty note collection. */
+export async function loadOwnServiceNotes(account,keys,{deadline=Date.now()+12000}={}) {
+  const userId=account?.user?.id;
+  if(typeof userId!=='string'||!chargeUuid.test(userId)||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'
+    ||typeof account.token!=='string'||!account.token.trim()||typeof account.key!=='string'||!account.key.trim())
+    throw new AffairsWorkspaceError('Verified School Affairs access is required.',403);
+  if(!Array.isArray(keys)||!keys.length||keys.length>serviceNoteKeys.length||new Set(keys).size!==keys.length||keys.some(key=>!serviceNoteKeys.includes(key))
+    ||!Number.isFinite(deadline)||account.requestDeadline!==undefined&&!Number.isFinite(account.requestDeadline))
+    throw new AffairsWorkspaceError('Invalid private note scope.');
+  const scoped={user:{id:userId},url:account.url,token:account.token,key:account.key,
+    requestDeadline:Math.min(deadline,account.requestDeadline??Infinity,Date.now()+12000)};
+  const fields='id,user_id,service_key,record_type,title,notes,status,updated_at';
+  const limit=201;
+  const rows=await request(scoped,'affairs_service_records',{exactCount:true,query:{select:fields,user_id:'eq.'+userId,record_type:'eq.note',
+    service_key:keys.length===1?'eq.'+keys[0]:'in.('+keys.join(',')+')',order:'updated_at.desc,id.asc',limit}});
+  const seen=new Set();
+  if(!Array.isArray(rows)||rows.length>=limit)throw new AffairsWorkspaceError('The selected notes exceed the verified read limit.');
+  return rows.map(row=>{
+    if(row?.user_id!==userId||!keys.includes(row.service_key)||row.record_type!=='note'
+      ||typeof row.id!=='string'||!chargeUuid.test(row.id)||seen.has(row.id)
+      ||typeof row.title!=='string'||![...row.title].length||[...row.title].length>160
+      ||typeof row.notes!=='string'||[...row.notes].length>2000
+      ||!['draft','filed','withdrawn'].includes(row.status)||typeof row.updated_at!=='string'||!Number.isFinite(Date.parse(row.updated_at)))
+      throw new AffairsWorkspaceError('The selected note records could not be verified.');
+    seen.add(row.id);
+    return {id:row.id,serviceKey:row.service_key,recordType:'note',title:row.title,notes:row.notes,status:row.status,updatedAt:row.updated_at,userId};
+  });
+}
+
 export async function loadAffairsSnapshot(account, includeAdmin = false, options = {}) {
   account={...account,...(Number.isFinite(options.deadline)?{requestDeadline:options.deadline}:{})};
   if(options.initialize!==false) {
@@ -95,7 +396,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     includeAdmin?request(account,'affairs_service_requests',{query:{select:'id,user_id,request_type,title,details,status,created_at',order:'created_at.desc',limit:100}}):Promise.resolve([]),
     readAccountRows(account,'dtm_courses',{...own(userId),order:'created_at.desc,id.asc'}),
     request(account,'dtm_notices',{query:{select:'*',order:'published_at.desc',limit:30}}),
-    readAccountRows(account,'affairs_service_records',{...own(userId),select:'*,affairs_service_requests(status)',order:'updated_at.desc,id.asc'}),
+    options.includeServiceRecords===false?Promise.resolve([]):readAccountRows(account,'affairs_service_records',{...own(userId),select:'*,affairs_service_requests(status)',order:'updated_at.desc,id.asc'}),
   ]);
   const profile=profiles[0];
   if (!profile || (includeAdmin && profile.role!=='admin')) throw new AffairsWorkspaceError('Administrator access is required.',403);
@@ -137,7 +438,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
   const [grades,attendance,charges,assignments,dtmMaterials,adminCharges,adminAssignments,adminDtmCourses,dtmMeetings,dtmGrades]=await Promise.all([
     request(account,'affairs_grade_items',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
     request(account,'affairs_attendance',{query:{select:'*',enrollment_id:byIds(enrollmentIds),limit:200}}),
-    student?readAccountRows(account,'affairs_charges',{select:'*',student_id:`eq.${student.id}`,order:'occurrence_on.desc.nullslast,id.asc'}):Promise.resolve([]),
+    student?readAccountRows(account,'affairs_charges',{select:'*',student_id:`eq.${student.id}`,order:chargeOrder}):Promise.resolve([]),
     student?readAccountRows(account,'affairs_assignments',{select:'*',student_id:`eq.${student.id}`,order:'due_at.asc.nullslast,id.asc'}):Promise.resolve([]),
     dtmRows('dtm_materials','position.asc,id.asc'),
     includeAdmin?readAccountRows(account,'affairs_charges',{select:'*',order:'occurrence_on.desc.nullslast,id.asc'}):Promise.resolve([]),
@@ -186,7 +487,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
         grades:grades.filter(row=>row.enrollment_id===enrollment.id && row.released_at).map(row=>({label:row.label,score:row.score,maximum:row.maximum,sourceMode:row.source_mode})),
         attendance:attendance.filter(row=>row.enrollment_id===enrollment.id).map(row=>({date:row.meeting_on,status:row.status,sourceMode:row.source_mode}))};
     }),
-    charges:charges.map(row=>({id:row.id,label:row.label,amountDue:Number(row.amount_due),amountPaid:Number(row.amount_paid),currency:row.currency,dueOn:row.due_on,sourceMode:row.source_mode,occurrenceOn:row.occurrence_on??null,category:row.category??null,contactUnit:row.contact_unit??null,contactExtension:row.contact_extension??null,paymentUnit:row.payment_unit??null})),
+    charges:charges.map(mapAffairsCharge),
     assignments:assignments.map(row=>({id:row.id,title:row.title,details:row.details,dueAt:row.due_at,status:row.status,submittedAt:row.submitted_at,sourceMode:row.source_mode,
       enrollmentId:row.enrollment_id,dtmCourseId:row.dtm_course_id,meetingId:row.meeting_id ?? null,
       origin:row.import_key?'moodle_calendar':row.source_mode==='personal'?'manual':'sample',
@@ -228,6 +529,21 @@ export async function executeAffairsAction(account,kind,payload,requestId) {
   if (!payload || typeof payload!=='object' || Array.isArray(payload))
     throw new AffairsWorkspaceError('Unsupported School Affairs action.',400);
   const body={p_kind:kind,p_payload:payload};
+  if(kind===studentLeaveDraftAction){
+    if(typeof requestId!=='string'||!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/u.test(requestId)
+      ||!validStudentLeaveDraft(payload))
+      throw new AffairsWorkspaceError('Provide valid Student Leave fields and confirm a new draft.',400);
+    const receipt=await requestAffairsRpc(account,'affairs_create_student_leave_draft',
+      {p_request_id:requestId,p_payload:payload},{errorMessages:{
+        400:'Check the dates, category and periods before saving your draft.',
+        401:'Sign in to School Affairs to save your draft.',
+        403:'Open School Affairs to finish setting up your account, then try again.',
+        409:'This confirmation was already used. Ask for a new draft or open your leave records.',
+      }});
+    if(receipt?.id!==requestId||receipt.kind!==studentLeaveDraftAction||receipt.summary!=='Saved your Student Leave draft')
+      throw new AffairsWorkspaceError('The Student Leave draft receipt could not be verified.');
+    return receipt;
+  }
   if (requestId !== undefined) {
     if (typeof requestId!=='string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId))
       throw new AffairsWorkspaceError('Invalid action request identifier.',400);

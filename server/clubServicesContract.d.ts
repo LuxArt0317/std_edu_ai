@@ -18,6 +18,7 @@ export type ClubAction = {kind:'submit_club_equipment';payload:ClubApplication}
   | {kind:'cancel_club_equipment';payload:{request_id:string;id:string;expected_version:number}}
   | {kind:'review_club_equipment';payload:{request_id:string;id:string;expected_version:number;status:'approved'|'declined'|'returned';collateral:string}};
 export const clubPath:string;
+export const clubEquipmentNewPath:string;
 export const clubScope:'student-clubs';
 export const clubActions:ClubAction['kind'][];
 export const clubDate:RegExp;
@@ -29,7 +30,8 @@ export const clubPurposes:Record<ClubPurpose,string>;
 export const clubRequestStatuses:Record<ClubStatus,string>;
 export function validClubWorkspace(value:unknown,userId:string,view:ClubView):value is ClubWorkspace;
 export function validClubReceipt(value:unknown):value is ClubReceipt;
-export function clubIntent(question:string):'equipment'|'activities'|null;
+export function mentionsClub(question:string):boolean;
+export function clubIntent(question:string,route?:string):'equipment'|'activities'|null;
 export function clubGuide(question:string,intent:'equipment'|'activities',signedIn?:boolean):{
   status:'answered'|'handoff';answer:string;
   citations:Array<{chunkId:string;title:string;url:string;claim:string;sourceName:string;locator:null;effectiveAt:null;reviewedAt:null}>;

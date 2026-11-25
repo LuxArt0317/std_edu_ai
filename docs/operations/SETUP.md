@@ -2,7 +2,7 @@
 
 ## Account assistant verification and conversations
 
-The existing server-only `OPENAI_API_KEY` powers drafting and independent verification. Optional `OPENAI_VERIFICATION_MODEL` selects the verifier/correction/planner model; it otherwise uses `OPENAI_PUBLIC_MODEL`, then `OPENAI_MODEL`, then the existing default. Never use a `VITE_` variable for the provider key. There is no separate MCP server or LangSmith tracing/checkpoint requirement.
+The existing server-only `OPENAI_API_KEY` powers drafting and independent verification. Optional `OPENAI_VERIFICATION_MODEL` selects the standard verifier, correction and planner model. It otherwise uses `OPENAI_PUBLIC_MODEL`, `OPENAI_MODEL`, or `gpt-5.6-terra` in that order. A deeper revision uses medium reasoning with the configured standard model. Set the server-only `OPENAI_VERIFICATION_ESCALATION_MODEL` to compare a stronger model such as `gpt-6.1-sol` on the protected Preview. Measure verified answer quality, provider access and response time before rollout. Keep the provider key in server-only environment variables. There is no separate MCP server or LangSmith tracing/checkpoint requirement.
 
 Apply the independent assistant migration using `npm run db:plan -- --only=20261112120000` followed by `npm run db:deploy -- --only=20261112120000` after checking the exact client project. Account chats require this schema. Guest chats remain tab-local; signed-in conversations use the existing School Affairs Google session. Limits: 100 account conversations, 20 cached tab conversations, 24 messages per chat, no saved image bytes or executable action payloads. Conflicting edits require an explicit reload; action confirmation uses durable replay IDs.
 
@@ -134,3 +134,11 @@ The verified Vercel Hobby project is limited to 12 functions. `/api/affairs-conv
 For owned Moodle course section placement and administrator maintenance, follow [course content QA](../qa/DTM_COURSE_CONTENT.md). Apply only the reviewed additive migration after its exact-client rollback preflight; never infer activity data from the source capture.
 
 Moodle material destinations are stored separately in `dtm_materials.target_url`; existing `source_url` is provenance only. The existing personal material editor accepts a destination. See [resource QA](../qa/DTM_COURSE_RESOURCE.md) for verification and migration requirements.
+
+## Manual local agent review
+
+`npm run dev:local` starts Vite and the actual Node API handlers together at `http://127.0.0.1:5173`. Stop a previous Vite server using that port first. Ignored `.env.local` must contain the client Supabase configuration and server-only model key. Requests to `/api` execute the local checkout, including the hybrid planner; the response header `X-STU-Local-Agent: hybrid-plan-react` identifies the local adapter. `LOCAL_PORT` changes the listener. Restart after backend edits. Google callback origins must match the configured Auth allowlist. Online provider usage and database writes remain real; this is not an isolated database. This adapter avoids the observed Vercel native CLI `spawn EBADF` failure without publishing anything.
+
+### Expanded local context and model selection
+
+The local configuration currently selects `gpt-6.2-astra` for generation, verification, escalation and web search, with `OPENAI_REASONING_EFFORT=medium`. These are ignored local environment overrides, not production changes. The model metadata endpoint confirmed access; exhausted credits still prevent acceptance of inference behavior. See [official migration guidance](https://developers.openai.com/api/docs/guides/latest-model/gpt-6.2-astra.md#migration-quickstart). History input now includes up to the 24 retained messages with a 64 KB UTF-8 cap, rather than six short messages. Durable conversations still have their existing 24-message/size limits. Unlimited archival memory would require separately reviewed paginated storage, retention and retrieval; no database migration was performed here. Restart the local runner after backend or environment changes.

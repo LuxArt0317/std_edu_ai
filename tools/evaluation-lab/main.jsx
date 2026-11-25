@@ -1,8 +1,9 @@
+import {qualityOverview,matchesQuality,questionQuality,qualityTone} from './quality-summary.mjs';
+import {runParallelCases, createPacedDispatch} from "./parallel-runs.mjs";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import ReactMarkdown from "react-markdown";
-import { AssistantMarkdown } from "../../src/features/school/portal/AssistantMarkdown.tsx";
-import { ActivityTimeline } from "../../src/features/public/AssistantActivity.tsx";
+import { LabChatMessage } from "./LabChatMessage.jsx";
 import {
   Play,
   Square,
@@ -27,7 +28,8 @@ import {
   Paperclip,
 } from "lucide-react";
 import { affairsClient } from "../../src/features/public/affairs/authClient.ts";
-import { readAssistantReply } from "../../src/services/assistantStreamReader.js";
+import {askWebsiteAssistant} from "../../src/services/websiteAssistant.ts";
+import {createLabChatTransport} from "./chat-transport.mjs";
 import "./style.css";
 const hosted = !["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
 const apiUrl = (operation) => {
@@ -77,7 +79,7 @@ async function request(operation, body, signal) {
     signal,
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Request failed");
+  if (!response.ok) throw Object.assign(new Error(payload.error || "Request failed"), {status:response.status});
   await hydrateImages(payload);
   return payload;
 }
@@ -96,16 +98,7 @@ const scoreClass = (score) =>
       : score >= 60
         ? "mixed"
         : "poor";
-const scoreLabel = (run) =>
-  !run
-    ? "Not run"
-    : run.error || run.statusCode >= 400
-      ? "Error"
-      : run.matchScore === null
-        ? "Unscored"
-        : run.grade.passed
-          ? "Passed"
-          : "Needs review";
+const runQuality = run => questionQuality({id:run.caseId,version:run.caseVersion},[run]);
 const attachmentUrl = (file) =>
   hosted
     ? imageUrls.get(file.id)
@@ -118,106 +111,20 @@ function imageData(file) {
     reader.readAsDataURL(file);
   });
 }
-function safeLink(value) {
-  try {
-    const url = new URL(value, window.location.origin);
-    return ["http:", "https:", "mailto:"].includes(url.protocol) ? value : null;
-  } catch {
-    return null;
-  }
-}
-function AnswerExtras({ result }) {
-  return (
-    <>
-      {result.verification && (
-        <p className="chat-verification">
-          {result.verification.status === "verified"
-            ? "Checked against the selected evidence"
-            : "Not confirmed yet"}
-        </p>
-      )}
-      {result.views?.map((view) => (
-        <details className="chat-records" key={view.id}>
-          <summary>
-            {view.title} · {view.total} retrieved
-          </summary>
-          <div className="record-scroll">
-            <table>
-              <thead>
-                <tr>
-                  {view.columns.map((column, index) => (
-                    <th key={index}>{column}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {view.rows.map((cells, index) => (
-                  <tr key={index}>
-                    {cells.map((cell, index) => (
-                      <td key={index}>{String(cell)}</td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p>{view.note}</p>
-          {safeLink(view.url) && (
-            <a href={view.url} target="_blank" rel="noreferrer">
-              Open records ↗
-            </a>
-          )}
-        </details>
-      ))}
-      {result.citations?.length > 0 && (
-        <div className="chat-sources">
-          <h4>Sources</h4>
-          {result.citations
-            .filter((citation) => safeLink(citation.url))
-            .map((citation, index) => (
-              <a
-                href={citation.url}
-                target="_blank"
-                rel="noreferrer"
-                key={index}
-              >
-                <span>{index + 1}</span>
-                {citation.title || citation.sourceName || citation.url}
-                <ArrowUpRight size={12} />
-              </a>
-            ))}
-        </div>
-      )}
-      {result.proposedAction && (
-        <div className="chat-proposal">
-          <strong>{result.proposedAction.label || "Proposed action"}</strong>
-          <p>
-            Preview only. Answer Lab never confirms or executes proposed
-            actions.
-          </p>
-        </div>
-      )}
-      {result.suggestedQuestions?.length > 0 && (
-        <div className="chat-suggestions">
-          {result.suggestedQuestions.map((question, index) => (
-            <span key={index}>{question}</span>
-          ))}
-        </div>
-      )}
-    </>
-  );
-}
 function App() {
   const [data, setData] = useState(null),
     [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
+  const [scoreFilter,setScoreFilter]=useState('all'),[scoreModel,setScoreModel]=useState('selected'),
+    [minimumScore,setMinimumScore]=useState(0),[maximumScore,setMaximumScore]=useState(100),[scoreSort,setScoreSort]=useState('question');
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [progress, setProgress] = useState(null),
-    [live, setLive] = useState([]),
-    [autoJudge, setAutoJudge] = useState(false),
+    [live, setLive] = useState({}),
+    [concurrency, setConcurrency] = useState(3),
+    [autoJudge, setAutoJudge] = useState(true),
     [judging, setJudging] = useState(false);
   const [model, setModel] = useState(""),
     [evaluatorModel, setEvaluatorModel] = useState(""),
@@ -232,8 +139,8 @@ function App() {
     [tab, setTab] = useState("review"),
     [sidebar, setSidebar] = useState(true);
   const abort = useRef(null),
-    current = useRef(null),
-    lastDispatch = useRef(0);
+    judgeCount = useRef(0),
+    dispatchSlot = useRef(createPacedDispatch());
   useEffect(() => {
     request("state")
       .then((value) => {
@@ -408,17 +315,14 @@ function App() {
   const cases = data?.cases || [],
     runs = data?.runs || [],
     row = cases.find((item) => item.id === selected);
-  const latest = useMemo(
-    () => new Map(runs.map((run) => [run.caseId, run])),
-    [runs],
-  );
+  const quality=useMemo(()=>qualityOverview(cases,runs,scoreModel==='all'?'':scoreModel==='selected'?model:scoreModel),[cases,runs,scoreModel,model]);
   const caseRuns = runs
     .filter((run) => run.caseId === selected)
     .slice()
     .reverse();
   const run =
     (historyId && caseRuns.find((item) => item.id === historyId)) ||
-    caseRuns[0];
+    (scoreModel==='all'?caseRuns[0]:quality.byId.get(selected)?.run);
   const visible = cases
     .filter((item) =>
       filter === "archived" ? Boolean(item.archivedAt) : !item.archivedAt,
@@ -430,26 +334,20 @@ function App() {
           .includes(query.toLowerCase()) &&
         (filter === "all" ||
           filter === "archived" ||
-          (filter === "unrun" && !latest.has(item.id)) ||
+          (filter === "unrun" && quality.byId.get(item.id).status==='unrun') ||
           (filter === "review" &&
-            latest.has(item.id) &&
-            !latest.get(item.id).grade.passed) ||
+            ['scored','error','outdated'].includes(quality.byId.get(item.id).status) &&
+            !quality.byId.get(item.id).meetsTarget) ||
           (filter === "account" && item.scope === "account")),
     );
-  const domains = [...new Set(visible.map((item) => item.domain))];
-  const enabled = cases.filter((item) => item.enabled && !item.archivedAt),
-    completed = cases.filter((item) => latest.has(item.id)),
-    passed = completed.filter(
-      (item) =>
-        latest.get(item.id).grade.passed &&
-        latest.get(item.id).matchScore !== null,
-    ),
-    scored = completed
-      .map((item) => latest.get(item.id).matchScore)
-      .filter((value) => typeof value === "number");
-  const average = scored.length
-    ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length)
-    : null;
+  const filteredQuestions=visible.filter(item=>matchesQuality(quality.byId.get(item.id),scoreFilter,minimumScore,maximumScore)).sort((a,b)=>{
+    const left=quality.byId.get(a.id).score,right=quality.byId.get(b.id).score;
+    if(scoreSort==='question')return a.id.localeCompare(b.id,undefined,{numeric:true});
+    if(left===null||right===null)return left===null?(right===null?0:1):-1;
+    return scoreSort==='low'?left-right:right-left;
+  });
+  const domains = [...new Set(filteredQuestions.map((item) => item.domain))];
+  const enabled = cases.filter((item) => item.enabled && !item.archivedAt);
   async function updateCase(value) {
     const result = await request("case", { case: value });
     setData((previous) => ({
@@ -557,6 +455,7 @@ function App() {
     }
   }
   async function evaluateRun(value, signal) {
+    judgeCount.current++;
     setJudging(true);
     try {
       const result = await request(
@@ -564,7 +463,7 @@ function App() {
         { runId: value.id, model: evaluatorModel, reasoning },
         signal,
       );
-      setData((previous) => ({
+      setData((previous) => previous ? ({
         ...previous,
         runs: previous.runs.map((item) =>
           item.id === value.id
@@ -578,18 +477,14 @@ function App() {
               }
             : item,
         ),
-      }));
-    } catch (error) {
-      try {
-        setData(await request("state"));
-      } catch {}
-      throw error;
+      }) : previous);
     } finally {
-      setJudging(false);
+      judgeCount.current--;
+      setJudging(judgeCount.current > 0);
     }
   }
   async function execute(ids) {
-    if (busy || judging) return;
+    if (abort.current || busy || judging) return;
     setError("");
     setNotice("");
     setBusy(true);
@@ -597,37 +492,26 @@ function App() {
     const controller = new AbortController();
     abort.current = controller;
     const batchId = crypto.randomUUID();
-    let count = 0;
+    let count = 0, active = 0;
+    const items = [...new Set(ids)].map(id=>cases.find(item=>item.id===id)).filter(item=>item&&!item.archivedAt);
+    setSelected(items[0]?.id || selected);
+    setLive({});
+    const updateProgress = () => setProgress({done:count,total:items.length,active,concurrency});
+    const updateCaseActivity = (id, update) => setLive(previous=>({...previous,[id]:update(previous[id]||{phase:'waiting',activity:[]})}));
+    updateProgress();
     try {
-      for (const id of ids) {
-        if (controller.signal.aborted) break;
-        const item = cases.find((value) => value.id === id);
-        if (!item || item.archivedAt) continue;
-        current.current = id;
-        setSelected(id);
-        setLive([]);
-        setProgress({
-          done: count,
-          total: ids.length,
-          question: item.question,
-        });
-        const delay = Math.max(0, lastDispatch.current + 5200 - Date.now());
-        if (delay)
-          await new Promise((resolve) => {
-            const finish = () => {
-              clearTimeout(timer);
-              controller.signal.removeEventListener("abort", finish);
-              resolve();
-            };
-            const timer = setTimeout(finish, delay);
-            controller.signal.addEventListener("abort", finish, { once: true });
-          });
-        if (controller.signal.aborted) break;
-        lastDispatch.current = Date.now();
+      const batch = await runParallelCases(items, {concurrency,signal:controller.signal,
+        run: async (item, control) => {
+        active++; updateProgress();
+        updateCaseActivity(item.id, state=>({...state,phase:'waiting'}));
+        try {
+        if (!await dispatchSlot.current(controller.signal) || control.isStopped()) return;
+        updateCaseActivity(item.id, state=>({...state,phase:'working'}));
         const start = performance.now();
         let body = {},
           statusCode = 0,
-          runError = null;
+          runError = null,
+          execution = {client:'website-assistant',authenticated:false,route:item.route,dispatched:[]};
         try {
           const auth = await affairsClient?.auth.getSession();
           const signed = auth?.data.session;
@@ -648,46 +532,17 @@ function App() {
               };
             }),
           );
-          const response = await fetch(
-            hosted
-              ? apiUrl(item.scope === "account" ? "run-account" : "run-public")
-              : item.endpoint,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                "X-STU-Evaluation-Model": model,
-                "X-STU-Evaluation-Reasoning": reasoning,
-                ...(hosted || item.scope === "account"
-                  ? { Authorization: "Bearer " + signed.access_token }
-                  : {}),
-              },
-              body: JSON.stringify({
-                question: item.question,
-                route: item.route,
-                history: item.history || [],
-                images,
-                stream: true,
-                consentedResearchUse: false,
-              }),
-              signal: controller.signal,
-            },
-          );
-          statusCode = response.status;
-          if (
-            response.ok &&
-            response.headers.get("X-STU-Evaluation-Model") !== model
-          )
-            throw new Error("The API did not acknowledge the selected model.");
-          body = await readAssistantReply(response, (step) =>
-            setLive((previous) => {
-              const next = previous.filter((item) => item.kind !== step.kind);
-              return [...next, step];
-            }),
-          );
-          if (!response.ok)
-            runError = body.error || "The assistant request failed.";
+          const dispatched=[];
+          const transport=createLabChatTransport({model,reasoning,hosted,authorization:signed?'Bearer '+signed.access_token:undefined,onDispatch:path=>dispatched.push(path)});
+          body = await askWebsiteAssistant({
+            userId:signed?.user.id,question:item.question,route:item.route,history:item.history||[],images,
+            signal:controller.signal,transport,
+            onProgress:step=>updateCaseActivity(item.id,state=>({...state,activity:[...state.activity.filter(value=>value.kind!==step.kind),step]})),
+          });
+          statusCode=200;
+          execution={client:'website-assistant',authenticated:Boolean(signed),entryPoint:signed?'school-affairs-client':'public-client',route:item.route,dispatched};
         } catch (reason) {
+          statusCode=reason.status||statusCode;
           runError = controller.signal.aborted
             ? "Cancelled by you."
             : reason.message;
@@ -700,41 +555,51 @@ function App() {
           statusCode,
           model,
           reasoning,
+          execution,
           elapsedMs: Math.round(performance.now() - start),
           error: runError,
         });
-        setData((previous) => ({
+        setData((previous) => previous ? ({
           ...previous,
           runs: [...previous.runs, result.run],
-        }));
-        count++;
-        setProgress((previous) => ({ ...previous, done: count }));
+        }) : previous);
+        if(item.id===items[0]?.id)setHistoryId(result.run.id);
+        updateCaseActivity(item.id, state=>({...state,phase:'evaluating'}));
         if (statusCode === 429) {
           setNotice(
-            "Batch stopped at the request limit. Completed answers are saved; wait before rerunning the remaining questions.",
+            "Request limit reached: queued questions stopped. In-flight answers will finish and be saved.",
           );
-          break;
+          control.stop();
+          count++;
+          return;
         }
         if (
           autoJudge &&
           !runError &&
           body.answer &&
+          !control.isStopped() &&
           !controller.signal.aborted
         ) {
           try {
             await evaluateRun(result.run, controller.signal);
           } catch (reason) {
+            if(reason.status===429)control.stop();
             if (!controller.signal.aborted)
-              setNotice("Answer saved. " + reason.message);
+              setNotice("Answer saved. " + reason.message + (reason.status===429?' Queued questions stopped.':''));
           }
         }
-      }
+        count++;
+        } finally {
+          active--; updateProgress();
+          updateCaseActivity(item.id, state=>({...state,phase:'complete'}));
+        }
+      }});
+      if(batch.errors.length&&!controller.signal.aborted)setError(`${batch.errors.length} case(s) could not be saved: ${batch.errors[0].error.message}`);
     } catch (reason) {
       if (!controller.signal.aborted) setError(reason.message);
     } finally {
       setBusy(false);
-      setLive([]);
-      current.current = null;
+
       abort.current = null;
       setProgress(null);
     }
@@ -821,6 +686,7 @@ function App() {
       <aside className="sidebar">
         <div className="rail-heading">
           <span>QUESTION LIBRARY</span>
+          <button className="icon-button" aria-label="Hide question list" onClick={()=>setSidebar(false)}><PanelLeftClose size={17}/></button>
           <button
             className="icon-button"
             aria-label="Add a question"
@@ -854,19 +720,34 @@ function App() {
             <option value="archived">Deleted questions</option>
           </select>
         </div>
+        <div className="quality-filters">
+          <label>Scores for<select aria-label="Score model scope" value={scoreModel} onChange={event=>setScoreModel(event.target.value)}>
+            <option value="selected">Selected answer model</option><option value="all">All answer models</option>{[...new Set(runs.map(run=>run.model).filter(Boolean))].sort().map(name=><option key={name} value={name}>{name}</option>)}
+          </select></label>
+          <label>AI match score<select aria-label="Filter by AI score" value={scoreFilter} onChange={event=>setScoreFilter(event.target.value)}>
+            <option value="all">All scores and statuses</option><option value="target">On target · 70% or higher</option>
+            <option value="below70">Needs improvement · below 70%</option><option value="85plus">Strong · 85–100%</option>
+            <option value="custom">Custom percentage range</option><option value="unrun">Not run</option>
+            <option value="unreviewed">Awaiting AI review</option><option value="error">Failed runs</option><option value="outdated">Reference changed</option>
+          </select></label>
+          {scoreFilter==='custom'&&<div className="score-range"><label>Minimum %<input aria-label="Minimum AI score" type="number" min="0" max="100" value={minimumScore} onChange={event=>setMinimumScore(Math.max(0,Math.min(100,Number(event.target.value))))}/></label><span>to</span><label>Maximum %<input aria-label="Maximum AI score" type="number" min="0" max="100" value={maximumScore} onChange={event=>setMaximumScore(Math.max(0,Math.min(100,Number(event.target.value))))}/></label></div>}
+          {minimumScore>maximumScore&&scoreFilter==='custom'&&<small role="status">Minimum must be no greater than maximum.</small>}
+          <label>Order<select aria-label="Sort by AI score" value={scoreSort} onChange={event=>setScoreSort(event.target.value)}><option value="question">Question number</option><option value="low">Lowest score first</option><option value="high">Highest score first</option></select></label>
+          <span className="quality-count">Showing {filteredQuestions.length} of {cases.filter(item=>filter==='archived'?item.archivedAt:!item.archivedAt).length} questions · sorted within each topic</span>
+        </div>
         <div className="question-list">
           {domains.map((domain) => (
             <details key={domain} open>
               <summary>
                 {domain.replaceAll("-", " ")}
                 <span>
-                  {visible.filter((item) => item.domain === domain).length}
+                  {filteredQuestions.filter((item) => item.domain === domain).length}
                 </span>
               </summary>
-              {visible
+              {filteredQuestions
                 .filter((item) => item.domain === domain)
                 .map((item, index) => {
-                  const latestRun = latest.get(item.id);
+                  const itemQuality=quality.byId.get(item.id);
                   return (
                     <div
                       className={
@@ -887,21 +768,19 @@ function App() {
                           setSelected(item.id);
                           setHistoryId("");
                           setTab("review");
+                          if(window.matchMedia('(max-width:590px)').matches)setSidebar(false);
                         }}
                       >
+                        <span className="question-score-heading"><span>{item.id.match(/q\d+$/i)?.[0]?.toUpperCase()||item.id}</span><span className={'quality-badge '+qualityTone(itemQuality)}>{itemQuality.score===null?itemQuality.label:itemQuality.score+'% AI match'}</span></span>
                         <span className="question-title">{item.question}</span>
+                        {itemQuality.score!==null&&<span className="quality-meter" role="meter" aria-label={'AI match for '+item.question} aria-valuemin={0} aria-valuemax={100} aria-valuenow={itemQuality.score}><span style={{width:itemQuality.score+'%'}} className={qualityTone(itemQuality)}/></span>}
                         <span className="route-caption">{item.route}</span>
+                        {busy && live[item.id] && live[item.id].phase!=='complete' && <span className="route-caption" role="status">{live[item.id].phase==='working'?'Generating answer':live[item.id].phase==='evaluating'?'Evaluating answer':'Waiting for request slot'}</span>}
                         <span className="question-meta">
                           {item.scope === "account"
                             ? "Account required"
                             : "Public"}
-                          <span className={scoreClass(latestRun?.matchScore)}>
-                            {latestRun
-                              ? latestRun.matchScore === null
-                                ? scoreLabel(latestRun)
-                                : latestRun.matchScore + "%"
-                              : "Not run"}
-                          </span>
+                          <span>{itemQuality.score!==null?itemQuality.label:itemQuality.status==='outdated'?'Run again for current reference':'—'}</span>
                         </span>
                       </button>
                     </div>
@@ -909,7 +788,7 @@ function App() {
                 })}
             </details>
           ))}
-          {!visible.length && (
+          {!filteredQuestions.length && (
             <p className="no-matches">No matching questions.</p>
           )}
         </div>
@@ -988,7 +867,14 @@ function App() {
             </small>
           </div>
         </section>
+        <p className="muted">Chat session: {session?'signed in to School Affairs':'guest'}. Uses the same chat flow as the website; account questions require sign-in.</p>
         <section className="model-settings">
+          <label>
+            Parallel runs
+            <select aria-label="Parallel runs" value={concurrency} disabled={busy || judging || saving} onChange={event=>setConcurrency(Number(event.target.value))}>
+              {[1,2,3,4].map(value=><option key={value} value={value}>{value===1?'1 · Sequential':`${value} at a time`}</option>)}
+            </select>
+          </label>
           <label>
             Agent model
             <select
@@ -1047,45 +933,14 @@ function App() {
             replaces an earlier answer.
           </p>
         </section>
-        <section className="stats">
-          <div>
-            <span>Questions</span>
-            <strong>
-              {cases.length}
-              <small>{enabled.length} enabled</small>
-            </strong>
-          </div>
-          <div>
-            <span>Evaluated</span>
-            <strong>
-              {completed.length}
-              <small>of {cases.length}</small>
-            </strong>
-          </div>
-          <div>
-            <span>Contract passed</span>
-            <strong>
-              {passed.length}
-              <small>
-                {completed.length
-                  ? Math.round((100 * passed.length) / completed.length) +
-                    "% of evaluated"
-                  : "No runs yet"}
-              </small>
-            </strong>
-          </div>
-          <div>
-            <span>Average rule match</span>
-            <strong>
-              {average === null ? "—" : average + "%"}
-              <small>
-                {scored.length
-                  ? "Across scored latest runs"
-                  : "Run a question to begin"}
-              </small>
-            </strong>
-          </div>
+        <section className="stats" aria-label="Current AI evaluation overview">
+          <div><span>Active questions</span><strong>{quality.total}<small>{enabled.length} enabled</small></strong></div>
+          <div><span>AI reviewed</span><strong>{quality.reviewed}<small>of {quality.total} questions · current references</small></strong></div>
+          <div><span>On target · ≥70%</span><strong>{quality.target}<small>{quality.reviewed?Math.round(100*quality.target/quality.reviewed)+'% of reviewed':'No AI reviews yet'}</small></strong></div>
+          <div><span>Average AI match</span><strong>{quality.average===null?'—':quality.average+'%'}<small>Reviewed latest attempts</small></strong></div>
         </section>
+        <div className="quality-explanation"><strong>{scoreModel==='selected'?model:scoreModel==='all'?'All answer models':scoreModel}</strong> · Latest attempt per question, current reference only. {quality.unrun} not run · {quality.unreviewed} awaiting review · {quality.errors} failed · {quality.outdated} outdated. Scores are AI estimates of reference agreement, not a guarantee of correctness. Model-composed and prepared replies can both be scored.</div>
+        {quality.reviewed===0&&scoreModel!=='all'&&runs.some(item=>Number.isFinite(item.judge?.score))&&<p className="quality-scope-hint">This model has no current AI-reviewed answers yet. <button className="text-button" onClick={()=>setScoreModel('all')}>View saved scores from all models</button></p>}
         {progress && (
           <div className="batch-progress" role="status">
             <LoaderCircle className="spin" size={16} />
@@ -1097,7 +952,7 @@ function App() {
                 style={{ width: (100 * progress.done) / progress.total + "%" }}
               />
             </div>
-            <span className="progress-question">{progress.question}</span>
+            <span className="progress-question">{progress.active} active · up to {progress.concurrency} parallel · starts paced for request limits</span>
           </div>
         )}
         {error && (
@@ -1251,11 +1106,9 @@ function App() {
                           </small>
                         </span>
                         <span
-                          className={"score " + scoreClass(item.matchScore)}
+                          className={"score " + qualityTone(runQuality(item))}
                         >
-                          {item.matchScore === null
-                            ? "Unscored"
-                            : item.matchScore + "%"}
+                          {runQuality(item).score===null?runQuality(item).label:runQuality(item).score+'% AI'}
                         </span>
                         <ChevronRight size={16} />
                       </button>
@@ -1291,9 +1144,7 @@ function App() {
                     </div>
                     <div className="answer-body">
                       <ReactMarkdown>
-                        {(run && run.caseVersion !== row.version
-                          ? run.expectedAnswer
-                          : row.expectedAnswer) ||
+                        {row.expectedAnswer ||
                           "Add a reference answer before requesting an AI review."}
                       </ReactMarkdown>
                     </div>
@@ -1313,55 +1164,16 @@ function App() {
                       {run && (
                         <span
                           className={
-                            "status-label " + scoreClass(run.matchScore)
+                            "status-label " + qualityTone(questionQuality(row,[run]))
                           }
                         >
-                          {scoreLabel(run)}
+                          {questionQuality(row,[run]).score===null?questionQuality(row,[run]).label:questionQuality(row,[run]).score+'% AI match'}
                         </span>
                       )}
                     </div>
-                    <div className="chat-user">
-                      <span>You</span>
-                      <p>
-                        {run && run.caseVersion !== row.version
-                          ? run.question
-                          : row.question}
-                      </p>
-                      {(run && run.caseVersion !== row.version
-                        ? run.attachments
-                        : row.attachments
-                      )?.map((file) => (
-                        <a
-                          key={file.id}
-                          href={attachmentUrl(file)}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <img src={attachmentUrl(file)} alt={file.name} />
-                          <small>{file.name}</small>
-                        </a>
-                      ))}
-                    </div>
-                    {busy && current.current === row.id ? (
-                      <div className="running-state">
-                        <LoaderCircle className="spin" size={25} />
-                        <h3>The agent is working</h3>
-                        <p>
-                          Live tool activity appears below. This is a new
-                          request.
-                        </p>
-                        <div className="chat-activity">
-                          <ActivityTimeline
-                            message={{
-                              id: "running",
-                              role: "assistant",
-                              content: "",
-                              phase: "working",
-                              activity: live,
-                            }}
-                          />
-                        </div>
-                      </div>
+                    <LabChatMessage message={{id: "question", role: "user", content: run && run.caseVersion !== row.version ? run.question : row.question, images: (run && run.caseVersion !== row.version ? run.attachments : row.attachments)?.map(file=>({name:file.name,dataUrl:attachmentUrl(file)}))}} />
+                    {busy && ['waiting','working'].includes(live[row.id]?.phase) ? (
+                      <LabChatMessage message={{id:"running-"+row.id,role:"assistant",content:live[row.id]?.phase==='waiting'?'Waiting for a request slot…':'',phase:"working",activity:live[row.id]?.activity||[]}} />
                     ) : run ? (
                       <>
                         <div className="answer-body">
@@ -1372,25 +1184,7 @@ function App() {
                             </div>
                           )}
                           {run.response.answer ? (
-                            <div className="chat-assistant">
-                              <span className="chat-role">Assistant</span>
-                              <AssistantMarkdown>
-                                {run.response.answer}
-                              </AssistantMarkdown>
-                              <AnswerExtras result={run.response} />
-                              <div className="chat-activity">
-                                <ActivityTimeline
-                                  message={{
-                                    id: run.id,
-                                    role: "assistant",
-                                    content: run.response.answer,
-                                    phase: "complete",
-                                    activity: run.response.activity || [],
-                                    result: run.response,
-                                  }}
-                                />
-                              </div>
-                            </div>
+                            <LabChatMessage message={{id:run.id,role:"assistant",content:run.response.answer,phase:"complete",activity:run.response.activity||[],result:run.response}} />
                           ) : (
                             <p className="muted">
                               No answer was generated in this run.
@@ -1403,6 +1197,7 @@ function App() {
                           {run.response.grounding?.source === "conversation"
                             ? `Conversation reply · selected ${run.model}`
                             : `Selected ${run.model}`}
+                          {run.execution && <><span>·</span>{run.execution.authenticated ? "Signed-in chat" : "Guest chat"}<span>·</span>{run.execution.dispatched.length ? run.execution.dispatched.join(", ") : "Native client response"}</>}
                           <span>·</span>HTTP {run.statusCode || "—"}
                         </footer>
                       </>

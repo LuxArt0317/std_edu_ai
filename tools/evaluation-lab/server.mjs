@@ -4,7 +4,8 @@ import { randomUUID, createHash } from "node:crypto";
 import { evaluationModels, validateEvaluationModel } from "./models.mjs";
 import { withAssistantModel } from "../../server/assistantModelConfig.js";
 import { execFileSync } from "node:child_process";
-import { evaluationLabCases, faqImportVersion } from "./cases.mjs";
+import { evaluationLabCases, faqImportVersion, faqDocumentHash } from "./cases.mjs";
+import {syncReferenceCases} from "./reference-sync.mjs";
 import { gradeCase } from "../../tests/evaluation/grading.mjs";
 import { verificationModelCall } from "../../server/answerVerificationModel.js";
 const rubricSchema = {
@@ -88,35 +89,19 @@ export function createEvaluationLab(root, options = {}) {
     lock = task.catch(() => {});
     return task;
   }
-  // One-time dataset replacement requested by the user. Keep a private backup
-  // before clearing the old question bank and its visible result history.
+  // Source revisions update only document-owned case fields. Prior runs remain immutable.
   const initialized = (async () => {
-    if ((await load()).faqImportVersion === faqImportVersion) return;
-    return mutate(async (state) => {
-      if (state.faqImportVersion === faqImportVersion) return;
-      if (!options.storage) {
-        await mkdir(directory, { recursive: true, mode: 0o700 });
-        let previous;
-        try {
-          previous = await readFile(filename, "utf8");
-        } catch (error) {
-          if (error.code !== "ENOENT") throw error;
-        }
-        if (previous) {
-          const backup =
-            "before-survey-faq-" +
-            new Date().toISOString().replace(/[:.]/g, "-") +
-            ".json";
-          await writeFile(join(directory, backup), previous, {
-            mode: 0o600,
-            flag: "wx",
-          });
-        }
+    const documentHash=faqDocumentHash();
+    const current=await load();
+    if(current.faqImportVersion===faqImportVersion&&current.faqDocumentHash===documentHash)return;
+    return mutate(async state=>{
+      if(state.faqImportVersion===faqImportVersion&&state.faqDocumentHash===documentHash)return;
+      if(!options.storage){
+        await mkdir(directory,{recursive:true,mode:0o700});
+        const backup='before-reference-sync-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json';
+        await writeFile(join(directory,backup),JSON.stringify(state,null,2)+'\n',{mode:0o600,flag:'wx'});
       }
-      state.cases = evaluationLabCases();
-      state.runs = [];
-      state.faqImportVersion = faqImportVersion;
-      state.faqImportedAt = new Date().toISOString();
+      syncReferenceCases(state,evaluationLabCases(),{version:faqImportVersion,documentHash});
     });
   })();
   // Preserve rejection for the request error response without an unhandled promise.
@@ -147,11 +132,8 @@ export function createEvaluationLab(root, options = {}) {
     let requestInput;
     try {
       await initialized;
-      if (
-        !options.storage &&
-        req.headers.origin &&
-        req.headers.origin !== url.origin
-      )
+      if (!options.storage && req.headers.origin && req.headers.origin !== url.origin)
+
         return send(403, {
           error: "Use the evaluation workspace on this same local origin.",
         });
@@ -445,6 +427,13 @@ export function createEvaluationLab(root, options = {}) {
             reasoning: ["low", "medium", "high"].includes(input.reasoning)
               ? input.reasoning
               : "medium",
+            execution: input.execution?.client === "website-assistant" ? {
+              client: "website-assistant",
+              authenticated: input.execution.authenticated === true,
+              entryPoint: input.execution.entryPoint === "school-affairs-client" ? "school-affairs-client" : "public-client",
+              route: typeof input.execution.route === "string" ? input.execution.route.slice(0, 500) : "",
+              dispatched: Array.isArray(input.execution.dispatched) ? input.execution.dispatched.filter(path => ["/api/affairs-assistant", "/api/research-assistant"].includes(path)).slice(0, 20) : [],
+            } : null,
             attachments: structuredClone(row.attachments || []),
             elapsedMs: input.elapsedMs,
             statusCode: input.statusCode,

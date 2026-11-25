@@ -24,6 +24,12 @@ const outer=$('.stu-assistant-toggle').toString()+$('#stu-assistant-panel').toSt
 assert.ok(outer.includes('/campus-assistant?embed=1'));
 const fenced='\n\n```text\nBEGIN_'+('UNBROKEN_TOKEN_'.repeat(70))+'FENCE_END\n```';
 const messages=Array.from({length:20},(_,index)=>({id:`synthetic-${index}`,role:'assistant',phase:'complete',content:`Synthetic layout row ${index+1}.\n\n${'Readable conversation content. '.repeat(9)}${index===18?fenced:''}${index===19?'\n\n'+('long-token-'.repeat(100)):''}`}));
+const leaveId='4fe91ad8-0920-4ce5-8834-5dfee17ac271';
+const leaveProposal={kind:'create_student_leave_draft',label:'Save a Student Leave draft',requestId:leaveId,
+  url:'/school-affairs/services/leave/edit/'+leaveId,payload:{starts_on:'2026-11-18',ends_on:'2026-11-19',
+    leave_category:'sick',periods:'1–2',leave_time_period:'',notes:'Synthetic review reason'}};
+const leaveMessage={id:'synthetic-leave',role:'assistant',phase:'complete',content:'Review the draft below.',
+  result:{answer:'Review the draft below.',status:'answered',suggestedQuestions:[],citations:[],proposedAction:leaveProposal}};
 const entry=`import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {PublicAssistant} from '/src/features/public/PublicAssistant.tsx';
@@ -36,10 +42,18 @@ const user=window.__presentationSignedIn?{id:'00000000-0000-4000-8000-0000000000
 createRoot(document.getElementById('root')).render(React.createElement(AffairsContext.Provider,{value:{user,loading:false,error:''}},React.createElement('main',{className:'public-site-shell'},!user&&!embedded?React.createElement(PreviewNotice,{compact:true}):null,React.createElement('h1',null,'Synthetic presentation fixture'),React.createElement(PublicAssistant,{initialOpen:embedded,embedded}))));`;
 const sessionStub=`import {useState} from 'react';
 export function useAssistantSessions(){
-  const [messages,setMessages]=useState(${JSON.stringify(messages)});
+  const [messages,setMessages]=useState(location.search==='?leave-draft'?${JSON.stringify([leaveMessage])}:${JSON.stringify(messages)});
   return {messages,setMessages,active:{id:'synthetic-chat',version:1},conversations:[{id:'synthetic-chat',title:'Synthetic presentation conversation'}],unsavedConversationIds:[],loadingChat:false,syncing:false,syncError:'',persistenceStatus:'Synthetic local fixture',newChat:()=>setMessages([]),chooseChat:()=>{},deleteChat:()=>{},retrySync:()=>{}};
 }`;
-const blockedStub=`const blocked=()=>{window.__presentationBlockedCalls=(window.__presentationBlockedCalls||0)+1;throw Error('Network/service invocation is outside this presentation test');};export {blocked as askCampusAssistant,blocked as submitAssistantFeedback,blocked as askSchoolAffairsAssistant,blocked as performSchoolAffairsAction};`;
+const blockedStub=`const blocked=()=>{window.__presentationBlockedCalls=(window.__presentationBlockedCalls||0)+1;throw Error('Network/service invocation is outside this presentation test');};
+export {blocked as askCampusAssistant,blocked as submitAssistantFeedback,blocked as askSchoolAffairsAssistant};
+export async function performSchoolAffairsAction(action,options){
+  if(location.search!=='?leave-draft')return blocked();
+  const calls=window.__presentationActionCalls??=[];
+  calls.push({action,owner:options.expectedUserId});
+  return {id:calls.length===1?'4fe91ad8-0920-4ce5-8834-5dfee17ac272':action.requestId,
+    kind:'create_student_leave_draft',summary:'Saved your Student Leave draft'};
+}`;
 let server,browser;
 const results=[],pageErrors=[],blockedRequests=[];
 function document(body,embedded=false){return `<!doctype html><html lang="en"${embedded?' class="stu-assistant-embed"':''}><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Synthetic assistant presentation</title></head><body>${body}</body></html>`;}
@@ -150,8 +164,39 @@ try {
       }
     }finally{await context.close();}
   }
+  const leaveDrafts=[];
+  for(const width of [390,1440]){
+    const context=await browser.newContext({viewport:{width,height:900},serviceWorkers:'block'});
+    try{
+      await context.addInitScript(()=>{window.__presentationSignedIn=true;});
+      await context.route('**/*',route=>{
+        const url=new URL(route.request().url());
+        if(url.origin!==origin||url.pathname.startsWith('/api/')){blockedRequests.push({origin:url.origin,path:url.pathname});return route.abort();}
+        return route.continue();
+      });
+      const page=await context.newPage();page.on('pageerror',error=>pageErrors.push(error.message));
+      await page.goto(origin+'/__native?leave-draft');
+      await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
+      const review=page.getByText('Review action',{exact:true}).locator('..');
+      for(const item of ['2026-11-18 – 2026-11-19','Sick leave · 病假','1–2','Synthetic review reason'])
+        await review.getByText(item,{exact:true}).waitFor();
+      assert.equal(await page.evaluate(()=>window.__presentationActionCalls?.length??0),0);
+      const confirm=review.getByRole('button',{name:'Confirm action',exact:true});
+      await confirm.click();
+      await page.getByText('The action receipt could not be verified. Retry the same confirmation.',{exact:true}).waitFor();
+      await confirm.click();
+      const saved=page.getByRole('link',{name:'View updated records',exact:true});
+      await saved.waitFor();
+      assert.equal(await saved.getAttribute('href'),leaveProposal.url);
+      assert.equal(await confirm.count(),0);
+      const expected={action:{kind:leaveProposal.kind,payload:leaveProposal.payload,requestId:leaveId},
+        owner:'00000000-0000-4000-8000-000000000001'};
+      assert.deepEqual(await page.evaluate(()=>window.__presentationActionCalls),[expected,expected]);
+      leaveDrafts.push({width,reviewed:true,receiptRetry:true,link:leaveProposal.url});
+    }finally{await context.close();}
+  }
   assert.deepEqual(pageErrors,[]);assert.deepEqual(blockedRequests,[]);
-  const result={status:'passed',syntheticOnly:true,actualComponentAndIframe:true,states:results,apiCalls:0,modelCalls:0,externalRequests:0,pageErrors:0,limits:'Synthetic auth/session state; no real conversation persistence, API or model verification. Safe-area CSS is present; physical notched-device behavior is not claimed.'};
+  const result={status:'passed',syntheticOnly:true,actualComponentAndIframe:true,states:results,leaveDrafts,apiCalls:0,modelCalls:0,externalRequests:0,pageErrors:0,limits:'Synthetic auth/session state; no real conversation persistence, API or model verification. Safe-area CSS is present; physical notched-device behavior is not claimed.'};
   await writeFile(path.join(artifact,'result.json'),JSON.stringify(result,null,2)+'\n');
-  console.log(JSON.stringify({status:result.status,states:results.length,apiCalls:0,modelCalls:0,externalRequests:0,pageErrors:0,artifacts:'artifacts/assistant-presentation'}));
+  console.log(JSON.stringify({status:result.status,states:results.length,leaveDrafts:leaveDrafts.length,apiCalls:0,modelCalls:0,externalRequests:0,pageErrors:0,artifacts:'artifacts/assistant-presentation'}));
 }finally{await browser?.close();await server?.close();await rm(cache,{recursive:true,force:true});}

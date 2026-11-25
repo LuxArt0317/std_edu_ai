@@ -1,8 +1,20 @@
 import {createHash} from 'node:crypto';
-import captures from '../src/features/public/mirror/pages.json' with {type:'json'};
+import manifestCaptures from '../src/features/public/mirror/pages.json' with {type:'json'};
+import prospectus from './data/ipiac115.json' with {type:'json'};
+const captures=[...manifestCaptures,{source:prospectus.source,title:prospectus.title,route:prospectus.url,
+  file:prospectus.captureFile,checksum:prospectus.captureChecksum,capturedOn:prospectus.capturedOn}];
 import {detectAndExtractSource} from './knowledgeAcquisition.js';
+import {universityFoundingYearQuestion} from './currentStudyOwnerScope.js';
 
-const captureOrigin='https://stu.best';
+function captureOrigin(){
+  // Only the loopback development runner can select a local source origin.
+  if(process.env.VERCEL_ENV==='development'&&process.env.STU_LOCAL_CAPTURE_ORIGIN){
+    try {const url=new URL(process.env.STU_LOCAL_CAPTURE_ORIGIN);
+      if(url.protocol==='http:'&&url.hostname==='127.0.0.1'&&url.port&&!url.username&&!url.password&&url.pathname==='/'&&!url.search&&!url.hash)return url.origin;
+    }catch{}
+  }
+  return 'https://stu.best';
+}
 const maxCaptureBytes=4_000_000;
 const maxExcerptCharacters=18000;
 const reservedPath=/^\/(?:app|api|auth|signin|signout|school-affairs|dtm|student-sso)(?:\/|$)/i;
@@ -63,7 +75,78 @@ export function normalizePublicPageRoute(route) {
 }
 
 export function isPublicPageQuestion(question) {
-  return /\b(?:this|current|present)\s+(?:web\s*)?page\b|\bpage\s+(?:(?:that\s+)?i(?:'m| am)\s+(?:on|viewing|reading)|i (?:have )?opened)\b|(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:網頁|頁面|頁)/i.test(String(question));
+  return /\b(?:this|current|present)\s+(?:web\s*)?page\b|\bpage\s+(?:(?:that\s+)?i(?:'m| am)\s+(?:on|viewing|reading)|i (?:have )?opened)\b|(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:(?:在校學生|學生服務)\s*)?(?:網頁|頁面|頁)/i.test(String(question));
+}
+
+const pageMention='(?:this|the current|the present)\\s+(?:web\\s*)?page';
+const englishPageSummary=new RegExp(
+  `\\b(?:what(?: is| was|['’]s) ${pageMention} about|what (?:does|did) ${pageMention} (?:cover|discuss)|(?:summari[sz]e|describe|explain|give (?:me )?(?:a |an )?(?:brief )?(?:summary|overview) of) ${pageMention})\\b(?!['’]s\\b)`,'iu');
+const chinesePageSummary=/(?:這(?:個|一)?|此|本|目前(?:的)?|當前(?:的)?)\s*(?:(?:在校學生|學生服務)\s*)?(?:網頁|頁面|頁).{0,10}(?:關於什麼|主要內容|在說什麼|介紹什麼|有什麼內容)|(?:摘要|概述|總結).{0,12}(?:這(?:個|一)?|此|本).{0,8}(?:網頁|頁面|頁)/u;
+
+/** A page summary asks about the capture body, beyond its manifest identity. */
+export function isPublicPageSummaryQuestion(question) {
+  return englishPageSummary.test(String(question))||chinesePageSummary.test(String(question));
+}
+
+/** Route explicit institutional facts to their manifested primary source. */
+export function institutionalPublicCapture(question,route='') {
+  const text=String(question).normalize('NFKC').trim();
+  const about=publicPageForRoute('/關於樹德/');
+  const samePage=Boolean(about&&publicPageForRoute(route)?.route===about.route);
+  const institution=/\b(?:shu[-\s]?te(?: university)?|stu)\b|樹德(?:科技大學|科大)/iu;
+  const siteReference=/\b(?:the|this|our) (?:school|university)\b|本校|這所學校/iu.test(text)
+    && !/\b(?:school|university)\s+(?:of|named|called)\b/iu.test(text);
+  const contextualSchool=(samePage&&/\b(?:school|university)\b|學校|本校/iu.test(text))||siteReference;
+  const facts=/\b(?:found(?:er|ing|ed)s?|(?:school |educational |university )?mission|motto|educational philosophy|history|background|renamed)\b|創辦|創校|沿革|校史|校訓|治校理念|教育(?:使命|理念)|更名|改名/iu;
+  const otherScope=/\b(?:my|compare|versus|recent(?:ly)?|updated|changed|changes|admissions?|tuition|scholarships?|grades?|attendance|timetable|assignments?|deadlines?|registration|foundations?|departments?|clubs?|associations?|library|dormitories|housing)\b|我的|本人|個人|學號|比較|最近|更新|改變|招生|學費|獎學金|成績|出勤|課表|作業|截止|報名|校友會|系所|社團|圖書館|宿舍/iu;
+  return (institution.test(text)||contextualSchool)&&(facts.test(text)||institutionalFactRequest(text)==='founding-year')&&!otherScope.test(text)
+    ? publicPageForRoute('/關於樹德/') : null;
+}
+
+/** Exact questions whose complete answer can be projected from the About page. */
+export function institutionalFactRequest(question) {
+  const text=String(question).normalize('NFKC').toLowerCase().trim().replace(/[?.。]+$/u,'');
+  if(/^(?:what does shu[- ]te university say about its founding and educational mission|when was shu[- ]te university founded and what is its educational mission)$/u.test(text))return 'founding-and-mission';
+  if(universityFoundingYearQuestion(text))return 'founding-year';
+  if(/^(?:what is (?:the motto of shu[- ]te university|shu[- ]te university['’]s motto)|(?:請問\s*)?樹德(?:科技大學|科大)的?校訓(?:是)?什麼)$/u.test(text))return 'motto';
+  return null;
+}
+
+export function institutionalFactAnswer(context,question) {
+  const request=institutionalFactRequest(question);
+  const page=publicPageForRoute('/關於樹德/');
+  if(!request||!context?.contentAvailable||!page||context.page.route!==page.route||context.page.source!==page.source
+    ||context.page.capturedOn!==page.capturedOn||context.evidence.url!==page.route
+    ||context.evidence.id!=='public-page:'+createHash('sha256').update(page.route).digest('hex').slice(0,24))return null;
+  let snapshot;
+  try{snapshot=JSON.parse(context.evidence.content);}catch{return null;}
+  if(snapshot?.contentStatus!=='verified_snapshot'||snapshot.localUrl!==page.route||snapshot.originalSource!==page.source
+    ||snapshot.capturedOn!==page.capturedOn||typeof snapshot.excerpt!=='string')return null;
+  const chinese=/\p{Script=Han}/u.test(question);
+  let answer;
+  if(request==='motto'){
+    const mottos=[...snapshot.excerpt.matchAll(/「([\p{Script=Han}、]{4,32})」的校訓/gu)];
+    if(mottos.length!==1)return null;
+    const [,motto]=mottos[0];
+    answer=chinese?`樹德科技大學的校訓是「${motto}」。`:`Shu-Te University lists its motto as 「${motto}」.`;
+  }else{
+    const approvals=[...snapshot.excerpt.matchAll(/民國([1-9]\d{1,2})年奉准設校招生/gu)];
+    if(approvals.length!==1)return null;
+    const rocYear=Number(approvals[0][1]);
+    answer=chinese?`樹德科技大學於民國${rocYear}年（西元${rocYear+1911}年）獲准設校招生。`
+      :`Shu-Te University says it received approval to establish the school and admit students in ${rocYear+1911} (ROC year ${rocYear}).`;
+    if(request==='founding-and-mission'){
+      if(!snapshot.excerpt.includes('培養兼具人文與科技、組織領導與問題解決能力的專業人才')
+        ||!snapshot.excerpt.includes('落實現代大學理論與實務之平衡發展'))return null;
+      answer+=' Its educational mission emphasizes the humanities, technology, leadership, and problem-solving, and balancing theory with practice.';
+    }
+  }
+  const title=chinese?'關於樹德':'About Shu-Te University';
+  const provenance=chinese?`擷取日期：${page.capturedOn}`:`Source snapshot: ${page.capturedOn}.`;
+  return {status:'answered',answer:`${answer}\n\n[${title}](${page.route}) · ${provenance}`,
+    citations:[{chunkId:context.evidence.id,claim:answer,title,sourceName:`Public page snapshot · ${page.capturedOn}`,
+      url:page.route,locator:null,effectiveAt:null,reviewedAt:null}],
+    suggestedQuestions:[],grounding:{source:'public-page-context',webSearched:false,capturedOn:page.capturedOn,contentAvailable:true}};
 }
 
 async function captureBytes(response) {
@@ -98,7 +181,7 @@ export async function loadPublicPageContext(route,deadline,dependencies={}) {
   };
   try {
     if(!Number.isFinite(deadline)||deadline-Date.now()<750)throw new Error('capture_deadline');
-    const url=captureOrigin+page.file;
+    const url=captureOrigin()+page.file;
     const response=await (dependencies.fetchCapture||fetch)(url,{
       redirect:'error',signal:AbortSignal.timeout(Math.max(1,Math.min(5000,deadline-Date.now()))),
       headers:{Accept:'text/html'},
@@ -149,17 +232,22 @@ export function boundedPublicPageEvidence(context,{budget=6000}={}) {
   return render(low);
 }
 
-export function publicPageCandidate(context,question) {
+export function publicPageCandidate(context,question,{summary}={}) {
   const chinese=/[\u3400-\u9fff]/.test(question);
   const {page,evidence,contentAvailable}=context;
   const title=(page.title||(chinese?'目前公開頁面':'this public page')).replace(/[\\[\]]/g,'\\$&');
   const link=`[${title}](${page.route})`;
+  const snapshot=chinese?`擷取日期：${page.capturedOn}`:`Source snapshot: ${page.capturedOn}`;
+  const body=contentAvailable&&typeof summary==='string'
+    ?summary.split('\n').filter(line=>!/^(?:Source snapshot:\s*|擷取日期[：:]\s*)\d{4}-\d{2}-\d{2}[.。]?$/iu.test(line.trim())).join('\n').trim():'';
   const answer=(chinese?`這個頁面是 ${link}，為已儲存的學校公開頁面。`:`This is ${link}, a saved public school page.`)
-    +`\n\nSource snapshot: ${page.capturedOn}`
+    +(body?`\n\n${body}`:'')
+    +`\n\n${snapshot}`
+    +(contentAvailable&&summary===null?(chinese?'\n\n已核對頁面資訊，但未能驗證內文摘要。':'\n\nI could verify the page details, but I could not verify a summary of its contents.'):'')
     +(page.title?'':(chinese?'\n\n儲存的資料中沒有可核對的頁面標題。':'\n\nNo page title is available in the saved metadata.'))
     +(contentAvailable?'':(chinese?`\n\n目前只能核對${page.title?'頁面標題、':''}連結與擷取日期；頁面內文暫時無法讀取，因此不能確認內文細節。`:`\n\nI can verify the ${page.title?'page title, ':''}link and capture date, but the saved page text is unavailable, so I cannot verify its content details.`));
   return {status:'answered',answer,citations:[{
-    chunkId:evidence.id,claim:'Saved public page identity and capture date.',title:page.title,
+    chunkId:evidence.id,claim:body?'Saved page identity, capture date and content.':'Saved public page identity and capture date.',title:page.title,
     sourceName:`Public page snapshot · ${page.capturedOn}`,url:page.route,locator:null,effectiveAt:null,reviewedAt:null,
   }],suggestedQuestions:[],grounding:{source:'public-page-context',webSearched:false,capturedOn:page.capturedOn,contentAvailable},
   activity:[{kind:'page-context',label:chinese?'已核對目前頁面':'Checked the current page',detail:contentAvailable?(chinese?'已讀取並核對儲存的公開頁面。':'Read and checked the saved public page.'):(chinese?'已核對公開頁面資料；內文暫時無法讀取。':'Checked public page metadata; page text is unavailable.'),status:contentAvailable?'complete':'unavailable'}]};

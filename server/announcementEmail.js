@@ -1,7 +1,7 @@
 import {announcementDeliveryConfigured} from './announcementEmailDelivery.js';
 import {AffairsWorkspaceError} from './affairsWorkspace.js';
 import {readFeeRemissionJson} from './feeRemissionContract.js';
-import {announcementEmailPath,announcementEmailScope,parseAnnouncementEmail,validAnnouncementEmailChange} from './announcementEmailContract.js';
+import {announcementEmailForeignAnswer,announcementEmailInboxLimit,announcementEmailPath,announcementEmailScope,parseAnnouncementEmail,validAnnouncementEmailChange} from './announcementEmailContract.js';
 
 async function rpc(account,method,body){
   const timeout=Math.min(8000,(account.requestDeadline??Date.now()+8000)-Date.now());
@@ -17,24 +17,31 @@ async function rpc(account,method,body){
 }
 
 export async function readAnnouncementEmail(account,query){
-  const {scope,answer,...extra}=query;
-  if(scope!==announcementEmailScope||Object.keys(extra).length||(answer!==undefined&&!['en','zh'].includes(answer)))
+  const {scope,answer,inbox_receipt,...extra}=query;
+  if(scope!==announcementEmailScope||Object.keys(extra).length||(answer!==undefined&&!['en','zh'].includes(answer))
+    ||(inbox_receipt!==undefined&&(inbox_receipt!=='requested'||answer===undefined)))
     throw new AffairsWorkspaceError('請選擇公告郵件設定。',400);
   const record=parseAnnouncementEmail(await rpc(account,'affairs_read_announcement_email',{}),account.user.id);
   const deliveryConfigured=announcementDeliveryConfigured();
   if(!answer)return {...record,deliveryConfigured};
   const zh=answer==='zh',title=zh?'校園公告 E-MAIL 設定':'Announcement email settings';
-  const summary=!record.enabled
+  const summary=record.version===0
+    ?(zh?'此帳戶尚未儲存校園公告郵件設定，預設為關閉。':'This account has no saved announcement email preference. Email is off by default.')
+    :!record.enabled
     ?(zh?'您的校園公告郵件設定為關閉。':'Your announcement email preference is off.')
     :record.active?(zh?'您的校園公告郵件設定為開啟。':'Your announcement email preference is on.')
-      :(zh?'您的校園公告郵件設定已儲存，將於隔日生效。':'Your announcement email preference is saved and becomes active the following day.');
+      :(zh?'您的校園公告郵件設定已開啟，尚未生效。':'Your announcement email preference is enabled and scheduled to activate.');
   const availability=record.enabled&&!deliveryConfigured
     ?(zh?'此網站目前未設定公告郵件寄送。':'Announcement email delivery is currently unavailable.')
     :'';
-  return {status:'answered',answer:[summary,availability].filter(Boolean).join(' ')+'\n\n'+`[${title}](${announcementEmailPath})`,
+  const inbox=inbox_receipt==='requested'?(zh?'無法確認公告是否已寄達您的信箱。此設定只顯示已儲存的公告郵件偏好。':announcementEmailInboxLimit):null;
+  const activity=[{kind:'announcement-email',label:title,detail:summary,status:'complete'}];
+  if(inbox)activity.push({kind:'announcement-email-inbox-receipt',label:zh?'信箱寄達確認':'Inbox delivery confirmation',detail:inbox,status:'unavailable'});
+  const activation=record.enabled?(zh?'已儲存的生效時間：':'Saved activation time: ')+record.effectiveAt:null;
+  return {status:'answered',answer:[[summary,availability].filter(Boolean).join(' '),activation,inbox,`[${title}](${announcementEmailPath})`].filter(Boolean).join('\n\n'),
     citations:[{chunkId:'account:announcement-email',claim:summary,title,url:announcementEmailPath,sourceName:'My stu.best settings'}],
     suggestedQuestions:[],grounding:{source:'account',webSearched:false},
-    activity:[{kind:'announcement-email',label:title,detail:summary,status:'complete'}]};
+    activity};
 }
 
 export async function saveAnnouncementEmail(account,payload){
@@ -45,6 +52,7 @@ export async function saveAnnouncementEmail(account,payload){
 }
 
 export function announcementEmailGuide(question,intent){
+  if(intent==='foreign')return announcementEmailForeignAnswer(question);
   const zh=/[\u3400-\u9fff]/u.test(question),title=zh?'校園公告 E-MAIL 設定':'Announcement email settings';
   const url=intent==='status'?'/school-affairs/login?next='+encodeURIComponent(announcementEmailPath):announcementEmailPath;
   const summary=intent==='status'?(zh?'請先登入以查看您的公告郵件設定。':'Sign in to check your announcement email preference.')

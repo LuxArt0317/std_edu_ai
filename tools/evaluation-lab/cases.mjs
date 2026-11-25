@@ -1,27 +1,19 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import {createHash} from "node:crypto";
 
-export const faqImportVersion = "survey-faq-v1";
-const faqDocument = resolve(process.cwd(), "docs/guides/SURVEY_FAQ.md");
-const accountRoutes = new Map([
-  [3, "/school-affairs/services/39-1"],
-  [5, "/school-affairs/services/9-1"],
-  [12, "/school-affairs/services/leave/history"],
-  [13, "/school-affairs/services/11-2"],
-  [15, "/school-affairs/services/15-1"],
-  [16, "/school-affairs/services/11-1"],
-  [17, "/school-affairs/services/11-1"],
-  [18, "/school-affairs/services/13-1"],
-  [22, "/dtm/assignments"],
-  [24, "/dtm"],
-  [27, "/school-affairs/services/15-1"],
-  [49, "/school-affairs/services/47-1"],
-]);
+export const faqImportVersion = "spreadsheet-faq-v2";
+const faqDocument = resolve(process.cwd(), "docs/question-answer/README.md");
+export const faqDocumentHash=()=>createHash("sha256").update(readFileSync(faqDocument)).digest("hex");
+
 
 /** Import authored FAQ prose, without inventing keyword-based truth scores. */
 export function evaluationLabCases() {
   const markdown = readFileSync(faqDocument, "utf8").replace(/\r\n/g, "\n");
   const content = markdown.split("\n## Maintainer notes")[0];
+  const settingsText=markdown.match(/```evaluation-lab-config\s*\n([\s\S]*?)\n```/);
+  if(!settingsText)throw new Error("The reference README is missing evaluation settings.");
+  const settings=JSON.parse(settingsText[1]);
   const sections = [...content.matchAll(/^## (\d+)\. (.+)$/gm)];
   const questions = [
     ...content.matchAll(
@@ -36,13 +28,10 @@ export function evaluationLabCases() {
     const expectedAnswer = match[3].replace(/^\*\*Answer:\*\*\s*/, "").trim();
     if (!expectedAnswer)
       throw new Error(`FAQ Q${match[1]} has no expected answer.`);
-    const scope = accountRoutes.has(number) ? "account" : "public";
-    const firstLink = expectedAnswer.match(
-      /\]\((https:\/\/stu\.best\/[^\s)]*)\)/,
-    )?.[1];
-    const route =
-      accountRoutes.get(number) ||
-      (firstLink ? new URL(firstLink).pathname : "/");
+    const config=settings[`Q${String(number).padStart(2,"0")}`];
+    if(!config||!['public','account'].includes(config.scope)||typeof config.route!=='string'||!/^\/(?!\/)[^\s#]*$/.test(config.route))throw new Error(`Invalid evaluation settings for Q${match[1]}`);
+    const scope = config.scope;
+    const route = config.route;
     return {
       id: `survey-faq-q${match[1]}`,
       question: match[2].trim(),
@@ -58,7 +47,7 @@ export function evaluationLabCases() {
           : "/api/research-assistant",
       enabled: true,
       version: 1,
-      referenceOrigin: `Survey FAQ · Q${match[1]} · docs/guides/SURVEY_FAQ.md (24 Nov 2026). Personal questions require account facts; no fixed personal values are supplied.`,
+      referenceOrigin: `School question spreadsheet · row ${number} · docs/question-answer/README.md (25 Nov 2026). Personal questions require authorized account facts; no fixed personal values are supplied.`,
       expected: {
         behavior: "answer",
         requiredText: [],

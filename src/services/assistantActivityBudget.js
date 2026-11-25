@@ -1,5 +1,6 @@
 /** Shared browser/server limits for observable operations, never private reasoning. */
 export const MAX_ASSISTANT_ACTIVITY = 64;
+export const MAX_ASSISTANT_RECORD_COLUMNS = 8;
 export const ASSISTANT_ACTIVITY_BYTES = 16000;
 export const ASSISTANT_CONVERSATION_BYTES = 170000;
 const encoder = new TextEncoder();

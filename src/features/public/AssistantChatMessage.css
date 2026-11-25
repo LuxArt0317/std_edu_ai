@@ -1,0 +1,7 @@
+/* Shared message typography; used by the live chatbot and Answer Lab. */
+.assistant-chat-message .nexus-message-markdown {font-size:.875rem;line-height:1.65;overflow-wrap:anywhere;color:var(--foreground)}
+.assistant-chat-message .nexus-message-markdown p {margin:0 0 .75rem;color:inherit}
+.assistant-chat-message .nexus-message-markdown :is(ul,ol) {padding-inline-start:1.25rem;margin:.75rem 0}
+.assistant-chat-message .nexus-message-markdown a {text-decoration:underline;text-underline-offset:3px}
+.assistant-chat-message .nexus-message-markdown pre {max-width:100%;overflow-x:auto}
+.assistant-chat-message.public-assistant-user p {color:var(--primary-foreground)}

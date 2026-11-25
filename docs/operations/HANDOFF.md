@@ -1,3 +1,21 @@
+## Focused assistant production release [Issue #100]
+
+The production domain and client main are at `5440ba5`. The release answers campus Wi-Fi, a semester off and class leave using the matching campus instructions. It refuses other-student profile and announcement settings requests and can retry temporarily unavailable saved venue requests under the same account. The exact Preview and production passed five streaming prompts, three Chromium conversation reloads, four public route checks and an unauthenticated denial. The build uses the existing database schema. [Quality](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43789439646)
+
+## Confirmed Student Leave draft [Issue #100]
+
+The assistant can prepare and confirm a private draft in the existing Leave workspace. Local PostgreSQL verifies concurrent confirmation, one audit event, one receipt, refusal of changed replays and crossed access, and the manual form. Chromium verifies both review widths and the exact editor link with controlled receipts. New migration `20261116120000` awaits isolated hosted acceptance. [Leave draft evidence](../qa/STUDENT_LEAVE_ASSISTANT_EVIDENCE.md#confirmed-student-leave-draft)
+
+## Scoped assistant records and protected conversation candidate [Issue #100]
+
+The legacy actual-session test passed against production `076c79a`. The client database then had 171 migrations and 206 public tables after applying conversation coexistence migration `20261115230000` and Digital Academy metadata migration `20261115110100`. The protected `927ea4c` Preview saved and read back all four independently graded replies. Protected `a3da38a` passed a real third public review, eight Student Leave data fixture families and GitHub Quality. Hosted Digital Academy answers, protected HTTP delete acceptance, post-drain cutover, and broader model coverage remain open. [Evaluation evidence](../qa/ASSISTANT_SYSTEM_EVALUATION.md)
+
+The completed read-only preflight of `749fd3f` matched all 105 file fingerprints and verified 169 applied migrations, both pending revisions, the live v1 RPC and policies, and zero existing UUIDv7 conversations. The verified Supabase main branch serves both environments. The original protected Preview manifest opened in the authenticated browser, while the automated request returned HTTP 302. Account-status and the locally verified older-tab fix are outside this freeze. The newer runtime uses the locking compatibility RPC only for the legacy first-save shape during coexistence. [Preflight evidence](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6887882546)
+
+## Student club menu and foundation [Issue #98]
+
+Release `076c79a` previously served production as Vercel `4Gi741acYjhLKPYZiw4y9Af4FFNt`. Migration 20261115100000 brings the client to 169 migrations with 206 RLS-protected public tables. Five student club destinations add searchable clubs and activities, account-owned participation and memberships, and new-club applications with protected approval. Local and production actual JWT, exact cleanup, pinned browser, five guest assistant links, deployment shell, client verification and Quality 43575984434 passed. All 94 catalog routes passed navigation. University menu labels and destinations were verified. Each new source detail page returned CAPTCHA sign-in, so the rebuilt screens use the verified club shell with local controls. No student records were imported. Officer profile, roster and attendance maintenance and equipment management remain open. [Club services QA](../qa/CLUB_SERVICES.md)
+
 ## Private club activity attachments [Issue #98]
 
 Production e98e3f1 is live as Vercel 2X65ZvEwvLoUfN2UcDW9VsLtdsN5. Migration 20261115090000 brings the client to 168 migrations and retains 206 RLS-protected public tables. Proposal and closeout PDFs persist in a private table. The signed-in officer can save, replace or remove each attachment during its workflow window. SQL rollback and approval conflicts, real-JWT 2 MiB upload and download, cross-club isolation and cleanup, pinned browser, guest assistant, deployment shell, client verification and Quality 43574014749 passed. All 94 catalog URLs passed navigation. The university list showed both attachment columns. The upload and post-save views were unavailable. The local file controls accept one 2 MiB PDF per column. No university files were imported. Profile/roster editing, attendance import, equipment inventory and reports remain open. [Club services QA](../qa/CLUB_SERVICES.md)
@@ -592,3 +610,60 @@ The floating campus assistant on copied school pages embeds its chat in an ifram
 
 
 Full client verification passed after190000 at129 migrations/146 RLS tables: owner login/profile/CRUD cleanup, all public shell/assets, Edge authorization/directory and nonmutating OpenAI.
+
+### Issue #100 housing receipt and native Moodle grade checkpoint
+
+The isolated candidate extends the protected menu-context revision `4be7b0c`. Verify the candidate manifest and rerun Quality on its exact deployed tree. Keep production at the currently accepted revision until the signed-in model, persistence, independent review and cleanup gates pass. The protected four-turn replay remains outstanding. The receipt fixture requires the existing published period, and the new teaching cases are still unexecuted setup failures.
+
+### Issue #100 native Moodle assignment checkpoint
+
+Use the frozen assignment manifest against protected Preview base `eac8ecf0`. The change reuses the deployed assignment and grade RPCs. Verify Quality on the exact protected candidate and record the signed-in live replay separately. The native Moodle fixture and trusted reader observations must be present before the new cases can count as live coverage.
+
+### Issue #100 student leave checkpoint
+
+The leave checkpoint extends assignment Preview `20298f1` and includes the separate Moodle browser repair. It uses the existing account-owned leave and request tables. The scoped handler, fixture admissions and local browser tests use controlled data. Use disposable accounts and an independently pinned request observer for actual signed-in leave and transcript replay.
+
+### Native Moodle materials candidate [Issue #100]
+
+The candidate adds caller-bound list and exact material answers on the protected Student Leave release base. Native coverage includes bilingual list questions, resource metadata, exclusion and owner controls, exact guest return, missing records and a same-scope retry. Controlled API and browser checks completed. The hosted fixture and actual protected replay are still pending.
+
+### Combined assistant evidence [Issue #100]
+
+The combined candidate includes twelve native Moodle resource cases, thirty native internship cases, twenty-two static menu cases, the Custom menu browser boundary, and the two-owner leave fixture lifecycle. The fixture implementation was checked offline with the real scoped handlers and injected transaction transport. The release gate still requires pinned, authorized Preview observations, independent review and exact cleanup of any hosted fixtures.
+
+### Action and Moodle list candidate [Issue #100]
+
+Protected base `e0f0f4b` passed GitHub Quality and the hosted sign-in return checks. The follow-up contains explicit action staging and receipt validation, the exact Moodle assignment-list reader, and Student Leave UUID and offline observation corrections. Review the frozen candidate with the QA evidence. The protected runner must authenticate against the exact release before live model or fixture work.
+
+### Scoped confirmed tasks and account verification [Issue #100]
+
+Protected `0f3ac28` passed the complete task creation and completion packet for two disposable callers. It verified zero writes during proposals, exact audited mutations, idempotent and changed-body replays, crossed-owner denials and task/receipt/identity cleanup. The public release still serves `076c79a`. Continue the remaining protected read packets and the combined Quality gate before promotion. The new service routing repairs distinguish Student Health equipment from club equipment and preserve the exact service pages in guest and signed-in requests. Monthly tuition history needs the separate ledger migration and integration. Existing cumulative paid amounts have no transaction date.
+
+### Public assistant follow-up and verification [Issue #100]
+
+The [protected assistant Preview](https://stdedu-oq0kxivfi-v1-d286.vercel.app/campus-assistant)
+serves `57540ae0c2b6c29394e315467e6c92413a4f8807` on deployment
+`dpl_69HbzkmkxGM4AhAWDuqm752bMiVE`. Four pinned streamed requests passed independent
+checks. The storage request rejected two drafts, read an additional school source,
+and verified the limits of the available information on check three. Controlled
+endpoint tests exercise a verified fourth check, duplicate evidence, time limits
+and recovery after a missed source. The hosted fourth-check path has controlled
+coverage only. The protected browser link requires Vercel project access.
+Public production currently serves `076c79a`.
+
+### Dated tuition ledger [Issue #100]
+
+The student route is `/school-affairs/services/39-1/payment-history`. The staff
+entry point is the selected student's charge in `/school-affairs/admin/records`.
+Dated receipts and reversals stay connected to their charge. The monthly
+assistant answer excludes undated legacy amounts from date-based totals.
+
+Both `20261116000000` and `20261116010000` applied on the exact client after
+rollback-only inspection. Stored SQL matches the tracked migrations. The
+client catalog has 173 migrations and 207 public RLS tables. Existing charge
+amounts had no synthetic history assigned. Local browser tests include an
+identical retry across reload after a simulated lost receipt, reversal and
+owner scope. Four socket-only PostgreSQL tests confirmed independent backend
+lock behavior. Protected application revision `6006d87` is staged for paired
+signed-in acceptance. The live fixture must use disposable student identities
+and exact cleanup. Production application remains `076c79a`.

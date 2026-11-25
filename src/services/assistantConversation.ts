@@ -1,5 +1,6 @@
 import type { AssistantProgress, AssistantResponse } from './researchAssistant';
-import {boundedAssistantActivity,boundedAssistantText,boundedConversationMessages,reconcileAssistantActivity} from './assistantActivityBudget.js';
+import {MAX_ASSISTANT_RECORD_COLUMNS,boundedAssistantActivity,boundedAssistantText,boundedConversationMessages,reconcileAssistantActivity} from './assistantActivityBudget.js';
+import {maxPublicAnswerVerificationChecks} from './assistantVerificationLimits.js';
 
 export type AssistantMessage = {
   id: string;
@@ -41,7 +42,7 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
     if (!value || typeof value !== 'object') return [];
     const citation = value as Record<string,unknown>;
     if (typeof citation.url !== 'string' || !(/^(https?:\/\/|\/(?!\/))/.test(citation.url)) || typeof citation.title !== 'string') return [];
-    return [{chunkId:boundedAssistantText(String(citation.chunkId||citation.url),200),claim:boundedAssistantText(String(citation.claim||''),300),title:boundedAssistantText(citation.title,200),sourceName:boundedAssistantText(String(citation.sourceName||''),160),url:boundedAssistantText(citation.url,2000),locator:typeof citation.locator==='string'?boundedAssistantText(citation.locator,500):null,effectiveAt:typeof citation.effectiveAt==='string'?boundedAssistantText(citation.effectiveAt,50):null,reviewedAt:typeof citation.reviewedAt==='string'?boundedAssistantText(citation.reviewedAt,50):null}];
+    return [{chunkId:boundedAssistantText(String(citation.chunkId||citation.url),200),claim:boundedAssistantText(String(citation.claim||''),300),title:boundedAssistantText(citation.title,200),sourceName:boundedAssistantText(String(citation.sourceName||''),160),url:boundedAssistantText(citation.url,2000),locator:boundedAssistantText(citation.locator,500)||null,effectiveAt:boundedAssistantText(citation.effectiveAt,50)||null,reviewedAt:boundedAssistantText(citation.reviewedAt,50)||null}];
   }) : [];
   return {
     answer:boundedAssistantText(result.answer,8000),status:result.status as AssistantResponse['status'],citations,
@@ -49,13 +50,13 @@ function cleanResult(value: unknown): AssistantResponse | undefined {
       if(!raw||typeof raw!=='object')return [];
       const view=raw as Record<string,unknown>;
       if(typeof view.url!=='string'||!/^\/(?!\/)/.test(view.url)||!Array.isArray(view.columns)||!Array.isArray(view.rows))return [];
-      return [{id:boundedAssistantText(String(view.id),60),title:boundedAssistantText(String(view.title),100),url:boundedAssistantText(view.url,500),columns:view.columns.slice(0,5).map(item=>boundedAssistantText(String(item),100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,5).map(item=>boundedAssistantText(String(item),200))),total:Math.max(0,Number(view.total)||0),checkedAt:boundedAssistantText(String(view.checkedAt),60),note:boundedAssistantText(String(view.note),400)}];
+      return [{id:boundedAssistantText(String(view.id),60),title:boundedAssistantText(String(view.title),100),url:boundedAssistantText(view.url,500),columns:view.columns.slice(0,MAX_ASSISTANT_RECORD_COLUMNS).map(item=>boundedAssistantText(String(item),100)),rows:view.rows.slice(0,12).filter(Array.isArray).map(row=>row.slice(0,MAX_ASSISTANT_RECORD_COLUMNS).map(item=>boundedAssistantText(String(item),200))),total:Math.max(0,Number(view.total)||0),checkedAt:boundedAssistantText(String(view.checkedAt),60),note:boundedAssistantText(String(view.note),400)}];
     })}:{}),
     suggestedQuestions:Array.isArray(result.suggestedQuestions)?result.suggestedQuestions.filter((item):item is string=>typeof item==='string').slice(0,3).map(item=>boundedAssistantText(item,180)):[],
     activity:mergeAssistantActivity([],Array.isArray(result.activity)?result.activity:[]),
-    ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=2
+    ...(verification && ['verified','unverified'].includes(String(verification.status)) && Number.isInteger(verification.attempts) && Number(verification.attempts)>=0 && Number(verification.attempts)<=maxPublicAnswerVerificationChecks
       ? {verification:{status:verification.status as 'verified'|'unverified',attempts:Number(verification.attempts)}} : {}),
-    ...(grounding?{grounding:{source:typeof grounding.source==='string'?boundedAssistantText(grounding.source,80):undefined,webSearched:grounding.webSearched===true,checkedAt:typeof grounding.checkedAt==='string'?boundedAssistantText(grounding.checkedAt,50):undefined,degraded:grounding.degraded===true}}:{}),
+    ...(grounding?{grounding:{source:boundedAssistantText(grounding.source,80),webSearched:grounding.webSearched===true,checkedAt:boundedAssistantText(grounding.checkedAt,50),degraded:grounding.degraded===true}}:{}),
   };
 }
 

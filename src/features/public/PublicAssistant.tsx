@@ -1,5 +1,7 @@
+import { AssistantChatMessage } from "./AssistantChatMessage";
+import {assistantLanguage} from '../../services/assistantLanguage.js';
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, RotateCcw, Paperclip, X, Check, LoaderCircle, CircleAlert, ChevronDown, Trash2 } from "lucide-react";
+import { MessageCircle, Send, RotateCcw, Paperclip, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -10,43 +12,26 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import {
-  askCampusAssistant,
   type AssistantProgress,
 } from "../../services/researchAssistant";
 import { useAffairsAuth } from "./affairs/authContext";
-import { askSchoolAffairsAssistant } from "../../services/schoolAffairsAssistant";
+import {askWebsiteAssistant} from "../../services/websiteAssistant";
+import { clubUuid } from "../../../server/clubServicesContract.js";
+import { writeClubEquipment } from "../../services/clubServices";
+import { changeCounseling } from "../../services/counseling";
+import { writeRepair } from '../../services/facilityRepair';
+import { changeLearningSupport } from '../../services/learningSupport';
+import { repairId } from './affairs/facilityRepair.js';
+import { learningSupportPath, leavePath } from './affairs/studentServices.js';
+import { studentLeaveDraftAction, validStudentLeaveDraft } from '../../../server/studentLeaveDraft.js';
 import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
-import { PublicAssistantFeedback } from "./PublicAssistantFeedback";
-import { AssistantMarkdown } from "../school/portal/AssistantMarkdown";
 import { finishAssistantActivity, mergeAssistantActivity, mergeFinalAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
 import {useAssistantSessions} from './useAssistantSessions';
 import {assistantPageRoute} from '../../services/assistantPageRoute.js';
 
 type Message = AssistantMessage;
-function ActivityTimeline({message}:{message:Message}) {
-  const fallback: AssistantProgress[] = message.result?.grounding?.source === 'web'
-    ? [{kind:'web',label:'Used public web sources',detail:'Open the linked sources below to check the answer.',status:'complete'}]
-    : message.result?.grounding?.source === 'knowledge'
-      ? [{kind:'knowledge',label:'Used managed school knowledge',detail:'Reviewed sources are linked below when available.',status:'complete'}]
-      : [];
-  const steps = message.activity?.length ? message.activity : message.result?.activity?.length ? message.result.activity : fallback;
-  if (!steps.length && message.phase !== 'working' && !message.result) return null;
-  const working = message.phase === 'working';
-  const sources = message.result?.citations?.length || 0;
-  return <details key={`${message.id}-${message.phase}`} open={working} role={working?'status':undefined} aria-label={working?'Assistant activity':undefined} className="group rounded-lg border border-border/80 bg-muted/35 text-xs">
-    <summary className="flex cursor-pointer list-none items-center justify-between gap-2 rounded-lg px-3 py-2.5 font-medium text-foreground marker:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-      <span className="flex min-w-0 items-center gap-2"><span className="rounded bg-background px-2 py-0.5 font-semibold">Activity</span><span className="truncate text-muted-foreground">{working ? 'Working on your question' : message.phase === 'error' ? 'Stopped before completion' : `${steps.length} ${steps.length===1?'step':'steps'}${sources?` · ${sources} ${sources===1?'source':'sources'}`:''}`}</span></span>
-      <ChevronDown aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
-    </summary>
-    <div className="border-t px-3 pb-3 pt-2">
-      {steps.length ? <ol className="space-y-0" aria-label="Observed assistant steps">{steps.map((step,index)=><li key={`${step.kind}-${index}`} className="relative flex min-w-0 gap-2.5 pb-3 last:pb-0">
-        <span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-background text-primary" aria-hidden="true">{step.status==='running'?<LoaderCircle className="size-3.5 animate-spin"/>:step.status==='complete'?<Check className="size-3.5"/>:<CircleAlert className="size-3.5 text-muted-foreground"/>}</span>
-        <span className="min-w-0"><span className="sr-only">{step.status === 'complete' ? 'Completed' : step.status === 'running' ? 'In progress' : 'Unavailable'}: </span><strong className="block font-medium text-foreground">{step.label}</strong><span className="block break-words leading-relaxed text-muted-foreground">{step.detail}</span></span>
-      </li>)}</ol>:<p className="text-muted-foreground">{working ? 'Connecting to the assistant…' : 'No checks or tools were reported for this answer.'}</p>}
-      <p className="mt-2 border-t pt-2 leading-relaxed text-muted-foreground">This lists observed checks and tools. It does not expose private model reasoning.</p>
-    </div>
-  </details>;
-}
+
+
 const questions = [
   "註冊課務組的聯絡電話？",
   "如何查詢課程？",
@@ -71,23 +56,36 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
   const {messages,setMessages}=sessions;
+  const latestUser=messages.filter(message=>message.role==='user').at(-1)?.content||'';
+  const english=assistantLanguage(latestUser,messages)==='en';
   const viewport = useRef<HTMLDivElement>(null),
     fileInput = useRef<HTMLInputElement>(null),
     pending = useRef<AbortController | null>(null),
+    pendingAction = useRef<AbortController | null>(null),
+    openedFromMenu = useRef(false),
+    noticeLauncher = useRef<HTMLButtonElement | null>(null),
     sequence = useRef(0);
-  useEffect(() => () => {pending.current?.abort();}, []);
+  useEffect(() => () => {pending.current?.abort();pendingAction.current?.abort();}, []);
   useEffect(() => {
-    const openFromAccount = () => setOpen(true);
+    const openFromAccount = (event:Event) => {
+      const trigger=event instanceof CustomEvent && event.detail instanceof HTMLButtonElement ? event.detail : null;
+      noticeLauncher.current=trigger;
+      openedFromMenu.current=!trigger;
+      setOpen(true);
+    };
     window.addEventListener(campusAssistantOpenEvent, openFromAccount);
     return () => window.removeEventListener(campusAssistantOpenEvent, openFromAccount);
   }, []);
   useEffect(() => {
     sequence.current++;
     pending.current?.abort();
+    pendingAction.current?.abort();
+    pendingAction.current=null;
     setImages([]);
     setQuery("");
     setError("");
     setBusy(false);
+    setActionBusy(null);
   }, [scope,sessions.active?.id]);
   useEffect(() => {
     if (!embedded) return;
@@ -121,18 +119,13 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     setError("");
     setBusy(true);
     try {
-      const result = await (user ? askSchoolAffairsAssistant : askCampusAssistant)(
-        question,
-        messages,
-        controller.signal,
-        attached,
-        assistantPageRoute(embedded),
-        (step) => {
-          if (request !== sequence.current || controller.signal.aborted) return;
-          setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
-        },
-      );
-      if (request === sequence.current)
+      const route=assistantPageRoute(embedded);
+      const onProgress=(step:AssistantProgress)=>{
+        if (request !== sequence.current || controller.signal.aborted) return;
+        setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
+      };
+      const result = await askWebsiteAssistant({userId:user?.id,question,history:messages,signal:controller.signal,images:attached,route,onProgress});
+      if (request === sequence.current && !controller.signal.aborted)
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeFinalAssistantActivity(item.activity,result.activity))}:item));
     } catch (reason) {
       if (request === sequence.current && !controller.signal.aborted)
@@ -160,21 +153,71 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
   }
   async function applyAction(message:Message) {
     const action=message.result?.proposedAction;
-    if (!action || actionBusy || !user) return;
+    if (!action || pendingAction.current || !user) return;
+    if (!action.requestId) {
+      setError('This action needs a new review. Ask again before applying it.');
+      return;
+    }
+    const controller=new AbortController();
+    pendingAction.current=controller;
     setActionBusy(message.id);
     setError("");
     try {
-      const result=await performSchoolAffairsAction(action);
+      const signal=AbortSignal.any([controller.signal,AbortSignal.timeout(20000)]);
+      const {kind,payload,requestId}=action;
+      const expectedRecordId=kind===studentLeaveDraftAction?requestId:kind==='complete_task'?payload.task_id
+        :['set_assignment_status','cancel_club_equipment','counseling_cancel','cancel_facility_repair','withdraw_learning_support'].includes(kind)?payload.id
+        :kind==='update_display_name'?user.id:undefined;
+      let result;
+      if(kind==='cancel_club_equipment'||kind==='counseling_cancel'){
+        const expected_version=Number(payload.expected_version);
+        if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^\d{1,6}$/u.test(payload.expected_version)||expected_version<1)
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const fields={request_id:requestId,id:payload.id,expected_version};
+        const receipt=kind==='counseling_cancel'?await changeCounseling(user.id,'cancel',fields,signal)
+          :await writeClubEquipment(user.id,{kind,payload:fields},signal);
+        result={id:receipt.id,kind,summary:kind==='counseling_cancel'?'Cancelled your appointment':'Cancelled your club equipment request'};
+      }else if(kind==='submit_learning_support'){
+        const {topic,details}=payload;
+        if(!clubUuid.test(requestId)||action.url!==learningSupportPath||Object.keys(payload).length!==2
+          ||typeof topic!=='string'||typeof details!=='string')
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const receipt=await changeLearningSupport(user.id,{kind,payload:{request_id:requestId,topic,details}},signal);
+        result={id:receipt.id,kind,summary:'Submitted your learning support request'};
+      }else if(kind==='withdraw_learning_support'){
+        if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^[12]$/u.test(payload.expected_version))
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const fields={request_id:requestId,id:payload.id,expected_version:Number(payload.expected_version)};
+        const receipt=await changeLearningSupport(user.id,{kind,payload:fields},signal);
+        result={id:receipt.id,kind,summary:'Withdrew your learning support request'};
+      }else if(kind==='cancel_facility_repair'){
+        if(!repairId(requestId)||!repairId(payload.id)||!/^[1-9]\d{0,3}$/u.test(payload.version))
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        const receipt=await writeRepair(user.id,{kind,payload:{request_id:requestId,id:payload.id,version:Number(payload.version)}},signal);
+        result={id:receipt.id,kind,summary:'Cancelled your repair report'};
+      }else{
+        if(kind===studentLeaveDraftAction&&(!clubUuid.test(requestId)||action.url!==leavePath+'/edit/'+requestId||!validStudentLeaveDraft(payload)))
+          throw new Error('This action needs a new review. Ask again before applying it.');
+        result=await performSchoolAffairsAction({kind,payload,requestId},{expectedUserId:user.id,signal});
+      }
+      if (pendingAction.current!==controller || controller.signal.aborted) return;
+      if (result.kind!==kind || expectedRecordId!==undefined&&result.id!==expectedRecordId || typeof result.id!=='string' || !/^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu.test(result.id)
+        || typeof result.summary!=='string' || !result.summary.trim() || result.summary.length>500)
+        throw new Error('The action receipt could not be verified. Retry the same confirmation.');
+      const summary=result.summary.replace(/[\r\n]+/gu,' ').replace(/[\\`*_\[\]<>]/gu,'\\$&');
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
-        content:`${item.content}\n\n✓ ${result.summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
+        content:`${item.content}\n\n✓ ${summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
         activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));
       window.dispatchEvent(new Event('school-affairs:updated'));
     } catch(reason) {
+      if (pendingAction.current!==controller || controller.signal.aborted) return;
       setError(reason instanceof Error?reason.message:'The action could not be completed. Please try again.');
-    } finally {setActionBusy(null);}
+    } finally {
+      if(pendingAction.current===controller){pendingAction.current=null;setActionBusy(null);}
+    }
   }
   return (
     <Sheet open={open} onOpenChange={(next) => {
@@ -185,10 +228,10 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         <Button
           type="button"
           className="fixed right-4 bottom-4 z-40 gap-2 shadow-md"
-          aria-label="開啟 AI 校園助理"
+          aria-label={english?"Open campus assistant":"開啟 AI 校園助理"}
         >
           <MessageCircle aria-hidden="true" size={20} />
-          <span>校園助理</span>
+          <span>{english?"Campus assistant":"校園助理"}</span>
         </Button>
       </SheetTrigger>}
       <SheetContent
@@ -196,7 +239,16 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         aria-describedby="public-assistant-description"
         showCloseButton={!embedded}
         onCloseAutoFocus={(event) => {
-          if (showLauncher) return;
+          const notice=noticeLauncher.current;
+          noticeLauncher.current=null;
+          if (notice?.isConnected) {
+            event.preventDefault();
+            notice.focus();
+            return;
+          }
+          const fromMenu=openedFromMenu.current;
+          openedFromMenu.current=false;
+          if (showLauncher && !fromMenu) return;
           const trigger = document.querySelector<HTMLButtonElement>("[data-campus-assistant-menu]");
           if (!trigger) return;
           event.preventDefault();
@@ -204,7 +256,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         }}
       >
         <header className="border-b px-5 py-5 pr-12">
-          <SheetTitle>校園助理 · Assistant</SheetTitle>
+          <SheetTitle>{english?"Campus assistant":"校園助理"}</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
             {user ? "Ask about your stu.best School Affairs records, or request an action. Sample courses and grades are clearly labeled; actions need your review." : "Ask about School Affairs services and public school information. Sign in to ask about your stu.best records."}
           </SheetDescription>
@@ -241,7 +293,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             <Button variant="ghost" size="icon" aria-label="Delete this conversation" disabled={busy||!!actionBusy||sessions.syncing||sessions.loadingChat||!messages.length} onClick={()=>void sessions.deleteChat()}><Trash2 className="size-4"/></Button>
           </div>
           <p className="text-xs text-muted-foreground" role="status">{sessions.loadingChat?'Loading conversation…':sessions.persistenceStatus}</p>
-          {sessions.syncError?<div className="text-xs text-destructive" role="alert"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
+          {sessions.syncError?<div className="text-xs text-destructive" role="alert"><p>{sessions.syncError}</p><button className="mr-3 underline" onClick={sessions.retrySync}>Retry save</button>{sessions.active?.version?<button className="underline" disabled={busy||!!actionBusy} onClick={()=>void sessions.chooseChat(sessions.active!.id,true)}>Reload saved chat (discards unsaved edits)</button>:null}</div>:null}
         </div>
         <div
           ref={viewport}
@@ -256,7 +308,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
                 Ask in English or Chinese. Answers include sources when
                 available.
               </p>
-              {questions.map((question) => (
+              {(english?["What is the registrar’s contact number?","Where can I find course information?","What are the latest announcements?","What are my current subjects?","What DTM materials do I have?"]:questions).map((question) => (
                 <Button
                   variant="outline"
                   className="h-auto w-full justify-start whitespace-normal text-left"
@@ -270,61 +322,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             </div>
           ) : null}
           {messages.map((message) => (
-            <article
-              key={message.id}
-              className={
-                message.role === "user"
-                  ? "public-assistant-user ml-5 rounded-xl bg-primary p-4 text-primary-foreground"
-                  : "mr-2 space-y-3 rounded-xl border bg-card p-4 text-card-foreground"
-              }
-            >
-              <p className="mb-2 text-xs font-semibold">
-                {message.role === "user" ? "You" : "Assistant"}
-              </p>
-              {message.role === "user" ? (
-                <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=>image.dataUrl?<img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />:<p key={image.name} className="mt-2 text-xs">Attached image · {image.name}</p>)}</>
-              ) : message.phase === 'working' && !message.content ? <p className="text-sm text-muted-foreground">Preparing your answer…</p> : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
-                <AssistantMarkdown>{message.content}</AssistantMarkdown>
-              )}
-              {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
-              {message.result?.verification?<p className="text-xs text-muted-foreground">{message.result.verification.status==='verified'?'Checked against retrieved evidence':'Could not verify this answer'} · {message.result.verification.attempts} {message.result.verification.attempts===1?'check':'checks'}</p>:null}
-              {message.result?.views?.map(view=><details key={view.id} className="min-w-0 rounded-md border bg-muted/20 p-2 text-xs"><summary className="cursor-pointer font-semibold">{view.title} · {view.total} retrieved</summary><div className="mt-2 max-w-full overflow-x-auto" role="region" aria-label={view.title} tabIndex={0}><table className="w-full border-collapse text-left"><thead><tr>{view.columns.map(column=><th key={column} className="border-b p-2 whitespace-nowrap">{column}</th>)}</tr></thead><tbody>{view.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column} className="border-b p-2 align-top">{cell}</td>)}</tr>)}</tbody></table></div><p className="mt-2 text-muted-foreground">{view.rows.length<view.total?`Showing ${view.rows.length} of ${view.total} retrieved records. `:''}{view.note}</p><a className="mt-2 inline-block underline" href={view.url} target={embedded?'_top':undefined}>Open records</a></details>)}
-              {message.result?.proposedAction && user ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm"><p className="font-semibold">Review action</p><p className="my-2 break-words">{message.result.proposedAction.label}</p><p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p><Button size="sm" disabled={!!actionBusy} onClick={()=>void applyAction(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button></div> : null}
-              {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
-              {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
-              {message.result?.citations.length ? (
-                <ul
-                  className="space-y-2 border-t pt-3 text-xs"
-                  aria-label="Sources"
-                >
-                  {message.result.citations.map((citation) => (
-                    <li key={citation.chunkId}>
-                      <a
-                        href={citation.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block break-words font-medium underline underline-offset-4"
-                      >
-                        {citation.title}
-                      </a>
-                      <span className="text-muted-foreground">
-                        {citation.sourceName}
-                        {citation.reviewedAt
-                          ? ` · Reviewed ${new Date(citation.reviewedAt).toLocaleDateString()}`
-                          : ""}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {message.role === "assistant" && message.result?.suggestedQuestions?.length ? <div className="flex flex-wrap gap-2">{message.result.suggestedQuestions.slice(0,3).map(question=><Button key={question} variant="outline" size="sm" disabled={busy} className="h-auto whitespace-normal text-left" onClick={()=>void send(question)}>{question}</Button>)}</div> : null}
-              {message.result?.feedback ? (
-                <PublicAssistantFeedback
-                  capability={message.result.feedback}
-                  status={message.result.status}
-                />
-              ) : null}
-            </article>
+            <AssistantChatMessage key={message.id} message={message} embedded={embedded} english={english} busy={busy} actionBusy={actionBusy} canApply={!!user} onApplyAction={message=>void applyAction(message)} onSuggestion={question=>void send(question)} />
           ))}
         </div>
         <form

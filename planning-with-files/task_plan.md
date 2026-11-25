@@ -11,7 +11,7 @@
 - [x] Implement private officer proposal and closeout attachments with application and file version checks.
 - [x] Verify deployed attachment reads, writes, access isolation and removal.
 - [x] Map all six student menu links, including five previously missing local destinations.
-- [ ] Verify student club lookup, personal records, foundation approval and assistant grounding in production.
+- [x] Verify student club lookup, personal records, foundation approval and assistant grounding in production.
 - [ ] Implement profile/roster maintenance, attendance editing and remaining equipment management and reports.
 
 ## Student aid payment inquiries [Issue #98]
@@ -232,9 +232,61 @@ HTML block creation, Administration block behavior and unobserved Move interacti
 - [x] Complete actual-JWT saved-conversation/browser acceptance727423ae after the reviewed auth-settlement harness correction; exact cleanup passed.
 - [x] Return the serialized model lease; grades/graduation passed on772ec95.
 - [x] Publish reviewed correction e494fd4, verify Vercel Ready, Quality and deployed shell; hand sole live lease to Issue100.
-- [ ] Targeted packet completed with raw failures retained: attendance passed5groups, certificate6/7, tuition9/12, catalog3/5. Issue100 is user-paused; lease returned after exact cleanup. No unfinished BatchB publication.
+- [ ] Resume Issue #100. Preserve the earlier targeted evidence and its failures: attendance passed five groups, certificate 6/7, tuition 9/12, catalog 3/5. The unfinished Batch B was not published.
+- [ ] Review the frozen candidate on the current deployed base, including term precedence, course follow-ups and the evaluator's remote-learning route coverage.
+- [ ] Run the reported reproduction with cleaned synthetic accounts under one DB/model lease. Record exact revision, raw results and cleanup before publication acceptance.
 
 ## Phase Next: systemwide assistant evaluation [Issue #100]
+
+- [x] Verify the full Quality rerun and replay the nine mounted Moodle assignment and 18 club-attendance cases on exact `c089be2` with verified cleanup.
+- [x] Reproduce and fix a third-check review truncation that skipped an unread source. Verify the fourth review and its exact citation through the public handler.
+- [x] Expand independently graded teaching-feedback replay to 26 original questions on isolated PostgreSQL and add two selected certificate routes and the 27-1 review role split to browser coverage.
+- [ ] Verify the new 15-case Moodle assignment report and teaching sample compatibility on the exact protected candidate.
+
+- [x] Verify exact protected `a8d8fb9` CI and replay 16 clearance and 11 Academic Services questions. Recover the clearance fixture separately and preserve the original cleanup result.
+- [x] Check all three positive clearance-window cases through isolated SQL and actual handlers, plus 13 previously unavailable Student Clubs browser observations with separate manager and student outcomes.
+- [x] Check five unchanged teaching-survey prompts against actual isolated PostgreSQL and the API. Keep the remaining teaching questions and hosted evidence visible.
+- [x] Replay five original Moodle course and meeting questions in protected Preview with paired owned and crossed reads, exact request scope and verified cleanup.
+- [x] Replay the original four-turn conversation on that same protected revision. Verify persisted context, cleanup and both independent helpfulness reviews.
+- [ ] Mount hosted positive clearance windows and Learning Support in an independently verified runtime. The connected Preview and Production currently share one Supabase database.
+
+- [x] Integrate housing receipt scope, direct native Moodle grades and the teaching question bank on the protected menu-context revision.
+- [x] Check compound receipt and Moodle reads through the API with a controlled reviewer, preserve card metadata, and keep deferred teaching cases in the denominator.
+- [x] Add scoped Moodle assignment details, preserve independent native grade clauses, and register their 32 acceptance cases.
+- [x] Connect student leave reads and independent tuition, next-class and Moodle grade companions to the verified account endpoint.
+- [x] Verify saved Moodle materials and exact resource metadata, including independent fee answers and signed-in browser dispatch.
+- [x] Connect both Moodle assignment lists to caller-scoped saved deadlines and tracker metadata. Independently grade all 25 native cases.
+- [ ] Bind the live Moodle assignment-list fixtures and rebind the four legacy tracker cases with hosted request observations.
+- [ ] Bind the native Moodle material cases to disposable caller-owned data and run them against the pinned protected release.
+- [x] Integrate four native internship views, all remaining School Affairs menu routes, and the controlled two-owner leave fixture lifecycle.
+- [ ] Run the native internship and leave lifecycle against hosted disposable accounts with independent request observations.
+- [x] Bind proposals to the current message, verify exact account context and require a matching confirmation receipt.
+- [x] Verify both Moodle assignment-list scopes and bind Student Leave observations to exact record IDs.
+- [ ] Execute the action and assignment-list cases with an authorized pinned runner, including actual confirmed readback and cleanup.
+- [x] Route exact Digital Academy catalog searches and categories through the verified account reader and register the 25 catalog cases.
+- [x] Complete scoped Digital Academy category-index and notice reads.
+- [ ] Bind live Digital Academy catalog and metadata observations.
+- [x] Compare the saved chat and activity to the submitted transcript. Send an account-scoped delete for an already committed but unacknowledged save.
+- [x] Prevent an in-flight first save from recreating a deleted conversation and verify both transaction orderings in scratch PostgreSQL.
+- [x] Verify an already open legacy browser tab through the upgraded API and a simulated database cutover.
+- [x] Apply the reviewed conversation migration after exact client preflight and verify its committed SQL and permissions.
+- [x] Run the UUIDv7 conversation replay on the protected compiler-corrected Preview and check the legacy conversation protocol during coexistence.
+- [ ] Verify authenticated UUIDv7 delete and late-save denial through the protected HTTP handler.
+- [x] Replace the venue history shortcut with a caller-scoped reader and LangGraph verification.
+- [x] Check venue history and tuition independently when a question uses both sources.
+- [ ] Bind venue history live fixtures and complete remaining venue compound questions.
+- [x] Connect the four internship views and independent tuition and timetable lookup to the verified account endpoint. Register the 30-case native bank.
+- [ ] Bind the internship cases to disposable accounts and trusted request observations. Rebind four earlier internship cases against their original requirements.
+- [x] Connect the eight Student Leave fixture families to a real PostgreSQL data preflight and verify crossed-caller isolation.
+- [x] Run the Student Leave data preflight on the exact protected Preview and verify all 128 own and crossed reads plus cleanup.
+- [ ] Execute student leave and native Moodle cases with exact caller-bound fixtures and trusted request observations on the protected Preview.
+- [ ] Mount caller-bound teaching and multi-course DTM fixtures with trusted request observations, and cover remaining route, browser and actual model behavior.
+- [x] Verify the current caller's Google sign-in with seven separately graded account-status cases.
+- [x] Bind club attendance to independently checked disposable accounts in the main suite and verify the immutable Preview transport with controlled requests.
+- [x] Cover the exact DTM and Digital Academy login and legacy entry flows with route-aware assistant links and continuation checks.
+- [x] Register the seven service-note services in the main suite and verify the eligible two-account fixture locally.
+- [ ] Complete hosted evaluation for the eligible service-note cases and bind the 19 deferred scenarios.
+- [ ] Run the club fixture and exact four-turn transcript using the authorized Vercel runner on the pinned candidate.
 
 - [ ] Verifier thread owns isolated tests/evaluation and docs/qa/ASSISTANT_SYSTEM_EVALUATION.md to derive question coverage from all current routes/services/records.
 - [x] Hand assistant runtime and serialized DB/model lease to Issue #100 after native release and certificate rollback cleanup.
@@ -760,19 +812,519 @@ For each remaining stateful School Affairs and DTM service, implement account-sc
 - [x] Implement persistent account-owned examination metadata and private attachment access.
 - [x] Verify PDF downloads and account isolation through the live API and browser.
 
-## Publish private Answer Lab through GitHub [Issue #101]
+### School Affairs accommodation beds [Issue #100]
 
-- [x] Verify `main` is Vercel’s connected production branch.
-- [x] Confirm the direct CLI upload has exited.
-- [x] Isolate the lab and minimal request-scoped model support on current `origin/main`; exclude unrelated development history.
-- [x] Retain the already-applied administrator/owner-scoped storage migration.
-- [x] Push the reviewed source to `main` without force and observe the linked Vercel build.
-- [x] Record live publication status and signed-out access guard. Chatbot/evaluator runs remain paused.
+- [x] Reproduce the broad reader and missed companion selections.
+- [x] Mount the caller-owned assignment source and linked-period projection in the verification graph and graph-backed client dispatch.
+- [ ] Evaluate the full housing question bank on an authorized protected Preview.
+- [ ] Complete the broader signed-in acceptance gate before promoting to production.
 
-## Shared Answer Lab administrators [Issue #101]
+### Reported conversation [Issue #100]
 
-- [ ] Authorize exactly the two requested verified Google accounts inside Answer Lab only.
-- [ ] Point both accounts at the existing Lux workspace, retaining questions, runs and images.
-- [ ] Retain revision conflicts and prevent other accounts from reading shared data.
-- [ ] Apply only the independent shared-lab migration during the production release build and publish via GitHub.
-- [ ] Record provider migration/release outcome; leave model evaluations paused.
+- [x] Run an answer-only diagnostic against the exact protected combined candidate and grade all four real authenticated replies independently.
+- [x] Verify the embedded assistant's host context and guest/authenticated behavior in a controlled browser.
+- [x] Reproduce the public near-match in the actual handler with controlled provider and page inputs. Verify novel official-page retrieval, a deeper check, privacy, and budget exhaustion.
+- [x] Exercise a novel official-source follow-up with real providers on the protected adaptive Preview.
+- [x] Verify through the actual handler that two rejected drafts can recover using a newly read primary source on check three, even with no new reviewer feedback.
+- [x] Verify all 18 exact signed-in Student Leave replies and fixture cleanup on the pinned `59585be` Preview.
+- [x] Verify the new public search paths with the provider on immutable protected Preview `16787a5`.
+- [x] Verify the nine Moodle assignment-list and 16 Digital Academy catalog readbacks on protected `aa31201` with fixture cleanup.
+- [x] Verify overview and balance recovery from refreshed saved fields with deliberately rejected first reviews.
+- [x] Replay the repaired account replies through the exact protected Preview and verify fixture cleanup.
+- [x] Independently grade all four reported replies on the protected source recovery Preview.
+- [ ] Observe the managed-knowledge-to-web switch with real providers on the exact protected Preview.
+- [x] Observe a deeper third review with a real provider before comparing review model settings.
+- [x] Compare the existing verification model with a stronger available model on three frozen evidence pairs. Record factual quality, observed calls, latency and remaining budget. Keep the current default.
+- [x] Recheck whether requiring precise missing details without echoing unsupported values improves the paired result. Both models still failed the missing-quota rubric; the protected live question correctly identified the missing quota and date.
+- [ ] Confirm routine positive responses use concise saved-record wording and preserve exact limits when a user asks about official data.
+- [x] Exercise all 79 mounted private-note questions through the real handler using controlled caller-scoped reads and independent grading.
+- [x] Verify the 75 mounted note-only and access cases on protected `9e43792`.
+- [x] Verify the four timetable and charge companions on protected `3f706aa`. The direct tuition-payment handoff also passed.
+- [x] Run the 18 Student Leave cases on protected `9e43792` with signed reader and provider receipts. Eight answers passed and ten exposed formatting or verification failures.
+- [x] Verify all 18 Student Leave cases on the exact-field recovery Preview with signed reader and deterministic verification receipts.
+- [x] Confirm both task actions on protected Preview, including no write from a proposal, exact replays, crossed-owner denial and cleanup.
+- [x] Verify all three student-conduct queries on `aa31201` with caller scope and fixture cleanup.
+- [x] Replay the identified payroll and dormitory precision regressions through the real local handlers with independent facts and scoped reads.
+- [x] Replay the five original payroll failures and all nine executable dormitory cases on a matching protected build.
+- [x] Verify the direct empty payroll answer in the eight-case protected payroll packet.
+- [x] Verify the three positive bed, cost and dormitory/housing prompts against an actual published 115/1 period in disposable PostgreSQL. Verify two-owner isolation and unchanged domain rows.
+- [x] Reproduce both empty housing grading failures on `bb29a3e`, including public fallback for a short question on 34-1. Verify the repaired actual handler with only the owned empty read and zero provider calls.
+- [ ] Recheck both empty housing prompts through protected Preview. A configured published 115/1 period is still required for positive hosted claims.
+- [x] Pass all 16 protected Health Exam cases with two independent caller views and exact cleanup.
+- [x] Pass all nine protected Counseling cases after correcting the unchanged-state proof wiring. Preserve both reports and verified cleanup.
+- [x] Verify 30-1, 30-2, 31-2 and 35-1 in both controlled guest and authenticated HTTP handlers, including exact navigation and no private read for an unsupported outcome.
+- [x] Verify nine signed-out service boundaries and navigation paths on integrated protected Preview `6c76997`.
+- [x] Verify the four service boundary families through twenty authenticated requests on protected `2427eee` with exact cleanup.
+- [x] Add dated tuition payment history, the manager's receipt and reversal screen, and signed-in monthly assistant answers. Preserve aggregate-only legacy payment amounts.
+- [x] Verify the native PostgreSQL lock and replay behavior, manager and student browser routes, and the exact client migration source and RLS catalog.
+- [x] Pass the protected paired student scope, monthly assistant and fixture cleanup replay.
+- [ ] Verify the hosted finance manager path using an approved synthetic manager identity.
+- [x] Verify scoped club equipment reads and exact confirmed cancellation locally through the assistant, including zero pre-confirmation writes and a stable retry ID.
+- [x] Pass all nine protected equipment read checks on `6f9fb5e` with paired owner readbacks and exact fixture cleanup.
+- [x] Pass the nine confirmed equipment cancellation checks on protected `ae5135f`, including stale/crossed denial, replay and exact fixture cleanup.
+- [x] Verify exact Moodle submission timing locally, including prior deadline, date boundaries and ambiguous revision questions.
+- [x] Pass all six signed-in Moodle submission timing checks on protected `ae5135f`, with native record readbacks and exact fixture cleanup.
+
+- [x] Save and independently read back each of the four exact prompts in the offline endpoint replay.
+- [x] Journal request and conversation commitments and reconcile disposable account cleanup.
+- [x] Verify generated protected chat IDs from transcript preparation to stored readback and cleanup.
+- [x] Verify protected UUIDv7 deletion, cross-account isolation, late saves and idempotent replays in 13 pinned HTTP operations.
+- [x] Prevent unrelated companion reads on the reproduced housing scope failures and preserve Unicode follow-up history.
+- [x] Stage the compatible conversation schema on the exact client and verify legacy coexistence and the new save/read protocol.
+- [x] Verify and apply the Digital Academy metadata migration on the exact client.
+- [x] Verify the six signed-in Digital Academy category and notice cases with trusted hosted readbacks on `9e43792`.
+- [x] Execute the four exact prompts on the previous protected baseline, read back every saved reply and verify the scoped fixture cleanup.
+- [x] Repair the current-course and year response, preserve fee source labels, and recover useful record-free interview guidance in the combined local candidate.
+- [x] Execute the exact protected candidate with real model responses and automatic fixture cleanup.
+- [x] Grade all four exact protected `da77afd` replies. Both separate reviewers and automated rubrics passed.
+- [ ] Complete remaining full-suite protected acceptance before release.
+
+- [x] Add semantic coverage for School Affairs keyword search and General Affairs input and query menu context.
+- [ ] Validate the remaining menu detail and authorized record routes.
+
+### Public verification follow-through [Issue #100]
+
+- [x] Reproduce a temporary rewrite or second review failure with a queued primary source. Preserve the search and verification time, record the distinct interruption, and release only independently checked evidence.
+- [x] Verify the exact protected runtime with public factual, private-sign-in, and gated-notice checks. Keep the controlled proof of a recovered third check separate.
+- [x] Reproduce the missed standalone founding-year question and verify the repaired English and Traditional Chinese variants against the pinned About capture in protected Preview.
+- [ ] Complete the signed-in browser gate before using this protected candidate for production.
+- [x] Recheck all four original signed transcript turns on exact Preview, including both independent guidance rubrics and durable versions.
+- [x] Verify complete exact account reports on the first authorized record read. Exercise recovery and withholding for a truly unavailable read.
+- [ ] Run the eight mounted native browser cases on the integrated exact Preview. Keep the other original browser cases in the gate.
+- [x] Match the reported two-check activity to the exact public deployment.
+- [x] Follow a new source after evidence gaps and allow an additional review only after an independent read.
+- [x] Cover incomplete pages, repeated content, transient read failures, expired time and stored activity with endpoint and evaluator tests.
+- [x] Cover discovery-only leads that fail their first read, an alternate publication after two managed checks, and verifier output truncation. Preserve the real check count and saved lookup outcome.
+- [x] Replay the four public questions on exact protected `eeab158`. Observe three completed reviews and a separate final source search for the storage announcement. Verify both archive languages and retain evidence limitations for inaccessible notices.
+- [x] Verify protected Preview `57540ae` with four live streamed answers, including successful recovery on the third check.
+
+- [x] Recover when the first batch of fresh public sources is unreadable after two managed checks. Cover a transient reread, a previously unread lead, and a timed stop.
+- [x] Allow a deeper check for the same archived page, with a regression proving identical capture contents and no web search.
+- [x] Replay five public queries on protected `6f9fb5e`, including the captured student page and a fresh evidence read after a rejected storage draft.
+- [ ] Complete broader protected acceptance before promotion. The public manifest still serves `076c79a`.
+
+- [x] Require the archived-page answer to summarize requested content from the same capture and independently grade it locally.
+- [x] Verify the substantive archived student-page summary, title, link and date on protected `ae5135f`.
+- [x] Verify substantive English and Traditional Chinese archive content, exact link/date and no web retrieval on `eddb586`.
+- [x] Localize the Chinese capture-date caption and distinguish a known notice link from unread content in controlled endpoint tests.
+- [x] Confirm the Chinese caption and known-notice wording on three pinned requests to protected `f5b37da`. The OneDrive verdict used three actual checks.
+- [x] Verify that a scoped public answer can follow new evidence after approval of a partial draft, while keeping the prior verified reply if the extra lookup cannot improve it.
+- [x] Preserve the original DTM notice link outside answer evidence and verify the login redirect handling locally.
+- [x] Verify the exact DTM notice access handoff on protected `ae5135f`.
+- [x] Observe a verified-partial follow-up search and safe retention of checked details using live providers on `eddb586`.
+- [ ] Observe a live verified-partial follow-up that finds a new fact. Controlled endpoint coverage passes.
+- [x] Add protected runners for equipment confirmation and exact Moodle submission timing with paired record readbacks and journaled cleanup.
+
+### Compound Internship, teaching feedback, and venue records [Issue #100]
+
+- [x] Preserve complete Internship and tuition facts in both question orders. Exercise both through the actual handler and unchanged independent grader.
+- [x] Pass both corrected Internship and tuition orders on protected `b6eab93` with signed native source checks, zero model calls and verified cleanup.
+- [x] Correct the class-first Internship and timetable answer. Preserve complete next meeting facts in both question orders and retain scoped review for an incomplete or ambiguous timetable.
+- [x] Pass both published timetable orders on protected `b6eab93` with the independent Taipei clock, caller-bound rows, zero model calls and verified cleanup.
+- [x] Bind separate teaching feedback and venue packets to scoped disposable records. Test the signed observations and both caller boundaries.
+- [x] Replay all 11 isolated teaching feedback cases and seven venue cases on exact protected `b6eab93` with signed reads and verified cleanup. Venue passes all seven. Teaching passed nine and exposed the missing-comment and empty-history answers.
+- [x] Fix missing-comment and empty-history Teaching Feedback in the typed standalone path. All 11 controlled questions use the original factual rubric.
+- [ ] Replay the exact corrected Teaching Feedback packet on protected Preview and bind the 40 original cases to the appropriate school data.
+- [x] Preserve the safe equipment edit selector through Google login. Verify 396 local browser route checks and both valid and malformed return selectors. Add three independent equipment route-context cases and two conduct count questions to the default inventory.
+- [ ] Replay the protected equipment route-context, conduct count and verified-partial public changes.
+
+### Native grade and appointment actions [Issue #100]
+
+- [x] Mount ten signed-in Moodle grade-report cases with exact own/crossed readbacks, separate gradebook and tracker facts, and disposal.
+- [x] Mount a separate six-case Moodle overview packet with paired readbacks for multi-course, empty-account and all-feedback questions. Keep the read outage in the controlled suite.
+- [x] Complete the first native Moodle grade report replay on protected `f5b37da`. Ten authenticated requests and cleanup completed. Seven passed, with three answer text criteria to correct.
+- [x] Preserve verified native course totals, missing reports and complete no-course lookups in bilingual deterministic answers. Keep the original grader.
+- [x] Run the six Moodle overview cases on protected `2427eee`. The grade index, selected course and empty-account cases passed. Three aggregate or feedback cases need their exact facts preserved. Verified cleanup of both accounts and all report rows.
+- [x] Confirm the three corrected Moodle availability cases on exact protected `0c0ac77`. Four previously passing model-written fact answers fluctuated. All ten requests retained exact readbacks and cleanup.
+- [x] Verify named item feedback/weight, a scoped follow-up, a saved course total, and the final report item directly against typed records. Preserve feedback-only scope. Confirm both local SQL-backed packets with the original factual rubrics.
+- [x] Pass 10/10 exact protected grade-report requests on `0b88ca1`, with paired caller readbacks and verified cleanup.
+- [x] Preserve course totals and all-item feedback directly from typed Moodle responses for complete exact lookups.
+- [x] Pass 6/6 exact protected Moodle overview requests on `0b88ca1`, with paired caller readbacks and verified cleanup.
+- [x] Mount 24 of 30 existing Student Internship cases with signed native observations and paired own/crossed reads. Verify the disposable fixture and cleanup on scratch PostgreSQL.
+- [x] Complete 24 pinned Internship cases on `0b88ca1`. Twenty passed, four need exact answer corrections, all retained paired readbacks, and fixture cleanup was verified.
+- [x] Grade a signed third review as a review of the existing second scoped read and require actual third-check activity. Retain all four substantive failures.
+- [x] Verify exact standalone Internship answers from typed records and pass all 24 mounted cases on the controlled actual handler with signed observations.
+- [x] Pass all 24 mounted Internship questions on protected `bb29a3e`, with signed exact-read or no-read proofs and verified cleanup.
+- [x] Mount the two independent tuition companions with separately signed reads and controlled actual handlers.
+- [ ] Pass the combined 26-case protected replay. Retain the frozen timetable and transport-outage requirements.
+- [x] Verify all eight signed-in payroll cases on protected `f5b37da` with exact fixture cleanup.
+- [x] Implement and locally verify confirmed facilities report cancellation with a native receipt check and same-page refresh.
+- [x] Verify the 13-case repair cancellation packet in scratch PostgreSQL with real handlers, exact native event and replay, and verified isolated cleanup.
+- [ ] Pass the exact protected facilities repair action replay.
+- [x] Implement and locally verify explicit confirmation of one eligible caller-owned 29-1 appointment through the versioned workflow.
+- [x] Mount nine hosted Counseling cancellation cases and exercise the real handlers, native PostgreSQL with RLS, exact receipts and fixture cleanup locally.
+- [x] Verify nine protected Counseling cancellation cases on `2427eee`, with exact owner readback, unchanged protected owner and fixture/identity cleanup.
+- [x] Mount twenty authenticated service boundary cases at 30-1, 30-2, 31-2 and 35-1. Correct the Traditional Chinese possessive routing found by the evaluation.
+- [x] Verify all twenty protected service boundary cases on `2427eee`, with exact pinning and verified cleanup.
+- [x] Continue a verified partial reply when exact missing-detail coverage improves and another distinct source is available. Recover actionable rejected drafts within the same cap and keep the best verified reply on terminal failure.
+- [x] Exercise four observed checks, a third-draft rejection followed by verified recovery, a duplicate source, a lost detail, reviewer outage, time, and persisted activity through the actual public endpoint with controlled providers.
+- [x] Replay four pinned public questions on exact protected `0c0ac77`. Verify the OneDrive reply recovered on check three, pursued another lead and kept its verified partial. Confirm both archive languages.
+- [x] Correct the library source selection and response language in controlled real-handler tests, including independently readable primary contents and human-verification fallback.
+- [x] Follow another eligible publisher after a known notice sign-in gate and an empty targeted search. Verify exact recovery, exhausted search, deadline, and non-gated controls.
+- [x] Reproduce the hard two-check stop on the production code revision. Verify a third check using already-read evidence in the remaining time and a fourth after discovering a different publication. Preserve actual review counts, saved activity and the final stop reason.
+- [x] Verify the revised Teaching Feedback, equipment routes and Conduct counts on the same protected revision with exact scoped read and cleanup proofs.
+- [x] Grade dormitory notices, aid claims and student conduct catalog destinations against their native records. Test the exact saved fields, empty result and unsupported change or settlement boundary with controlled handler and independent grading.
+- [x] Pass the 12 corrected catalog questions on exact protected `f74c3bf`. Verify all four cases and disposal for each of 34-2, 37-1 and 38-1.
+- [x] Continue to a different publication when a deeper draft still fails after checking distinct sources and the latest search found no links. Verify both recovery and exhaustion, and read unused leads before retrying a read.
+- [x] Read the published Library opening hours and the separately linked public weekend and holiday tabs. Exercise English, Traditional Chinese and signed-in conversation follow-ups against the dated capture.
+- [x] Replay all 99 eligible private service-note and guest questions on an exact protected deployment, with 98 unchanged paired readbacks, matched mixed timetable and tuition results, and verified cleanup. Keep the injected read outage in the local suite.
+- [x] Mount signed proof of zero private reads for the 14 frozen Student Leave navigation and access questions in controlled handlers.
+- [x] Pass all 14 Student Leave boundary/navigation questions on an exact protected deployment with signed zero-read evidence and verified fixture cleanup.
+- [x] Confirm paired unchanged readbacks for the nine private 34-2, 37-1 and 38-1 catalog cases. Run link-only navigation separately.
+- [x] Support safe same-topic public contact follow-ups from a signed-in chat and a separately confirmed 27-1 withdrawal in local tests.
+- [x] Exercise 17 parts of the 27-1 owner and withdrawal lifecycle through actual handlers. Compare paired page responses with independent SQL evidence. Verify exact one-row mutation, same-receipt replay and unchanged unrelated records on scratch PostgreSQL.
+- [ ] Verify the 27-1 workflow and withdrawal on a hosted test deployment with its exact additive migration and real owned confirmation receipts.
+- [x] Complete 11 release-pinned 28-1 Tutor Evaluation requests and verify fixture disposal. Preserve the initial readback and selected-ratings attribution failures.
+- [x] Verify complete standalone Tutor Evaluation ratings directly against the selected saved fields and the original answer rubric. Pass all 33 targeted controlled checks.
+- [x] Reproduce JSONB ordering with real scratch PostgreSQL. Hash the validated Tutor Evaluation projection consistently and reject switched owner proofs.
+- [x] Pass the hosted Library's English and Traditional Chinese weekday questions on `f8ebca2`. Preserve its holiday failure and fix the exact hyphenated question locally.
+- [x] Pass the English and Traditional Chinese weekday questions and the December 25 library closure question on protected `85b4bdc` with independently read schedule text and exact source.
+- [x] Bind the 27-1 hosted confirmation transport to one exact native withdrawal, and test a lost receipt, a deliberate identical replay and rejection of alternate callers or payloads.
+- [x] Complete the 11-case protected `85b4bdc` Tutor run. All paired native readbacks, selected ratings, pinning and cleanup passed. Preserve the saved-comment attribution and empty-submission failures.
+- [x] Verify all 11 Tutor answers directly against the typed owned questionnaire in the controlled real handler while keeping the original independent scope and meaning tests.
+- [x] Pass all 11 hosted Tutor cases on exact `1f082b9` with paired own records, one direct verification per reply and verified disposal.
+- [x] Replay the original four-turn conversation on exact `1f082b9`, preserve each saved revision, independently grade overview and interview usefulness, and verify all 13 pins plus disposal.
+- [x] Reproduce the 21-3 setup transaction failure using real PostgreSQL and the exact schema. Pass all three fixture families, 24 native reads and crossed-owner checks after binding serialized JSON as text.
+- [x] Verify a named tuition instalment through the same scoped read and fresh retry. Test common balance phrasing, literal quoted labels, no matching charge and separation from other charges.
+- [x] Keep both public clauses on a library question with registrar contact or Wi-Fi setup. Verify partial retention and signed-in isolation on the unrelated fee page.
+- [x] Verify the 36-1 owned, hidden, missing and foreign document paths through the same simulated Storage registry and enforce metadata-only assistant access.
+- [x] Mount the exact 27-1 action operator and prove its lease, revision, receipts and cleanup on disposable PostgreSQL. Confirm with a read-only plan that hosting still needs the exact additive migration.
+- [x] Observe the protected `5430bd5` baseline for public companion and fee-remission verification. Record both quota failures and verified cleanup.
+- [x] Check exact regular weekday library hours and literal fee-remission fields locally without calling the model. Preserve the original per-case acceptance rules and test both orders of a separate named balance request.
+- [x] Pass both public companion questions on exact protected `54319c0` with independently checked facts, citation order and the explicit native schedule Activity step in the streamed and returned reply.
+- [x] Pass all 20 isolated fee-remission questions on protected paired-charge `4d7cc15`, with exact paired readbacks, both access boundaries, 62 deployment checks and verified disposal.
+- [x] Wire the exact-origin relay, bounded asset derivation and independently checked owned profile into the protected browser operator. Pass local incremental Activity and refresh tests on desktop and mobile.
+- [x] Preserve the attempted `44283cd` browser run, including its first saved conversation, second save refusal, provider quota evidence and verified disposal. Reproduce the exact unpaid-tuition scope failure locally and check the corrected answer against an unlinked and a linked account.
+- [x] Pass the same two browser turns on exact `53a7599`. Verify both durable conversations, expanded saved Activity, exact own HTTP and SQL readbacks, crossed-account isolation and disposal.
+- [ ] Finish broader service and browser acceptance before production promotion.
+- [x] Replay four public questions on exact protected `0b88ca1`. Confirm primary library links, English fallback, further search when sources are unreadable, the OneDrive partial retained after three checks, and both archived-page languages. The gated-publisher recovery branch also passed its controlled live-handler conditions.
+
+- [x] Replay the 16 frozen health metadata cases on exact protected `53a7599` and verify both account readbacks and disposal.
+- [x] Pass the independent PDF availability case and 11 mounted Moodle material cases on exact protected `6e819f5`. Verify private inquiry PDF bytes separately, exact own and crossed account boundaries, and disposal.
+- [x] Verify local healthy health and named-charge answers in either order, a health exclusion, and honest partial answers for both injected reader outages.
+- [x] Replay 265 signed-in routes in local Chromium, including admin denial and canonical Moodle links. Track missing native fixture coverage separately.
+- [x] Verify the confirmed Learning Support submit flow in isolated PostgreSQL and simulated app hosting, including lost-response and receipt retries.
+- [ ] Stage the pending Learning Support schema in an isolated hosted environment, test mounted real-data cases, and continue the wider semantic gates before promotion.
+- [x] Correct the three offline fixture harness bindings introduced by the materials replay. Verify all 30 affected tests, then check the Ready manifest of exact test-only `b0068ad` and re-run its 43 adaptive verification checks.
+- [x] Verify 10-1 and 16-1 clearance reads and denials in isolated PostgreSQL and the actual handler. Preserve existing grading predicates and verify no action receipts.
+- [ ] Review hosted term and period bindings, then mount the remaining Graduation Clearance cases on the protected release.
+- [x] Run the three frozen health and tuition combinations against exact protected `a69d553`, including page two and health exclusion. Verify per-caller native comparison and disposal.
+- [x] Rerun the absent DTM and academic browser fixtures in focused local Chromium and record the 17 observed record checks separately from the prior full matrix.
+- [x] Scope Academic Services 13-1 exact semester and course selection, verify all 11 frozen handler cases, and exercise six against isolated PostgreSQL.
+- [x] Bind a 16-case clearance status packet without creating shared terms or periods. Verify isolated PostgreSQL and an unmodified pre-existing term state.
+- [x] Execute the status and notes packet on exact protected `639f81b`. Preserve the answer failures, matched data and cleanup proof.
+- [x] Verify the narrowed exact clearance recovery against the unchanged 16-case grader and actual isolated PostgreSQL without provider calls.
+- [x] Replay the typed clearance recovery on exact protected `b9aa9b3`. Pass the unchanged 16 mounted cases and paired cleanup.
+- [ ] Run the positive window cases after a suitable isolated fixture is available.
+- [x] Mount and replay all 11 selected Academic Services 13-1 cases on exact protected `b9aa9b3`. Verify the native Activity event, scoped readbacks and disposal.
+- [ ] Finish exact follow-up Quality and broader release acceptance before production promotion.
+
+### Adaptive lookup follow-through [Issue #100]
+
+- [x] Verify 15 mounted Moodle assignment questions and 11 teaching-feedback sample questions on exact protected `fe576ac`. Retain paired caller readback, distinct original teaching cases and verified cleanup evidence.
+- [x] Pass all 561 compiled Chromium comparisons across 265 routes on one clean revision using synthetic login and record data.
+- [x] Preserve the 0/2 hosted public About failure and verify the two audited fact answers locally against the checksum-pinned source.
+- [x] Recheck both frozen About questions on exact protected `1e17255` and independently verify the deployment manifest. Both passed with one verification and one bound citation. The newer CI superseded the original run.
+- [x] Reproduce and repair the third-check stop when the model reviewer truncates after a verified partial. Require a fresh official page for the fourth check and keep prior verified content under the time limit.
+- [x] Stage the retained-partial change as protected `c123fd5`. Pass 94 focused controlled tests on the exact revision, then verify the Ready release and both unchanged public About smoke cases.
+- [ ] Verify the complete Quality run, continue the remaining 11 original teaching cases and mount the remaining hosted service acceptance cases.
+
+### Facility repair and scoped follow-up [Issue #100]
+
+- [x] Pass all 13 protected repair cancellation cases with two account readbacks and verified cleanup.
+- [x] Preserve the separate six-case hosted read failure and prove cleanup after stopping quota-exhausted requests.
+- [x] Verify local facility repair answers without the model reviewer and pass the unchanged 15-case hosted packet on `fc357c6`, plus both local one-source failures.
+- [x] Add independent fixture variants for the five non-clock Moodle gaps and pass 119 focused checks on exact `8d74216`.
+- [x] Preserve the four independently cleaned-up Moodle packets on protected `8d74216`, including the accurate extra practice assignment and resulting 19/20 frozen grades.
+- [x] Replay the same sample-only question with isolated School Affairs setup on protected `fc357c6`. Verify one match, no extra practice row and exact cleanup.
+- [x] Bind the exact 52-1 selected, aggregate and crossed status packet. Pass seven native scoped cases in isolated PostgreSQL and eight separate synthetic browser checks.
+- [x] Replay the seven certificate cases on protected `fc357c6`. Verify both caller scopes, the selected and aggregate responses, all 32 release checks and exact disposal.
+- [x] Implement the two-source Student Leave and Moodle grade evaluation binding, with actual handler, ownership and migrated PostgreSQL acceptance in isolation.
+- [x] Verify both companion orders on protected `d89152a` with independently checked native records and exact disposal.
+- [x] Run all 40 original teaching prompts against isolated PostgreSQL and the actual handlers. Correct the no-read rubric and keep all cases in the denominator.
+- [ ] Bind independent hosted teaching evidence and finish the signed-in release evaluation.
+
+
+### Public unread-source continuation and scoped record checks [Issue #100]
+
+- [x] Reproduce the stale two-check release and show the next unread evidence source can resolve a stalled draft.
+- [x] Verify the fourth-check regression and the reloaded browser activity. Pin three public smoke requests to protected `fe340f3`.
+- [x] Retry one classified temporary acquisition failure. Verify the third-check recovery and bounded-stop cases. Pin three public smoke requests to protected `85133e4`.
+- [x] Run the eight local certificate cases and the local Moodle timing and confirmed tracker packets against migrated PostgreSQL.
+- [x] Run the certificate receipt, portable assignment timing and confirmed tracker packets on protected `ebc5092` with exact fixture disposal.
+- [ ] Evaluate the overdue original on November 16 from 18:00:00.001 Taipei time and start strictly before November 17 at 09:08:55. Run the three fixed calendar originals on November 17, starting before 23:58:55. Use the exact approved protected build and one fixture lease per family. Keep portable results separate.
+- [ ] Complete broader signed-in service replay and production release acceptance.
+
+
+### Cumulative signed-in and targeted course routing [Issue #100]
+
+- [x] Replay all four original saved-chat turns in sequence. Validate the two independent reviews and persistence of versions 1–4.
+- [x] Verify all 265 browser inventory routes and the specific Group Insurance saved-note and sign-in return.
+- [x] Keep the original course/coaching DB301 case and its setup result. Bind a separate published-sample case and scope current-course plus coaching retrieval.
+- [x] Mount 13 original Teaching Feedback questions without shared catalog changes. Exercise all original local cases and both independent empty histories.
+- [x] Pass the 13 original Teaching Feedback questions on protected `7868e8e`. Preserve the published coaching quota failure from that revision.
+- [x] Verify local course-and-coaching recovery on provider composition outage, and preserve the normal generated-draft review gate.
+- [x] Pass and independently review the published course/coaching rerun on exact `1fc093f` after the provider outage.
+- [x] Verify the three original Counseling and tuition compounds against migrated local PostgreSQL and actual handlers.
+- [x] Mount and verify a combined protected Counseling and tuition lease with exact joint journal cleanup.
+
+### Answer recovery across signed-in sources [Issue #100]
+
+- [x] Verify the four unchanged Digital Academy remote-enrollment and unfinished DTM questions with scoped reads in the actual handler. Exercise a transient single-source failure, a persistent failure and crossed ownership.
+- [x] Verify both Counseling and named tuition orders plus appointment exclusion when the reviewer rejects, hits quota or has no key. Preserve checked facts when one read fails.
+- [x] Scope modern and Legacy graduation status to the selected report field and caller. Verify empty and crossed-owner reads.
+- [x] Open the assistant on both School Affairs acknowledgment notices and keep focus, persisted history and the exact route on desktop and mobile.
+- [x] Replay the three Counseling, four remote-learning, four notice and three graduation status cases on one protected revision with exact cleanup. Preserve the three additional graduation failures.
+- [x] Add record-backed recovery for the unchanged graduation requirements, course lineage and eligibility-boundary prompts. Verify with a quota-unavailable provider in the controlled handler and pass the same three on protected `e3dff23` with the official eligibility boundary.
+
+### Slow public review recovery [Issue #100]
+
+- [x] Reserve time when an actual unread official page can resolve a public question. Exercise a slow reviewer, a genuinely different page, a duplicate page and no alternative lead through the real handler.
+- [x] Pass the integrated API and evaluator tests on the exact candidate. Verify both public smoke cases and all six graduation cases on protected `e3dff23` with exact disposal.
+- [x] Verify selected-term attendance, roll-call time, a missing current-term setting and an unsupported subterm hour total against the unchanged six questions in the actual handler.
+- [x] Exercise ten new 31-1 and 32-1 questions in the actual handler against migrated PostgreSQL. Verify paired own and crossed snapshots. Cover navigation, tracked notes, unverifiable official outcomes and unsupported submissions without changing the original 100 cases.
+- [x] Run the exact protected Attendance and international-service packets. Preserve the independent 19/20 result and both cleanup proofs.
+- [x] Repair the specific named-course term absence hours failure, the original compact November payment question, and the 12 frozen Course Selection questions in controlled and migrated tests.
+- [x] Replay all ten Attendance cases, all 12 Course Selection cases and six funded or verified-empty signed monthly answers on protected `5e6af59` with 33 exact pins and three verified cleanups.
+- [ ] Verify the migration-dependent rental action and Learning Support in isolated hosting.
+- [x] Mount and pass the two original 52-1 signed browser cases on exact `186f495`. Verify displayed text and Activity, the browser save, fresh-context restore, independent own/crossed readbacks and cleanup.
+- [x] Verify the consolidated live evaluator counts both protected certificate results and retains the full release blocker for the other 28 browser cases.
+- [ ] Complete signed browser dispatch observations before production acceptance. Use request-scoped server observation for zero-private-read assertions once a graph request is sent.
+
+### Tutor Evaluation and tuition [Issue #100]
+
+- [x] Verify both frozen compound wording orders and explicit questionnaire exclusion through the actual graph and migrated two-account PostgreSQL.
+- [x] Bind the three frozen cases to a protected fixture with two independent unchanged scoped records and exact disposal.
+- [x] Pass all three original Tutor and named tuition questions on exact protected `41a7dbe` with three matching release pins and verified two-owner disposal.
+
+### Native browser fixture correction [Issue #100]
+
+- [x] Verify all four original signed transcript turns independently on protected `87d5847`, with one check on each of the three record answers.
+- [x] Prove exact cleanup of the Announcement Email staging failure and preserve the original failed report.
+- [ ] Exercise no-profile cleanup and common profile staging in the evaluator, then run the six Announcement Email and Student Profile browser cases on an exact protected Preview.
+
+### Later queued public sources [Issue #100]
+
+- [x] Reproduce the two-check stop after a transient second review with the first three eligible queued leads unreadable or mirrored.
+- [x] Continue through the bounded queue and independently verify the new notice on check three. Persist the time-limit reason if another page remains unread when the source window closes, and preserve any verified partial answer.
+- [x] Check exact `f2f73e0`. Quality passed. Two public smoke cases passed and the unread storage notice retained its link with a generic answer.
+- [x] Replay all three public smoke cases on protected `5e1e662`. Check exact link, named quota and date gaps, signed-out privacy, and founding year.
+- [x] Verify and archive the interrupted Student Profile fixture cleanup. Reclaim local storage from the inactive sparse-ready checkout while preserving report hashes.
+- [x] Replay both Certificate, all three Announcement Email, and both nonempty Student Profile cases on exact `5e1e662` with independent saves, restores, crossed reads and disposal.
+- [x] Correct the empty Student Profile evaluator selector for the inline exit link and check it in the rendered app locally.
+- [x] Replay the corrected empty Student Profile case on exact protected `2616472`, with verified disposal.
+- [x] Mount the five frozen Club Attendance browser cases in the proof-aware aggregate evaluator, with controlled actual LangGraph and Chromium coverage.
+- [x] Run the protected Club Attendance evaluator on exact `0c8815c`. Four cases passed and all five cleanups passed. Keep the outage case unverified until its independent transport-failure evidence is available.
+- [x] Implement separate Club Student membership and current-semester evidence. Preserve the original questions, distinguish club status and the student's saved role, and refuse other-owner queries before a read. Verify the real handler and controlled Chromium save and restore.
+- [ ] Finish the five original Club Membership browser cases with the distinct hosted privacy, empty and upstream-failure conditions.
+- [ ] Verify the follow-up `7461124` on protected Preview, including its different-publication continuation after an unread indexed notice.
+
+### Reported Wi-Fi and leave failures [Issue #100]
+
+- [x] Reproduce the three exact prompts on protected `2616472` in sequence, including the class-absence question diverted to private leave history.
+- [x] Route all three to evidence-backed public guidance in guest and signed endpoints, including signed-in Moodle and an existing private transcript. Confirm that these turns read no records or provider.
+- [x] Replay the exact sequence on protected `473f17a` through streaming and Chromium, including saved Activity after reload.
+- [ ] Continue hosted signed-in service checks, including Club Membership, and the broader release evaluation independently.
+
+### Protected Club Membership [Issue #100]
+
+- [x] Mount the original record, multipart, and empty Club Student cases. Cross-check owner-scoped membership and enrolled terms with independent SQL, grade the graph response before committing a browser save, and verify fresh restore and cleanup.
+- [x] Verify all three selected cases against exact protected `ea56353`, including fresh restore, crossed-account readback and all disposals.
+- [x] Add the original foreign Membership question to the protected runner and validate the exact refusal with both accounts nonempty.
+- [x] Exercise the original outage question in signed-in Chromium with two actual handler reads rejected by the controlled upstream. Check the saved Activity and successful recovery when the reader becomes available.
+- [x] Replay and separately grade all four original user questions on exact protected `ea56353`, with versioned conversations and 13 pins.
+- [x] Run the foreign question on exact protected `42be958`, with three other signed cases, verified restore and complete cleanup.
+- [ ] Independently verify the hosted upstream outage and finish the wider release evaluation.
+- [x] Replay all 20 named emergency injury, health equipment, international-student rental tracking, and insurance cases on exact protected `42be958`. Verify both owners, every release pin, unchanged notes and disposal.
+
+### Student guidance wording coverage [Issue #100]
+
+- [x] Reproduce the link-only Wi-Fi setup reply and missing named-network classification.
+- [x] Run the three original and three natural variants through guest, School Affairs and Moodle handler entry points with existing private chat history. Check that mixed questions and private leave actions still use their normal paths.
+- [x] Verify all six prompts, streamed results and Activity restores in Chromium on exact `72e2e89`. [Issue evidence](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6904154028)
+
+### Confirmed Student Leave draft [Issue #100]
+
+- [x] Review the existing Leave form and reviewed-action receipts. Use a draft-only write with exact caller and operation binding.
+- [x] Propose a draft from explicit dates, leave category and periods. Show the fields before confirmation and ask for missing details.
+- [x] Verify the proposal, concurrent identical confirmations, changed retry, peer denial and ordinary Leave form in the actual endpoints and migrated PostgreSQL. Verify the review, receipt retry and exact editor link at phone and desktop widths in Chromium.
+- [ ] Verify the isolated deployment before release. Keep the fixed Moodle question tied to its real Taipei time window.
+
+### Venue request browser evaluation [Issue #100]
+
+- [x] Replay the existing protected browser profiles serially on exact `72e2e89`. Verify disposal for all 17 attempts and record the 16 passing cases. The Club Attendance outage remains unverified.
+- [x] Bind the original venue record, empty and other-student browser questions to separately observed account rows, streamed verification receipts and private conversation restores. Exercise the protected handler, browser request shape and receipt rejection locally.
+- [x] Give standalone venue questions a third scoped read after two temporary service errors and retain an exact record link on exhaustion. Grade successful recovery, persistent failure and a foreign-row response independently.
+- [x] Replay the three reported Wi-Fi and leave questions and three natural variants on the exact Preview that includes the venue retry. Verify all six replies and their Activity after a fresh reload.
+- [x] Run all three original venue browser questions on exact protected `1db8d43`. Verify saved Activity, fresh restore, account isolation and complete cleanup.
+- [x] Mount the original venue and fee companion in the protected browser evaluator with separately observed charges, signed replay evidence and altered-source rejection.
+- [ ] Replay the original fee companion on matching protected Preview and verify exact disposal.
+- [ ] Mount the hosted reader outage with separately verified evidence that the upstream read failed.
+
+### Other-student Profile and Announcement Email questions [Issue #100]
+
+- [x] Mount both exact frozen questions and grade the compiled refusal from the actual saved browser result, with zero answer egress and an independently populated peer account.
+- [x] Verify both original refusals, exact restores and all fixture removals on exact protected `d7f160b`.
+
+### Focused stu.best production release [Issue #100]
+
+- [x] Build from current production source, keep the database schema at the current revision, and port verified Wi-Fi and leave guidance, privacy refusals and standalone venue recovery.
+- [x] Preserve the existing student profile classifier and pass all 1,048 API/source checks on corrected candidate `5440ba5`.
+- [x] Verify the corrected exact Preview, publish production build `5440ba5`, fast-forward main, and replay the reported questions on stu.best.
+
+## Hybrid Plan-and-Execute and ReAct [Issue #100]
+
+- [x] Audit existing LangGraph, planner constraints and public recovery against the requested hybrid behavior.
+- [x] Add explicit plan, observation and feedback-driven scoped replanning without relaxing ownership or action confirmation.
+- [x] Focused recovery, provider failure, deadline, action isolation and persisted-activity checks passed. Broader rerun stopped at user request; hosted acceptance remains pending.
+- [x] Record validation and commit the isolated change.
+
+## Conversational uncertainty replies [Issue #100]
+
+- [x] Replace generic verification fallback with distinct no-source, timeout, temporary-failure and uncertain-answer wording in English and Chinese.
+- [x] Keep verification evidence rules and stored attempt counts; simplify the unconfirmed badge.
+- [x] Restart the local API for manual review. Automated suite remains stopped at user request.
+
+## Conversation-aware local routing [Issue #100]
+
+- [x] Diagnose repeated generic replies; local provider reported credit_balance_exhausted.
+- [x] Route identity questions to authenticated identity and wait-related clarifications to the preceding known failure message.
+- [x] Stop model composition on hard quota failure and explain credit restoration rather than promising waiting will help.
+- [x] Restart the local server; verify both helper paths with zero network calls. Full model acceptance remains unavailable while credits are exhausted.
+
+## Local model, context and attachment handling [Issue #100]
+
+- [x] Inspect effective prior default (`gpt-5.6-terra`, low reasoning) and current official model guidance.
+- [x] Configure local GPT-6.2 Astra/medium reasoning; model metadata returned 200. Inference remains unaccepted due to exhausted credits.
+- [x] Expand shared request/model context to all 24 retained messages within 64 KB, preserving stored-chat limits.
+- [x] Pass images through verification/correction and route explicit screenshot descriptions directly to image processing.
+- [x] Add attachment-aware failure wording and restart local runner; API TypeScript and JS syntax checks passed.
+- [ ] Unlimited durable archival memory is not implemented; existing database stores 24 messages. It requires a separate paginated storage/retrieval change.
+
+## Visual evaluation workspace [Issue #101]
+
+- [x] Inspect existing regression question bank and independent grader.
+- [x] Build a standalone question sidebar, reference/actual comparison, evaluator panel and persisted run history.
+- [x] Add run-one/run-enabled, cancellation, custom references and export.
+- [x] Inspect initial rendered UI and deterministic persistence; no model batch invoked.
+- [x] Add request-scoped model selection, reference archive/restore, image inputs and retained evaluator attempts.
+- [ ] Manual acceptance of latest additions: user requested no further testing.
+
+## Survey FAQ and missing source equivalents [Issue #102 — P0]
+
+- [x] Read all consolidated survey questions and supplied URLs.
+- [x] Read captured source pages and supplied IPIAC PDF; separate dated guidance from account facts.
+- [x] Map supplied references to checked-in stu.best pages/assets and native service routes.
+- [x] Compose 53 English FAQ entries with local answer links, arithmetic and applicability.
+- [x] File P0 missing exact sources and conflicting IPIAC year/fee tables in #102.
+- [x] Document and commit Markdown deliverable; no runtime tests, chatbot import or deployment.
+- [ ] Resolve missing source/process coverage in #102 as a separate implementation task.
+
+## Replace Answer Lab Q&A with survey FAQ [Issue #101, source #102]
+
+- [x] Replace legacy seed questions with FAQ Markdown importer and full expected-answer prose.
+- [x] One-time local migration backs up the old store, replaces old questions and clears their visible runs.
+- [x] Preserve subsequent question edits and new runs across restarts.
+- [x] Expose question/answer CRUD with clear edit, delete and restore controls.
+- [x] No evaluation, model call or automated test; local startup applies the import.
+
+## Publish Answer Lab [Issue #101]
+
+- [x] Confirm user publication authorization and renewed correct Vercel project access.
+- [x] Include independent HTML entry and stable deployment rewrite.
+- [x] Add Google/admin-protected API adapter, owner-scoped SQL storage and selected-model run dispatch.
+- [x] Apply only the independent evaluation migration; schema/RLS/history observed.
+- [ ] Publish exact source revision.
+- [ ] Record deployment status; leave model evaluations paused for manual acceptance.
+
+## Shared chatbot presentation — local only [Issue #101]
+- [x] Extract live chatbot message UI and reuse it for lab question, answer and activity.
+- [x] Isolate chat styles from dashboard styles; disable lab mutations.
+- [x] Keep saved expected answer separate from generated output and progress.
+- [ ] Manual visual acceptance by user; no model or evaluation runs authorized.
+- No push or deployment: user explicitly requested local only.
+
+## Neutral chatbot strategy review — local only [Issues #100, #101, #102]
+- [x] Audit the 53 saved questions/references and existing runs; keep references out of answering-agent inputs.
+- [x] Run three fresh-agent trials with neutral raw evidence packets.
+- [x] Fix public/help versus record routing, local links and mixed-label language.
+- [x] Add the missing public IPIAC draft and query-selected source excerpts.
+- [x] Check existing destinations before creating new pages: all 50 referenced routes/files already exist; exact payment-source content remains inaccessible (403).
+- [x] Run focused routing/source checks and recheck local API paths.
+- [ ] Full signed-in/provider evaluation of all 53 remains unaccepted; source/record gaps must not be hidden by prompt tuning.
+- No push or deployment authorized.
+
+## Default evaluation [Issue #101] — local only
+- [x] Enable AI review after each answer by default; retain user toggle.
+- [x] Confirm batch execution remains sequential, including awaited review.
+- [x] Check frontend module compilation without launching model/evaluator runs.
+
+## Parallel Answer Lab runs [Issue #101] — local only
+- [x] Add bounded 1–4 worker queue, default 3; preserve shared request pacing.
+- [x] Separate case activity and await the matching evaluation before reusing each worker.
+- [x] Drain in-flight work, stop queued cases on 429, and cancel with the batch AbortController.
+- [x] Prevent concurrent review state resets and protect result merges after sign-out.
+- [x] Six pure scheduler checks and JSX compilation passed; no paid model/evaluator batch run.
+
+## Spreadsheet reference refresh [Issue #101/#102] — local only
+- [x] Read the requested sheet (53 data rows, six columns) and audit source notes/local mappings.
+- [x] Create canonical docs/question-answer/README.md with all 53 exact question wordings and revised source-grounded answers.
+- [x] Sync the lab by document hash/per-case fingerprints, preserving history and custom flags.
+- [x] Verify all 31 prior runs unchanged and all 53 case versions updated; four source-sync tests and 74 local-link checks passed.
+- [ ] Resume active answer-quality goal sequentially, one question at a time; after each group of about three rerun previously completed questions.
+
+## [Issue #101] Shared chat client
+- [x] Both browser UIs use websiteAssistant and existing authenticated/public clients.
+- [x] Request-scoped model transport; save session/endpoint metadata.
+- [x] Compile and isolated transport verification.
+- [ ] Signed-in manual acceptance and remaining quality-goal question runs.
+
+## [Issue #100 / #101] Conversational source-backed answers
+- [x] Separate public scholarship rules from private award outcomes.
+- [x] Prioritize source scholarship sections and compose public guidance using current turn/history.
+- [x] Verify new wording and preserve checked facts if composition is unavailable.
+- [x] Demonstrate changed wording with a real repeated question, then regress changed-agent answers (seven at >=70; unchanged templates skipped).
+- [ ] Continue the remaining questions one at a time; next Q07 tuition deductions.
+- [ ] Verify account cases through an actual authorized session.
+
+## [Issue #101] Visible model-quality overview
+- [x] Show AI evaluator percentages consistently in list, answer and run history.
+- [x] Add model/range/status filters and score sorting.
+- [x] Exclude outdated references and later failed/unreviewed attempts from passing aggregates.
+- [x] Verify desktop/mobile filtering without a question batch.
+- [ ] Resume source-agent quality work at Q06 current65, then remaining cumulative source cases.
+
+## [Issue #100/#101] Public resource answers
+- [x] Recover Q06 comparison focus and complete source-agent recheck.
+- [x] Q29 calendar editions/downloads85; Q35 actual restored map95.
+- [ ] Q47 About/background next.
+- [ ] [Issue #102] Restore a valid phone-extension directory before treating Q36 as a complete source.
+
+### [Issue #100] Current question checkpoint
+- [x] Q47 registered About source context:85.
+- [x] Q46 course navigation and independently verified conversational response:90.
+- [ ] Continue remaining cases toward70 each, prioritizing working pages; retain failed trials and honest private-session gates.
+
+- [x] [Issue #100] Q40 public transcript procedure80; personal reads remain protected.
+- [ ] [Issue #100] Q41 club directory35: route source and preserve actual heading-only club names; then cumulative agent recheck.
+
+- [x] [Issue #100] Q41 directory70 with actual headings/contact extraction.
+- [x] [Issue #100] Seven-case retrieval recheck corrected after transcript regression; all>=70.
+- [ ] [Issue #100] Continue remaining36 cases; prioritize readable pages, one at a time.
+
+- [x] [Issue #100] Q42 recommendations85; Q43 music contact80.
+- [x] [Issue #100] Q44 language admissions85; Q45 timing80.
+- [ ] [Issue #100] Remaining32 cases and authenticated coverage; next cumulative after another changed-agent case.
+
+- [x] [Issue #100] Calendar ceremony85, event examples80, source-row date/exam fallback90.
+- [x] [Issue #100] Corrected cumulative source recheck and source-preserving focus-repair guard.
+- [ ] [Issue #100] Remaining29 cases, including private cases without verified browser session. Continue readable public services first.
+
+- [x] [Issue #100] Dorm fees/applications70; checkout80; repair75; dorm Wi-Fi90.
+- [ ] [Issue #100] Remaining25 cases; prioritize existing public sources and retain private-session requirements.
+
+## [Issues #100/#101] User-requested publication and cloud overwrite
+- [ ] Prepare isolated release preserving current production shared-admin access.
+- [ ] Validate build, publish through GitHub/Vercel and verify exact live revision.
+- [ ] Back up cloud lab privately, replace with local53-question/151-run snapshot and verify stored equality.
+- [ ] Resume quality goal afterward;29/53 reached target before publication.

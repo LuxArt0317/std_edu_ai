@@ -1,3 +1,4 @@
+import {serviceNoteLookup} from './serviceNoteIntent.js';
 import {schoolServiceEntries,schoolSubjectRecordsPath,studentServiceByKey} from '../src/features/public/affairs/studentServices.js';
 
 const normalize=value=>String(value||'').normalize('NFKC').toLowerCase().replace(/\s+/g,' ').trim();
@@ -5,6 +6,24 @@ const escapePattern=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const contains=(text,value)=>/^[a-z\d_ -]+$/i.test(value)
   ?new RegExp('(?<![a-z\\d_-])'+escapePattern(value)+'(?![a-z\\d_-])','iu').test(text)
   :text.includes(value);
+// Canonical codes only for explicit term identifiers. Never infer a term from
+// a date range, course code, or the order of the saved history.
+export function academicTermCodes(value){
+  const text=String(value??'').normalize('NFKC');
+  const codes=new Set();
+  for(const pattern of [
+    /(?<![a-z\d_/-])(1\d{2})\s*[-–]\s*([1-3])(?![a-z\d_/-])/giu,
+    /(?<!\d)(1\d{2})\s*學年(?:度)?\s*第?\s*([1-3])\s*學期/gu,
+  ]){
+    for(const match of text.matchAll(pattern))codes.add(match[1]+'-'+match[2]);
+  }
+  return [...codes];
+}
+
+function filterNamedTerms(rows,requestedTerms){
+  return rows.filter(row=>academicTermCodes(row.term).some(code=>requestedTerms.includes(code)));
+}
+
 const allServices=question=>/\b(?:all|every) (?:of )?(?:my |the )?(?:saved |local )?(?:service |tracking )?(?:records?|notes?)\b|(?:全部|所有).{0,8}(?:服務|紀錄|記錄|備註)/i.test(question);
 const allCourses=question=>/\b(?:all|every) (?:of )?(?:my |the )?(?:moodle |dtm )?(?:courses?|subjects?)\b|(?:全部|所有).{0,8}(?:課程|科目)/i.test(question);
 const allAssignments=question=>/\b(?:all|every) (?:of )?(?:my |the )?(?:moodle |dtm )?(?:assignments?|tasks?)\b|(?:全部|所有).{0,8}(?:作業|任務)/i.test(question);
@@ -51,30 +70,40 @@ export function ownEvidenceRows(rows,userId){
   return Array.isArray(rows)?rows.filter(row=>row&&typeof row==='object'&&(!row.userId||row.userId===userId)&&(!row.user_id||row.user_id===userId)):[];
 }
 export function selectServiceRecords(snapshot,context={}){
-  const question=questionContext(context),q=normalize(question),direct=[];
+  const scope=context.serviceNoteScope??serviceNoteLookup(context.question,context.route,context.history);
+  const scoped=Boolean(scope.foreign||scope.invalidService||scope.excluded||scope.keys.length||scope.officialOnly);
+  const question=scoped?scope.noteQuestion:questionContext(context),q=normalize(question),direct=[];
   for(const row of schoolServiceEntries){
     if([row.title,row.section].some(label=>label.length>=4&&q.includes(normalize(label))))direct.push(canonicalKey(row.id));
   }
   // Prefer an exact title to its broad shared section (for example insurance vs injury).
   const titleMatches=schoolServiceEntries.filter(row=>row.title.length>=4&&q.includes(normalize(row.title))).map(row=>canonicalKey(row.id));
   const aliasMatches=aliases.filter(([pattern])=>pattern.test(question)).flatMap(([,ids])=>ids);
-  const explicitAll=allServices(question);
-  let keys=explicitAll?[]:[...titleMatches,...aliasMatches];
-  if(!keys.length&&!explicitAll)keys=direct;
-  if(!keys.length&&!explicitAll){const current=routeKey(context.route);if(current)keys=[current];}
+  const explicitAll=!scoped&&allServices(question);
+  const allInScope=scoped&&/\b(?:all|every)\b.{0,60}\b(?:notes?|tracking records?)\b|(?:全部|所有).{0,14}(?:備註|筆記|紀錄)/iu.test(question);
+  let keys=scoped?scope.keys:explicitAll?[]:[...titleMatches,...aliasMatches];
+  if(!scoped&&!keys.length&&!explicitAll)keys=direct;
+  if(!scoped&&!keys.length&&!explicitAll){const current=routeKey(context.route);if(current)keys=[current];}
   keys=[...new Set(keys)].filter(key=>allowedServices.has(key));
   const owned=ownEvidenceRows(snapshot.serviceRecords,snapshot.profile?.userId).filter(row=>allowedServices.has(row.serviceKey));
-  const scoped=keys.length?owned.filter(row=>keys.includes(canonicalKey(row.serviceKey))):owned;
-  const requestedReferences=referenceTokens(question);
-  const relevant=requestedReferences.length?scoped.filter(row=>matchesReference(row,requestedReferences)):scoped;
-  const matching=prioritizeEvidenceRows(relevant,question,['id','title','notes'],{filterExact:!explicitAll});
+  const candidates=scoped?owned.filter(row=>row.recordType==='note'&&keys.includes(row.serviceKey))
+    :keys.length?owned.filter(row=>keys.includes(canonicalKey(row.serviceKey))):owned;
+  const titleMatch=scoped&&/\b(?:titled|named|called)\s+(?:["“]([^"”]+)["”]|(.+))|(?:標題|名稱)為[「『]?([^」』]+)[」』]?/iu.exec(question);
+  const requestedTitle=titleMatch?normalize(titleMatch[1]||titleMatch[2]||titleMatch[3]):null;
+  const requestedReferences=requestedTitle?[]:referenceTokens(question);
+  const exampleInScope=allInScope&&/\b(?:including|such as|for example)\b|包括|例如/iu.test(question);
+  const relevant=exampleInScope?candidates:requestedTitle?candidates.filter(row=>normalize(row.title)===requestedTitle)
+    :requestedReferences.length?candidates.filter(row=>matchesReference(row,requestedReferences)):candidates;
+  const matching=prioritizeEvidenceRows(relevant,question,['id','title','notes'],{filterExact:!explicitAll&&!allInScope&&!requestedTitle});
+
   const selectedKeys=keys.length?keys:[...new Set(matching.map(row=>canonicalKey(row.serviceKey)))];
-  const urls=selectedKeys.map(key=>allowedServices.get(key)?.localUrl).filter(Boolean);
-  const primary=keys.length===1?allowedServices.get(keys[0]).localUrl:'/school-affairs/records';
+  const noteUrl=key=>key==='28-1'?'/school-affairs/services/28-1/notes':allowedServices.get(key)?.localUrl;
+  const urls=selectedKeys.map(noteUrl).filter(Boolean);
+  const primary=keys.length===1?noteUrl(keys[0]):'/school-affairs/records';
   return {records:matching,url:primary,urls:[...new Set([primary,...urls])],selection:{
     serviceKeys:keys,resolvedServiceKeys:selectedKeys,explicitAll,
-    requestedReference:requestedReferences[0]||null,requestedReferences,matchedReference:requestedReferences.length?matching.length>0:null,
-    scope:keys.length?'selected_services':'all_saved_services',availableRows:owned.length,matchingRows:matching.length,
+    requestedReference:requestedReferences[0]||null,requestedReferences,...(requestedTitle?{requestedTitle}:{}),matchedReference:requestedReferences.length?matching.some(row=>matchesReference(row,requestedReferences)):null,
+    scope:keys.length?'selected_services':'all_saved_services',availableRows:scoped?candidates.length:owned.length,matchingRows:matching.length,
     note:'Local saved tracking records only. Notes and local status are not institutional decisions, payments, attendance or official submissions.',
   }};
 }
@@ -101,8 +130,9 @@ function ownedCourses(snapshot,userId){
     ...Object.fromEntries(Object.keys(childFields).map(key=>[key,childrenFor(course,key,userId)])),
   }));
 }
-function chooseCourses(courses,question,route,assignments=[]){
+function chooseCourses(courses,question,route,assignments=[],requestedTerms=[]){
   const explicit=courses.filter(row=>fieldMatches(row,question,['id','code','title']));
+  if(requestedTerms.length)return {courses:filterNamedTerms(explicit.length?explicit:courses,requestedTerms),scope:'named_course_term'};
   if(explicit.length)return {courses:explicit,scope:'named_owned_courses'};
   const namedTerms=courses.filter(row=>row.term&&normalize(question).includes(normalize(row.term)));
   if(namedTerms.length)return {courses:namedTerms,scope:'named_course_term'};
@@ -130,7 +160,7 @@ export function selectAccountEvidence(snapshot,key,context={}){
   const dtmRoute=/^\/dtm\/course\/([a-zA-Z0-9-]+)/.exec(context.route||'')?.[1];
   if(key==='dtm'){
     const courses=ownedCourses(snapshot,userId),assignments=ownEvidenceRows(snapshot.assignments,userId);
-    const direct=chooseCourses(courses,context.question||'',dtmRoute,assignments);
+    const direct=chooseCourses(courses,context.question||'',dtmRoute,assignments,context.courseTerms);
     const selected=question!==context.question&&['selected_course','matching_owned_courses'].includes(direct.scope)?chooseCourses(courses,question,dtmRoute,assignments):direct;
     return {records:{...snapshot.dtm,notices:prioritizeEvidenceRows(ownEvidenceRows(snapshot.dtm?.notices,userId),question,['id','title','body']),courses:selected.courses.map(row=>({...row,
       materials:prioritizeEvidenceRows(row.materials,question,['id','title','summary']),
@@ -157,8 +187,28 @@ export function selectAccountEvidence(snapshot,key,context={}){
     return {records:rows,selection:{scope,matchingRows:rows.length}};
   }
   if(Array.isArray(snapshot[key])){
-    const rows=prioritizeEvidenceRows(ownEvidenceRows(snapshot[key],userId),question,['id','code','title','label','name','details']);
-    return {records:rows,...(key==='courses'?{url:schoolSubjectRecordsPath}:{}),selection:{scope:'ranked_owned_records',matchingRows:rows.length}};
+    const owned=ownEvidenceRows(snapshot[key],userId);
+    const namedTerms=key==='courses'&&context.courseTerms?.length;
+    const scoped=namedTerms?filterNamedTerms(owned,context.courseTerms):owned;
+    let rows=prioritizeEvidenceRows(scoped,question,['id','code','title','label','name','details']);
+    let scope=namedTerms?'named_course_term':'ranked_owned_records';
+    // The bounded user antecedent only selects among owned rows. It is not a
+    // source of instructor/room facts. Reuse this selection for evidence and
+    // visible record cards so a named follow-up never displays unrelated rows.
+    const resolvedFollowup=key==='courses'&&typeof context.resolvedUserQuestion==='string'
+      &&context.resolvedUserQuestion.length<=2000&&context.resolvedUserQuestion===context.question;
+    const allCourseFollowup=/\b(?:all|every)\s+(?:(?:of|my|the|saved|current|enrolled|local|school|affairs)\s+){0,5}(?:courses?|subjects?|classes)\b|(?:全部|所有).{0,8}(?:課程|科目|修課)/iu.test(question);
+    // A cohort plus a named example is a union, not a request for the example
+    // alone. Preserve the existing term/cohort selection for independent review.
+    const cohortCourseFollowup=/\b(?:current|historical|past|previous|completed|upcoming|future)\s+(?:courses|subjects|classes)\b|\b(?:courses|subjects|classes)\s+(?:(?:in|for|from|during)\s+)?(?:this|current|next|previous|last)\s+(?:term|semester)\b|(?:本學期|這學期|目前|歷史|過去|下學期|未來).{0,8}(?:課程|科目|修課)/iu.test(question);
+    if(resolvedFollowup&&!allCourseFollowup&&!cohortCourseFollowup){
+      const matching=prioritizeEvidenceRows(rows,question,['enrollmentId','id','code','title'],{filterExact:true});
+      if(matching.length<rows.length){rows=matching;scope='named_course_followup';}
+    }
+    return {records:rows,...(key==='courses'?{url:schoolSubjectRecordsPath}:{}),selection:{
+      scope,availableRows:owned.length,matchingRows:rows.length,
+      ...(namedTerms?{requestedTerms:context.courseTerms}:{}),
+    }};
   }
   return null;
 }

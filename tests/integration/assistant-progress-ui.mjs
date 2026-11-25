@@ -36,8 +36,9 @@ try {
     await page.getByRole('heading',{name:'校園助理 · Assistant'}).waitFor();
     await page.getByPlaceholder('Ask a school question…').fill('Registrar phone?');
     await page.getByRole('button',{name:'Send',exact:true}).click();
-    await page.getByRole('status',{name:'Assistant activity'}).getByText('Searching managed knowledge').waitFor();
-    await page.getByRole('status',{name:'Assistant activity'}).getByText('Searching school sources').waitFor();
+    const runningSteps=page.getByRole('status',{name:'Assistant activity'}).getByRole('list',{name:'Observed assistant steps'});
+    await runningSteps.getByText('Searching managed knowledge',{exact:true}).waitFor();
+    await runningSteps.getByText('Searching school sources',{exact:true}).waitFor();
     await page.getByText('The registrar phone is listed in the official school directory.').waitFor();
     assert.equal(await page.getByRole('status',{name:'Assistant activity'}).count(),0);
     const activity=page.locator('article').last().locator('details');
@@ -65,7 +66,7 @@ try {
     assert.match(await failed.innerText(),/interrupted/i);
     await page.getByPlaceholder('Ask a school question…').fill('Slow question');
     await page.getByRole('button',{name:'Send',exact:true}).click();
-    await page.getByRole('status',{name:'Assistant activity'}).getByText('Searching managed knowledge').waitFor();
+    await runningSteps.getByText('Searching managed knowledge',{exact:true}).waitFor();
     await page.reload();
     await page.getByText('This answer was interrupted by navigation or refresh. Please ask again.').waitFor();
     await page.locator('article').last().locator('details').locator('summary').click();

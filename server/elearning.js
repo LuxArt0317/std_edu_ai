@@ -67,3 +67,13 @@ export async function readElearningOutline(account,query){
     throw new AffairsWorkspaceError('The course outline response could not be verified.',503);
   return result;
 }
+
+export async function readElearningPageMetadata(account,{view,id}){
+  if(!['categories','category','category_title','notice'].includes(view)||(view==='categories'?id!==null:
+    !Number.isInteger(id)||id<1||id>2147483647))
+    throw new AffairsWorkspaceError('Invalid Digital Academy page selector.',400);
+  const result=await rpc(account,'elearning_page_metadata',{p_view:view,p_id:id});
+  if(result?.userId!==account.user.id||result.view!==view||result.id!==id)
+    throw new AffairsWorkspaceError('The Digital Academy page metadata could not be verified.',503);
+  return result;
+}

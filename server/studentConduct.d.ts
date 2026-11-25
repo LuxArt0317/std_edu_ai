@@ -17,5 +17,6 @@ export class StudentConductError extends Error{status:number;constructor(message
 export function studentConductPayloadBytes(value:unknown):number;
 export function validateStudentConductPayload(kind:unknown,value:unknown):string|null;
 export function loadStudentConduct(account:StudentConductAccount):Promise<StudentConductRecords>;
+export function loadStudentConductCount(account:StudentConductAccount):Promise<{count:number}>;
 export function loadStudentConductAdmin(account:StudentConductAccount,options:{userId:string}):Promise<StudentConductRecords>;
 export function manageStudentConductRecord(account:StudentConductAccount,kind:StudentConductKind,payload:unknown):Promise<StudentConductReceipt>;

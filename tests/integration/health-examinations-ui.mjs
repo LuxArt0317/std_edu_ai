@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright-core';
-import { healthCardUrl, healthExaminationPath, healthExaminationScope, healthReportBucket } from '../../server/healthExaminationContract.js';
+import { healthCardUrl, healthExaminationPath, healthExaminationScope, healthReportBucket, healthExaminationGuide } from '../../server/healthExaminationContract.js';
 import { affairsTestUser as user, mockAffairsAuth } from './helpers/affairs-auth.mjs';
 
 const origin = process.env.PUBLIC_SITE_ORIGIN ?? 'http://127.0.0.1:54635';
@@ -18,6 +18,8 @@ const browser = await chromium.launch({
 });
 try {
   const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, serviceWorkers: 'block' });
+  await context.route('**/*',route=>{const url=new URL(route.request().url());return url.origin===new URL(origin).origin&&!url.pathname.startsWith('/api/')
+    ?route.continue():route.abort('blockedbyclient');});
   await mockAffairsAuth(context);
   const id = '10000000-0000-4000-8000-000000000001';
   const other = '10000000-0000-4000-8000-000000000002';
@@ -57,6 +59,16 @@ try {
       if (request.method() === 'GET') return route.fulfill({ json: { conversations: [] } });
       const { id, title, messages, version } = request.postDataJSON();
       return route.fulfill({ json: { id, title, messages, version: version + 1, updated_at: new Date().toISOString() } });
+    }
+    if (url.pathname === '/api/affairs-assistant') {
+      assert.equal(request.method(), 'POST');
+      assert.match(request.headers().authorization ?? '', /^Bearer /u);
+      const question='Where can I view my health examination report?';
+      assert.equal(request.postDataJSON().question, question);
+      assert.equal(request.postDataJSON().route, healthExaminationPath);
+      // Only the guide response is mocked here. Actual server classification
+      // belongs to the API tests; this suite verifies the rendered local link.
+      return route.fulfill({ json: healthExaminationGuide(question, true) });
     }
     throw new Error('Unexpected QA call: ' + url.pathname);
   });
@@ -100,6 +112,8 @@ try {
     assert.ok(await page.locator('.health-examination-table').evaluate(node => node.scrollWidth > node.clientWidth));
   }
   const guest = await browser.newContext({ serviceWorkers: 'block' });
+  await guest.route('**/*',route=>{const url=new URL(route.request().url());return url.origin===new URL(origin).origin&&!url.pathname.startsWith('/api/')
+    ?route.continue():route.abort('blockedbyclient');});
   await mockAffairsAuth(guest, { signedIn: false });
   const login = await guest.newPage();
   await login.goto(origin + healthExaminationPath);

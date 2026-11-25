@@ -206,12 +206,6 @@
 }
 
 /* Shared public chat is portaled outside the page wrapper. Keep text explicit. */
-.public-assistant-surface .nexus-message-markdown {font-size:.875rem;line-height:1.65;overflow-wrap:anywhere;color:var(--foreground)}
-.public-assistant-surface .nexus-message-markdown p {margin:0 0 .75rem;color:inherit}
-.public-assistant-surface .nexus-message-markdown :is(ul,ol) {padding-inline-start:1.25rem;margin:.75rem 0}
-.public-assistant-surface .nexus-message-markdown a {text-decoration:underline;text-underline-offset:3px}
-.public-assistant-surface .nexus-message-markdown pre {max-width:100%;overflow-x:auto}
-.public-assistant-surface .public-assistant-user p {color:var(--primary-foreground)}
 
 /* Feedback belongs to the shared chat, including routes that do not load App.css. */
 .assistant-feedback { display: grid; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgb(23 72 61 / 14%); }

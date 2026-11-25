@@ -1,0 +1,10 @@
+export type HousingBedField='academicYear'|'semester'|'bedNumber'|'dormitory'|'bunk'|'accommodationFee'|'deposit'|'subsidyAmount';
+export type HousingBedUnsupported='current_residence'|'payment_confirmation'|'official_confirmation'|'tenancy_dates';
+export type HousingBedEvidenceSelection={from:'question'|'route'|'history';question:string;term:{academicYear:number|null;semester:1|2|null};fields:HousingBedField[];unsupported:HousingBedUnsupported[];reason:null|'foreign_request'|'unsupported_operation'|'ambiguous_selector'|'invalid_route'};
+export type HousingBedCompanion='next_class'|'fee_balance';
+export type HousingBedLookupContext={selection:HousingBedEvidenceSelection|null;question:string;otherQuestion:string;companion:HousingBedCompanion|null;companions:HousingBedCompanion[];excludedCompanions:HousingBedCompanion[];foreignCompanions:HousingBedCompanion[];companionOnly:boolean;navigation:boolean;foreign:boolean;excluded:boolean};
+export function housingBedLookupContext(question:unknown,route?:string,history?:Array<{role:string;content:string}>):HousingBedLookupContext;
+export function selectHousingBedEvidence(question:unknown,route?:string,history?:Array<{role:string;content:string}>):HousingBedEvidenceSelection|null;
+export function isHousingBedEvidenceQuestion(question:unknown,route?:string,history?:Array<{role:string;content:string}>):boolean;
+export function housingBedNavigation(question:unknown):boolean;
+export function isHousingBedScopeQuestion(question:unknown,route?:string,history?:Array<{role:string;content:string}>):boolean;

@@ -32,6 +32,29 @@ test('timer expiry is a deadline even if the wall clock reads earlier', async co
   assert.equal(result.readState, 'unavailable');
 });
 
+test('a shared timer expiry closes the queue of supplemental readers', async context => {
+  context.mock.method(Date, 'now', () => 1000);
+  context.mock.timers.enable({apis: ['setTimeout']});
+
+  const tools = ['enrollmentCertificate', 'tuition', 'studentConduct'];
+  const started: string[] = [];
+  const pending = readSupplementalLookups({
+    ...request,
+    tools,
+    readers: Object.fromEntries(tools.map(key => [key, () => {
+      started.push(key);
+      return new Promise(() => {});
+    }])),
+  });
+  await Promise.resolve();
+  assert.deepEqual(started, tools.slice(0, 2));
+
+  context.mock.timers.tick(50);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(started, tools.slice(0, 2));
+  assert.deepEqual((await pending).map(result => result.reason), tools.map(() => 'deadline_exceeded'));
+});
+
 test('a late successful read cannot claim an empty account record', async context => {
   let now = 1000;
   context.mock.method(Date, 'now', () => now);

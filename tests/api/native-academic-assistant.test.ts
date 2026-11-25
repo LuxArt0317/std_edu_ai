@@ -49,12 +49,13 @@ test('planner retains exact topical native tools, normalizes routes, and uses th
     assert.ok(mixed.tools.includes('academicGrades'));assert.ok(mixed.tools.includes('academicAttendance'));
     const dtm=await planAccountLookup('My DTM grades',[],'/dtm/grades',Date.now()+10000);
     assert.equal(dtm.degraded,undefined);
-    assert.ok(!dtm.tools.some(key=>nativeKeys.includes(key)));
+    assert.deepEqual(dtm.tools,['dtmGradeReport']);
+    assert.equal(calls,6,'Recognized native DTM reads never need the planner.');
     const explicit=await planAccountLookup('My academic transcript and my DTM grades',[],'/dtm/grades',Date.now()+10000);
     assert.ok(explicit.tools.includes('academicGrades'));
     const dtmFollowup=await planAccountLookup('My grades and attendance',[{role:'user',content:'My DTM courses'}],'',Date.now()+10000);
     assert.equal(dtmFollowup.degraded,undefined);
-    assert.ok(!dtmFollowup.tools.some(key=>nativeKeys.includes(key)));assert.equal(calls,9);
+    assert.ok(!dtmFollowup.tools.some(key=>nativeKeys.includes(key)));assert.equal(calls,8);
   }finally{globalThis.fetch=previousFetch;if(previousKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previousKey;}
 });
 

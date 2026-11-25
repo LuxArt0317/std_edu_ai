@@ -1,0 +1,13 @@
+import fs from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {load} from 'cheerio';
+const pages=JSON.parse(await fs.readFile('src/features/public/mirror/pages.json','utf8'));
+const page=pages.find(p=>p.route==='/school-sites/cashier.swd.stu.edu.tw/registration-fee-area/');
+if(!page)throw Error('Payment notice is not registered');
+const bytes=await fs.readFile('public'+page.file);
+if(createHash('sha256').update(bytes).digest('hex')!==page.checksum)throw Error('Payment notice checksum mismatch');
+const $=load(bytes.toString('utf8'));$('script,style,header,footer,nav').remove();
+const text=($('main').first().text()||$('article').first().text()||$('body').text()).replace(/\s+/gu,' ').trim();
+if(/AccessDenied|Access Denied/i.test(text)||text.length<200)throw Error('Payment notice content unavailable');
+await fs.writeFile('server/data/paymentNotice.json',JSON.stringify({title:page.title,source:page.source,url:page.route,capturedOn:page.capturedOn,checksum:page.checksum,text},null,2)+'\n');
+console.log('Imported registered payment notice',text.length,'characters');

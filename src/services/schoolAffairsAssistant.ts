@@ -1,30 +1,56 @@
+import {assistantFetch,type AssistantTransport} from './assistantTransport';
+import {assistantContext} from './assistantContext.js';
+import {learningSupportQuestion} from '../../server/learningSupportAssistantIntent.js';
+import {parseExplicitAccountAction} from '../../server/accountActionIntent.js';
+import {accountStatusIntent} from '../../server/accountStatusIntent.js';
+import {campusEntryIntent} from '../../server/campusEntryContract.js';
+import {learningEntryIntent} from '../../server/learningEntryContract.js';
+import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
+import {dtmMaterialIntent} from '../../server/dtmMaterialIntent.js';
+import {selectDtmSubmissionTiming} from '../../server/dtmSubmissionTimingIntent.js';
+import {isElearningCatalogPageQuestion} from '../../server/elearningCatalogPageIntent.js';
+import {catalogDetailIntent} from '../../server/catalogDetailIntent.js';
+import {isElearningMetadataQuestion} from '../../server/elearningMetadataIntent.js';
+import {isInternshipEvidenceQuestion} from '../../server/internshipEvidenceIntent.js';
+import {isStudentLeaveEvidenceQuestion} from '../../server/studentLeaveEvidenceIntent.js';
+import {isDtmAssignmentEvidenceQuestion} from '../../server/dtmAssignmentEvidenceIntent.js';
+import {isStudentConductScopeQuestion} from '../../server/studentConductEvidenceScope.js';
 import { clubStudentQuestion } from '../../server/clubStudentContract.js';
+import {clubAttendanceSelection} from '../../server/clubAttendanceIntent.js';
+import {clubMembershipSelection} from '../../server/clubMembershipIntent.js';
+import {clubEquipmentPlan} from '../../server/clubEquipmentIntent.js';
 import { answerStudentClubs } from './clubStudent';
 import { clubOfficerGuide,clubOfficerQuestion } from '../../server/clubOfficerContract.js';
 import { clubGuide,clubIntent } from '../../server/clubServicesContract.js';
-import { healthExaminationGuide, healthExaminationQuestion } from '../../server/healthExaminationContract.js';
-import {elearningGuide,elearningQuestion,elearningOutlineCourse} from '../../server/elearningContract.js';
-import {aidPaymentsQuestion} from '../../server/aidPaymentsContract.js';
-import {answerAidPayments} from './aidPayments';
-import {answerElearning,answerElearningOutline} from './elearning';
-import {counselingGuide,counselingQuestion} from '../../server/counselingContract.js';
-import {certificateAwardQuestion} from '../../server/certificateAwardsContract.js';
+import { healthExaminationQuestion } from '../../server/healthExaminationContract.js';
+import {elearningGuide,elearningQuestion} from '../../server/elearningContract.js';
+import {isAidPaymentsScopeQuestion} from '../../server/aidPaymentsEvidenceIntent.js';
+import {isForeignDtmGradesQuestion,shouldReadNativeDtmGrades} from '../../server/dtmGradeEvidenceIntent.js';
+import {isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../../server/elearningEvidenceIntent.js';
+import {isFacilityRepairEvidenceQuestion,isForeignFacilityRepairQuestion} from '../../server/facilityRepairEvidenceIntent.js';
+import {isFeeRemissionEvidenceQuestion} from '../../server/feeRemissionEvidenceIntent.js';
+import {isDormitoryConductEvidenceQuestion} from '../../server/dormitoryConductEvidenceIntent.js';
+import {isElearningOutlineEvidenceQuestion} from '../../server/elearningOutlineEvidenceIntent.js';
+import {isHealthExaminationEvidenceQuestion} from '../../server/healthExaminationEvidenceIntent.js';
+import {counselingQuestion} from '../../server/counselingContract.js';
+import {isCounselingEvidenceQuestion} from '../../server/counselingEvidenceIntent.js';
+import {certificateAwardQuestion,certificateAwardRecordId} from '../../server/certificateAwardsContract.js';
 import {readCertificateAwardAnswer} from './certificateAwards';
 import {announcementEmailForeignAnswer,announcementEmailQuestion} from '../../server/announcementEmailContract.js';
 import {readAnnouncementEmailAnswer} from './announcementEmail';
-import {isForeignStudentProfileQuestion,studentProfileForeignAnswer,studentProfileQuestion} from '../../server/studentProfileContract.js';
+import {studentProfileQuestion} from '../../server/studentProfileContract.js';
 import {readStudentProfileAnswer} from './studentProfile';
 import {clearanceQuestion} from '../../server/graduationClearanceContract.js';
-import {readGraduationClearanceAnswer} from './graduationClearance';
+import {isClearanceEvidenceQuestion} from '../../server/clearanceEvidenceIntent.js';
+import {isTutorEvaluationEvidenceQuestion,tutorEvaluationNavigation} from '../../server/tutorEvaluationEvidenceIntent.js';
+import {isServiceNoteEvidenceQuestion} from '../../server/serviceNoteIntent.js';
 import {permanentCourseQuestion} from '../features/public/affairs/permanentCourseRouting.js';
 import {venueQuestion} from '../features/public/affairs/venueContract.js';
 import {isVenueRequestQuestion} from '../../server/venueRequestIntent.js';
-import {answerStudentSupportGuidance} from '../../server/studentSupportGuidance.js';
-import {readVenueAnswer} from './venueBooking';
-import {repairId,repairPaths,repairQuestion} from '../features/public/affairs/facilityRepair.js';
-import {readRepairAnswer} from './facilityRepair';
-import {teachingFeedbackQuestion} from '../../server/teachingFeedbackContract.js';
-import {readTeachingFeedbackAnswer} from './teachingFeedback';
+import {repairQuestion} from '../features/public/affairs/facilityRepair.js';
+import {isHousingBedScopeQuestion} from '../../server/housingBedEvidenceIntent.js';
+import {isHousingApplicationScopeQuestion} from '../../server/housingApplicationEvidenceIntent.js';
+import {isTeachingFeedbackScopeQuestion} from '../../server/teachingFeedbackEvidenceIntent.js';
 import {earlyGraduationQuestion} from '../../server/earlyGraduationContract.js';
 import {readEarlyGraduationAnswer} from './earlyGraduation';
 import {courseSubstitutionQuestion} from '../features/public/affairs/courseSubstitution.js';
@@ -42,95 +68,72 @@ import {readAssistantReply} from './assistantStreamReader.js';
 import { affairsClient } from '@/features/public/affairs/authClient';
 
 /** Uses only School Affairs credentials; never imports the Nexus client. */
-export async function askSchoolAffairsAssistant(question: string, history: Array<{role:string;content:string}>, signal?: AbortSignal, images: Array<{name:string;dataUrl:string}> = [], route = '', onProgress?: (step:AssistantProgress)=>void): Promise<AssistantResponse> {
+export async function askSchoolAffairsAssistant(expectedUserId: string, question: string, history: Array<{role:string;content:string}>, signal?: AbortSignal, images: Array<{name:string;dataUrl:string}> = [], route = '', onProgress?: (step:AssistantProgress)=>void, transport?:AssistantTransport): Promise<AssistantResponse> {
+  signal?.throwIfAborted();
   if (!affairsClient) throw new Error('School Affairs sign-in is not configured.');
   const {data,error} = await affairsClient.auth.getSession();
+  signal?.throwIfAborted();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
-  const askAccount = () => requestAccountAnswer(data.session.access_token,question,history,signal,images,route,onProgress);
-  if(!images.length){
-    if(isForeignStudentProfileQuestion(question))return studentProfileForeignAnswer(question);
-    if(announcementEmailQuestion(question)==='foreign')return announcementEmailForeignAnswer(question);
-    if(answerStudentSupportGuidance(question)||isVenueRequestQuestion(question,route,history))return askAccount();
+  if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
+  const {access_token:accessToken}=data.session;
+  if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
+    ||selectDtmSubmissionTiming(question,route,history)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
+    ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
+    ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)
+    ||isFeeRemissionEvidenceQuestion(question,route,history)||isDormitoryConductEvidenceQuestion(question,route,history)||isElearningOutlineEvidenceQuestion(question,route,history)
+    ||isHealthExaminationEvidenceQuestion(question,route,history)||healthExaminationQuestion(question)
+    ||isCounselingEvidenceQuestion(question,route,history)||counselingQuestion(question)
+    ||isClearanceEvidenceQuestion(question,route,history)||clearanceQuestion(question)
+    ||isTutorEvaluationEvidenceQuestion(question,route,history)||tutorEvaluationNavigation(question)
+    ||learningSupportQuestion(question,route)||isStudentConductScopeQuestion(question,route,history)||isServiceNoteEvidenceQuestion(question,route,history)
+    ||isTeachingFeedbackScopeQuestion(question,route,history)
+    ||isHousingBedScopeQuestion(question,route,history)||isHousingApplicationScopeQuestion(question,route,history)||clubAttendanceSelection(question,route)||clubMembershipSelection(question,route)||clubEquipmentPlan(question,route,history))
+    return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress,transport);
+  const profile=!images.length&&studentProfileQuestion(question);
+  if(profile==='foreign'){
+    const zh=/[\u3400-\u9fff]/u.test(question);
+    return {status:'handoff',answer:zh?'我無法查閱另一位學生的基本資料。':'I can’t access another student’s profile records.',
+      citations:[],suggestedQuestions:[]};
   }
   const officer = !images.length ? clubOfficerQuestion(question) : null;
   if (officer) return clubOfficerGuide(question,officer,true);
+  const clubs = !images.length ? clubIntent(question,route) : null;
+  if (clubs === 'equipment') return clubGuide(question, clubs, true);
   const studentClub = !images.length ? clubStudentQuestion(question) : null;
-  if (studentClub) {
+  if (studentClub && studentClub!=='my-attendance') {
     onProgress?.({kind:'student-clubs',label:'Checking club records',detail:'Using your School Affairs session.',status:'running'});
     return answerStudentClubs(data.session.user.id,question,studentClub,signal);
   }
-  const clubs = !images.length ? clubIntent(question) : null;
   if (clubs) return clubGuide(question, clubs, true);
-  if (healthExaminationQuestion(question)) return healthExaminationGuide(question, true);
-  const aidPayment=!images.length?aidPaymentsQuestion(question):null;
-  if(aidPayment){
-    onProgress?.({kind:'aid-payments',label:'Checking student payment records',detail:'Reading the count for your account.',status:'running'});
-    return answerAidPayments(data.session.user.id,aidPayment,question,signal);
-  }
-  const outline=images.length?null:elearningOutlineCourse(question,route);
-  if(outline!==null){
-    onProgress?.({kind:'elearning-outline',label:'Checking the course outline',detail:'Looking up activities available to your account.',status:'running'});
-    return answerElearningOutline(data.session.user.id,outline,question,signal);
-  }
   const elearning=elearningQuestion(question,route);
-  if(elearning==='mine'){
-    onProgress?.({kind:'elearning-enrollments',label:'Checking remote-learning Moodle',detail:'Reading your saved enrollments.',status:'running'});
-    return answerElearning(data.session.user.id,question,signal);
-  }
   if(elearning)return elearningGuide(question,elearning,true);
-  const counseling=counselingQuestion(question);
-  if(counseling)return counselingGuide(question,counseling,true);
-  const certificate=!images.length&&certificateAwardQuestion(question);
-  if(certificate==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
+  const certificate=!images.length&&certificateAwardQuestion(question,route);
+  if(certificate==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
   if(certificate==='status'){
     onProgress?.({kind:'certificate-awards',label:'Checking certificate applications',detail:'Reading your saved application status.',status:'running'});
-    return readCertificateAwardAnswer(data.session.user.id,question,signal);
+    return readCertificateAwardAnswer(data.session.user.id,question,signal,certificateAwardRecordId(route)??undefined);
   }
   const email=!images.length&&announcementEmailQuestion(question);
-  if(email==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
+  if(email==='foreign')return announcementEmailForeignAnswer(question);
+  if(email==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
   if(email==='status'){
     onProgress?.({kind:'announcement-email',label:'Checking announcement email preference',detail:'Reading your saved setting.',status:'running'});
     return readAnnouncementEmailAnswer(data.session.user.id,question,signal);
   }
-  const profile=!images.length&&studentProfileQuestion(question);
-  if(profile==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress);
+  if(profile==='guide')return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
   if(profile==='status'){
     onProgress?.({kind:'student-profile',label:'Checking student information confirmation',detail:'Reading your confirmation status.',status:'running'});
     return readStudentProfileAnswer(data.session.user.id,question,signal);
   }
-  const repairDetail=route.startsWith(repairPaths.history+'/')
-    ? route.slice(repairPaths.history.length+1).split(/[?#]/,1)[0] : null;
-  const repairFollowUp=repairId(repairDetail)&&/^(?:what(?:'s| is) (?:the|its) status|is (?:this|it) (?:resolved|complete|done)|(?:目前)?(?:進度|處理情形|報修狀態))[?？。]?$/iu.test(question.trim());
-  const repair=!images.length&&(repairFollowUp?'history':repairQuestion(question));
-  if(repair){
-    if(repair!=='history')return askCampusAssistant(question,[],signal,[],route,onProgress);
-    onProgress?.({kind:'facility-repairs',label:'Checking repair reports',detail:'Reading your saved repair statuses.',status:'running'});
-    return readRepairAnswer(data.session.user.id,question,signal,repairId(repairDetail)?repairDetail:undefined);
-  }
+  const repair=!images.length&&repairQuestion(question);
+  if(repair&&repair!=='history')return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
   const venue=!images.length&&venueQuestion(question);
-  if(venue){
-    if(venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress);
-    onProgress?.({kind:'venue-booking',label:'Checking venue requests',detail:'Reading your saved request statuses.',status:'running'});
-    return readVenueAnswer(data.session.user.id,question,signal);
-  }
-  if (!images.length && permanentCourseQuestion(question)) return askCampusAssistant(question,[],signal,[],route,onProgress);
+  if(venue&&venue.view!=='mine')return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
+  if (!images.length && permanentCourseQuestion(question)) return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
   if (!images.length && isProgramRegistrationQuestion(question)) {
     onProgress?.({kind:'program-registrations',label:'Checking interdisciplinary program registrations',detail:'Reading your School Affairs records.',status:'running'});
     const result:AssistantResponse = await readProgramRegistrationAnswer(data.session.user.id,question,signal);
     if (typeof result?.answer !== 'string' || result.grounding?.source !== 'account') throw new Error('Program registrations could not be loaded.');
-    return result;
-  }
-  if(!images.length&&clearanceQuestion(question)){
-    onProgress?.({kind:'graduation-clearance',label:'Checking graduation clearance',detail:'Reading your applications and office decisions.',status:'running'});
-    const result=await readGraduationClearanceAnswer(data.session.user.id,question,signal) as AssistantResponse;
-    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Graduation clearance records could not be loaded.');
-    return result;
-  }
-  const teachingFeedback=!images.length&&teachingFeedbackQuestion(question);
-  if(teachingFeedback){
-    onProgress?.({kind:'teaching-feedback',label:'Checking teaching feedback',detail:'Reading your saved completion and review statuses.',status:'running'});
-    const result=await readTeachingFeedbackAnswer(data.session.user.id,teachingFeedback,question,signal) as AssistantResponse;
-    if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new Error('Teaching feedback records could not be loaded.');
     return result;
   }
   if (!images.length && earlyGraduationQuestion(question)) {
@@ -147,7 +150,7 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
   }
   const summer=!images.length&&summerSelectionQuestion(question);
   if(summer){
-    if(summer.view!=='mine'||summer.ambiguousYear)return askCampusAssistant(question,[],signal,[],route,onProgress);
+    if(summer.view!=='mine'||summer.ambiguousYear)return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
     onProgress?.({kind:'course-adjustment',label:'Checking summer eligibility',detail:'Reading your saved eligibility decision.',status:'running'});
     const params=new URL(route||'/',window.location.origin);
     const routeYear=params.pathname===adjustmentPaths.summer?params.searchParams.get('year'):null;
@@ -171,18 +174,17 @@ export async function askSchoolAffairsAssistant(question: string, history: Array
     return result;
   }
   if (!images.length && (adjustment === 'rules' || courseSubstitutionQuestion(question,route) || firstSelectionQuestion(question,route))) {
-    return askCampusAssistant(question,[],signal,[],route,onProgress);
+    return askCampusAssistant(question,[],signal,[],route,onProgress,transport);
   }
-  return askAccount();
+  return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress,transport);
 }
 
-async function requestAccountAnswer(accessToken:string,question:string,history:Array<{role:string;content:string}>,
-  signal:AbortSignal|undefined,images:Array<{name:string;dataUrl:string}>,route:string,onProgress?: (step:AssistantProgress)=>void):Promise<AssistantResponse> {
-  const response = await fetch('/api/affairs-assistant', {
+async function askVerifiedAccount(accessToken:string, question:string, history:Array<{role:string;content:string}>, signal:AbortSignal|undefined, images:Array<{name:string;dataUrl:string}>, route:string, onProgress:((step:AssistantProgress)=>void)|undefined, transport?:AssistantTransport) {
+  const response = await assistantFetch('/api/affairs-assistant', {
     method:'POST', signal, headers:{'Content-Type':'application/json',Authorization:`Bearer ${accessToken}`},
-    body:JSON.stringify({question:question.trim(),history:history.slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)})),images,route,stream:Boolean(onProgress)}),
-  });
+    body:JSON.stringify({question:question.trim(),history:assistantContext(history),images,route,stream:Boolean(onProgress)}),
+  },transport);
   const result = await readAssistantReply(response,onProgress) as (Partial<AssistantResponse> & {error?:string})|null;
-  if (!response.ok || typeof result?.answer !== 'string') throw new Error(typeof result?.error === 'string' ? result.error : 'Your account answer could not be loaded. Please try again or sign in again.');
+  if (!response.ok || typeof result?.answer !== 'string') throw Object.assign(new Error(typeof result?.error === 'string' ? result.error : 'Your account answer could not be loaded. Please try again or sign in again.'),{status:response.status});
   return {answer:result.answer,status:result.status||'answered',citations:result.citations||[],suggestedQuestions:result.suggestedQuestions||[],grounding:result.grounding,verification:result.verification,views:result.views,activity:result.activity,feedback:result.feedback,proposedAction:result.proposedAction};
 }

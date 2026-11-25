@@ -4,6 +4,8 @@ import https from 'node:https'
 import { load } from 'cheerio'
 import { fileTypeFromBuffer } from 'file-type'
 import { chunkKnowledgeText, normalizeKnowledgeText, sha256 } from './knowledgePipeline.js'
+import { isOfficialLibraryHoursLead } from './publicLibrarySources.js'
+import { readLibraryWeekdayTable } from './publicLibraryWeekdayHours.js'
 
 export const MAX_ACQUISITION_BYTES = 4_000_000
 export const MAX_REDIRECTS = 3
@@ -83,7 +85,7 @@ async function requestOnce(value, options = {}) {
         }
         if (status < 200 || status >= 300) {
           response.resume()
-          reject(new Error(`The source returned HTTP ${status}.`))
+          reject(Object.assign(new Error(`The source returned HTTP ${status}.`), { statusCode: status }))
           return
         }
         const declaredLength = Number(response.headers['content-length'] || 0)
@@ -116,6 +118,7 @@ export async function acquireHttpsSource(value, options = {}) {
   for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects += 1) {
     const result = await requestOnce(current, options)
     if (!result.redirect) return result
+    options.onRedirect?.(result.redirect, current, result.status)
     if (redirects === MAX_REDIRECTS) throw new Error('The source exceeded the redirect limit.')
     current = result.redirect
   }
@@ -138,6 +141,25 @@ function markdownLinks($, element, baseUrl) {
   return cleanText(clone.text())
 }
 
+// The library's weekend and holiday schedules are visible by activating public
+// tab buttons. Their Elementor cards use divs and spans, not tables or lists.
+function libraryScheduleSections($, root) {
+  const panels = root.find('[role="tabpanel"][id][aria-labelledby]')
+  const sections = []
+  root.find('button[role="tab"][id][aria-controls]').each((_, button) => {
+    const label = cleanText($(button).text())
+    if (label !== '六日' && label !== '特殊假日') return
+    const panelId = $(button).attr('aria-controls')
+    const buttonId = $(button).attr('id')
+    const panelsForButton = panels.filter((_, panel) => $(panel).attr('id') === panelId && $(panel).attr('aria-labelledby') === buttonId)
+    if (panelsForButton.length !== 1) return
+    const cards = panelsForButton.find('[data-widget_type="html.default"]').map((_, widget) => cleanText($(widget).text())).get().filter(Boolean)
+    if (cards.length) sections.push({ headingPath: ['開館時間', label], content: normalizeKnowledgeText(cards.join('\n')),
+      sourceLocator: `html:library-tab:${label}` })
+  })
+  return sections
+}
+
 export function extractHtmlSections(html, sourceUrl) {
   const $ = load(html)
   $('script,style,noscript,template,svg,iframe,object,embed,[hidden],[aria-hidden="true"],input[type="hidden"]').remove()
@@ -145,13 +167,20 @@ export function extractHtmlSections(html, sourceUrl) {
   const headingPath = []
   const sections = []
   let ordinal = 0
+  let headingOrdinal = 0
   root.find('h1,h2,h3,h4,h5,h6,p,li,table,form').each((_, element) => {
     const tag = element.tagName.toLowerCase()
     if ($(element).parents('table,form').length) return
     if (/^h[1-6]$/.test(tag)) {
       const level = Number(tag[1])
       const value = cleanText($(element).text())
-      if (value) { headingPath.splice(level - 1); headingPath[level - 1] = value }
+      if (value) {
+        headingPath.splice(level - 1); headingPath[level - 1] = value
+        // Card directories often contain a linked heading and no paragraph.
+        // Preserve that content without shifting existing paragraph locators.
+        headingOrdinal += 1
+        sections.push({headingPath:headingPath.filter(Boolean),content:markdownLinks($,element,sourceUrl),sourceLocator:`html:heading:${headingOrdinal}`})
+      }
       return
     }
     let text = ''
@@ -167,8 +196,11 @@ export function extractHtmlSections(html, sourceUrl) {
     ordinal += 1
     sections.push({ headingPath: headingPath.filter(Boolean), content: text, sourceLocator: `html:${tag}:${ordinal}` })
   })
+  const libraryHoursPage = isOfficialLibraryHoursLead(sourceUrl)
+  if (libraryHoursPage) sections.push(...libraryScheduleSections($, root))
   if (!sections.length) throw new Error('The HTML source did not contain readable main content.')
-  return { title: cleanText($('title').first().text()), sections }
+  const libraryWeekdayHours = libraryHoursPage && root.is('main') ? readLibraryWeekdayTable($,root) : null
+  return { title: cleanText($('title').first().text()), sections, ...(libraryWeekdayHours ? {libraryWeekdayHours} : {}) }
 }
 
 export function extractTextSections(text, mimeType = 'text/plain') {

@@ -1,3 +1,6 @@
+import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
+import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {test} from 'node:test';
@@ -156,7 +159,7 @@ test('actual cleanup clears every synthetic session before I/O on success, failu
     const protectedOwnerBefore={id:foreign,auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)};
     const state={protectedOwnerBefore,protectedOwnerEmail:'protected-admin@example.invalid',runId,users:[user],identityRequests:[{id:owner,email:'synthetic@example.invalid',runId,state:'created'}],ledgerOwned:mode!=='missing-ledger',ledgerTempOwned:false,ledger:'private-ledger',closed:mode==='closed',closing:false,locked:true,sql,
       db:{end:async()=>{ended++;if(mode==='connection-failure')throw new Error('PRIVATE_DB_ERROR');}},admin:{auth:{admin:{deleteUser:async()=>{deleted++;return {error:mode==='delete-failure'?{message:'PRIVATE_AUTH_ERROR'}:null};}}}}};
-    const context={state,UUID:/^[a-f0-9-]{36}$/i,PROJECT:project,ownTables:[],reconcileFixtureIdentity,LiveFixtureError,saveLedger:async()=>{},query:async work=>work(),
+    const context={state,UUID:/^[a-f0-9-]{36}$/i,PROJECT:project,ownTables:[],reconcileFixtureIdentity,LiveFixtureError,saveLedger:async()=>{},query:async work=>work(),pause:async()=>{},
       checkedProtectedOwnerFingerprint:value=>{protectedOwnerFingerprintDigest(value);return value;},readProtectedOwnerFingerprint:async()=>protectedOwnerBefore,assertProtectedOwnerUnchanged,
       rm:async()=>{if(mode==='ledger-failure')throw new Error('PRIVATE_LEDGER_ERROR');},fail:(code,message)=>{throw new LiveFixtureError(code,message);}};
     const cleanup=vm.runInNewContext(section('export async function cleanup(')+'\ncleanup;',context);
@@ -171,7 +174,7 @@ test('actual forCase renews before fixture writes and again after readbacks, nev
   const user=attachFixtureSession({id:owner,studentId:foreign},session(),options({clock:()=>now,fetchImpl:async(input)=>{assert.equal(String(input),url+'/auth/v1/token?grant_type=refresh_token');refreshes++;calls.push('refresh');return Response.json(session(now,refreshes+1));}}));
   now+=3500_000;const binding={},testCase={id:'catalog-only',fixtureRequirement:'published_catalog_binding',expected:{requiredTools:['courseCatalog']}};
   const state={users:[user,{id:foreign,token:'SYNTHETIC_OTHER_TOKEN'}],origin:'https://stu.best',now:'2026-11-13',current:null,catalogBindings:new Map([[testCase.id,binding]]),supplementalTables:new Set()};
-  const context={state,ready:()=>state,fixtureForCase:()=>({}),assertSupported:()=>{},readNativeBindings:async()=>{throw new Error('No private seeding for catalog-only');},planSupplementalFixture:()=>({domains:[]}),
+  const context={nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,ready:()=>state,fixtureForCase:()=>({}),assertSupported:()=>{},readNativeBindings:async()=>{throw new Error('No private seeding for catalog-only');},planSupplementalFixture:()=>({domains:[]}),
     readSnapshot:async()=>{calls.push('read');return {};},readSupplementalFixtureScopes:async()=>({}),verifySupplementalFixtureReadback:()=>{},SUPPLEMENTAL_TABLES:{},SUPPLEMENTAL_SCOPES:{},
     ownState:x=>x,hash:()=> 'hash',saveLedger:async()=>{calls.push('ledger');now+=3500_000;},verifyPublishedCatalogBinding:async()=>{calls.push('catalog');return 'digest';},
     fail:(code,message)=>{throw new LiveFixtureError(code,message);}};

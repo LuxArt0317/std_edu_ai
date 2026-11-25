@@ -76,6 +76,105 @@ test('candidate dispatcher forwards only public fields and an allowlisted rate-l
   assert.equal(result.headers['set-cookie'],undefined);
 });
 
+test('signed-in public contact follow-ups carry a fixed service subject to research',async()=>{
+  const requests:Array<Parameters<PublicHandler>[0]>=[];
+  const handler=createAffairsAssistantHandler({publicResearch:async(request,response)=>{
+    requests.push(structuredClone(request));
+    response.status(200).json(answer);
+  }});
+  const result=await invoke(handler,{question:'And what are the opening hours?',
+    route:'/school-affairs/menu/swd/input?viewer=PRIVATE_ROUTE_MARKER',userId:'PRIVATE_USER_ID',
+    history:[
+      {role:'user',content:'Show PRIVATE_PREVIOUS_RECORD'},
+      {role:'user',content:'Where can I find the Shu-Te University library?',images:[{dataUrl:'PRIVATE_HISTORY_IMAGE'}]},
+      {role:'assistant',content:'PRIVATE_RESPONSE'},
+    ]});
+  assert.deepEqual(result.body,answer);
+  assert.equal(requests.length,1);
+  assert.deepEqual(requests[0].body,{question:'What are the opening hours for the Shu-Te University library?',
+    route:'/',history:[],images:undefined,consentedResearchUse:false,stream:false});
+  assert.doesNotMatch(JSON.stringify(requests[0]),/PRIVATE_|authorization|Bearer/iu);
+});
+
+test('signed-in public contact follow-ups preserve the current turn language',async()=>{
+  const questions:string[]=[];
+  const handler=createAffairsAssistantHandler({publicResearch:async(request,response)=>{
+    questions.push((request.body as {question:string}).question);
+    response.status(200).json(answer);
+  }});
+  for (const content of ['請問樹德科技大學圖書館在哪裡？','Where is the STU library?']) {
+    const result=await invoke(handler,{question:'那開放時間呢？',route:'/',history:[{role:'user',content}]});
+    assert.deepEqual(result.body,answer);
+  }
+  assert.deepEqual(questions,Array(2).fill('樹德科技大學圖書館的開放時間是什麼？'));
+});
+
+test('a public contact follow-up can use the actual campus directory without account records',async()=>{
+  const result=await invoke(affairsHandler,{question:'And their phone number?',route:'/',
+    history:[{role:'user',content:'Where is the STU registrar?'}]});
+  assert.equal(result.status,200);
+  const payload=result.body as {answer:string;citations:Array<{url:string}>;grounding:{source:string}};
+  assert.equal(payload.grounding.source,'directory');
+  assert.match(payload.answer,/615 8000/);
+  assert.equal(new URL(payload.citations[0].url).hostname,'www.aca.stu.edu.tw');
+});
+
+test('unrelated, mixed or assistant-supplied subjects do not reach public research as history',async()=>{
+  const requests:Array<Parameters<PublicHandler>[0]>=[];
+  const handler=createAffairsAssistantHandler({publicResearch:async(request,response)=>{
+    requests.push(structuredClone(request));
+    response.status(200).json(answer);
+  }});
+  const openingHours='And what are the opening hours?';
+  const publicTurn={role:'user',content:'Where is the STU library?'};
+  const examples=[
+    {question:openingHours,history:[publicTurn,{role:'user',content:'Library study group LEGACY_PRIVATE_CHAT'}]},
+    {question:openingHours,history:[{role:'assistant',content:publicTurn.content}]},
+    {question:openingHours,history:[{role:'user',content:publicTurn.content+' Student number 123456'}]},
+    {question:'Explain campus facilities.',history:[publicTurn]},
+  ];
+  for (const input of examples) {
+    const before=requests.length;
+    await invoke(handler,{...input,route:'/'});
+    for (const dispatch of requests.slice(before)) {
+      assert.deepEqual(dispatch.body,{question:input.question,route:'/',history:[],images:undefined,
+        consentedResearchUse:false,stream:false});
+    }
+  }
+  assert.ok(requests.length>0,'Control questions still need to reach public research.');
+});
+
+test('an attached question cannot inherit a previous public contact subject',async()=>{
+  const requests:Array<Parameters<PublicHandler>[0]>=[];
+  const handler=createAffairsAssistantHandler({publicResearch:async(request,response)=>{
+    requests.push(structuredClone(request));
+    response.status(200).json(answer);
+  }});
+  const question='And what are the opening hours?';
+  const images=[{name:'current.png',dataUrl:'data:image/png;base64,synthetic'}];
+  const result=await invoke(handler,{question,route:'/',images,
+    history:[{role:'user',content:'Where is the STU library?',images:[{dataUrl:'PRIVATE_OLD_IMAGE'}]}]});
+  assert.deepEqual(result.body,answer);
+  assert.equal(requests.length,1);
+  assert.deepEqual(requests[0].body,{question,route:'/',history:[],images,consentedResearchUse:false,stream:false});
+});
+
+test('private and mixed record follow-ups retain signed-in routing',async()=>{
+  let publicCalls=0;
+  const handler=createAffairsAssistantHandler({publicResearch:async()=>{publicCalls++;}});
+  for (const input of [
+    {question:'And what are the opening hours?',history:[{role:'user',content:'Where is the STU library?'},
+      {role:'user',content:'Show my recent attendance.'}]},
+    {question:'And what are the opening hours?',history:[{role:'user',content:'Where is the STU library and what are my grades?'}]},
+    {question:'What are my grades?',history:[{role:'user',content:'Where is the STU library?'}]},
+  ]) {
+    const result=await invoke(handler,{...input,route:'/',images:[{name:'private.png',dataUrl:'PRIVATE_IMAGE'}]});
+    assert.equal(result.status,400);
+    assert.match(String((result.body as Record<string,unknown>).error),/private account questions/);
+  }
+  assert.equal(publicCalls,0);
+});
+
 test('method, input and authentication checks happen before public dispatch',async()=>{
   let calls=0;
   const handler=createAffairsAssistantHandler({publicResearch:async()=>{calls++;}});
@@ -145,6 +244,18 @@ test('throwing, incomplete and oversized handlers fail rather than hanging or fo
     const result=await invoke(createAffairsAssistantHandler({publicResearch}),generic);
     assert.equal(result.status,503);assert.deepEqual(result.body,{error:'School research is temporarily unavailable. Please try again.'});
   }
+});
+
+test('public research receives an internal deadline before the outer bridge expires',async()=>{
+  const deadline=Date.now()+5_000;
+  let received:number|undefined;
+  const result=await dispatchPublicResearch(async (request,response,context)=>{
+    assert.equal((request.body as {deadline:number}).deadline,1);
+    received=context?.deadline;
+    response.status(200).json(answer);
+  },{method:'POST',headers:{},body:{deadline:1}},deadline,()=>{});
+  assert.equal(received,deadline-1_250);
+  assert.deepEqual(result.result,answer);
 });
 
 test('in-process deadline closes the bridge and ignores late public progress and completion',async()=>{

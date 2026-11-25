@@ -16,12 +16,10 @@ Select a question, edit its reference, select models and run it manually. The re
 
 For architecture, storage, score limitations and future deployment requirements, see [README](README.md). Root setup remains in [SETUP](../../SETUP.md).
 
-The first startup of the FAQ question bank replaces the old visible dataset with the 53 FAQ questions. An ignored private state backup preserves the previous questions/results. Refresh an already-open Answer Lab tab to load the replacement list. No questions execute during import.
+On startup, the lab syncs the 53 questions and expected answers from `docs/question-answer/README.md`. Changed source references receive new case versions; old runs and scores retain their original references. A private backup is made before sync. Custom questions, attachments, enabled/archive flags and subsequent CRUD edits survive unchanged-source restarts. Refresh the tab after a source sync; it does not execute questions automatically.
 
 ## Hosted setup
 
-Apply only migration `20261124220000_evaluation_lab.sql` to the declared client database after confirming its prerequisite `private.affairs_is_admin()`. Build with the normal Vite configuration and deploy the existing linked Vercel project; the multi-entry build and rewrites include `/evaluation-lab`. The existing server-only provider configuration is reused. Sign in through Google as either approved Answer Lab administrator; both see the same hosted dataset. Other accounts are denied.
+Apply only migration `20261124220000_evaluation_lab.sql` to the declared client database after confirming its prerequisite `private.affairs_is_admin()`. Build with the normal Vite configuration and deploy the existing linked Vercel project; the multi-entry build and rewrites include `/evaluation-lab`. The existing server-only provider configuration is reused. Sign in with the authorized School Affairs administrator account. Student accounts are denied.
 
 Publication does not run question batches. Local history is not automatically transferred to production. The hosted database must be provisioned before the lab's data operations can work. See README for isolation and quotas.
-
-For shared admin access, production builds apply only `20261125020000_evaluation_lab_shared_admins.sql` through the fixed release script using the existing server-side database connection. Both approved accounts must use Google sign-in; the original verified Lux owner record must already exist. No local credential copy or general database migration deploy is required. See README for the explicit membership and data-sharing scope.

@@ -7,6 +7,12 @@ import {readCatalogEvidence} from '../../server/accountCatalogEvidence.js';
 import {readCertificateEvidence} from '../../server/accountCertificateEvidence.js';
 import {readSubmissionEvidence,type SubmissionEvidencePayload} from '../../server/accountSubmissionEvidence.js';
 import {readTuitionEvidence} from '../../server/accountTuitionEvidence.js';
+import {readAidPaymentsEvidence} from '../../server/accountAidPaymentsEvidence.js';
+import {readDtmGradeReportEvidence,unavailableDtmGradeReportEvidence} from '../../server/accountDtmGradeReportEvidence.js';
+import {answerLinksSupported} from '../../server/answerVerificationModel.js';
+import type {DtmGradeCells,DtmGradeReportData,DtmGradeReportOverviewData} from '../../server/dtmGradeReport.js';
+import {aidPaymentsFields,aidPaymentsPaths} from '../../server/aidPaymentsContract.js';
+import type {AidPaymentView} from '../../server/aidPaymentsContract.js';
 import {newCourseOffering} from '../../src/features/public/affairs/courseCatalogModel.js';
 import {newCourseSyllabus} from '../../src/features/public/affairs/courseSyllabusModel.js';
 
@@ -32,6 +38,211 @@ const tuitionRow=(n=1,label='Saved period A',text:string|null='Recorded settleme
 const tuitionData=(rows=[tuitionRow()])=>({periods:rows.map(row=>({id:row.id,userId:owner,label:row.periodLabel})),settlements:rows,documents:[]});
 const tuition=(value:unknown=tuitionData(),question='Show my tuition settlement statement.')=>readTuitionEvidence(account,{question,route:'/school-affairs/services/49-1'},{load:async()=>value});
 const replacePayload=<T extends SupplementalEvidenceResult>(result:T,change:(payload:any)=>void):T=>{const copy=structuredClone(result),payload=JSON.parse(copy.evidence.content);change(payload);copy.evidence.content=JSON.stringify(payload);return copy;};
+const aidRow=(view:AidPaymentView,n=1)=>view==='claims'?{id:id(700+n),reason:'Local library assistant claim',amount:0,approval_result:'',approval_status:'Pending'}
+  :{id:id(700+n),...Object.fromEntries(aidPaymentsFields.salary.map(([key])=>[key,null])),appointment_type:'Campus assistant',payment_period:'November (literal)',gross:0,tax:-2,net:null,bank_last4:'0921'};
+const aid=(question='Show my student aid claims and my student salary.',changed?:(view:AidPaymentView)=>unknown)=>readAidPaymentsEvidence(account,{question},{read:async(_,query)=>
+  changed?changed(query.view):{userId:owner,view:query.view,total:1,rows:query.summary?[]:[aidRow(query.view)]}});
+const gradeCells=():DtmGradeCells=>({score:null,maximum:null,gradeText:null,rangeText:null,percentageText:null,weightText:null,weightNote:null,rankText:null,feedbackText:null,contributionText:null});
+const gradeCourse=(n=0,gradeText:string|null=null)=>({id:n?id(800+n):courseId,userId:owner,title:n?'Other local course '+n:'Local Database',code:n?'GD'+n:'GD101',term:'Literal saved term',gradeText});
+const gradeOverview=(courses=[gradeCourse()]):DtmGradeReportOverviewData=>({courses,limit:100,nextCursor:null});
+const gradeReport=():DtmGradeReportData=>({report:{id:id(900),userId:owner,courseId,sourceMode:'local_demo',version:2,createdAt:stamp,updatedAt:later,
+  items:[{...gradeCells(),id:id(901),label:'Assessment 1',activityKind:'assignment',score:0,maximum:100,gradeText:'',weightText:'0.00 %',feedbackText:'Literal item feedback'}],
+  total:{...gradeCells(),score:20,maximum:100,gradeText:'A — literal',percentageText:'not derived',rankText:'',feedbackText:'Explicit total feedback'}}});
+const nativeGrade=(value: DtmGradeReportData=gradeReport(),overview=gradeOverview(),question='Show my Moodle grade report for GD101.')=>
+  readDtmGradeReportEvidence(account,{question,route:'/dtm/course/'+courseId+'/grades'},{loadOverview:async()=>overview,loadReport:async()=>value});
+
+test('native grade report formats literal item and independent saved total cells with exact own links',async()=>{
+  const source=await nativeGrade(),before=structuredClone(source),out=format([source],{question:'Show my Moodle grade report feedback and weights.'});
+  assert.deepEqual(source,before);assert.equal(out.complete,true);assert.equal(out.status,'answered');assert.deepEqual(out.sourceIds,['account:dtmGradeReport']);
+  assert.deepEqual(out.views[0].rows,[['Assessment 1','(blank)','0.00 %','Literal item feedback'],
+    ['Explicitly saved course total','A — literal','not recorded','Explicit total feedback']]);
+  assert.ok(out.answer.includes('](/dtm/course/'+courseId+'/grades)'));assert.ok(!out.answer.includes('](/dtm/grades)'));
+  assert.equal(answerLinksSupported(out.answer,[source.evidence]),true);
+  assert.match(out.answer,/Numeric score metadata: ` 20 `/);assert.match(out.answer,/Displayed percentage text: ` not derived `/);
+  assert.match(out.answer,/Displayed grade text: ` \(blank\) `/);assert.match(out.answer,/Displayed rank text: ` \(blank\) `/);
+  assert.match(out.answer,/no declared source mode/);assert.match(out.answer,/Saved local_demo Moodle grade report/);
+  assert.doesNotMatch(JSON.stringify(out),/an official transcript|university sync/iu);
+  const official=format([source],{question:'Is this the official Moodle transcript?'});
+  assert.match(official.answer,/official transcript or live Moodle grade requires separate verification/iu);
+  assert.doesNotMatch(out.answer,/20%|you passed|GPA|\/assignment\//);assert.doesNotMatch(JSON.stringify(out),new RegExp(owner+'|'+id(900)+'|'+id(901)+'|SECRET-CALLER'));
+});
+
+test('native absent report, empty report items, absent total and null total mark remain distinct',async()=>{
+  const missing=format([await nativeGrade({report:null})]);assert.match(missing.answer,/no saved native grade report for this selected course/);assert.equal(missing.views.length,0);
+  const empty=gradeReport();empty.report!.items=[];empty.report!.total=null;
+  const savedEmpty=format([await nativeGrade(empty)]);assert.match(savedEmpty.answer,/saved report has no selected item rows/);assert.match(savedEmpty.answer,/No course-total object is saved/);
+  assert.doesNotMatch(savedEmpty.answer,/no saved native grade report/);assert.equal(savedEmpty.views[0].total,0);
+  const nullMark=gradeReport();nullMark.report!.total!.gradeText=null;
+  const savedNull=format([await nativeGrade(nullMark)]);assert.equal(savedNull.views[0].rows.at(-1)![1],'not recorded');
+  assert.doesNotMatch(savedNull.answer,/No course-total object is saved|no saved native grade report/);
+});
+
+test('native overview null, blank and string zero do not establish missing reports or calculated totals',async()=>{
+  const source=await nativeGrade(gradeReport(),gradeOverview([gradeCourse(0,null),gradeCourse(1,''),gradeCourse(2,'0')]),'Show all my Moodle course grades.');
+  const out=format([source]);assert.deepEqual(out.views[0].rows.map(row=>row[3]),['not recorded','(blank)','0']);
+  assert.match(out.answer,/A null mark does not establish/);assert.doesNotMatch(out.answer,/no saved native grade report|Numeric score metadata/);
+  for(const c of [courseId,id(801),id(802)])assert.ok(out.answer.includes('](/dtm/course/'+c+'/grades)'));
+});
+
+test('native course ambiguity provides actual local choices without choosing a report or asserting its grades',async()=>{
+  const source=await readDtmGradeReportEvidence(account,{question:'Show all my Moodle course feedback.'},{loadOverview:async()=>gradeOverview([gradeCourse(),gradeCourse(1,'0')]),loadReport:async()=>{throw Error('must not read');}});
+  const out=format([source]);assert.equal(out.complete,false);assert.match(out.answer,/Choose one saved course/);
+  assert.deepEqual(out.views[0].rows,[['Local Database','GD101','Literal saved term'],['Other local course 1','GD1','Literal saved term']]);
+  assert.ok(out.answer.includes('](/dtm/course/'+id(801)+'/grades)'));assert.doesNotMatch(out.answer,/Displayed grade text|Numeric score metadata/);
+  const absent=format([await nativeGrade(gradeReport(),gradeOverview(),'Show my Moodle grade report for GD999.')]);
+  assert.equal(absent.complete,false);assert.match(absent.answer,/No exact saved course was selected/);assert.ok(absent.answer.includes('](/dtm/grades)'));
+});
+
+test('native unavailable fallback and failed detail reads never become absence or fall back to tracker marks',async()=>{
+  const fallback=format([unavailableDtmGradeReportEvidence('deadline_exceeded')]);assert.equal(fallback.status,'abstained');assert.equal(fallback.complete,false);
+  assert.match(fallback.answer,/contents and absence remain unknown/);assert.doesNotMatch(fallback.answer,/no saved native grade report|returned no saved courses/);
+  const failed=await readDtmGradeReportEvidence(account,{question:'Show my Moodle report grades for GD101.'},{loadOverview:async()=>gradeOverview(),loadReport:async()=>{throw Error('PRIVATE FAILURE');}});
+  const out=format([failed]);assert.equal(out.status,'abstained');assert.ok(out.answer.includes('](/dtm/course/'+courseId+'/grades)'));
+  assert.doesNotMatch(out.answer,/PRIVATE FAILURE|no saved native grade report/);
+});
+
+test('native report, course choices and unavailable answers only emit links supplied by their exact reader evidence',async()=>{
+  const inputs=[await nativeGrade(),await nativeGrade({report:null}),
+    await nativeGrade(gradeReport(),gradeOverview([gradeCourse(),gradeCourse(1)]),'Show all my Moodle course grades.'),
+    await readDtmGradeReportEvidence(account,{question:'Show all my Moodle course feedback.'},{loadOverview:async()=>gradeOverview([gradeCourse(),gradeCourse(1)])}),
+    await readDtmGradeReportEvidence(account,{question:'Show my Moodle report for GD101.'},{loadOverview:async()=>gradeOverview(),loadReport:async()=>{throw Error('unavailable');}}),
+    unavailableDtmGradeReportEvidence('deadline_exceeded')];
+  for(const source of inputs){
+    const output=format([source]);assert.equal(answerLinksSupported(output.answer,[source.evidence]),true);
+    if(source.evidence.url!=='/dtm/grades')assert.ok(!output.answer.includes('](/dtm/grades)'));
+    for(const view of output.views)assert.ok(source.evidence.urls!.includes(view.url));
+  }
+});
+
+test('native named item selection retains its scope and explicit omission does not become an absent total',async()=>{
+  const record=gradeReport();record.report!.items.push({...record.report!.items[0],id:id(902),label:'Assessment 2',feedbackText:'Second feedback'});
+  const source=await nativeGrade(record,gradeOverview(),'Show my Moodle report feedback for Assessment 2 in GD101.');
+  const out=format([source]);assert.match(out.answer,/named matching items; 1 included \/ 1 selected/);assert.match(out.answer,/2 saved report items available/);
+  assert.doesNotMatch(out.answer,/Literal item feedback/);assert.match(out.answer,/Second feedback/);
+  const omitted=replacePayload(source,p=>{p.report.total=null;p.report.totalIncluded=false;p.complete=false;p.excerpted=true;p.unavailableReason='evidence_limit';});
+  omitted.reason='evidence_limit';const limited=format([omitted]);assert.equal(limited.complete,false);assert.match(limited.answer,/saved total was not included/);
+  assert.doesNotMatch(limited.answer,/No course-total object is saved|A — literal/);
+});
+
+test('requested native course total survives item-heavy display limits as a whole labelled record and table row',async()=>{
+  const record=gradeReport();record.report!.items=Array.from({length:20},(_,i)=>({...record.report!.items[0],id:id(950+i),label:'Assessment '+(i+1)}));
+  record.report!.total!.gradeText='Distinction (literal total)';
+  const question='What course total is recorded in my native DTM grade report for Local Database?';
+  const source=await nativeGrade(record,gradeOverview(),question);assert.equal(JSON.parse(source.evidence.content).report.items.length,20);
+  const out=format([source],{question});assert.match(out.answer,/Explicitly saved course total[\s\S]*Displayed grade text: ` Distinction \(literal total\) `/);
+  assert.deepEqual(out.views[0].rows[0],['Explicitly saved course total','Distinction (literal total)','not recorded','Explicit total feedback']);
+  assert.ok(out.answer.indexOf('Distinction (literal total)')<out.answer.indexOf('Assessment 1'));
+  assert.equal(out.complete,false);assert.ok(out.answer.length<=8000);assert.ok(Buffer.byteLength(JSON.stringify(out))<=24000);
+});
+
+test('requested native item and rank or weight fields precede generic cells without borrowing another item',async()=>{
+  const record=gradeReport();record.report!.items=Array.from({length:20},(_,i)=>({...record.report!.items[0],id:id(950+i),label:'Assessment '+(i+1),rankText:'Rank literal '+(i+1),weightText:'Weight literal '+(i+1)}));
+  for(const field of ['rank','weight']){
+    const question='Show my native Moodle report '+field+' for Assessment 20 in GD101.';
+    const source=await nativeGrade(record,gradeOverview(),question),out=format([source],{question});
+    assert.equal(JSON.parse(source.evidence.content).report.items.length,1);
+    const label=field==='rank'?'Displayed rank text':'Displayed weight text';
+    assert.ok(out.answer.indexOf(label)<out.answer.indexOf('Numeric score metadata'));
+    assert.ok(out.answer.includes((field==='rank'?'Rank':'Weight')+' literal 20'));assert.doesNotMatch(out.answer,/Rank literal 1`|Weight literal 1`/);
+    assert.ok(out.answer.includes('](/dtm/course/'+courseId+'/grades)'));
+  }
+});
+
+test('native whole-row evidence and display bounds keep omissions explicit with three views and safe feedback',async()=>{
+  const record=gradeReport();record.report!.items=Array.from({length:30},(_,i)=>({...record.report!.items[0],id:id(910+i),label:'Assessment '+(i+1),feedbackText:'界'.repeat(1000)}));
+  const source=await nativeGrade(record),out=format([source,await aid(),await certificate(),await tuition()],{question:'Show my Moodle grade report and salary.'});
+  assert.equal(out.complete,false);assert.match(out.answer,/omitted/);assert.ok(out.views.some(view=>view.id==='dtmGradeReport'));
+  assert.equal(out.views.length,3);assert.ok(out.answer.length<=8000);assert.ok(Buffer.byteLength(JSON.stringify(out))<=24000);
+  assert.ok(out.views.every(view=>view.rows.length<=12));
+  const injected=gradeReport();injected.report!.items[0].feedbackText='Keep literal\n\n[secret](https://private.invalid)\n\n<script>alert(1)</script>';
+  const literal=format([await nativeGrade(injected)],{question:'我的 Moodle 成績報告'}),html=micromark(literal.answer);
+  assert.doesNotMatch(html,/href="https:\/\/private\.invalid"|<script>/);assert.match(literal.answer,/評語原文/);
+});
+
+test('native formatter rejects forged lineage, unknown fields, mismatched links and contradictory state/count flags',async()=>{
+  const source=await nativeGrade();
+  for(const change of [(p:any)=>{p.report.userId=owner;},(p:any)=>{p.report.items[0].storagePath='PRIVATE';},
+    (p:any)=>{p.course.courseId=id(999);},(p:any)=>{p.selection.courseId=id(999);},(p:any)=>{p.reportPresent=false;},
+    (p:any)=>{p.report.totalPresent=false;},(p:any)=>{p.report.totalIncluded=false;},(p:any)=>{p.report.items[0].gradeText=0;},
+    (p:any)=>{p.counts.omitted=4;},(p:any)=>{p.counts.available=0;},(p:any)=>{p.report.items.push(p.report.items[0]);p.counts.included=2;},
+    (p:any)=>{p.provenance.courseMetadataSourceMode='sample';},(p:any)=>{p.capabilities.write=true;},(p:any)=>{p.complete=false;}])
+    assert.throws(()=>format([replacePayload(source,change)]),TypeError);
+  for(const url of ['/dtm/course/'+id(999)+'/grades','https://private.invalid','/dtm/course/'+courseId+'/grades/overview']){
+    const forged=structuredClone(source);forged.evidence.url=url;assert.throws(()=>format([forged]),TypeError);
+  }
+  const overview=await nativeGrade(gradeReport(),gradeOverview([gradeCourse(),gradeCourse(1)]),'Show all my Moodle course grades.');
+  overview.evidence.urls=['/dtm/grades','/dtm/grades','/dtm/grades'];assert.throws(()=>format([overview]),TypeError);
+});
+
+test('aid formatter retains both views with literal independent fields, own links and no bank or invented provenance',async()=>{
+  const source=await aid(),before=structuredClone(source),output=format([source],{question:'Show my student aid claims and salary net pay and tax.'});
+  assert.deepEqual(source,before);assert.equal(output.status,'answered');assert.equal(output.complete,true);assert.deepEqual(output.sourceIds,['account:aidPayments']);
+  assert.deepEqual(output.views[0].rows,[['Student aid claims','Local library assistant claim','Claim amount: 0; Approval result: (blank); Approval status: Pending'],
+    ['Student salary','November (literal)','Gross: 0; Tax: -2; Net: not recorded']]);
+  for(const path of Object.values(aidPaymentsPaths))assert.ok(output.answer.includes(']('+path+')'));
+  assert.match(output.answer,/Claim amount: ` 0 `/);assert.match(output.answer,/Approval result: ` \(blank\) `/);assert.match(output.answer,/Net pay: ` not recorded `/);assert.match(output.answer,/Tax: ` -2 `/);
+  assert.match(output.answer,/not verified university or bank records/);assert.match(output.answer,/No currency is declared/);
+  assert.doesNotMatch(JSON.stringify(output),/0921|bank_last4|local_demo|SECRET|TWD|paid successfully|payment confirmed/);
+  for(const key of ['verification','proposedAction','activity'])assert.equal(Object.hasOwn(output,key),false);
+});
+
+test('aid count-only, successful zero and failed-view explanations never substitute for each other',async()=>{
+  const counts=format([await aid('How many student aid claims and salary records are saved?',view=>({userId:owner,view,total:view==='salary'?7:2,rows:[]}))]);
+  assert.equal(counts.complete,true);assert.deepEqual(counts.views[0].rows,[['Student aid claims','2'],['Student salary','7']]);
+  assert.match(counts.answer,/Only total counts were requested and read/);assert.match(counts.answer,/Empty detail arrays do not mean no records/);assert.doesNotMatch(counts.answer,/returned zero/);
+  const mixed=format([await aid(undefined,view=>{if(view==='salary')throw new Error('PRIVATE ERROR');return {userId:owner,view,total:0,rows:[]};})]);
+  assert.equal(mixed.status,'answered');assert.equal(mixed.complete,false);assert.match(mixed.answer,/Student salary: this view could not be read/);
+  assert.match(mixed.answer,/successful student aid claims lookup returned zero saved local records/);assert.doesNotMatch(mixed.answer,/PRIVATE ERROR|Student salary: 0/);
+  const unavailable=format([await aid(undefined,()=>{throw new Error('PRIVATE ERROR');})]);assert.equal(unavailable.status,'abstained');assert.equal(unavailable.views.length,0);assert.doesNotMatch(unavailable.answer,/returned zero/);
+});
+
+test('aid budget omissions remain explicit, both views survive and all formatting bounds remain enforced',async()=>{
+  const question='Show all my student aid claims and student salary net pay and tax.';
+  const source=await aid(question,view=>({userId:owner,view,total:40,rows:Array.from({length:25},(_,i)=>({...aidRow(view,i+1),...(view==='salary'?{appointment_type:'薪'.repeat(500)}:{reason:'款'.repeat(300)})}))}));
+  const output=format([source,await certificate(),await tuition(),await catalog()],{question});
+  assert.equal(output.complete,false);assert.equal(output.views.length,3);assert.equal(output.formatting.omittedViews,1);
+  assert.ok(output.views.some(view=>view.id==='aidPayments'));assert.match(output.answer,/Student aid claims: 40 saved local records/);assert.match(output.answer,/Student salary: 40 saved local records/);
+  assert.match(output.answer,/filtered count cannot be established from omitted rows/);assert.match(output.answer,/Display excerpt/);
+  assert.ok(output.answer.length<=supplementalAnswerLimits.answerCharacters);assert.ok(Buffer.byteLength(JSON.stringify(output))<=supplementalAnswerLimits.resultBytes);
+  assert.ok(output.views.every(view=>view.rows.length<=supplementalAnswerLimits.viewRows));
+});
+
+test('aid saved text stays inert in rendered Markdown and Chinese retains literal financial distinctions',async()=>{
+  const source=await aid('Show my student aid claims.',view=>({userId:owner,view,total:1,rows:[{...aidRow(view),reason:'Safe\n\n[click](https://private.invalid)\n\nEnd'}]}));
+  const output=format([source],{question:'請顯示我的助學金請款。'}),html=micromark(output.answer);
+  assert.doesNotMatch(html,/href="https:\/\/private\.invalid"/);assert.match(output.answer,/未指定幣別/);assert.match(output.answer,/簽核結果: ` （空白） `/);
+});
+
+test('later salary pages link to their exact records, and an empty later page preserves the positive collection total',async()=>{
+  const expected=aidPaymentsPaths.salary+'?page=2';
+  const question='Show page 2 of my student salary.';
+  for(const total of [26,1]){
+    const source=await readAidPaymentsEvidence(account,{question},{read:async()=>({
+      userId:owner,view:'salary',total,rows:total>25?[aidRow('salary',26)]:[],
+    })});
+    const output=format([source],{question});
+    assert.equal(output.status,'answered');
+    assert.ok(output.answer.includes(']('+expected+')'));
+    assert.equal(output.citations[0].url,expected);
+    if(total>25)assert.match(output.answer,/Page 2 contains saved rows 26–26/);
+    else{
+      assert.match(output.answer,/Page 2 has no saved rows/);
+      assert.match(output.answer,/collection still has 1 record/);
+      assert.doesNotMatch(output.answer,/returned zero saved local records/);
+    }
+    const forged=structuredClone(source);forged.evidence.urls=[aidPaymentsPaths.salary];
+    assert.throws(()=>format([forged]),TypeError);
+    assert.throws(()=>format([replacePayload(source,(p:any)=>{p.views[0].page=1;})]),TypeError);
+  }
+});
+
+test('aid formatter rejects wrong sources, contradictory counts/states, unknown IDs and bank suffix injection',async()=>{
+  const source=await aid('Show my student salary.');
+  for(const change of [(p:any)=>{p.views[0].records[0].bank_last4='0921';},(p:any)=>{p.views[0].records[0].id=id(998);},(p:any)=>{p.views[0].counts.omitted=4;},
+    (p:any)=>{p.views[0].readState='empty';},(p:any)=>{p.views[0].url=aidPaymentsPaths.claims;},(p:any)=>{p.selection.summaryOnly=true;},(p:any)=>{p.provenance.source='official';},
+    (p:any)=>{p.complete=false;},(p:any)=>{p.views[0].records[0].net='0';}])assert.throws(()=>format([replacePayload(source,change)]),TypeError);
+  const bad=structuredClone(source);bad.evidence.provenance='local_demo' as typeof source.evidence.provenance;assert.throws(()=>format([bad]),TypeError);
+});
 
 test('pure formatter is compatible with all three actual reader envelopes and does not mutate them',async()=>{
   const inputs=await Promise.all([catalog(),certificate(),submission()]),before=structuredClone(inputs);
@@ -43,7 +254,12 @@ test('pure formatter is compatible with all three actual reader envelopes and do
   for(const key of ['verification','proposedAction','activity','grounding'])assert.equal(Object.hasOwn(result,key),false);
   for(const secret of [owner,submissionId,currentId,id(99),account.token,account.key,'Private Name','Private Department'])assert.equal(JSON.stringify(result).includes(secret),false,secret);
   const module=await readFile(new URL('../../server/supplementalAccountAnswers.js',import.meta.url),'utf8');
-  assert.doesNotMatch(module,/\b(?:fetch|loadSyllabusSearch|loadEnrollmentCertificate|createClient)\s*\(|^import /m);
+  assert.doesNotMatch(module,/\b(?:fetch|loadSyllabusSearch|loadEnrollmentCertificate|createClient)\s*\(/m);
+  assert.deepEqual([...module.matchAll(/^import .+ from '([^']+)';$/gm)].map(match=>match[1]),[
+    './dtmGradeEvidenceIntent.js','./internshipEvidenceContract.js','./accountAnswerLanguage.js','./internshipAssistantPlan.js','./internshipEvidenceIntent.js',
+    './dtmAssignmentEvidenceContract.js','./studentLeaveEvidenceIntent.js','./aidPaymentsContract.js','./feeRemissionContract.js','./healthExaminationContract.js','./tutorEvaluationContract.js',
+    './teachingFeedbackContract.js','./teachingFeedbackEvidenceIntent.js','./teachingFeedbackAnswerEvidence.js','./studentConductContract.js',
+  ]);
 });
 
 test('certificate pending-fee flag never overrides independent status or claims issuance',async()=>{
@@ -245,6 +461,18 @@ test('tuition retains literal null, blank, zero and recorded numbers without com
     assert.doesNotMatch(output.answer,/You owe|Your balance is|You paid|Your current term is/);
     assert.equal(output.views[0].url,'/school-affairs/services/49-1');assert.equal(output.citations[0].chunkId,'account:tuition');
   }
+});
+
+test('a saved zero string answers the payment-confirmation question without inferring payment',async()=>{
+  const question='What literal text is saved for 113 Fall reconciliation in my tuition settlements? Is it a confirmed payment?';
+  const source=await tuition(tuitionData([tuitionRow(1,'113 Fall reconciliation','0')]),question);
+  const output=format([source],{question});
+  assert.equal(output.status,'answered');
+  assert.match(output.answer,/cannot confirm a payment/);
+  assert.match(output.answer,/Literal statement text: ` 0 `/);
+  assert.doesNotMatch(output.answer,/payment was made|tuition is paid|amount owed|waiver|refund/);
+  assert.equal(output.views[0].rows[0][1],'0');
+  assert.equal(output.citations[0].url,'/school-affairs/services/49-1');
 });
 
 test('tuition failed reads, successful empty selection and omitted known statement remain distinct',async()=>{

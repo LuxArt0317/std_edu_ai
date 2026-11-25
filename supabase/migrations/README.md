@@ -1,5 +1,24 @@
 # Database migrations
 
+## Assistant Student Leave drafts
+
+`20261116120000_student_leave_draft_action.sql` adds `affairs_create_student_leave_draft(uuid,jsonb)` for a verified Google caller with a School Affairs profile. It inserts a draft into the existing owner-scoped Leave table. The operation ID is the new record ID. The native row, audit event and existing private reviewed-action receipt commit together. An identical retry returns the stored receipt and a changed retry fails. The receipt payload stores a digest of the fields. A caller cannot read or replace another student's draft using its operation ID.
+
+## Dated local charge payments
+
+`20261116000000_charge_payment_history.sql` adds an append-only ledger for explicitly recorded payments and full reversals. It seeds no entries and supplies no dates for existing paid totals. The first dated entry captures the charge’s previous cumulative paid amount as its undated baseline. The current charge total equals that baseline plus payments minus reversals.
+
+- `affairs_change_charge_payment(p_kind text,p_payload jsonb)` requires verified administrator access. `record_charge_payment` takes exactly `request_id`, `student_id`, `charge_id`, `paid_on`, `amount` and `currency`. Supply `amount` as a positive decimal string with at most two decimal places and `currency` as `TWD`. `reverse_charge_payment` takes exactly `request_id`, `student_id`, `charge_id`, `paid_on` and `payment_id`. Dates are explicit Taipei business dates in `YYYY-MM-DD`, up to today. A full reversal date cannot precede the original entry. The receipt returns `id`, `chargeId`, `studentId`, `entryKind`, `paidOn`, `amount`, `currency`, `sourceMode`, `reversesPaymentId`, `amountPaid` and `legacyAmountPaid`. Money is serialized as decimal strings. Replay needs the same request ID, action and payload.
+- `affairs_read_charge_payment_history(p_from date,p_through date,p_charge_id uuid,p_offset integer,p_limit integer)` reads the verified caller’s rows. Either date and the charge selector may be null. Date bounds are inclusive. Choose a limit from 1 to 100 and an offset from 0 to 5,000. The response contains `userId`, `studentRecordFound`, `rows`, `total` and `hasUndatedPaidAmount`. Rows contain `id`, `chargeId`, the current `chargeLabel` and nullable `chargeCategory`, `entryKind`, `paidOn`, `amount`, `currency`, `sourceMode` and `reversesPaymentId`. A partial page does not support a complete monthly total. The undated flag applies to the selected charge scope independently of the date filter.
+- The write RPC serializes against the existing charge row and commits its ledger entry, total, audit and replay receipt together. The existing manager can edit unrelated charge fields, while a charge with entries keeps its baseline, ledger-linked paid amount and deletion protection. A reversal corrects the local record. This ledger provides no transfer, refund or bank-settlement confirmation.
+
+`20261116010000_charge_payment_history_admin.sql` adds `affairs_read_charge_payment_history_admin(p_student_id uuid,p_charge_id uuid,p_from date,p_through date,p_offset integer,p_limit integer)`. The existing verified School Affairs administrator role is required. The student and charge IDs must match a single charge. Rows include `canReverse`, evaluated against every reversal of the payment, including reversals outside the selected date or page. The write RPC rechecks the selected payment under the charge lock. The SQL regression in `tests/evaluation/charge-payment-history-admin.sql` uses an empty, socket-only local PostgreSQL database named `charge_payment_admin_disposable` and rolls back its fixtures.
+
+
+`20261115230000_assistant_conversation_delete_receipts.sql` adds versioned conversation read, save and delete RPCs. The protected protocol serializes writes by account, bounds the number of private deletion markers, and closes the creation window for expired time-stamped IDs even if the database clock moves backward. Preflight must establish that the migration is pending and the existing table contains zero valid UUIDv7 IDs before the new policies hide that ID family from legacy direct reads. The migration must precede the v2 runtime. It keeps the currently deployed v4 direct read and delete behavior during coexistence. Removing legacy direct deletion and preventing fresh legacy inserts require a separate cutover after old runtimes have drained. Never edit an applied migration.
+
+`20261115110100_elearning_page_metadata.sql` adds a read-only, Google-session-gated RPC for the saved Digital Academy category tree and exact notices. It exposes a bounded projection of the published catalog and notice fields.
+
 `20261114150000_graduation_clearance.sql` adds term periods, account assignments, applications, office review rows and private replay receipts. It seeds no student records or dates.
 
 `20261114140000_teaching_feedback.sql` adds survey windows, separated completion and response storage, and immediate feedback with review status. Access is limited to the verified student or administrator RPC scope.
@@ -70,6 +89,4 @@ Migration 20261114220000 adds caller-owned announcement email preferences and a 
 
 Migration 20261114230000 installs the observed initial certificate catalog, protected applications, masked payout references, and reservation-based proof Storage.
 
-`20261124220000_evaluation_lab.sql` adds RPC-only administrator/owner-scoped evaluation state and image storage. It was applied independently through the authorized Marketplace-linked SQL editor; the table/RLS and migration-history result was observed. No student-service migrations were included.
-
-`20261125020000_evaluation_lab_shared_admins.sql` authorizes the two specified Google identities for a shared Answer Lab anchored to the existing Lux-owned data. It replaces only lab RPCs; School Affairs/Nexus roles and other records are unchanged. The fixed production release script applies this version transactionally and records it in migration history.
+`20261124220000_evaluation_lab.sql` adds administrator-only, owner-scoped evaluation documents and private image rows with RPC-only access, revision locking and bounded storage. Independent of student-service draft migrations; prerequisite: existing `private.affairs_is_admin()`.

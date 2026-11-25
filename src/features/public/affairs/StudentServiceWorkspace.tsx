@@ -10,7 +10,7 @@ import { savePersonalSchoolRecord, type ServiceRecord } from '@/services/schoolA
 import { campusAssistantOpenEvent } from '../PublicAssistant';
 import { referenceAsset } from '../site/reference';
 import { StudentRecordQuery } from './StudentRecordQuery';
-import { accountQueryByService, calendarPath, internshipPath, officialInternshipUrl, studentServiceByKey } from './studentServices.js';
+import { accountQueryByService, calendarPath, internshipPath, learningSupportPath, officialInternshipUrl, studentServiceByKey } from './studentServices.js';
 import { useAffairsRecords } from './useAffairsRecords';
 import './student-services.css';
 
@@ -194,6 +194,7 @@ function ServiceSession({serviceKey,view,userId}:{serviceKey:string;view:string;
       <div><span>{service.section}</span><h1>{title}</h1></div>
     </header>
     <div className="student-service-bar">
+      {serviceKey==='27-1'&&<Link to={learningSupportPath}>學習輔導申請 · Learning support request</Link>}
       <a className="student-service-official" href={service.officialUrl} target="_blank" rel="noopener noreferrer">
         開啟校方服務 · Official service <ExternalLink size={15} aria-hidden="true"/>
       </a>

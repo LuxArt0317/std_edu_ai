@@ -1,4 +1,4 @@
-import { AffairsWorkspaceError } from './affairsWorkspace.js';
+import { AffairsWorkspaceError, AffairsWorkspaceReadUnavailableError } from './affairsWorkspace.js';
 import { readFeeRemissionJson } from './feeRemissionContract.js';
 import { healthExaminationScope, healthPageSize, healthReportBucket, healthReportId, validHealthExaminations, validHealthReportUrl } from './healthExaminationContract.js';
 
@@ -9,9 +9,9 @@ export async function readHealthExaminations(account, query) {
     throw new AffairsWorkspaceError('Invalid health examination inquiry.', 400);
   }
 
-  const unavailable = () => new AffairsWorkspaceError('Health examination records are temporarily unavailable.', 503);
+  const message = 'Health examination records are temporarily unavailable.';
   const timeout = Math.min(8000, (account.requestDeadline ?? Date.now() + 8000) - Date.now());
-  if (timeout <= 0) throw unavailable();
+  if (timeout <= 0) throw new AffairsWorkspaceError(message);
 
   let result;
   try {
@@ -27,18 +27,21 @@ export async function readHealthExaminations(account, query) {
       body: JSON.stringify({ p_offset: (Number(page) - 1) * healthPageSize }),
     });
   } catch {
-    throw unavailable();
+    throw new AffairsWorkspaceReadUnavailableError(message);
   }
   if (!result.ok) {
     void result.body?.cancel().catch(() => {});
     if (result.status === 401 || result.status === 403) {
       throw new AffairsWorkspaceError('School Affairs sign-in is required.', 403);
     }
-    throw unavailable();
+    if (result.status >= 500 || result.status === 408 || result.status === 429) {
+      throw new AffairsWorkspaceReadUnavailableError(message);
+    }
+    throw new AffairsWorkspaceError(message);
   }
 
-  const value = await readFeeRemissionJson(result).catch(() => { throw unavailable(); });
-  if (!validHealthExaminations(value, account.user.id)) throw unavailable();
+  const value = await readFeeRemissionJson(result).catch(() => { throw new AffairsWorkspaceError(message); });
+  if (!validHealthExaminations(value, account.user.id)) throw new AffairsWorkspaceError(message);
   return value;
 }
 

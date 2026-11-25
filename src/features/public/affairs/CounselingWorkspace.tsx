@@ -52,6 +52,11 @@ function Appointments({userId,consented}:{userId:string;consented:boolean}){
   const active=useRef<AbortController|null>(null),retry=useRef<{key:string;id:string}|null>(null);
   useEffect(()=>()=>active.current?.abort(),[]);
   useEffect(()=>{
+    const refresh=()=>setRevision(value=>value+1);
+    window.addEventListener('school-affairs:updated',refresh);
+    return ()=>window.removeEventListener('school-affairs:updated',refresh);
+  },[]);
+  useEffect(()=>{
     const controller=new AbortController();
     void loadCounseling(userId,'mine',controller.signal).then(value=>{if(!controller.signal.aborted)setData(value);},
       ()=>{if(!controller.signal.aborted)setData('error');});

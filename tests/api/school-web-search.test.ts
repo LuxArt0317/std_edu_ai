@@ -90,3 +90,57 @@ test('search failures stay bounded and safe without exposing provider errors',as
  let calls=0;globalThis.fetch=async()=>{calls++;throw Error('private provider payload');};
  const result=await searchSchoolWeb('STU contact');assert.equal(calls,2);assert.equal(result.result,null);assert.equal(result.attempted,true);assert.doesNotMatch(JSON.stringify(result),/private provider/);
 });
+
+test('follow-up discovery receives bounded public source types and drops checked pages before limiting new leads',async()=>{
+ process.env.OPENAI_API_KEY='test-openai';
+ const notice='https://dtm.stu.edu.tw/mod/page/view.php?id=1234';
+ const newer='https://dtm.stu.edu.tw/mod/page/view.php?id=5678';
+ const article='https://www.stu.edu.tw/regulations/public-academic-calendar.pdf';
+ const returned=[url+'?utm_source=again',notice,newer,article];
+ const body=payload(url);
+ const tool=body.output[0] as {action:{sources:Array<{url:string,title:string}>}};
+ tool.action.sources=returned.map(value=>({url:value,title:'PRIVATE_CHECKED_TITLE_SENTINEL'}));
+ const question='Where are the STU registrar hours published?';
+ const checkedSchoolUrls=[url+'#PRIVATE_FRAGMENT_SENTINEL',url,notice,
+   'https://sso2.stu.edu.tw/auth/realms/stuarm/protocol/saml',
+   'https://hidden.stu.edu.tw/?authorization=PRIVATE_AUTH_SENTINEL',
+   'https://idp.stu.edu.tw/Login.asp','https://unrelated.example.org/private-source/',
+   'https://another.stu.edu.tw/%2Fwp-login.php','https://contact.stu.edu.tw/private/student@example.org',
+   {host:'PRIVATE_REVIEW_SENTINEL'} as unknown as string];
+ const requests:Array<Record<string,unknown>>=[];
+ globalThis.fetch=async(_input,init)=>{requests.push(JSON.parse(String(init?.body)));return Response.json(body);};
+ const follow=await searchSchoolWeb(question,{followUp:true,deeperDiscovery:true,checkedSchoolUrls});
+ const call=requests[0],input=JSON.parse(String(call.input));
+ assert.equal(input.question,question);
+ assert.deepEqual(input.checkedSchoolSources,[{host:'reg.aca.stu.edu.tw',kind:'directory'},{host:'dtm.stu.edu.tw',kind:'notice'}]);
+ assert.match(String(call.instructions),/checkedSchoolSources/u);
+ assert.doesNotMatch(JSON.stringify(call),/PRIVATE_|[?&]id=1234|unrelated\.example|student@example|view\.php|\/contact\//u);
+ assert.equal(follow.result,null);
+ assert.deepEqual(follow.discoveredSources?.map(source=>source.url),[newer,article]);
+ const initial=await searchSchoolWeb(question,{checkedSchoolUrls});
+ assert.equal(Object.hasOwn(JSON.parse(String(requests[1].input)),'checkedSchoolSources'),false);
+ assert.equal(initial.result?.citations[0].url,url);
+ assert.equal(requests.length,2);
+ assert.equal((await searchSchoolWeb('What are my current grades?',{followUp:true,checkedSchoolUrls})).attempted,false);
+ assert.equal(requests.length,2);
+});
+
+test('follow-ups cap their safe public location hints without including arbitrary path text',async()=>{
+ process.env.OPENAI_API_KEY='test-openai';
+ const many=Array.from({length:16},(_,index)=>'https://dept'+index+'.stu.edu.tw/news/PRIVATE_PATH_SENTINEL/');
+ const newNotice='https://reg.aca.stu.edu.tw/news/deadline/';
+ const resultBody=payload(many[0]);
+ const tool=resultBody.output[0] as {action:{sources:Array<{url:string,title:string}>}};
+ tool.action.sources=[...many,newNotice].map(url=>({url,title:'Retrieved source'}));
+ globalThis.fetch=async(_input,init)=>{
+   const sent=JSON.parse(String(init?.body)),input=JSON.parse(sent.input);
+   assert.ok(Array.isArray(input.checkedSchoolSources));
+   assert.ok(input.checkedSchoolSources.length>0&&input.checkedSchoolSources.length<=6);
+   assert.ok(input.checkedSchoolSources.every((source:{kind:string})=>source.kind==='notice'));
+   assert.doesNotMatch(JSON.stringify(sent),/PRIVATE_PATH_SENTINEL/);
+   return Response.json(resultBody);
+ };
+ const result=await searchSchoolWeb('What does the STU registrar notice say?',{followUp:true,checkedSchoolUrls:many});
+ assert.equal(result.attempted,true);
+ assert.deepEqual(result.discoveredSources?.map(source=>source.url),[newNotice]);
+});

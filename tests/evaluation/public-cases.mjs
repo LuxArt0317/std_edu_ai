@@ -1,6 +1,27 @@
+import {buildSchoolMenuNativeCases} from './school-menu-native-cases.mjs';
 import {createHash} from 'node:crypto';
 
 const caseBase={fixtureKey:'anonymous',language:'en',mode:'navigation',capability:{level:'public',limitation:null}};
+export function buildSchoolServiceNoticeCases(){
+  return [
+    ['teaching-report-en','25-1/report','25-1','en','What does this notice mean?',
+      'The learning report cannot be opened right now.','Teaching Assistant Management','teaching-report'],
+    ['teaching-report-zh','25-1/report','25-1','zh-TW','按下確定後會回到哪一頁？',
+      '目前無法開啟學習單。','教學助理管理系統','teaching-report'],
+    ['exchange-receipts-en','23-1/receipts','23-1','en','What does this notice say and what happens if I press Confirm?',
+      'There is currently no receipt list to print.','Grant Application Management','exchange-receipts'],
+    ['exchange-receipts-zh','23-1/receipts','23-1','zh-TW','這個提示是什麼意思？',
+      '目前沒有可列印的印領清冊。','助學金申請管理系統','exchange-receipts'],
+  ].map(([id,path,destination,language,question,text,title,source])=>{
+    const route='/school-affairs/services/'+path;
+    return {...caseBase,id:'public-school-service-notice-'+id,domain:'school-service-notice',
+      routeFamily:'school-service-acknowledgements',route,language,question,
+      expected:{behavior:'navigation',requiredText:[text,title,'確定'],requiredTools:[],maximumAttemptedTools:0,
+        requiredLinks:[route,'/school-affairs/services/'+destination],noAction:true,localLinksOnly:true,forbidPublicResearch:true,
+        requiredSourceBindings:[{sourceId:'directory:notice:'+source,url:route}],
+        forbiddenText:['paid out','award is denied','application is rejected','已付款','申請不通過']}};
+  });
+}
 export function buildPublicCases(inventory) {
   const pages=inventory.publicPages.map(page=>{
     const titleAvailable=typeof page.title==='string'&&Boolean(page.title.trim());
@@ -23,9 +44,69 @@ export function buildPublicCases(inventory) {
     ['internship','Where do I find the internship records workspace?','/school-affairs/services/internship',[]],
     ['catalog','Where is the searchable course catalog?','/school-affairs/services/12-4',[]],
   ].map(([id,question,link,requiredText])=>({...caseBase,id:'public-service-'+id,domain:'public-navigation',routeFamily:'school-services',route:'/',question,
-    expected:{behavior:'navigation',requiredText,forbiddenText:[],requiredLinks:[link],requiredTools:[],noAction:true}}));
+    ...(id==='leave'?{executionContract:'live-native'}:{}),
+    expected:{behavior:'navigation',requiredText,forbiddenText:[],requiredLinks:[link],requiredTools:[],noAction:true,
+      ...(id==='leave'?{
+        requiredText:['Student Leave form','prepare and save','Official submissions'],
+        forbiddenLinks:[link+'/history',link+'/archive',link+'/periods',
+          '/school-affairs/login?next='+encodeURIComponent(link+'/history')],
+        localLinksOnly:true,allowedTools:[],requiredAttemptedTools:[],forbidPublicResearch:true,
+      }:{}),
+    }}));
   const privacy=inventory.tools.map(tool=>({...caseBase,id:'anonymous-records-'+tool.id,domain:'authentication',routeFamily:'authentication',route:'/school-affairs',mode:'record',
     endpoint:'/api/affairs-assistant',question:`Show my ${tool.id} records.`,
     expected:{behavior:'denial',expectedStatusCode:401,requiredText:[],forbiddenText:['QA-PRIVATE','Other Student Secret'],requiredLinks:[],requiredTools:[],noAction:true}}));
-  return [...pages,...questions,...privacy];
+  const menuPages=[
+    {id:'public-affairs-system-search',route:'/school-affairs/search',routeFamily:'school-affairs',
+      question:'How do I use the keyword field on this page to find a service?',
+      requiredText:['keyword','線上報修','matching service link'],requiredLinks:['/school-affairs/search'],forbiddenText:[]},
+    {id:'public-affairs-facilities-input',route:'/school-affairs/menu/swd/input',routeFamily:'school-menus',
+      question:'這個頁面有哪些申請或輸入服務？',
+      requiredText:['場地借用','線上報修','汽機車證'],requiredLinks:['/school-affairs/services/44-1','/school-affairs/services/45-1','/school-affairs/services/46-1'],
+      forbiddenText:['場地使用狀況查詢'],language:'zh-TW'},
+    {id:'public-affairs-facilities-query',route:'/school-affairs/menu/swd/query',routeFamily:'school-menus',
+      question:'Which service lookups are shown on this page?',
+      requiredText:['場地使用狀況查詢','使用者電匯付款查詢','學生帳戶繳交狀態查詢'],
+      requiredLinks:['/school-affairs/services/47-1','/school-affairs/services/50-1','/school-affairs/services/50-2'],forbiddenText:['線上報修','汽機車證申請']},
+  ].map(({requiredText,requiredLinks,forbiddenText,...definition})=>({...caseBase,...definition,domain:'school-menu-context',
+    expected:{behavior:'navigation',requiredText,requiredLinks,forbiddenText,requiredTools:[],noAction:true}}));
+  const studyPlanning={
+    ...caseBase,id:'public-study-first-week',domain:'public-guidance',routeFamily:'school-services',route:'/campus-assistant',mode:'coaching',
+    coveredRouteFamilies:['assistant-sessions'],
+    question:'How should I plan a first week of study at Shu-Te University? Give me three practical steps using public school resources and cite the sources.',
+    history:[
+      {role:'user',content:'Where can I find the campus Wi-Fi setup guide?'},
+      {role:'assistant',content:'Open the campus Wi-Fi setup guide at /school-sites/help.ecc.stu.edu.tw/wireless-setting/.'},
+    ],
+    expected:{behavior:'answer',verification:'verified',requiredTools:[],noAction:true,
+      requiredText:[],forbiddenText:['Opening your workspace','Private student number'],requiredLinks:[],
+      reviewInstructions:'Require three distinct practical first-week actions and at least one genuinely cited local or official public Shu-Te resource supporting an action. Explicitly distinguish practical suggestions from any university facts, and fail unsourced school claims or an unrelated Wi-Fi-only answer.',
+      guidanceRubric:{version:'stu-guidance-v1',criteria:[
+        {id:'requested_parts',proof:'spans'},{id:'usable_help',proof:'spans'},
+        {id:'honest_separation',proof:'whole_answer'},{id:'language_relevance',proof:'whole_answer'},
+      ]}},
+  };
+  const customMenu={
+    ...caseBase,id:'public-custom-menu-browser-only',domain:'school-menu-context',routeFamily:'school-menus',
+    route:'/school-affairs/menu/menu/custom',question:'Which service links are listed on this page?',
+    expected:{behavior:'denial',requiredText:['links saved in your browser'],requiredLinks:['/school-affairs/menu/menu/custom'],
+      allowedTools:[],requiredTools:[],requiredAttemptedTools:[],noAction:true,forbidPublicResearch:true},
+  };
+  const aboutRoute='/%E9%97%9C%E6%96%BC%E6%A8%B9%E5%BE%B7/';
+  const about=inventory.publicPages.find(page=>page.route===aboutRoute&&page.source==='https://www.stu.edu.tw'+aboutRoute);
+  const institutional=about?[
+    ['founding-mission','en','What does Shu-Te University say about its founding and educational mission?',
+      [{anyOf:['1997','ROC 86','ROC year 86','民國86']},'theory','practice']],
+    ['motto','zh-TW','樹德科技大學的校訓是什麼？', ['學術','知性','快樂','希望']],
+  ].map(([id,language,question,requiredText])=>({
+    ...caseBase,id:'public-institution-'+id,domain:'public-institution',routeFamily:'public:www.stu.edu.tw',
+    route:'/campus-assistant',language,question,
+    source:{url:about.source,checksum:about.checksum,capturedOn:about.capturedOn},
+    expected:{behavior:'answer',requiredText:[...requiredText,about.capturedOn],
+      requiredLinks:[about.route],requiredSourceBindings:[{sourceId:'public-page:'+createHash('sha256').update(about.route).digest('hex').slice(0,24),url:about.route}],
+      verification:'verified',provenance:'snapshot',forbiddenText:['Private student number'],allowedTools:[],requiredTools:[],
+      forbidPublicResearch:true,noAction:true},
+    coveragePurpose:'Institutional facts, citation binding and dated capture provenance.',
+  })):[];
+  return [...pages,...questions,...menuPages,customMenu,...buildSchoolMenuNativeCases(),...buildSchoolServiceNoticeCases(),...privacy,studyPlanning,...institutional];
 }

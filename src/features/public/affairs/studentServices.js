@@ -4,9 +4,13 @@ import catalog from './catalog.json' with {type:'json'};
 export const leavePath = '/school-affairs/services/leave';
 export const internshipPath = '/school-affairs/services/internship';
 export const teachingAssistantPath = '/school-affairs/services/25-1';
+export const learningSupportPath = '/school-affairs/services/27-1';
 export const tutorEvaluationPath = '/school-affairs/services/28-1';
 export const schoolSubjectRecordsPath = '/school-affairs/records/subjects';
 export const interdisciplinaryProgramsPath = '/school-affairs/services/12-6';
+export const schoolServiceNoteIds = Object.freeze([
+  '4-2','6-1','6-2','6-3','6-4','7-2','7-3','7-4','7-5','7-6','10-1','16-1','12-5','12-6','12-7','12-8','25-1','25-2','27-1','28-1','29-1','42-1','46-1',
+]);
 export const officialLeaveUrl = 'https://infosys.stu.edu.tw/StuLeave/Login/AspLoginStu';
 export const officialInternshipUrl = 'https://infosys.stu.edu.tw/StuPractice/Login/Signin';
 export const officialWifiUrl = 'https://help.ecc.stu.edu.tw/wireless-setting/';
@@ -56,6 +60,48 @@ export const schoolServiceEntries = catalog.flatMap(([group, kind, section, link
     return {...entry, officialUrl:officialServiceUrl(sourcePath), localUrl:serviceDestination(entry)};
   })
 );
+
+const programByTitle = title => schoolServiceEntries.find(program => program.title === title);
+const commonTitles = [
+  ["請假填單", "請假填單"],
+  ["就學貸款申請", "就學貸款申請"],
+  ["Leave application form", "請假填單"],
+  ["Inquiry of Absenteeism Records", "缺曠課紀錄查詢"],
+  ["Checking the status of your application to leave school", "離校申請狀態查詢"],
+  ["行事曆", "行事曆"],
+  ["CU數位平台", "CU數位平台"],
+  ["學校首頁", "學校首頁"],
+  ["Calendar", "行事曆"],
+  ["Moodle Digital Academy", "Moodle數位學園"],
+  ["mySTU", "mySTU"],
+  ["My course schedule;", "我的功課表"],
+  ["Course selection record query;", "選課紀錄查詢"],
+  ["Club activities", "社團活動"],
+  ["Proof of enrollment", "在學證明"],
+];
+const courseTitles = [
+  "初選", "加退選", "我的功課表", "暑期選課", "棄選",
+  "歷年超減修申請紀錄查詢", "永久課程簡介查詢", "補加選", "選課確認", "選課紀錄查詢",
+];
+export const commonSchoolMenuPrograms = commonTitles.map(([title, sourceTitle]) => ({
+  ...programByTitle(sourceTitle), title,
+}));
+/** Shared menu selection used by the portal UI and the assistant's captured directory. */
+export function schoolMenuPrograms(group, view, favorites = []) {
+  if (group === 'menu') {
+    switch (view) {
+      case 'common': return commonSchoolMenuPrograms;
+      case 'custom': return schoolServiceEntries.filter(program => favorites.includes(program.id));
+      case 'course': return courseTitles.map(programByTitle);
+      case 'graduation': return [programByTitle("離校申請狀態查詢")];
+      case 'external': return schoolServiceEntries.filter(program => program.group === 'sysmenu');
+      case 'help': return schoolServiceEntries.filter(program => program.group === 'sysDoc');
+      default: return [];
+    }
+  }
+  return schoolServiceEntries.filter(program => (group === 'all' || program.group === group)
+    && (view === 'all' || view === 'library' || program.kind === view));
+}
 
 // Retain previously shared catalog URLs after a service gets its own workspace.
 export function nativeServiceAlias(key) {

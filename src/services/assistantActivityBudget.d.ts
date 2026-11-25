@@ -1,4 +1,5 @@
 export const MAX_ASSISTANT_ACTIVITY:64;
+export const MAX_ASSISTANT_RECORD_COLUMNS:8;
 export const ASSISTANT_ACTIVITY_BYTES:16000;
 export const ASSISTANT_CONVERSATION_BYTES:170000;
 export function boundedAssistantText(value:unknown,maximum:number):string;

@@ -3,6 +3,7 @@ import {mkdir} from 'node:fs/promises';
 import {randomUUID} from 'node:crypto';
 import {chromium} from 'playwright-core';
 import {studentProfilePath as path} from '../../server/studentProfileContract.js';
+import {verifyEmptyStudentProfile} from '../evaluation/student-profile-browser-preview.mjs';
 import {affairsTestUser as student,mockAffairsAuth} from './helpers/affairs-auth.mjs';
 import {schoolServiceReadFixture,schoolServiceSnapshot} from './helpers/school-service-route-inventory.mjs';
 import {studentProfileDetails as details} from './helpers/student-profile-fixture.mjs';
@@ -138,7 +139,7 @@ try{
   assert.equal(await main.getByText('已確認基本資料。').count(),0);
   record=null;
   await page.reload();
-  await main.getByText('目前尚無可確認的學生基本資料。',{exact:false}).waitFor();
+  await verifyEmptyStudentProfile(main);
   assert.equal(await main.getByRole('table',{name:'學生基本資料確認'}).count(),0);
   const guest=await browser.newPage({serviceWorkers:'block'});
   await guest.goto(origin+path);

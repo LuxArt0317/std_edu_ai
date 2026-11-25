@@ -1,20 +1,61 @@
 # Assistant evidence verification — Issue #99
 
 The campus assistant uses a request-local LangGraph workflow in
-`server/answerVerification.js`: retrieve → draft → verify → finish, with one
-failed-verification edge back through fresh retrieval and correction. Two
-failed checks, unavailable evidence/provider, malformed output, or the time
-limit return an explicit inability to verify. Unsupported drafts, their
-citations and proposed actions are withheld.
+`server/answerVerification.js`. It retrieves evidence, drafts a reply and
+checks the draft. A failed review can refresh the relevant evidence and revise
+the draft. If an independently read school page leaves a fact unresolved, the
+public branch looks for the primary notice or policy. It can make a fourth check
+when another lead yields new evidence and the request still has time. An empty
+initial search can switch to a targeted official publication after managed
+verification fails. If the first batch of live leads cannot be read, the handler
+can read an unused lead or retry a transient read once before composing the next
+draft. A question about the current archived page can take a third pass
+against that exact capture when readable content is available. The signed-in public bridge sends the child's remaining
+deadline separately from browser input so it can report a timed stop.
+Unsupported drafts and actions stay withheld.
+
+A verified public reply can still leave part of the question unanswered. The
+independent review records the missing detail count. With a viable public
+source and budget, the graph reads new contents before drafting again. A
+review that leaves exactly the same gaps can still follow a specific unread
+school page. It carries forward the earlier verified reply and replaces it
+only when the review confirms that the new answer covers more of the question.
+The Activity list shows this separately from a rejected draft. For an
+explicit question about an archived page, a requested summary must cite the
+saved page text. The title, link and capture date come from the manifest.
+
+When a verified draft resolves part of the question, the handler can reread an
+official lead once after a classified temporary connection or server failure
+if enough time remains to verify its contents. Sign-in and permanent failures
+end reads for the affected lead, and an exact dated capture can supply the
+evidence in place of a live reread.
+
+Unread official pages can justify reserving part of the remaining request
+time before an early public review begins. After an interrupted review or
+rewrite, the graph checks later queued pages when an early batch is unreadable
+or contains mirrored text. Every batch shares the page-read deadline. An
+independent check of the revised answer follows when a page supplies distinct,
+readable contents. The Activity list records the interruption and the source
+check as separate events. If the read window expires with eligible pages still
+queued, Activity records the time limit and preserves any previously verified
+answer and citations. This applies the same
+evaluator feedback and explicit exit conditions described in the
+[Anthropic agent workflow guide](https://www.anthropic.com/research/building-effective-agents)
+and [OpenAI agent guide](https://openai.com/business/guides-and-resources/a-practical-guide-to-building-ai-agents/).
 
 ## Acceptance criteria
 
 1. An incorrect amount, date, enrollment claim or unsupported source claim must
    not pass merely because its citation ID exists.
-2. A rejected answer reloads permitted evidence and receives at most one
-   correction. The correction must pass the same independent review.
-3. A second failure returns no guessed answer or action proposal. A timeout or
-   provider outage has the same fail-closed behavior.
+2. A rejected draft can refresh relevant, permitted evidence. When the remaining
+   gap is resolvable within the deadline, the graph can deepen the review or
+   independently retrieve a more relevant school source. The full request
+   allows up to four public checks, including source changes. The fourth requires
+   newly read content and a matching observed verdict. Account and fixed-evidence
+   paths allow up to three checks.
+3. A supported partial answer identifies its missing fields without repeating
+   unsupported values. An exhausted or unavailable verification path releases
+   no unsupported draft or action proposal.
 4. Account reads use the verified caller token and existing RLS. Retries skip
    account-initialization RPCs. No write executes during answer verification.
 5. A planner selects only named account collections and fixed public research
@@ -81,7 +122,11 @@ npm run verify:client
 ```
 
 The first command uses provider fixtures and checks real graph transitions,
-source references, fresh reads, correction limits and evidence/provider failures.
+source references, fresh reads, conditional checks and evidence/provider failures.
+Run `node --import tsx --test tests/api/research-assistant-web-follow-up.test.ts
+tests/evaluation/grading.test.mjs` for the incomplete-office, fourth-check,
+mirrored-source, transient-read and deadline cases. The controlled timeouts
+cover a newly readable queued notice, a duplicate page and no available lead.
 The UI command requires the local app and uses explicit fixture replies.
 Production commands use actual providers and the exact configured client project;
 run database checks serially. Live private QA creates disposable identities,
@@ -166,3 +211,19 @@ The frozen correction candidate over0731bda keeps the same account, action and t
 The exact Student Loan release0731bda passed seven deployed actual-JWT/browser groups with cleanup and protected-owner preservation, but no Loan assistant tool is registered in this batch. The next own-record overview/current-courses-plus-year/career-advice work is a separate candidate, outside these frozen corrections.
 
 Final independent grader acceptance covers literal `0` versus numeric variants, valid unconfirmed-payment wording, contradictory paid/completed claims, and unavailable-read versus absent-record conclusions. All54 focused tests and17 separate actual-case probes passed. The isolated23-path release also passed380 offline evaluation tests,839 API/source checks,318 units,build/assets,lint,handoff and audit0. These are offline gates; production model acceptance is still pending.
+
+### Saved subjects and interview coaching
+
+An explicit current-subjects list with standalone interview wording help uses the signed-in student’s bounded timetable reader. The recorded year is read separately only when requested. The existing LangGraph composes and verifies the full reply, keeps sample provenance and uncertainty visible, and rereads the same selected sources on retry. It can give interview practice wording alongside a precise unavailable or unlinked status. Questions with an additional independent topic continue through their existing routing.
+
+The local handler test captures Auth, PostgREST and verification requests. It checks the unchanged mixed course and coaching case against its frozen rubric and independently verifies that the handler reads no unrelated account collections. Its provider responses are controlled. Protected model behavior requires a separate revision-pinned replay.
+
+The separate `account:published-sample-current-courses-plus-interview-draft` case uses the published sample enrollment binding. It asks the same question and grades the three current sample subjects, their linked subjects page, and independently reviewed guidance. This leaves the original Database Design (DB301) fixture and its grade intact.
+
+If the tailored draft cannot start because the model provider is unavailable, the graph can verify a fixed practice guide alongside the exact saved fields or read limits. The response says the tailored draft was unavailable and Activity shows that the saved-record checks and general guide ran locally. A rejected model-generated draft still goes through the normal correction and verification checks.
+
+### Saved graduation review status
+
+An explicit saved status question or a status follow-up to the immediately preceding own graduation report reads one report kind through the verified caller. The reader projects the literal status text and discards identity, notes, credits and course rows. The graph checks the exact rendering locally and retries the same lookup once if the first read fails. A missing report, null or blank status, and a failed read have distinct replies. Official eligibility remains unverified. Full reports and independent additional questions keep their existing routing.
+
+An exact named credit category returns its recorded required, completed, matched, and subtotal fields. An exact course requirement returns the matches stored on that requirement. The bounded report-category projection stays out of the response. The renderer keeps zero and null distinct and asks for a more specific choice if two saved names match. The eligibility question reports the local status and leaves official eligibility unverified. The unchanged frozen prompts pass the actual handler with controlled HTTP and optional migrated PostgreSQL.

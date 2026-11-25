@@ -83,7 +83,7 @@ test('catalog requests reach the offering directory without substituting persona
       assert.equal(answerCampusNavigation(question),null,question);
       const answer=await answerPrivateAffairsQuestion(question,snapshot,[],'/school-affairs/services/12-4');
       assert.equal(answer.grounding.source,'account',question);assert.match(answer.answer,/OWN101/,question);
-      assert.equal((answer.citations[0] as {url:string}).url,'/school-affairs/records');
+      assert.equal((answer.citations[0] as {url:string}).url,'/school-affairs/records/subjects');
     }
   } finally {globalThis.fetch=original;}
 });

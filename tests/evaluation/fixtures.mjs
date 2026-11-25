@@ -1,4 +1,8 @@
+import {sampleEnrollmentManifest} from './published-sample-enrollments.mjs';
 import {serviceNoteFixture} from './service-cases.mjs';
+import {facilityRepairLiveFixtureKey} from './facility-repair-fixtures.mjs';
+import {isOutlineFixtureKey} from './elearning-outline-fixtures.mjs';
+import {dormitoryConductLiveFixtureKey} from './dormitory-conduct-cases.mjs';
 /** Synthetic, local-only golden records. No production answer helpers or credentials. */
 export const EVAL_USER_ID='00000000-0000-4000-8000-000000000001';
 export const EVAL_OTHER_USER_ID='00000000-0000-4000-8000-000000000002';
@@ -37,7 +41,7 @@ export function buildAccountFixture({userId=EVAL_USER_ID,now=DEFAULT_EVAL_NOW}={
   const course=(n,values)=>({enrollmentId:evalId(n),status:'enrolled',sourceMode:'sample',code:'EVAL'+n,title:'Synthetic course',credits:3,term:'115學年度第1學期',termStartsOn:dates.termStart,termEndsOn:dates.termEnd,instructor:'Teacher Lin',weekday:dates.weekday,startsAt:'13:10:00',endsAt:'15:00:00',room:'R301',grades:[],attendance:[],...values});
   const current=course(1,{code:'DB301',title:'Database Design',grades:[{label:'Practice quiz',score:18,maximum:20,sourceMode:'sample'}],attendance:[{date:'2026-11-10',status:'absent',sourceMode:'sample'}]});
   const dtmCourse={id:EVAL_IDS.dtmCourse,code:'DTM301',title:'Learning Research',term:'115學年度第1學期',role:'student',sourceMode:'personal',
-    materials:[{id:EVAL_IDS.material,title:'Review notes',kind:'page',summary:'The quiz covers normalization and transaction isolation.',position:1,sourceMode:'personal',sourceUrl:null}],
+    materials:[{id:EVAL_IDS.material,title:'Review notes',kind:'page',summary:'The quiz covers normalization and transaction isolation.',position:1,sourceMode:'personal',sourceUrl:null,targetUrl:null}],
     meetings:[{id:EVAL_IDS.meeting,date:'2026-11-10',startsAt:'09:00:00',title:'Database indexes',attendance:'absent',notes:'Compare B-tree and hash indexes; prepare an index plan.'},
       {id:EVAL_IDS.nextMeeting,date:dates.tomorrow,startsAt:'09:00:00',title:'Transaction lab',attendance:'unknown',notes:'Bring the saved laboratory worksheet.'}],
     grades:[{id:EVAL_IDS.grade,label:'Quiz 1',score:12,maximum:20,date:'2026-11-10',feedback:'Revise normalization examples.'}]};
@@ -99,6 +103,7 @@ const emptyDomain=(snapshot,domain)=>{
   else if(domain==='tuition')snapshot.tuition={settlements:[],periods:[],documents:[]};
   else if(['studentAid','creditLoadHistory','courseSelection'].includes(domain))snapshot[domain]={records:[]};
   else if(domain==='scholarship')snapshot.scholarship={periods:[],applications:[]};
+  else if(domain==='housingApplications')snapshot.housing.applications=[];
   else if(domain==='housing')snapshot.housing={periods:[],applications:[],assignments:[]};
   else if(Object.hasOwn(snapshot,domain)&&Array.isArray(snapshot[domain]))snapshot[domain]=[];
   else if(['bookmarks','student-sso','calendar','public-home','courseCatalog'].includes(domain))return;
@@ -108,7 +113,31 @@ const emptyDomain=(snapshot,domain)=>{
 export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NOW}={}){
   const snapshot=buildAccountFixture({userId,now}),key=typeof testCase==='string'?testCase:testCase.fixtureKey;
   if(typeof key!=='string')throw new Error('An evaluation fixtureKey is required.');
-  if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));
+  if(key==='published-sample:records'||key==='facility-repairs:compound'){
+    snapshot.student.program='Sample General Studies';
+    snapshot.courses=sampleEnrollmentManifest.courses.map((course,index)=>{
+      const term=sampleEnrollmentManifest.terms.find(candidate=>candidate.code===course.termCode);
+      return {enrollmentId:evalId(471+index),code:course.code,title:course.title,credits:course.credits,status:course.status,
+        sourceMode:'sample',term:term.label,termStartsOn:term.startsOn,termEndsOn:term.endsOn,instructor:course.instructor,
+        weekday:course.weekday,startsAt:course.startsAt,endsAt:course.endsAt,room:course.room,
+        grades:course.code==='SAMP101'?[{label:'Sample practice quiz',score:8,maximum:10,sourceMode:'sample'}]:[],attendance:[]};
+    });
+  }else if(key==='studentConduct'||key==='empty:studentConduct'){
+    snapshot.studentConduct={records:key.startsWith('empty:')?[]:[{...common(881,userId),rowOrder:1,
+      occurredOnText:'115/11/07',studentNumber:'CONDUCT-PRIVATE-NUMBER',studentName:'CONDUCT-PRIVATE-NAME',
+      academicYearText:'115',semesterText:'1',yearLevelText:'3',reasonText:'Returned borrowed equipment',
+      conductCode:'M-0',conductName:'Service merit',quantityText:'0',voidStatusText:null}]};
+  }else if(key==='studentLoan'||key==='empty:studentLoan'){
+    snapshot.studentLoan={status:'loaded',record:key.startsWith('empty:')?null:{
+      ...common(891,userId),currentTermLabel:'115 Fall',currentApplicationState:'recorded',
+      currentApplicationText:'Local application entry',progressText:'Waiting for local review',historyCount:0,historyText:null,
+    }};
+  }else if(facilityRepairLiveFixtureKey(key)||testCase.fixtureRequirement==='native_elearning_outline'&&isOutlineFixtureKey(key)
+    ||testCase.fixtureRequirement==='native_dormitory_conduct'&&dormitoryConductLiveFixtureKey(key)
+    ||['aidPayments','empty:aidPayments','dtmGradeReport','empty:dtmGradeReport','full:dtmGradeReport','elearningEnrollments','empty:elearningEnrollments'].includes(key)){
+    // Native report and payment fixtures are independent of the base account
+    // snapshot; grading and payroll cells never come from tracker rows.
+  }else if(key.startsWith('empty:'))emptyDomain(snapshot,key.slice(6));
   else if(key.startsWith('service-note:')){
     const serviceId=key.slice(13);if(!/^\d+-\d+$/.test(serviceId))throw new Error('Invalid synthetic service ID.');
     snapshot.serviceRecords=[{...serviceNoteFixture(serviceId,userId),updatedAt:now}];
@@ -138,6 +167,6 @@ export function fixtureForCase(testCase,{userId=EVAL_USER_ID,now=DEFAULT_EVAL_NO
     snapshot.academicGrades.records.push({...snapshot.academicGrades.records[0],id:evalId(9991),userId:EVAL_OTHER_USER_ID,courseTitle:'FOREIGN PRIVATE SENTINEL',gradeText:'99'});
     snapshot.academicAttendance.statistics.push({...snapshot.academicAttendance.statistics[0],id:evalId(9992),userId:EVAL_OTHER_USER_ID,courseTitle:'FOREIGN PRIVATE SENTINEL'});
     snapshot.graduationReview.reports.push({...snapshot.graduationReview.reports[0],id:evalId(9993),userId:EVAL_OTHER_USER_ID,graduationReview:{...status('FOREIGN PRIVATE SENTINEL'),note:null}});
-  }else if(!['directory','all','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','leave','internship','submissions','payment-history','enrollmentCertificate','tuition'].includes(key))throw new Error('Unknown evaluation fixture: '+key);
+  }else if(!['directory','all','profile','courses','assignments','dtm','charges','tasks','requests','serviceRecords','announcements','scholarship','studentAid','housing','housingApplications','creditLoadHistory','courseSelection','academicGrades','graduationReview','academicAttendance','leave','internship','submissions','payment-history','enrollmentCertificate','tuition'].includes(key))throw new Error('Unknown evaluation fixture: '+key);
   return snapshot;
 }

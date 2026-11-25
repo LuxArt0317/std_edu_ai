@@ -1,5 +1,31 @@
 # Integration checks
 
+`assistant-session-receipts-ui.mjs` uses a compiled local preview and controlled Google, assistant and conversation responses. It checks that an altered save receipt is rejected, retry reuses the same chat version, reopening fetches saved activity, and deleting a chat removes an already-committed account copy after a lost response.
+
+`assistant-presentation-ui.mjs` renders the Student Leave review card at 390 and 1440 pixels. It verifies that the action waits for confirmation, rejects a mismatched receipt, retries with the same request and account, and links to the saved record. It uses controlled receipts. The real action and database are exercised by the [Leave draft evaluation](../../docs/qa/STUDENT_LEAVE_ASSISTANT_EVIDENCE.md#confirmed-student-leave-draft).
+
+`elearning-catalog-assistant-ui.mjs` runs the compiled page against the actual signed-in and public assistant handlers with synthetic auth and storage. It checks the rendered catalog course link and the guest's exact filter and page return. Run it with `node --experimental-strip-types` and a local `PUBLIC_SITE_ORIGIN`.
+
+`school-affairs-ui.mjs --inventory-only` follows each of the 94 catalog links and checks for an enabled, visible assistant launcher. The result records launcher presence separately from navigation and does not count as live workflow evidence.
+
+`node tests/integration/assistant-renderer-inventory.mjs` exercises the signed-in routes declared by the assistant inventory and the resulting pages after documented acknowledgement and login transitions. It starts the actual application in its own loopback Vite server. Use `--family student-club-attendance`, `--family dtm`, or another family ID for a focused run. It checks each listed route at desktop width with and without a synthetic Google session, and repeats selected high-use paths on a narrow viewport. It records exact navigation, workspace shell, account state, visible launcher, keyboard activation, modal focus, Escape and focus restoration separately. School Affairs and DTM account-menu entry and selected login-return guards have their own outcomes. The JSON report under ignored `artifacts/assistant-renderer/` identifies routes with missing response fixtures. OAuth, semantic answers, private data authorization, and hosted behavior require their separate suites. The equipment route run also checks restoration of one exact edit selector and rejects malformed, repeated or extra parameters.
+
+Use `--family school-service-views` for protected service subviews and `--family school-service-acknowledgements` for the teaching-assistant and exchange-grant notices. The latter confirms the blocking notice on its own route, acknowledges it by keyboard, and checks assistant access on the resulting workspace. `--family legacy-route-aliases` checks that copied DTM assignment and grade-report links stay usable through local sign-in. The synthetic student reaches the signed-in shell of administrative routes. The records admin view verifies the exact student denial, with no administrator record request. Administrative authorization and data remain separate checks.
+
+Across `--family dtm`, `--family dtm-submissions` and `--family legacy-route-aliases`, the signed-in runner waits for real Moodle components to display synthetic layout settings, saved course content, a resource, literal grade reports and an existing submission filename. Each covered view must complete its expected authenticated read. Context probes send a question from native and copied views in fresh tabs, verify the exact canonical page in the authenticated request and check the synthetic answer and conversation receipt. The report records data readback and page context separately. All responses stay local to the browser fixture.
+
+Use `--family academic-document-readback` to replay the four academic detail routes. It checks rendered catalog and syllabus values from an exact account request, the selected curriculum iframe and PDF response, and the selected course substitution with its replacement row opened by keyboard. The fixtures use the existing offering validator and substitution parser. The PDF and substitution endpoints remain unauthenticated reads inside the signed-in page checks.
+
+Use `--family certificate-award-readback` to check the certificate catalog and selected certificate record on desktop and mobile. The signed-in fixtures require the exact catalog and record reads and verify their rendered values, the selected history link, and the saved review note and fee. The assistant probes verify the catalog route dispatch, the selected application's owner-bound status request with its bank receipt flag, and both private conversation receipts. Signed-out checks verify both login return targets.
+
+Use `--family learning-support-review-readback` to distinguish a synthetic student denial from a synthetic manager's populated review view. The manager opens the confirmation by keyboard, dismisses it without posting a review, and sends a route-bound assistant question. A separate guest check verifies the sign-in return.
+
+Use `--family staff-review-readback` for the Counseling appointment queue and venue review. Each route verifies the ordinary student's denial, a populated workspace for its own synthetic staff identity, and the signed-out return. A coordinator opens the scheduling controls and a venue manager opens and dismisses a confirmation. Both staff identities send route-bound assistant questions. The fixture blocks all scheduling and venue review writes.
+
+Use `--family facility-repair-readback` for the four repair history and management routes. The signed-in student fixture verifies the owned list and detail, including a status, history note, and exact assistant request from the detail. Both management routes must render the expected student refusal and keep the assistant available. The report counts those two denials separately from owned-record rendering. A successful manager view requires its own manager fixture.
+
+Use `--family student-clubs-readback` for the Club Services and Club Officer subpages. One synthetic student has an officer membership in a single club. The runner checks the calendar, owned equipment request and prefilled edit, application and completion records, profile, and the chosen club's roster and participation results. Both review routes must deny the student and show the pending review row to a separate synthetic site-manager. The report counts manager reviews, student denials, and signed-in record rendering separately. Two assistant transport probes verify the exact selected equipment and roster routes. The manager checks use local response fixtures and leave live manager authorization to its separate test.
+
 [Remote-learning Moodle QA](../../docs/qa/ELEARNING.md) covers the browser flow, exact-client enrollment and retry checks.
 
 Counseling checks cover the scoped database rollback, actual authenticated API requests with disposable-account cleanup, and menu-to-appointment browser flow. See [counseling QA](../../docs/qa/COUNSELING.md).
@@ -49,6 +75,21 @@ The School Affairs entry check also verifies the local campus carousel at four v
 
 `pending-fees-rls-live.mjs --preflight` and `credit-load-history-rls-live.mjs --preflight` apply their migrations inside rolled-back validation transactions. They require existing verified owner authorization rather than creating an owner identity. `pending-fees-ui.mjs` and `credit-load-history-ui.mjs` compare measured source geometry and test synthetic admin/privacy/mobile flows. `pending-fees-live.mjs` uses the real client database with two temporary Google-shaped accounts; `NATIVE_ORIGIN=http://127.0.0.1:5184` selects local actual handlers, otherwise it tests the configured production domain. Fixtures and audit/request receipts are removed by exact IDs and absence is verified.
 
+`charge-payment-history-ui.mjs` uses synthetic sign-in and API responses on a loopback Vite server. It checks both pending fee navigation links, inclusive date filters, pagination, reversals, distinct empty and error states, account isolation, signed-out continuation, and responsive tables.
+
+`charge-payment-ledger-concurrency.test.mjs` applies the repository migrations to a generated database on an owner-only scratch PostgreSQL Unix socket. It observes blocking between independent backend PIDs and checks replay, over-cap rejection, and exact in-cap totals. Set `POSTGRES_BIN` to the directory containing `initdb` and `pg_ctl` before running this macOS scratch check.
+
+```sh
+umask 077
+payment_pg=$(mktemp -d /private/var/tmp/stu100-payment-pg.XXXXXX)
+mkdir -m 700 "$payment_pg/socket"
+"$POSTGRES_BIN/initdb" -D "$payment_pg/data" --no-locale -U postgres --auth-local=trust --auth-host=reject
+"$POSTGRES_BIN/pg_ctl" -D "$payment_pg/data" -l "$payment_pg/server.log" \
+  -o "-h '' -k $payment_pg/socket -p 5432 -c unix_socket_permissions=0700" -w start
+STU_PAYMENT_TEST_PG_SOCKET="$payment_pg/socket" node --test tests/integration/charge-payment-ledger-concurrency.test.mjs
+"$POSTGRES_BIN/pg_ctl" -D "$payment_pg/data" -m fast -w stop
+```
+
 `course-selection-ui.mjs` verifies the observed 11-1/11-2 geometry, phase filters, seven-column history, fourteen-period timetable, exclusions, unscheduled records, loading/retry, keyboard scrolling and narrow layouts using synthetic responses. `course-selection-manager-ui.mjs` checks create/edit/clear, stable retry IDs, stale-version recovery and admin accessibility. Both use `PUBLIC_SITE_ORIGIN` (default localhost5184).
 
 `course-selection-rls-live.mjs --preflight` validates migration1000 in a rolled-back client transaction. `NATIVE_ORIGIN=http://127.0.0.1:5184 node tests/integration/course-selection-live.mjs` exercises actual handlers, database writes, two-account isolation, assistant answers and browser views. Omit `NATIVE_ORIGIN` only after deployment to check production. It requires the existing verified owner identity and removes exact fixture records, accounts, audits and receipts; private evidence stays under ignored `artifacts/course-selection/`. Source-inherited contrast exceptions are scoped to measured source colors; they are not a full WCAG pass.
@@ -70,6 +111,54 @@ DTM submission helpers and actual private Storage are checked by `dtm-submission
 `verified-preview.mjs` requires an explicit exact preview origin/revision and verifies a bounded public release manifest before live acceptance resolves credentials or creates fixtures. Protected previews fail closed. The certificate and DTM suites keep preview requests on actual deployed HTTP. DTM deployed mode also verifies administrator review save/replay and student/stale denial through `affairs-manage`; positive administrator browser UI remains separate. Run `node --test tests/integration/verified-preview.test.mjs` and the Storage harness `--self-test` without live credentials.
 
 `assistant-conversation-http-live.mjs` checks exact deployed revision, actual caller JWTs, fresh-browser saved chat reload,40 expanded observed steps and8000 BMP characters, own/cross-account isolation and exact fixture cleanup. Set ASSISTANT_ORIGIN and EXPECTED_RELEASE_REVISION under the serialized lease. It explicitly reports modelAcceptance:false. `assistant-conversation-rls-live.mjs` takes one rollback mode and explicit --expected-migrations/--expected-rls counts; it never permanently applies a migration.
+
+### Protected Preview browser conversation acceptance
+
+Use the separate `--preview-browser` mode of `assistant-conversation-http-live.mjs` for the two signed-in browser turns. It requires the two existing conversation migrations, the exact clean deployed revision, the approved generated Preview origin and the client fixture environment. Put that origin in both `ASSISTANT_ORIGIN` and `APPROVED_PREVIEW_ORIGIN`, and use its complete source SHA in `EXPECTED_RELEASE_REVISION`.
+
+Set `ASSISTANT_PREVIEW_BROWSER_ASSETS` to a fresh output path in an owner-only directory outside the checkout. With the same approved origin and reviewed revision used by the browser operator, derive the allowlist from the deployment before reserving fixtures. Supply the authorized Development OIDC token in the Node environment.
+
+```sh
+node --input-type=module - <<'JS'
+import {writeFile} from 'node:fs/promises';
+import {deriveProtectedConversationBrowserAssets} from './tests/evaluation/protected-conversation-browser-assets.mjs';
+import {createPreviewDevelopmentTokenGuard, previewTrustedHeader} from './tests/evaluation/vercel-preview-transport.mjs';
+
+const origin = process.env.ASSISTANT_ORIGIN;
+const token = process.env.VERCEL_OIDC_TOKEN;
+const assertCurrentToken = createPreviewDevelopmentTokenGuard(token);
+const allowedPath = /^\/(?:dtm|release[.]json|assets\/[a-zA-Z0-9_.-]+\.(?:js|css))$/u;
+const fetchImpl = (url, init) => {
+  const target = new URL(url);
+  if (target.origin !== origin || url !== origin + target.pathname || !allowedPath.test(target.pathname)
+    || init.method !== 'GET' || init.redirect !== 'error' || init.credentials !== 'omit')
+    throw new Error('Unapproved asset discovery request.');
+  assertCurrentToken();
+  const headers = new Headers(init.headers);
+  headers.set(previewTrustedHeader, token);
+  return fetch(url, {...init, headers});
+};
+const result = await deriveProtectedConversationBrowserAssets({
+  origin, approvedPreviewOrigin: process.env.APPROVED_PREVIEW_ORIGIN,
+  revision: process.env.EXPECTED_RELEASE_REVISION, fetchImpl,
+});
+await writeFile(process.env.ASSISTANT_PREVIEW_BROWSER_ASSETS,
+  JSON.stringify(result) + '\n', {mode: 0o600, flag: 'wx'});
+JS
+```
+
+The helper checks the release manifest before and after reading the actual DTM shell, then follows static imports and selected DTM and assistant lazy dependencies. It supplies the required known theme files and keeps the default owner-data route `/api/affairs-data`. The browser still checks that the allowed resources work on the live page. The bundle format and selected lazy edges are tied to this DTM flow, so review a changed route or bundler layout before expanding the list.
+
+```sh
+node tests/integration/assistant-conversation-http-live.mjs --preview-browser
+```
+
+The operator uses the serialized fixture lease and seeds only the verified disposable session in each browser context. It records each reserved conversation before submission, checks the verified answer and Activity against the endpoint SSE, and journals the exact save before relaying it. The two durable saves must agree with both authenticated API and direct SQL readbacks. The second conversation opens first in a fresh context and must issue the server detail GET. Activity expansion and account isolation are checked in the browser before exact fixture cleanup.
+
+Each turn’s browser save and independent HTTP/SQL readbacks are verified before the next question. The private report retains `browserTurnProofs` for verified turns even if a later turn fails. On a denied app request, `browserDenials` records the current phase, fixed endpoint and method, an allowlisted failure code, and HTTP status when available. Logs omit request content, response text, query strings, caller IDs and credentials.
+
+The relay keeps Development OIDC in the Node process, forwards only exact Preview requests, and disables redirects. Supabase Auth continues through the original browser request and carries no Preview credential. The relay buffers a bounded SSE body for Playwright fulfillment. This mode verifies durable Activity after a real endpoint answer and a fresh context. A separate streaming run is required to verify incremental Activity timing.
+
 
 Production saved-chat acceptance727423ae passed on772ec95:13HTTP/22browser requests,40 expandable observed steps,cache-empty restoration,autosave,sign-out and exact cleanup. The harness waits for verified account UI before opening the assistant; diagnostics contain only endpoint/method/status and synthetic failure views. This is storage/browser acceptance, not a model-quality result.
 
@@ -112,3 +201,5 @@ The student profile browser, database and actual-JWT HTTP suites cover 8-1, prot
 Announcement email tests cover source-shaped browser controls, real caller JWT persistence, private queue eligibility and cleanup.
 
 Certificate award suites cover the observed geometry, catalog and form, protected lifecycle, caller-JWT Storage isolation and disposable fixture cleanup.
+
+With the synthetic local Vite environment used by the student payment history test, run `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5309 node tests/integration/charge-payment-manager-ui.mjs`. It opens the real manager route, commits one synthetic entry behind a failed response, replays the same request after reload, then reverses the saved payment. It checks the legacy editor, foreign response rejection, mobile sizing, accessibility and sign-out cleanup.

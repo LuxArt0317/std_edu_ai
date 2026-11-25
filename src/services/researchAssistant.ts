@@ -1,8 +1,10 @@
+import {assistantFetch,type AssistantTransport} from './assistantTransport';
+import {assistantContext} from './assistantContext.js';
 import {readAssistantReply} from './assistantStreamReader.js';
 
 export type AssistantFeedbackCapability = { token: string; expiresAt: string };
 export type AssistantResponse = {
-  proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'update_display_name'|'set_assignment_status';label:string;payload:Record<string,string>;requestId?:string;url?:string};
+  proposedAction?: {kind:'create_task'|'complete_task'|'create_service_request'|'publish_announcement'|'update_display_name'|'set_assignment_status'|'cancel_club_equipment'|'counseling_cancel'|'cancel_facility_repair'|'withdraw_learning_support'|'submit_learning_support'|'create_student_leave_draft';label:string;payload:Record<string,string>;requestId?:string;url?:string};
   grounding?: {source?:string;webSearched?:boolean;checkedAt?:string;degraded?:boolean};
   verification?: {status:'verified'|'unverified';attempts:number;reason?:string};
   views?: Array<{id:string;title:string;url:string;columns:string[];rows:string[][];total:number;checkedAt:string;note:string}>;
@@ -45,6 +47,7 @@ export async function askCampusAssistant(
   images: Array<{name:string;dataUrl:string}> = [],
   route = '',
   onProgress?: (step:AssistantProgress)=>void,
+  transport?: AssistantTransport,
 ): Promise<AssistantResponse> {
   const normalizedQuestion = question.trim();
   if (!normalizedQuestion) {
@@ -52,8 +55,8 @@ export async function askCampusAssistant(
       "Please enter a question before sending it to the assistant.",
     );
   }
-  const conversation = history.filter(item=>['user','assistant'].includes(item.role)).slice(-6).map(item=>({role:item.role,content:item.content.slice(0,2000)}));
-  const response = await fetch("/api/research-assistant", {
+  const conversation = assistantContext(history);
+  const response = await assistantFetch("/api/research-assistant", {
     method: "POST",
     signal,
     headers: { "Content-Type": "application/json" },
@@ -66,11 +69,11 @@ export async function askCampusAssistant(
       route,
       stream:Boolean(onProgress),
     }),
-  });
+  },transport);
   const payload = (await readAssistantReply(response,onProgress)) as
     (Partial<AssistantResponse> & { error?: string }) | null;
   if (!response.ok)
-    throw new Error(payload?.error || "AI 助理目前暫時無法回應。");
+    throw Object.assign(new Error(payload?.error || "AI 助理目前暫時無法回應。"),{status:response.status});
   if (
     !payload ||
     typeof payload.answer !== "string" ||

@@ -22,6 +22,7 @@ try{validUrl=new URL(localUrl).protocol==='https:';}catch{}
 if(!validUrl||!localKey||placeholders.has(localKey))throw new Error('Configure valid local client Supabase settings in ignored .env.local; encrypted placeholders cannot be used.');
 if(!process.env.OPENAI_API_KEY||placeholders.has(process.env.OPENAI_API_KEY))throw new Error('Configure the existing server-only model credential in ignored .env.local.');
 process.env.VERCEL_ENV='development';
+process.env.STU_LOCAL_CAPTURE_ORIGIN=`http://127.0.0.1:${port}`;
 const {default:configFactory}=await import('../vite.config.ts');
 const config=typeof configFactory==='function'?await configFactory({command:'serve',mode:'development'}):configFactory;
 let vite;

@@ -1,3 +1,24 @@
+import {clubEquipmentFamily,clubEquipmentRequirement} from './club-equipment-hosted.mjs';
+import {tutorEvaluationFamily} from './tutor-evaluation-hosted.mjs';
+import {healthMetadataFixtureMode,healthMetadataRequirement} from './health-examination-live.mjs';
+import {dtmAssignmentListFixtureMode,dtmAssignmentListRequirement} from './dtm-assignment-list-live.mjs';
+import {tuitionLedgerFixtureMode} from './tuition-ledger-preview.mjs';
+import {dtmGradePreviewMode} from './dtm-grade-report-preview.mjs';
+import {venueProtectedFixtureMode} from './venue-protected-fixture.mjs';
+import {certificateAwardPreviewMode} from './certificate-award-preview.mjs';
+import {confirmedAssignmentTrackerMode} from './confirmed-assignment-tracker-preview.mjs';
+import {facilityRepairCancellationMode} from './facility-repair-cancellation-preview.mjs';
+import {learningSupportPreviewMode} from './learning-support-preview.mjs';
+import {internshipFixtureMode} from './internship-native-fixture.mjs';
+import {dtmTimingFixtureMode} from './dtm-submission-timing-preview.mjs';
+import {dtmMaterialPreviewMode} from './dtm-material-preview.mjs';
+import {clearanceStatusPreviewMode} from './clearance-status-preview.mjs';
+import {academicGradesPreviewMode} from './academic-grades-preview.mjs';
+import {dtmStudyPreviewMode} from './dtm-study-preview.mjs';
+import {nativeVenueSetupRequired} from './venue-native-runner.mjs';
+import {nativeInternshipSetupRequired} from './internship-native-runner.mjs';
+import {nativeStudentLeaveSetupRequired} from './student-leave-runner.mjs';
+import {isElearningPublishedReadbackCase} from './elearning-catalog-runner.mjs';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
@@ -22,7 +43,7 @@ const ownRow=()=>({id:userId,email,run_id:runId});
 const protectedOwnerEmail='protected-admin@example.invalid';
 const protectedFingerprint=()=>({id:'90000000-0000-4000-8000-000000000001',auth_hash:'a'.repeat(32),profile_hash:'b'.repeat(32),identities_hash:'c'.repeat(32)});
 
-function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:initialFiles,deleteFails=false,releaseFails=false,closeFails=false}={}){
+function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:initialFiles,deleteFails=false,deleteAttempt,releaseFails=false,closeFails=false}={}){
   const events=[],deleted=[],records=new Map(rows.map(row=>[row.id,{...row}]));
   const files=new Map(initialFiles??(owned?[[ledger,'initial owned ledger']]:[]));
   let connectionClosed=false,authCreate=async()=>{throw new Error('PROVIDER_SECRET_BODY');};
@@ -52,12 +73,14 @@ function lifecycle({requests=[],users=[],rows=[],owned=true,locked=true,files:in
       const saved=JSON.parse(files.get(ledger));assert.ok(saved.fixtureUserIds.includes(id));
       assert.ok(saved.identityRequests.some(request=>request.id===id&&request.runId===runId&&request.state==='created'));
       events.push({kind:'delete',id});deleted.push(id);
-      if(deleteFails)throw new Error('PROVIDER_SECRET_BODY');records.delete(id);return {error:null};
+      if(deleteFails)throw new Error('PROVIDER_SECRET_BODY');
+      if(deleteAttempt)return deleteAttempt({id,attempt:deleted.length,records});
+      records.delete(id);return {error:null};
     }}}}};
-  const context={state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
+  const context={nativeBrowserFixtures:new Map(),venueProtectedFixtureMode,certificateAwardPreviewMode,confirmedAssignmentTrackerMode,facilityRepairCancellationMode,learningSupportPreviewMode,internshipFixtureMode,dtmGradePreviewMode,dtmTimingFixtureMode,dtmMaterialPreviewMode,clearanceStatusPreviewMode,academicGradesPreviewMode,dtmStudyPreviewMode,tuitionLedgerFixtureMode,clubEquipmentFamily,clubEquipmentRequirement,tutorEvaluationFamily,healthMetadataFixtureMode,healthMetadataRequirement,dtmAssignmentListFixtureMode,dtmAssignmentListRequirement,nativeVenueSetupRequired,nativeInternshipSetupRequired,nativeStudentLeaveSetupRequired,isElearningPublishedReadbackCase,state,PROJECT:'synthetic-project',UUID:/^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i,
     PRIVATE_DIR:'/synthetic',readdir:async directory=>{assert.equal(directory,'/synthetic');events.push({kind:'scan'});return [...files.keys()].filter(path=>path.startsWith(directory+'/')).map(path=>path.slice(directory.length+1));},
     LiveFixtureError,readProtectedOwnerFingerprint,assertProtectedOwnerUnchanged,protectedOwnerFingerprintDigest,ownTables:[],fail:(code,message)=>{throw new LiveFixtureError(code,message);},query:async work=>work(),
-    randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),
+    randomBytes:()=>({toString:()=> 'PASSWORD_SECRET'}),pause:async duration=>{events.push({kind:'pause',duration});},
     open:async(path,flag,mode)=>{
       assert.equal(mode,0o600);events.push({kind:'open',path,flag});
       if(flag==='wx'&&files.has(path))throw Object.assign(new Error('PRIVATE_EXISTING_LEDGER'),{code:'EEXIST'});
@@ -166,6 +189,28 @@ test('actual prepare captures the fixed owner baseline before ledger/Auth writes
   }
 });
 
+test('preview setup verifies the exact origin and current revision before credentials or ledger access',async()=>{
+  const root='/synthetic',life=lifecycle({owned:false}),project='xiftudmvxphxcjtmfmib';
+  const origin='https://stdedu-example-v1-d286.vercel.app',expectedReleaseRevision='a'.repeat(40);
+  let pinAttempts=0,credentialReads=0;
+  Object.assign(life.context,{
+    state:undefined,ROOT:root,PROJECT:project,resolve,URL,process:{cwd:()=>root},
+    readFile:async()=>JSON.stringify({repository:'LuxArt0317/std_edu_ai',supabase:{projectRef:project},vercel:{productionUrl:'https://stu.best'}}),
+    deploymentEnvironment:()=>{credentialReads++;throw new Error('No credentials should be read');},
+    createPinnedDeploymentVerifier:(value)=>{
+      assert.equal(value.origin,origin);assert.equal(value.approvedPreviewOrigin,origin);
+      assert.equal(value.expectedRevision,expectedReleaseRevision);
+      return {pin:async()=>{pinAttempts++;throw new Error('fixture mismatch');}};
+    },
+  });
+  const params={runId,cases:[{id:'synthetic-case'}],now:'2026-11-14T00:00:00Z',origin,expectedReleaseRevision};
+  await assert.rejects(life.api.prepare(params),{code:'fixture-target'});
+  await assert.rejects(life.api.prepare({...params,approvedPreviewOrigin:origin}),{code:'fixture-target'});
+  assert.equal(pinAttempts,1);
+  assert.equal(credentialReads,0);
+  assert.deepEqual(life.events,[]);
+});
+
 test('an exclusively reserved intent survives ambiguous Auth create without persisting credentials or provider bodies',async()=>{
   const life=lifecycle({owned:false});
   await life.api.reserveLedger();
@@ -247,6 +292,32 @@ test('Auth deletion and connection-close failures retain owned recovery records 
     assert.equal(life.events.filter(event=>event.kind==='rm').length,0);
     assert.equal(life.context.state.closed,true);
     assert.ok(life.context.state.users.every(user=>user.token===null));
+  }
+});
+
+test('transient Auth deletion errors retry with backoff and fresh ownership proof',async()=>{
+  const life=lifecycle({requests:[{email,runId,state:'created',id:userId}],users:[{id:userId}],rows:[ownRow()],
+    deleteAttempt({id,attempt,records}){
+      if(attempt<3)return {error:{status:attempt===1?429:503}};
+      records.delete(id);return {error:null};
+    }});
+  assert.equal((await life.api.cleanup()).verified,true);
+  const attempts=life.events.filter(event=>event.kind==='delete'||event.kind==='pause'||event.statement?.includes('raw_user_meta_data'));
+  assert.deepEqual(attempts.map(event=>event.kind),['query','delete','pause','query','delete','pause','query','delete']);
+  assert.deepEqual(attempts.filter(event=>event.kind==='pause').map(event=>event.duration),[1000,4000]);
+});
+
+test('uncertain Auth deletion is read back and a changed binding stops further attempts',async()=>{
+  for(const altered of [false,true]){
+    const life=lifecycle({requests:[{email,runId,state:'created',id:userId}],users:[{id:userId}],rows:[ownRow()],
+      deleteAttempt({id,records}){
+        if(altered)records.set(id,{...ownRow(),run_id:'unrelated'});else records.delete(id);
+        throw new Error('PROVIDER_SECRET_BODY');
+      }});
+    if(altered)await assert.rejects(life.api.cleanup(),/ownership does not match/);
+    else assert.equal((await life.api.cleanup()).verified,true);
+    assert.deepEqual(life.deleted,[userId]);
+    assert.equal(life.files.has(ledger),altered);
   }
 });
 

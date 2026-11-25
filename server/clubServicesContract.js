@@ -1,4 +1,5 @@
 export const clubPath = '/school-affairs/services/40-1';
+export const clubEquipmentNewPath = clubPath+'/equipment/new';
 export const clubScope = 'student-clubs';
 export const clubActions = ['submit_club_equipment', 'edit_club_equipment', 'cancel_club_equipment', 'review_club_equipment'];
 export const clubDate = /^\d{4}-\d{2}-\d{2}$/u;
@@ -36,8 +37,13 @@ export function validClubReceipt(value) {
   return Boolean(value && id(value.id) && Number.isInteger(value.version) && value.version > 0 && value.version <= 1000000 &&
     Object.hasOwn(clubRequestStatuses, value.status));
 }
-export function clubIntent(question) {
-  if (/\b(?:club |borrow(?:ing)? |loaned? )equipment\b|\bequipment (?:borrowing|loan|request)\b|器材借用|借用器材/iu.test(question)) return 'equipment';
+export const mentionsClub = question => /\bclubs?\b|社團|社团/iu.test(question);
+
+export function clubIntent(question, route = '') {
+  if (/\b(?:club |borrow(?:ing)? |loaned? )equipment\b|\bequipment (?:borrowing|loan|request)\b|器材借用|借用器材/iu.test(question)) {
+    if (/^(?:https:\/\/stu\.best)?\/school-affairs\/services\/30-2\/?(?:[?#]|$)/u.test(route) && !mentionsClub(question)) return null;
+    return 'equipment';
+  }
   if (/\b(?:student |campus )clubs?\b|\bclub (?:events?|activities)\b|社團活動|學生社團/iu.test(question)) return 'activities';
   return null;
 }

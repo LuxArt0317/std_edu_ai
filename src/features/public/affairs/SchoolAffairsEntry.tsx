@@ -7,10 +7,16 @@ import { referenceAsset } from '../site/reference';
 import SchoolAffairsPortal from './SchoolAffairsPortal';
 import { useAffairsAuth } from './authContext';
 import { affairsCallbackPath, completeGoogleSignIn, consumeGoogleReturnPath, safeSchoolReturnPath, startGoogleSignIn, signOutAffairs } from './authClient';
+import { aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
+import {chargePaymentHistoryPath} from '../../../../server/chargePaymentContract.js';
 import './login.css';
 import { SchoolAffairsPrivacy } from './SchoolAccountRecords';
 import { permanentCoursesPath } from './permanentCourseRouting.js';
 import { venuePaths } from './venueContract.js';
+import { healthExaminationPath } from '../../../../server/healthExaminationContract.js';
+import { clubAttendancePath } from '../../../../server/clubAttendanceIntent.js';
+import { clubEquipmentNewPath } from '../../../../server/clubServicesContract.js';
+import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
 const base = 'https://info.stu.edu.tw/ePortal/';
 const campusPhotos = Array.from({ length: 16 }, (_, index) =>
   referenceAsset(`${base}assets/images/stu${index}.jpg`),
@@ -92,8 +98,12 @@ export default function SchoolAffairsEntry() {
   if (user) return <SchoolAffairsPortal key={user.id} user={user} />;
   if (pathname !== '/school-affairs/login') {
     const ordinaryTarget = safeSchoolReturnPath(pathname + hash);
-    const target = [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(pathname.replace(/\/$/,''))
-      ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget;
+    const barePath = pathname.replace(/\/$/,'');
+    const offering=catalogDetailRoute(pathname+search);
+    const target = offering?.path ?? (barePath === clubAttendancePath || barePath === clubEquipmentNewPath || barePath === healthExaminationPath || barePath === chargePaymentHistoryPath || Object.values(aidPaymentsPaths).includes(barePath)
+      ? safeSchoolReturnPath(barePath + search + hash,ordinaryTarget)
+      : [permanentCoursesPath,venuePaths.schedule,adjustmentPaths.summer,adjustmentPaths.summer+'/notice','/school-affairs/services/11-1'].includes(barePath)
+        ? safeSchoolReturnPath(pathname + search + hash,ordinaryTarget) : ordinaryTarget);
     return <Navigate to={target==='/school-affairs'?'/school-affairs/login':'/school-affairs/login?next='+encodeURIComponent(target)} replace />;
   }
   return <main className="affairs-login" style={{backgroundImage:`url("${referenceAsset(base+'assets/css/images/pattern.jpg')}")`}}>

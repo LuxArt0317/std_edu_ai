@@ -68,8 +68,7 @@ export function parseFeeRemissionReceipt(value, action) {
   return value;
 }
 
-export async function readFeeRemissionJson(response) {
-  const limit = feeRemissionMaxResponseBytes;
+export async function readFeeRemissionJson(response, limit = feeRemissionMaxResponseBytes) {
   if (!response.body || Number(response.headers.get('content-length')) > limit) {
     void response.body?.cancel().catch(() => {});
     throw new Error('Fee remission response is unavailable.');

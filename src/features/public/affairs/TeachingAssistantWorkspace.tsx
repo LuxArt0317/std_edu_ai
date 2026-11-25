@@ -5,6 +5,8 @@ import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from '@/components/ui/dropdown-menu';
 import {referenceAsset} from '../site/reference';
 import {teachingAssistantPath} from './studentServices.js';
+import {teachingReportNotice} from './noticePages.js';
+import {ServiceNoticeAssistant} from './ServiceNoticeAssistant';
 import './teaching-assistant.css';
 const title = '教學助理(TA)管理系統';
 const evaluation = '教學助理自我評表';
@@ -61,8 +63,9 @@ export function TeachingAssistantWorkspace({view}: {view: '' | 'report' | 'evalu
     <footer>stu.best</footer>
     {view === 'report' && <Dialog open onOpenChange={open=>{if(!open) returnToIndex();}}>
       <DialogContent role="alertdialog" showCloseButton={false}>
-        <DialogTitle>目前無法開啟學習單。</DialogTitle>
+        <DialogTitle>{teachingReportNotice.title}</DialogTitle>
         <button className="ta-report-confirm" type="button" onClick={returnToIndex}>確定</button>
+        <ServiceNoticeAssistant />
       </DialogContent>
     </Dialog>}
   </div>;

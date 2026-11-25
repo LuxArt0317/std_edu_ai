@@ -1,6 +1,6 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
 import {
-  announcementEmailScope,announcementEmailAction,parseAnnouncementEmail,type AnnouncementEmailChange,
+  announcementEmailScope,announcementEmailAction,announcementEmailInboxQuestion,parseAnnouncementEmail,type AnnouncementEmailChange,
 } from '../../server/announcementEmailContract.js';
 import type {AssistantResponse} from './researchAssistant';
 
@@ -38,7 +38,8 @@ export async function saveAnnouncementEmail(userId:string,payload:AnnouncementEm
   return parseAnnouncementEmail(await request(userId,signal,'/api/affairs-action',{kind:announcementEmailAction,payload}),userId,payload);
 }
 export async function readAnnouncementEmailAnswer(userId:string,question:string,signal?:AbortSignal):Promise<AssistantResponse>{
-  const result=await request(userId,signal,path+'&answer='+(/[\u3400-\u9fff]/u.test(question)?'zh':'en'));
+  const result=await request(userId,signal,path+'&answer='+(/[\u3400-\u9fff]/u.test(question)?'zh':'en')
+    +(announcementEmailInboxQuestion(question)?'&inbox_receipt=requested':''));
   if(typeof result?.answer!=='string'||result.grounding?.source!=='account')throw new AnnouncementEmailError(503);
   return result;
 }

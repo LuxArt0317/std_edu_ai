@@ -9,10 +9,23 @@ This folder renders the public site, copied reference pages, School Affairs UI a
 
 The assistant attaches live source/account checks to the answer that used them. Users can expand an activity timeline after completion or failure and follow the cited sources. A bounded transcript survives navigation and refresh in the same tab; it is isolated by School Affairs Google identity and cleared on sign-out or New chat. Image bytes, auth tokens, feedback capabilities and unconfirmed actions are not persisted. Private model reasoning is never displayed.
 
+The chat review card shows the exact topic and details for a local learning support submission. Confirmation uses the same native receipt as the [Learning Support workspace](../../../docs/qa/LEARNING_SUPPORT.md).
+
 The School Affairs account link leaves the embedded assistant frame and opens the full sign-in page. OAuth must start in that top-level page; an older frame that already contains the login page sends its Google button there before starting authorization.
 
 DTM and School Affairs share a verified Google session for private student records. The direct homepage embeds `/account-status` to show the signed-in account. [DTM](dtm/README.md), [School Affairs](affairs/README.md).
 
 `useAssistantSessions` isolates account and conversation saves, preserves unsaved work after failures, and prevents late responses from another account from restoring private content. `PublicAssistant` displays unsaved state; a failed old conversation does not block a new one.
 
-`AssistantActivity.tsx` and its presentation-only timeline helper render recorded tool/search/check steps in the private Answer Lab. They do not expose hidden model reasoning.
+The session hook checks the saved ID, title, version and sanitized messages before reporting an account save. Deleting a signed-in chat sends an owner-bound delete even when the browser has no save receipt.
+
+The assistant labels unconfirmed replies “Not confirmed yet” without repeating a check count next to the message. Full verification attempts and tool activity remain available in the saved Activity details.
+
+Verified attachment descriptions use the “Checked against your image” label. Their sources are current-message image inputs, not school records. Images are still not persisted in conversation history.
+
+Chat language preferences control the assistant title, starter questions and feedback form, including help labels, category options and save messages. In English mode, stale Chinese suggested questions are omitted rather than displayed as English. Existing source titles and account record values are not translated into invented facts.
+
+`AssistantActivity.tsx` exports the campus assistant Activity timeline for both the public chat and the standalone local Answer Lab. Both surfaces render the same persisted tool/search/check events; this is an activity record, not private model reasoning.
+
+## Shared assistant message UI
+`AssistantChatMessage.tsx` and its CSS own the live message presentation (Markdown, attachments, record views, verification, activity, citations and action reviews). `PublicAssistant` supplies authenticated callbacks; Answer Lab reuses the renderer read-only inside a style-isolated shadow root. Keep message rendering changes in this component instead of creating a second lab renderer.

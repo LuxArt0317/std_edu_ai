@@ -136,6 +136,85 @@ export function graduationReviewQuery(question,route='',history=[]) {
   const kinds=clauses.map(part=>legacyQuestion.test(part)?'legacy':'academic_services');
   return {reportKind:graduationReviewQueryKind(question,route,history),multipleScopes:new Set(kinds).size>1};
 }
+const statusOnly=/^(?:what is my status|what's my status|my status|我的(?:檢核)?狀態|我的狀態是什麼)$/iu;
+const ownExplicitStatus=/^(?:(?:what is|what's|(?:please )?show(?: me)?) my (?:(?:modern|legacy|academic services) )?graduation (?:review |report )?status|(?:請)?(?:查詢|顯示|告訴我)我(?:的)?(?:舊版|新版|教務應用服務)?畢業(?:檢核|審核)(?:的)?狀態)$/iu;
+const ownReportContext=/^(?:(?:(?:please )?(?:show(?: me)?|open|view|check|read) )?my (?:(?:modern|legacy|academic services) )?graduation (?:report|review)|(?:請)?(?:查看|顯示|開啟)?我(?:的)?(?:15-2|舊版|新版|教務應用服務)?畢業(?:檢核|審核)(?:表|報告)?)$/iu;
+const statusText=value=>typeof value==='string'&&value.length<=200
+  ?value.normalize('NFKC').trim().replace(/[’]/gu,"'").replace(/[?.!。！？]+$/u,''):'';
+
+/** Exact status requests only. Full reports and mixed questions keep their
+ * existing routing. A bare follow-up may use the last explicit own report. */
+export function graduationReviewStatusKind(question,route='',history=[]){
+  const text=statusText(question);
+  if(!text||/[?#]/u.test(route))return null;
+  if(!ownExplicitStatus.test(text)){
+    if(!statusOnly.test(text))return null;
+    const previous=[...history].reverse().find(row=>row?.role==='user');
+    const precedesOwnReport=ownReportContext.test(statusText(previous?.content));
+    if(previous&&topic.test(previous.content)&&!precedesOwnReport)return null;
+    if(!routeKind(route)&&!precedesOwnReport)return null;
+  }
+  if(!isGraduationReviewQuestion(question,route,history))return null;
+  const selection=graduationReviewQuery(question,route,history);
+  return selection.multipleScopes?null:selection.reportKind;
+}
+
+const recordedCredits=/^what credits are explicitly recorded for ([\p{L}\p{N}][\p{L}\p{M}\p{N} '&-]{0,80} requirements?)$/iu;
+const matchedRequirement=/^which courses? match(?:es)? my ([\p{L}\p{N}][\p{L}\p{M}\p{N} '&-]{0,80} requirement) in the (?:(?:legacy|academic services) )?graduation report$/iu;
+const officialEligibility=/^can i officially graduate based on (?:this|my|the) (?:local |legacy |academic services )?report$/iu;
+const multipleNames=/\b(?:and|or|also|plus)\b/iu;
+const creditFields=['requiredCredits','completedCredits','matchedCredits','detailSubtotalCredits'];
+const selectionName=value=>value.normalize('NFKC').trim().replace(/\s+/gu,' ').toLowerCase();
+
+export function selectGraduationReviewAnswer(question,route='',history=[]){
+  const kind=graduationReviewStatusKind(question,route,history);
+  if(kind)return {kind,view:'status'};
+  const text=statusText(question);
+  if(!text||/[?#]/u.test(route))return null;
+  const category=recordedCredits.exec(text)?.[1];
+  const requirement=matchedRequirement.exec(text)?.[1];
+  const name=category??requirement;
+  const view=category?'credits':requirement?'matchedCourse':officialEligibility.test(text)?'eligibility':null;
+  if(!view||name&&multipleNames.test(name))return null;
+  // Some terse questions refer to a report without repeating its name. An
+  // explicit report route takes precedence over the immediately previous topic.
+  const previous=[...history].reverse().find(row=>row?.role==='user');
+  const activeReport=routeKind(route),previousOwnReport=ownReportContext.test(statusText(previous?.content));
+  if(!activeReport&&!previousOwnReport){
+    if(previous&&topic.test(previous.content))return null;
+    if(view==='credits'||view==='eligibility'&&!/\b(?:legacy|academic services)\b/iu.test(text))return null;
+  }
+  const report=graduationReviewQuery(question,route,history);
+  return report.multipleScopes?null:{kind:report.reportKind,view,...(name?{name}:{})};
+}
+
+/** Reduce report categories to the requested literal fields and their lineage.
+ * Never derive totals or treat a similar title as the selected requirement. */
+export function projectGraduationReviewDetail(categories,{view,name}){
+  if(!ids(categories,100)||categories.some(row=>!text(row.label,160,true)))throw new TypeError('Invalid report categories.');
+  const normalized=selectionName(name);
+  if(view==='credits'){
+    const matches=categories.filter(row=>selectionName(row.label)===normalized);
+    if(matches.length!==1)return {state:matches.length?'ambiguous':'missing'};
+    const category=matches[0];
+    if(!creditFields.every(key=>credit(category[key])))throw new TypeError('Invalid recorded graduation credits.');
+    return {state:'found',label:category.label,...Object.fromEntries(creditFields.map(key=>[key,category[key]]))};
+  }
+  if(view!=='matchedCourse')throw new TypeError('Invalid report detail selection.');
+  const requirements=[];
+  for(const category of categories){
+    if(!ids(category.requirements,1000)||requirements.length+category.requirements.length>1000
+      ||category.requirements.some(row=>!text(row.title,160,true)))throw new TypeError('Invalid report requirements.');
+    requirements.push(...category.requirements);
+  }
+  const matches=requirements.filter(row=>selectionName(row.title)===normalized);
+  if(matches.length!==1)return {state:matches.length?'ambiguous':'missing'};
+  const match=matches[0];
+  if(!ids(match.matchedCourses,1000)||match.matchedCourses.some(row=>!text(row.title,160,true)))
+    throw new TypeError('Invalid matched courses.');
+  return {state:'found',label:match.title,matchedTitles:match.matchedCourses.map(row=>row.title)};
+}
+
 function graduationCourseNameRanges(question,title) {
   if(typeof title!=='string'||title.trim().length<3)return [];
   const text=question.toLocaleLowerCase(),name=title.trim().toLocaleLowerCase(),word=/[a-z0-9]/i;

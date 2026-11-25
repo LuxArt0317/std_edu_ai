@@ -10,7 +10,8 @@ test('pending-fee answers include real saved contact fields, local link, exact c
  assert.match(result.answer,/Total remaining: NT\$100.25/);
  assert.doesNotMatch(result.answer,/SECRET_OTHER_ACCOUNT|Settled/);
  assert.equal((result.citations[0] as {url:string}).url,'/school-affairs/services/39-1');
- assert.match(result.answer,/local demonstration/);
+ assert.match(result.answer,/Your saved stu.best fee records/);assert.match(result.answer,/\(sample\)/);
+ assert.doesNotMatch(result.answer,/official|university/i);
 });
 test('occurrence dates remain missing, follow-up context is respected, and unrelated subjects do not become fees',()=>{
  const result=answerPendingFees('When is it due?',snapshot,'/school-affairs/services/39-1');
@@ -30,5 +31,15 @@ test('all-item totals remain complete beyond the displayed summary and separate 
 test('Chinese empty and contact answers do not invent payment or official records',()=>{
  assert.match(answerPendingFees('我的待繳費用',{...snapshot,charges:[]})?.answer||'',/目前沒有待繳項目/);
  const result=answerPendingFees('我的費用要在哪個單位繳？',snapshot);
- assert.ok(result);assert.match(result.answer,/站內示範/);assert.match(result.answer,/繳費單位 Sample cashier/);
+ assert.ok(result);assert.match(result.answer,/（範例）/);assert.match(result.answer,/繳費單位 Sample cashier/);
+});
+test('official balance requests and failed reads retain precise limits',()=>{
+ const official=answerPendingFees('What is my official university balance?',snapshot);
+ assert.match(official?.answer||'',/official balance requires separate verification/u);
+ assert.match(official?.answer||'',/Remaining balance NT\$100\.25/u);
+ const saved=answerPendingFees('how much is my remaining balance in school',{...snapshot,charges:[{...first,label:'Saved tuition',sourceMode:'verified'}]});
+ assert.match(saved?.answer||'',/NT\$100\.25/u);assert.doesNotMatch(saved?.answer||'',/sample|official/iu);
+ const failed=answerPendingFees('how much is my remaining balance in school',{...snapshot,charges:[],chargeReadUnavailable:true});
+ assert.match(failed?.answer||'',/couldn’t read your saved fee records/);
+ assert.doesNotMatch(failed?.answer||'',/no pending|zero|NT\$/iu);
 });

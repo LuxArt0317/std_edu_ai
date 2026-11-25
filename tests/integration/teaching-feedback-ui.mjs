@@ -39,15 +39,20 @@ try{
       if(url.pathname==='/api/affairs-data'&&url.searchParams.get('scope')==='teaching-feedback'){
         assert.match(req.headers().authorization,/^Bearer /u);
         const view=url.searchParams.get('view');
-        if(url.searchParams.has('answer')){
-          assert.equal(view,'survey');
-          assert.equal(completed,true);
-          return route.fulfill({json:{status:'answered',answer:'QA Term · final · 1/1 completed',citations:[],
-            grounding:{source:'account',webSearched:false},suggestedQuestions:[]}});
-        }
+        assert.equal(url.searchParams.has('answer'),false,'Assistant questions must enter verification.');
         if(view==='survey')return route.fulfill({json:{...empty(affairsTestUser),surveys:[{...survey,courses:[{...course,completed}]}]}});
         assert.equal(view,'immediate');
         return route.fulfill({json:{...empty(affairsTestUser),courses:[course],feedback:feedbackStatus?[feedbackStatus]:[]}});
+      }
+      if(url.pathname==='/api/affairs-assistant'){
+        assert.equal(req.method(),'POST');
+        assert.match(req.headers().authorization,/^Bearer /u);
+        const chat=req.postDataJSON();
+        assert.equal(chat.route,teachingFeedbackPaths.survey);
+        assert.match(chat.question,/teaching evaluation status/u);
+        assert.equal(completed,true);
+        return route.fulfill({json:{status:'answered',answer:'QA Term · final · 1/1 completed',citations:[],
+          grounding:{source:'account',webSearched:false},suggestedQuestions:[]}});
       }
       if(url.pathname==='/api/affairs-action'){
         const action=req.postDataJSON();

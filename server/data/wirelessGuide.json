@@ -1,0 +1,28 @@
+{
+  "documents": [
+    {
+      "title": "無線網路說明 | 樹德科技大學-電算中心",
+      "url": "/school-sites/www.ecc.stu.edu.tw/wireless/",
+      "source": "https://www.ecc.stu.edu.tw/wireless/",
+      "capturedOn": "2026-11-03",
+      "checksum": "e1dd628a410dc6d233be3c2712c325158c5942baa83870a37dbc1640ade649ae",
+      "text": "跳至主要內容 無線網路說明 服務窗口 校園無線網路 宿舍無線網路 無線網路說明 無線網路SSID說明: 本校於各大樓皆有安裝無線網路基地台，可利用手機、平板、筆記型電腦等資訊設備連接。 無線網路會因環境/軟硬體/操作等因素造成連線緩慢或無法連線，部分區域也會有訊號涵蓋不佳情況，如遇這些情形敬請<線上報修>，接獲資訊後，將連繫報修人確認問題發生原因(如個人載具影響或實體環境造成)，盡速排除問題。 為了無線網路安全與漫遊的順暢性，敬請使用802.1X的SSID，如STU-Dot1x-5G/STU-Dot1x/STU-Dorm-Mobile/STU-Dorm-Mobile-5G。 部份設備連線無線網路時備需安裝憑證，詳細安裝說明請參考 https://help.ecc.stu.edu.tw/wireless-setting/ 網頁認證的SSID(如STUWLAN和STU-Dorm)為提供外賓/外校使用者/境外學生使用，為了資訊安全，連線將會有時限與流量限制。 服務窗口 服務窗口說明：因無線網路佈署範圍擴大，為了提供更良好的無線網路使用環境，提供<線上報修>方式，敬請將問題詳細填寫，收到報修單將儘速排除錯誤。聯繫資訊:1. 樹德科技大學電算中心 | 07-6158000#2420 2. 服務信箱: service@stu.edu.twEmbedded external service · external embedded service 校園無線網路 1.無線網路服務範圍如下： 開放空間：圖書館、各棟宿舍餐廳、宿舍福利社。 一般空間：全校教學單位與行政單位。 2. 無線網路認證支援 行動裝置802.1X一次性認證，部份設備需要安裝憑證，請參考下列連結：https://help.ecc.stu.edu.tw/wireless-setting/ 網頁認證(Web)。 3. 無線網路使用分類(SSID)： 認證方式 適用情境 timeout斷線 STUWLAN 網頁認證(Web)； 可支援TANet連線單位漫遊 公用電腦； 不支援802.1x認證之電腦、裝置 8小時 STU-dot1x STU-dot1x-5G 802.1x認證 (全校通用) 個人行動電腦、裝置； 不建議於公用電腦中設定 無 宿舍無線網路 1. 目前宿舍無線網路為附加服務，服務範圍如下：開放空間：各棟宿舍餐廳、宿舍福利社。宿舍空間：五棟宿舍各區間。寢室空間：寢室空間可能因為建築物影響，訊號無法全面涵蓋。2. 宿舍無線網路使用需要：先至宿舍網路登錄系統 (http://dorm.stu.edu.tw) 註冊無線網路服務。3. 宿舍無線網路認證有兩種方式：行動裝置802.1X一次性認證 (建議使用)。網頁認證(Web)。4. 宿舍無線網路的限制：流量限制為上傳 / 下載各10G，與有線網路分開計算。詳細規範請參考『樹德科技大學宿舍網路使用注意事項 (http://dorm.stu.edu.tw/dorm_note.php)』。5. 宿舍無線網路使用分類(SSID)： 認證方式適用情境timeout斷線STU-Dorm網頁認證(Web)公用電腦；不支援802.1x認證之電腦、裝置8小時STU-Dorm-Mobile-5G802.1x認證iOS裝置設定 / Android裝置設定Win7設定 / Win10設定 支援5G WIFI之個人行動電腦、裝置；不建議於公用電腦中設定無STU-Dorm-Mobile802.1x認證iOS裝置設定 / Android裝置設定Win7設定 / Win10設定 不支援5G WIFI之個人行動電腦、裝置\b；不建議於公用電腦中設定"
+    },
+    {
+      "title": "無線網路設定教學 - Shu-Te 教學文件網站",
+      "url": "/school-sites/help.ecc.stu.edu.tw/wireless-setting/",
+      "source": "https://help.ecc.stu.edu.tw/wireless-setting/",
+      "capturedOn": "2026-11-03",
+      "checksum": "929494011741f61f3e5d1931d0971ce7366b747b3067dcba9d5e2c1aafcbed8f",
+      "text": "Device 請選擇裝置 電腦 Click Here 手機 Click Here OS 電腦-請選擇作業系統 Windows作業系統 Click Here MacOS作業系統 Click Here 回上一層 Where 電腦-你想在哪裡上網(Windows使用者) 校園 Click Here 宿舍 Click Here 回上一層 Where 電腦-你想在哪裡上網(MacOS使用者) 校園 Click Here 宿舍 Click Here 回上一層 OS 手機-請選擇作業系統 Android Click Here Apple iOS Click Here 回上一層 Where 手機-你想在哪裡上網 校園 Click Here 宿舍 Click Here 回上一層"
+    }
+  ],
+  "networks": [
+    "STU-Dorm-Mobile",
+    "STU-Dorm-Mobile-5G"
+  ],
+  "registrationRequired": true,
+  "registrationCaptured": false,
+  "email": "service@stu.edu.tw",
+  "extension": "2420"
+}

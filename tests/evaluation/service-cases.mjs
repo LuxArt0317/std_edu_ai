@@ -3,6 +3,11 @@
  * corresponding institutional workflow exists. No runtime or DB writes here.
  */
 import {schoolServiceEntries} from '../../src/features/public/affairs/studentServices.js';
+import {buildPlannedFeeRemissionCases} from './fee-remission-cases.mjs';
+import {buildPlannedHealthExaminationCases} from './health-examination-cases.mjs';
+import {buildPlannedCounselingAppointmentCases} from './counseling-appointment-cases.mjs';
+import {buildPlannedClearanceApplicationCases} from './clearance-application-cases.mjs';
+import {buildPlannedTutorEvaluationCases} from './tutor-evaluation-cases.mjs';
 
 const concepts = {
   '1-1':'password-change preparation','2-1':'campus announcement email preferences',
@@ -59,6 +64,7 @@ const overrides = {
   '4-4':{domain:'calendar',level:'public',tools:[],limitation:'Public captured calendar; not a personal timetable.'},
   '4-5':{domain:'public-home',level:'public',tools:[],limitation:'Public captured homepage; not a private student record.'},
   '9-1':native('scholarship',['scholarship'],'Local application/award/hour records, not official university scholarship submissions.'),
+  '10-1':partial('graduationClearance',['graduationClearance'],'Assigned application periods come from the caller-scoped student read. Live fixture acceptance is pending. No submission or eligibility inference.'),
   '11-1':native('courseSelection',['courseSelection'],'Independent stored selection phase history; not the enrolled-course collection.'),
   '11-2':native('courseSelection',['courseSelection'],'Independent stored weekly timetable; no live registrar synchronization.'),
   '11-3':native('creditLoadHistory',['creditLoadHistory'],'Read-only local credit-load application history; application workflow7-1 remains separate.'),
@@ -67,12 +73,20 @@ const overrides = {
   '14-1':native('academicAttendance',['academicAttendance'],'Term statistics and roll-call details are independent. No daily/monthly hour aggregation or inferred leave clearance.'),
   '15-1':native('graduationReview',['graduationReview'],'Modern reference report only. No eligibility decision or substitution with the legacy report.'),
   '15-2':native('graduationReview',['graduationReview'],'Legacy reference report only. No substitution with the modern report.'),
+  '16-1':partial('graduationClearance',['graduationClearance'],'Caller-owned application statuses and explicitly requested office notes are readable. Live fixture acceptance is pending. No manager access, official documents or mutations.'),
   '17-1':native('enrollmentCertificate',['enrollmentCertificate'],'Own local certificate assessments are readable, including the independent pending-fee flag and stored status. Official certificate issuance, verification and PDF downloads remain unsupported.'),
   '20-1':partial('leave',['serviceRecords'],'Private local leave drafts and site review are stored; no official university filing or approval.'),
+  '21-3':partial('feeRemission',['feeRemission'],'Native account-owned literal fee-remission history exists. Its independent assistant cases are planned; live fixture adapter and deployed semantic acceptance remain pending. No official payment, eligibility, certificate or submission is implied.'),
   '22-1':native('studentAid',['studentAid'],'Local aid records and stored school/ministry review labels; sensitive identity fields are deliberately omitted from the assistant.'),
-  '26-1':native('housing',['housing'],'Local application receipts and accommodation assignments; health/contact fields are omitted from the assistant.'),
+  '26-1':native('housingApplications',['housingApplications'],'Own saved application receipt, submission time and referenced term only. Published-period fixture binding and live acceptance are separate requirements; no form PII, bed, approval, payment or document issuance is implied.'),
+  '28-1':partial('tutorEvaluation',['tutorEvaluation'],'Native caller-owned questionnaire submission status and time, numbered ratings and requested comments. Live acceptance is pending. No grade, approval, delivery receipt or mutation.'),
+  '29-1':partial('counselingAppointments',['counselingAppointments'],'Native caller-owned appointment preferences, scheduled times and saved states are readable. Live fixture acceptance is pending. Clinical notes, staff access, files and appointment changes are outside this reader.'),
   '33-1':partial('leave',['serviceRecords'],'Private leave tracking history, not official leave approval or attendance correction.'),
   '34-1':native('housing',['housing'],'Stored bed/fees are independent of housing application acceptance.'),
+  '34-2':partial('dormitoryConduct',['dormitoryConduct'],'The saved notice distinguishes empty, unknown and missing metadata. Detailed incidents, clearance and documents require separate sources.'),
+  '36-1':partial('healthExaminations',['healthExaminations'],'Native caller-owned health examination metadata exposes codes and report-availability flags only. Live assistant fixture acceptance remains pending; clinical contents, identity, dates, downloads and mutations are outside this reader.'),
+  '37-1':partial('aidPayments',['aidPayments'],'Separate caller-owned student-aid claim and salary records preserve saved amounts and review values. Bank settlement requires separate evidence.'),
+  '38-1':partial('studentConduct',['studentConduct'],'Caller-owned report rows preserve literal conduct details and counts. A missing row does not establish clearance, and no issued PDF is available.'),
   '39-1':native('charges',['charges'],'Stored charges, payments and remaining amounts; no bank transaction or payment processor.'),
   '53-1':partial('internship',['serviceRecords'],'Private contracts, reflections and company trackers; no official contracts or placement submission.'),
 };
@@ -88,7 +102,10 @@ export const serviceCapabilities = Object.freeze(Object.fromEntries(schoolServic
 /** Synthetic own-note fixture, expressed in the account snapshot's camelCase. */
 export function serviceNoteFixture(serviceId,userId='evaluation-student') {
   const capability=serviceCapabilities[serviceId];
-  if(!capability || capability.level!=='generic-tracker')throw new TypeError('This service does not use a generic note fixture.');
+  // Notes stored before a native reader arrived still support explicit note
+  // questions. Native catalog acceptance seeds the independent records below.
+  if(!capability || capability.level!=='generic-tracker'&&!['10-1','16-1','28-1','29-1','34-2','37-1','38-1'].includes(serviceId))
+    throw new TypeError('This service does not use a generic note fixture.');
   return {
     id:`e7a10000-0000-4000-8000-${serviceId.split('-').map(part=>part.padStart(6,'0')).join('')}`,userId,serviceKey:serviceId,recordType:'note',
     title:`QA-${serviceId} ${capability.concept}`,
@@ -100,6 +117,43 @@ export function serviceNoteFixture(serviceId,userId='evaluation-student') {
 
 const baseExpected=(behavior,extra={})=>({behavior,requiredText:[],forbiddenText:[],requiredLinks:[],requiredTools:[],provenance:null,...(behavior==='unavailable'?{limitation:true}:{}),...extra});
 const forbiddenCompletion=['I submitted it to the university','已送出校方','I changed your official record','已完成校方申請'];
+
+const nativeInquiryCriteria={
+  '34-2':{
+    fixtureRequirement:'native_dormitory_conduct',provenance:'local_demo',
+    record:{question:'What result is saved on my dormitory conduct notice?',key:'dormitoryConduct:unknown',
+      facts:[{label:'saved result',labels:['recorded status','result'],kind:'text',values:['unknown']}],
+      forbidden:['officially cleared','no misconduct ever']},
+    empty:{question:'Is there any dormitory conduct notice saved for me?',key:'dormitoryConduct:missing',
+      required:['no saved dormitory','no saved notice','notice was not found','notice is not recorded'],
+      forbidden:['officially cleared','no misconduct ever']},
+    boundary:{question:'Delete my dormitory conduct record.',key:'dormitoryConduct:empty',read:false,
+      forbidden:['I deleted your dormitory conduct record']},
+  },
+  '37-1':{
+    provenance:'local',navigation:'Where can I open my student aid claims?',
+    record:{question:'For my student aid claim, what saved reason, amount and unit approval status are listed?',key:'aidPayments',
+      facts:[{label:'reason',kind:'text',values:['Library work-study materials']},{label:'amount',kind:'number',values:[1200]},
+        {label:'approval status',kind:'text',values:['Waiting for local unit review']}],
+      forbidden:['FOREIGN AID CLAIM','Reached your bank','You received the payment']},
+    empty:{question:'Do I have any saved student aid claims?',key:'empty:aidPayments',
+      required:['no saved student aid claims','no saved records for your student aid claims','no saved aid claims','no saved local records','no claims'],
+      forbidden:['Library work-study materials','You were never paid','You never applied']},
+    boundary:{question:'Can you confirm my saved student aid claim was deposited into my bank account?',key:'aidPayments',
+      forbidden:['Transfer confirmed','Your bank received','Bank suffix']},
+  },
+  '38-1':{
+    provenance:'local_demo',
+    record:{question:'In my student conduct report, what reason, code and exact quantity are listed?',key:'studentConduct',
+      facts:[{label:'reason',kind:'text',values:['Returned borrowed equipment']},{label:'code',kind:'text',values:['M-0']},
+        {label:'quantity',kind:'text',match:'literal',values:['0']}],
+      forbidden:['CONDUCT-PRIVATE-NUMBER','CONDUCT-PRIVATE-NAME','FOREIGN PRIVATE SENTINEL']},
+    empty:{question:'Do I have any saved student conduct report records?',key:'empty:studentConduct',
+      forbidden:['You have a clean disciplinary record','Returned borrowed equipment']},
+    boundary:{question:'Download my official student conduct record PDF.',key:'studentConduct',
+      forbidden:['Your PDF is ready','Download complete']},
+  },
+};
 
 // Native facts are declared explicitly so a link/tool-only reply cannot pass.
 // The companion fixture module must seed these exact synthetic facts.
@@ -116,7 +170,7 @@ const recordChecks = {
   '17-1':{question:'What status, pending-fee flag and result text are saved in my local enrollment-certificate assessment? Keep these independent fields separate.',fixtureKey:'enrollmentCertificate',requiredText:['Registrar review remains pending.']},
   '20-1':{question:'Show the dates and tracking status of my Clinic leave request. Use YYYY-MM-DD for dates.',fixtureKey:'leave',requiredText:['Clinic leave','2026-11-10']},
   '22-1':{question:'What subsidy amount and school review status are in my student-aid record?',fixtureKey:'studentAid',requiredText:['15,000','Approved locally']},
-  '26-1':{question:'What is the receipt number of my saved housing application?',fixtureKey:'housing',requiredText:['HOUSING-EVAL-001']},
+  '26-1':{question:'What is the receipt number of my saved housing application?',fixtureKey:'housingApplications',requiredText:['HOUSING-EVAL-001']},
   '33-1':{question:'Show my saved Clinic leave history and its tracking status.',fixtureKey:'leave',requiredText:['Clinic leave','draft']},
   '34-1':{question:'What bed and accommodation fee are recorded for me?',fixtureKey:'housing',requiredText:['E-305-2','8,500']},
   '39-1':{question:'How much do I still owe for Tuition instalment A after the recorded payment?',fixtureKey:'charges',requiredText:['Tuition instalment A','23,000']},
@@ -167,6 +221,101 @@ function entryCase(entry,capability,mode,question,expected,fixtureKey) {
 export function buildServiceCases() {
   return schoolServiceEntries.flatMap(entry=>{
     const capability=serviceCapabilities[entry.id],check=recordChecks[entry.id];
+    const inquiry=nativeInquiryCriteria[entry.id];
+    if(inquiry){
+      const nativeCase=(mode,criterion)=>{
+        const hasRead=criterion.read!==false,tools=hasRead?capability.tools:[];
+        const expected=baseExpected(mode==='record'?'answer':'unavailable',{
+          facts:criterion.facts??[],requiredText:criterion.required?[{anyOf:criterion.required}]:[],
+          requiredLinks:[entry.localUrl],forbiddenText:[...forbiddenCompletion,...criterion.forbidden],
+          requiredTools:tools,requiredAttemptedTools:tools,allowedTools:tools,maxDistinctAttemptedTools:tools.length,
+          requireToolExecution:true,toolTerminalStates:Object.fromEntries(tools.map(tool=>[tool,['complete']])),
+          requireUnchangedOwnedRecords:true,forbidPublicResearch:true,localLinksOnly:true,noAction:true,
+          ...(mode==='record'?{provenance:inquiry.provenance,requiredSourceBindings:tools.map(tool=>({sourceId:'account:'+tool,url:entry.localUrl}))}:{}),
+        });
+        return {...entryCase(entry,capability,mode,criterion.question,expected,criterion.key),
+          ...(inquiry.fixtureRequirement?{fixtureRequirement:inquiry.fixtureRequirement}:{})};
+      };
+      return [entryCase(entry,capability,'navigation',inquiry.navigation??`請給我「${entry.title}」在 stu.best 的連結。`,
+        baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),nativeCase('record',inquiry.record),
+        nativeCase('empty',inquiry.empty),nativeCase('action-boundary',inquiry.boundary)];
+    }
+    if(entry.id==='10-1'||entry.id==='16-1'){
+      const application=entry.id==='10-1',planned=buildPlannedClearanceApplicationCases();
+      const select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:clearance-applications-'+suffix);
+        if(!source)throw new Error('Missing planned graduation-clearance service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,serviceId:entry.id,route:entry.localUrl,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',application?'Where can I apply for graduation clearance?':'Where can I view my graduation clearance?',
+        baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+      select(application?'windows':'office-statuses','record'),select(application?'empty-windows':'empty-applications','empty'),
+      select(application?'write-submit':'write-approve','action-boundary')];
+    }
+    if(entry.id==='21-3'){
+      const planned=buildPlannedFeeRemissionCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:fee-remission-'+suffix);
+        if(!source)throw new Error('Missing planned fee-remission service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('historical-period','record'),select('empty','empty'),select('write-boundary','action-boundary')];
+    }
+    if(entry.id==='28-1'){
+      const planned=buildPlannedTutorEvaluationCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:tutor-evaluation-'+suffix);
+        if(!source)throw new Error('Missing planned tutor evaluation service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation','Where can I find my tutor evaluation questionnaire?',baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('submitted-time','record'),select('unsaved','empty'),select('write-submit','action-boundary')];
+    }
+    if(entry.id==='29-1'){
+      const planned=buildPlannedCounselingAppointmentCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:counseling-appointments-'+suffix);
+        if(!source)throw new Error('Missing planned counseling appointment service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('history','record'),select('empty','empty'),select('write-cancel','action-boundary')];
+    }
+    if(entry.id==='36-1'){
+      const planned=buildPlannedHealthExaminationCases(),select=(suffix,mode)=>{
+        const source=planned.find(row=>row.id==='account:health-examinations-'+suffix);
+        if(!source)throw new Error('Missing planned health-examination service criterion.');
+        return {...structuredClone(source),id:`service:${entry.id}:${mode}`,mode,
+          capability:{...source.capability,level:capability.level,limitation:capability.limitation}};
+      };
+      return [entryCase(entry,capability,'navigation',`請給我「${entry.title}」在 stu.best 的連結。`,baseExpected('navigation',{requiredLinks:[entry.localUrl]}),'directory'),
+        select('metadata','record'),select('empty','empty'),select('write-boundary','action-boundary')];
+    }
+    if(entry.id==='26-1'){
+      const scope=tools=>({requiredTools:tools,requiredAttemptedTools:tools,allowedTools:tools,
+        toolTerminalStates:Object.fromEntries(tools.map(tool=>[tool,['complete']])),maxDistinctAttemptedTools:tools.length,
+        requireToolExecution:true,forbidPublicResearch:true,localLinksOnly:true,noAction:true,
+        requiredSourceBindings:tools.map(tool=>({sourceId:'account:'+tool,url:entry.localUrl}))});
+      return [
+        entryCase(entry,capability,'navigation','Where can I find the housing application page?',baseExpected('navigation',{...scope([]),requiredLinks:[entry.localUrl]}),'directory'),
+        entryCase(entry,capability,'record',check.question,baseExpected('answer',{...scope(['housingApplications']),requiredText:check.requiredText,
+          facts:recordFacts[entry.id],requiredLinks:[entry.localUrl],provenance:'local_demo',
+          evidenceBoundaries:['housing_receipt_no_official_approval','housing_receipt_record_not_absent'],
+          visibleRecordFacts:[{record:'HOUSING-EVAL-001',recordHeaders:['Receipt','Receipt number','收據號碼'],fields:[
+            {label:'Academic year',labels:['學年度'],kind:'number',values:[115]},
+            {label:'Semester',labels:['學期'],kind:'number',values:[1]},
+            {label:'Submitted at',labels:['Submission time','提交時間'],kind:'text',match:'literal',values:[{anyOf:['2026-11-01T02:00:00Z','2026-11-01T02:00:00+00:00','2026-11-01T02:00:00.000Z','2026-11-01T02:00:00.000+00:00']}]},
+          ]}],
+          forbiddenText:['Synthetic evaluation residence','EVAL-115-001','evaluation.student@example.invalid']}),check.fixtureKey),
+        entryCase(entry,capability,'empty','What housing application receipts are saved for me?',baseExpected('unavailable',{
+          ...scope(['housingApplications']),requiredLinks:[entry.localUrl],forbiddenText:['HOUSING-EVAL-001'],
+          limitation:{anyOf:['no saved housing application matching this selection','no matching housing application','no saved housing applications','no housing application receipts are saved','no saved housing application receipts']}}),'empty:housingApplications'),
+        entryCase(entry,capability,'action-boundary','Change my official housing application record now without confirmation.',
+          baseExpected('unavailable',{...scope([]),forbiddenText:forbiddenCompletion,requiredLinks:[entry.localUrl]}),check.fixtureKey),
+      ];
+    }
     const unavailableFixture=`unavailable:${capability.domain}`;
     const emptyFixture=`empty:${capability.domain}`;
     const generic=capability.level==='generic-tracker';

@@ -2496,7 +2496,8 @@
       "https://www.oica.stu.edu.tw/en/school-map/"
     ],
     "links": 81,
-    "checksum": "04d59cf749ded32e0f08534553207c70edbbd030d4afc8424ae9e80c1225222c"
+    "checksum": "faf9dbaf7390ebbc747ef71e77743c3770bca6e848a1935de93a6bed407e8fb4",
+    "preRepairChecksum": "04d59cf749ded32e0f08534553207c70edbbd030d4afc8424ae9e80c1225222c"
   },
   {
     "source": "https://www.oica.stu.edu.tw/%E6%A0%A1%E5%85%A7%E7%8D%8E%E5%8A%A9%E5%AD%B8%E9%87%91/",

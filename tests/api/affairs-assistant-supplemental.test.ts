@@ -29,6 +29,11 @@ test('full validated local routes retain encoded selectors past250 characters an
   assert.equal(validateAffairsAssistantRoute(endpoint+'/?keyword=A%20B&term=1151'),endpoint+'?keyword=A%20B&term=1151');
   const longest=endpoint+'?keyword='+'x'.repeat(3100-(endpoint+'?keyword=').length);
   assert.equal(longest.length,3100);assert.equal(validateAffairsAssistantRoute(longest),longest);
+  const legacy='/school-sites/dtm.stu.edu.tw';
+  const course='/course/45000000-0000-4000-8000-000000000003/grades/overview';
+  assert.equal(validateAffairsAssistantRoute('https://stu.best'+legacy+course+'?mode=review'),'/dtm'+course+'?mode=review');
+  assert.equal(validateAffairsAssistantRoute(legacy+'/login/index.php'),legacy+'/login/index.php');
+  assert.equal(validateAffairsAssistantRoute(legacy+'.invalid'+course),legacy+'.invalid'+course);
   assert.equal(validateAffairsAssistantRoute(undefined),'');assert.equal(validateAffairsAssistantRoute('/'),'/');assert.equal(validateAffairsAssistantRoute('/?query=school'),'/?query=school');
 });
 
@@ -43,15 +48,65 @@ test('unsafe, malformed, fragmented or oversized routes fail before authenticati
   }
 });
 
-test('all four required supplemental domains and page followups use account routing without the word my',async()=>{
+test('required supplemental domains and page followups use account routing without the word my',async()=>{
   const cases=[['What courses are available?',endpoint],['Show enrollment certificate status.','/school-affairs/services/17-1'],
     ['What is the status?','/school-affairs/services/17-1'],['Show tuition settlement.','/school-affairs/services/49-1'],
-    ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002']];
+    ['What does this say?','/school-affairs/services/38-1'],['What does this say?','/school-affairs/services/21-1/history'],
+    ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002'],
+    ['What tax is recorded?','/school-affairs/services/37-1/salary'],['List saved student aid claims.','/dtm'],
+    ['Show saved Moodle grades.','/'],['What is on this page?','/dtm/grades'],
+    ['What are my current courses?','/elearning/my-courses'],
+    ['What about reports?','/school-affairs/services/36-1?page=2'],['What is the status?','/school-affairs/services/29-1/appointments']];
   for(const [question,route]of cases){let calls=0;
     const result=await invoke(base({answerAccount:async options=>{calls++;assert.equal(options.question,question);assert.equal(options.route,route);
-      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['courseCatalog','enrollmentCertificate','dtmSubmissions','tuition']);return answer;}}),{question,route});
+      assert.deepEqual(Object.keys(options.supplementalReaders??{}),['dtmAssignment','courseCatalog','enrollmentCertificate','dtmSubmissions','studentConduct','studentLoan','aidPayments','dtmGradeReport','elearningEnrollments','facilityRepairs','dormitoryConduct','elearningOutline','feeRemission','healthExaminations','counselingAppointments','tutorEvaluation','graduationClearance','tuition','teachingFeedback']);return answer;}}),{question,route});
     assert.equal(result.status,200,question);assert.equal(calls,1,question);
   }
+});
+
+test('foreign salary, aid and DTM grade requests are denied after auth with zero private or public lookups',async()=>{
+  const disallowed=async()=>{assert.fail('A rejected account scope must not load or search records.');};
+  for(const question of ['Show another student’s student salary records.','List another student’s financial aid claims.',
+    'Show my classmate’s Moodle grades.','Show the Moodle grade report for student s12345678.',
+    'Show another student’s remote-learning Moodle enrollments.']){
+    const result=await invoke(base({loadSnapshot:disallowed,answerAccount:disallowed,publicResearch:disallowed}),{question,route:'/dtm'});
+    assert.equal(result.status,200);assert.equal(result.body.status,'handoff');assert.equal(result.body.grounding.webSearched,false);
+    assert.match(result.body.answer,/only check your signed-in stu\.best account/iu);
+    assert.deepEqual(result.body.citations,[]);assert.equal(result.body.proposedAction,undefined);
+  }
+});
+
+test('explicit and contextual remote enrollment questions verify the owned workspace without a planner or unrelated reads',async()=>{
+  const originalFetch=globalThis.fetch,verified=account(),paths:string[]=[];
+  const route='/elearning/my-courses';
+  const deps=base({verifyToken:async()=>verified,
+    loadSnapshot:async()=>assert.fail('No broader account snapshot expected.'),
+    answerAccount:async()=>assert.fail('The exact remote scope must not enter the general account planner.')});
+  globalThis.fetch=async(input,init)=>{
+    const url=new URL(String(input)),headers=new Headers(init?.headers);
+    paths.push(url.pathname);
+    assert.equal(url.href,verified.url+'/rest/v1/rpc/elearning_workspace');
+    assert.equal(init?.method,'POST');assert.equal(init?.redirect,'error');assert.deepEqual(JSON.parse(String(init?.body)),{});
+    assert.equal(headers.get('Authorization'),'Bearer '+verified.token);assert.equal(headers.get('apikey'),verified.key);
+    return Response.json({userId:verified.user.id,categories:[],notices:[],
+      courses:[{id:41,category_id:1,position:1,title:'Saved workshop',self_enroll:false},
+        {id:42,category_id:1,position:2,title:'Unrelated catalog workshop',self_enroll:false}],
+      enrollments:[{courseId:41,joinedAt:'2026-11-14T00:00:00Z'}]});
+  };
+  try{
+    for(const question of ['Which remote-learning Moodle courses am I enrolled in?','What are my courses?']){
+      paths.length=0;
+      const result=await invoke(deps,{question,route});
+      assert.equal(result.status,200,question);
+      assert.deepEqual(paths,['/rest/v1/rpc/elearning_workspace'],question);
+      assert.deepEqual(result.body.verification,{status:'verified',attempts:1},question);
+      assert.match(result.body.answer,/Saved workshop/u);
+      assert.doesNotMatch(JSON.stringify(result.body),/Unrelated catalog workshop|SYNTHETIC-VERIFIED/u);
+      assert.deepEqual(result.body.citations.map((item:{chunkId:string;url:string})=>[item.chunkId,item.url]),
+        [['account:elearningEnrollments',route]]);
+      assert.ok(result.body.activity.some((step:{kind:string;status:string})=>step.kind==='elearning-evidence-check'&&step.status==='complete'));
+    }
+  }finally{globalThis.fetch=originalFetch;}
 });
 
 test('callbacks capture verified credentials, preserve full selectors and use fresh graph snapshots with bounded deadlines',async()=>{

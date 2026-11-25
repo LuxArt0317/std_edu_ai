@@ -1,3 +1,4 @@
+import {newConversationId} from '../../src/services/assistantConversationId.js';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {readFile,mkdir,writeFile,rm} from 'node:fs/promises';
@@ -23,7 +24,7 @@ const admin=createClient(url,env.SUPABASE_SERVICE_ROLE_KEY||env.SUPABASE_SECRET_
 const sql=postgres(connection,{max:2,ssl:{rejectUnauthorized:true,ca:await readFile('supabase/certs/prod-ca-2021.crt','utf8')},onnotice:()=>{}});
 const users=[],checks=[],answers=[],failures=[];
 const handlers={'/api/affairs-conversations':dataHandler,'/api/affairs-action':actionHandler,'/api/affairs-data':dataHandler};
-const runId=randomUUID(),chatId=randomUUID(),courseId=randomUUID(),assignmentId=randomUUID();
+const runId=randomUUID(),chatId=newConversationId(),courseId=randomUUID(),assignmentId=randomUUID();
 const fixtureLedger=`artifacts/assistant-verification/active-fixtures-${runId}.json`;
 let browser,phase='setup';
 async function invoke(endpoint,{session,method='GET',body}={}){

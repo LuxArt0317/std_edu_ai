@@ -13,27 +13,40 @@ export default async function handler(req,res){
     const id=req.method==='POST'?body.id:first(req.query?.id);
     if(id!==undefined&&!uuid(id))throw new AffairsWorkspaceError('Invalid conversation identifier.',400);
     const headers={apikey:account.key,Authorization:`Bearer ${account.token}`,'Content-Type':'application/json'};
-    let path='affairs_conversations',content;
-    const params=new URLSearchParams({user_id:`eq.${account.user.id}`});
+    let path,content;
     if(req.method==='POST'){
       if(!id || typeof body.title!=='string' || body.title.trim().length<1 || body.title.length>100 || !Number.isInteger(body.version) || Number(body.version)<0 || !Array.isArray(body.messages) || Buffer.byteLength(JSON.stringify(body),'utf8')>190000)
         throw new AffairsWorkspaceError('Invalid conversation.',400);
       const title=boundedAssistantText(body.title,100);
       if(!title.trim())throw new AffairsWorkspaceError('Invalid conversation.',400);
-      path='rpc/affairs_save_conversation';
+      // A tab loaded before promotion can still send its original UUIDv4 draft.
+      // The compatibility RPC shares deletion markers and enforces the database cutover.
+      path=body.version===0&&id[14]==='4'?'rpc/affairs_save_conversation':'rpc/affairs_save_conversation_v2';
       try{content=JSON.stringify({p_id:id,p_title:title,p_expected_version:body.version,p_messages:sanitizeStoredConversation(body.messages)});}
       catch(error){if(error instanceof RangeError)throw new AffairsWorkspaceError('This conversation turn is too large to save. Start a new conversation.',400);throw error;}
+    }else if(req.method==='DELETE'){
+      if(!id)throw new AffairsWorkspaceError('Choose a conversation to delete.',400);
+      path='rpc/affairs_delete_conversation_v2';content=JSON.stringify({p_id:id});
     }else{
-      if(req.method==='DELETE'&&!id)throw new AffairsWorkspaceError('Choose a conversation to delete.',400);
-      if(id)params.set('id',`eq.${id}`);
-      params.set('select',id?'id,title,messages,version,updated_at':'id,title,version,updated_at');params.set('order','updated_at.desc,id.asc');params.set('limit',id?'1':'100');
-      path+='?'+params.toString();
+      path='rpc/affairs_read_conversations_v2';content=JSON.stringify({p_id:id??null});
     }
-    const response=await fetch(`${account.url}/rest/v1/${path}`,{method:req.method,headers,...(content?{body:content}:{}),signal:AbortSignal.timeout(10000)});
+    const response=await fetch(`${account.url}/rest/v1/${path}`,{method:'POST',headers,body:content,signal:AbortSignal.timeout(10000)});
+    if(!response.ok&&req.method==='DELETE'){
+      const message=response.status===429?'Deletion protection reached its limit for this account.'
+        :response.status===409?'This conversation could not be safely deleted. Refresh your account conversations and try again.'
+          :'Conversation deletion could not be confirmed.';
+      throw new AffairsWorkspaceError(message,[400,401,403,409,429].includes(response.status)?response.status:503);
+    }
     if(!response.ok)throw new AffairsWorkspaceError(response.status===409?'This conversation changed in another tab. Reload it before editing.':response.status===403?'This conversation is unavailable for your account.':'Conversations could not be saved or loaded.',[400,401,403,409].includes(response.status)?response.status:503);
-    if(req.method==='DELETE'){res.status(200).json({deleted:true});return;}
     const data=await response.json();
-    if(req.method==='GET'&&id){if(!Array.isArray(data)||!data[0])throw new AffairsWorkspaceError('Conversation not found.',404);res.status(200).json(data[0]);}
-    else res.status(200).json(req.method==='GET'?{conversations:data}:data);
+    if(req.method==='DELETE'){
+      if(data?.deleted!==true||data?.protection!=='conversation-delete-v2')throw new AffairsWorkspaceError('Conversations could not be deleted.',503);
+      res.status(200).json({deleted:true});return;
+    }
+    if(req.method==='GET'&&id){if(data==null)throw new AffairsWorkspaceError('Conversation not found.',404);if(data.id!==id.toLowerCase())throw new AffairsWorkspaceError('Conversation lookup could not be verified.',503);res.status(200).json(data);}
+    else if(req.method==='GET'){
+      if(!Array.isArray(data))throw new AffairsWorkspaceError('Conversation list could not be verified.',503);
+      res.status(200).json({conversations:data});
+    }else res.status(200).json(data);
   }catch(error){res.status(error instanceof AffairsWorkspaceError?error.status:503).json({error:error instanceof AffairsWorkspaceError?error.message:'Conversations are temporarily unavailable.'});}
 }

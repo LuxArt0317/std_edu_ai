@@ -1,6 +1,8 @@
+import type {AssistantResponse} from '../src/services/researchAssistant';
 export const announcementEmailPath:string;
 export const announcementEmailScope:'announcement-email';
 export const announcementEmailAction:'save_announcement_email';
+export const announcementEmailInboxLimit:string;
 export type AnnouncementEmailReceipt={userId:string;enabled:boolean;effectiveAt:string|null;version:number};
 export type AnnouncementEmailPreference=AnnouncementEmailReceipt&{active:boolean};
 export type AnnouncementEmailChange={enabled:boolean;expected_version:number;request_id:string};
@@ -8,4 +10,5 @@ export function validAnnouncementEmailChange(value:unknown):value is Announcemen
 export function parseAnnouncementEmail(value:unknown,userId:string):AnnouncementEmailPreference;
 export function parseAnnouncementEmail(value:unknown,userId:string,expected:AnnouncementEmailChange):AnnouncementEmailReceipt;
 export function announcementEmailQuestion(question:string):'guide'|'status'|'foreign'|null;
-export function announcementEmailForeignAnswer(question:string):import('../src/services/researchAssistant').AssistantResponse;
+export function announcementEmailInboxQuestion(question:string):boolean;
+export function announcementEmailForeignAnswer(question:string):AssistantResponse;

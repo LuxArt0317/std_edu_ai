@@ -4,6 +4,8 @@ Issue [#100](https://github.com/LuxArt0317/std_edu_ai/issues/100). Work in progr
 
 ## Acceptance contract
 
+The user's four reported prompts must run in order under one disposable signed-in session. Use the [protected Preview transcript runner](../../tests/evaluation/README.md) to verify each saved turn, request scope, evidence and cleanup. Two independent helpfulness reviews are required alongside factual grading. The committed offline replay runs in CI and gives no live acceptance credit.
+
 Discover the authoritative service catalog, registered account tools and copied public-page manifest at run time. Every service has navigation, populated-record, empty-record and action-boundary questions. Additional independently authored cases cover DTM lessons/materials/assignments/grades, current/past/future study records, fees, native academic records, privacy and mixed questions. Public page-context questions cover the captured-page denominator; they prove page recognition/navigation, not every possible factual question within each document.
 
 Grade an answer against independently specified facts, dates, list members, ownership, local destinations, provenance and action requirements. A runtime `verified` flag is necessary for a verified model answer but is not the evaluation oracle. Returning an expected amount alongside a contradictory amount must fail. Refusing a question whose authorized evidence exists must fail answerability. Missing capabilities remain visible separately from safe abstention.
@@ -38,7 +40,9 @@ Runtime and question-bank fingerprints accompany reports. A source change during
 
 ## Repairs under evaluation
 
-- The LangGraph retry can reconsider omitted read tools, refresh owned records, and perform one correction followed by a second verification. Retry cannot change the original proposed action or initiate a new public search.
+- The signed-in leave reader covers saved history, archive, periods and an exact form. The test bank maps all four previously untested leave routes. Forty-two new native cases and nine retained legacy cases require pinned live fixture coverage before release acceptance.
+- Native Moodle assignment and grade clauses select distinct readers and use field-level references. Failed verification withholds the new scoped result cards. The 32 native Moodle questions count toward the suite, and their independent live fixture remains pending.
+- The signed-in LangGraph retry can reconsider omitted read tools, refresh authorized records, and verify a corrected answer. Complete structured reads can verify their typed fields directly. New public source discovery can continue after an unsuccessful second review and earn a fourth check when distinct evidence warrants it. A verification retry cannot change an existing action proposal.
 - Question, record reference, course, academic term and route selection happen before byte budgeting. Whole records, ownership, parent/child lineage and explicit omission counts survive the bounded evidence projection. Citation destinations come only from included records.
 - Saved notes can be queried across all service trackers. A local note, filed tracking status or personal assignment flag is never evidence of an official submission, approval or payment.
 - DTM answers cover material contents, feedback, linked missed-meeting work and tomorrow filtering. Next-class calculation considers future terms beyond an arbitrary short date window. Named teacher/room questions and unfinished-task filters now preserve the requested scope.
@@ -46,6 +50,12 @@ Runtime and question-bank fingerprints accompany reports. A source change during
 - Embedded chat preserves its same-origin host page path and query. The public handler reads only checksum-verified captured pages, and signed-in mixed questions keep public page evidence separate from private records. Public dispatch uses the same candidate runtime rather than silently calling production.
 
 These are implemented changes with automated regression coverage, not a claim of completed live-model acceptance.
+
+### Housing, native Moodle and teaching feedback
+
+Housing application questions have their own receipt and submission-time cases. The oracle checks saved data, exact source links and observed tool selection. A dormitory bed case cannot satisfy that source check. The native DTM grade cases compare saved report and overview values against caller-bound fixture rows, including blank and zero grades. The 14-case DTM packet uses offline fixtures, and the live multi-course adapter remains open.
+
+The [teaching feedback admission](TEACHING_FEEDBACK_LIVE_EVALUATION.md) puts 40 independent cases in the full runner denominator. They remain unexecuted setup failures while caller-bound fixtures and trusted request observations are unavailable. Test passes for the admission code do not satisfy those question gates.
 
 ## Known coverage gaps
 
@@ -56,6 +66,8 @@ The bank includes questions for each of the 94 service entries and the 395 captu
 - Tuition settlement statements are a separate native store from cumulative charge balances. Its supplemental reader preserves literal saved text; it cannot establish a dated payment ledger, issued receipt, waiver/refund transaction or extended-study record.
 - Fifteen captured public pages contain AccessDenied/XML error documents with no verified page title. Their tests require an explicit limitation, local link and capture date. Empty strings cannot satisfy a title assertion.
 - The disposable live fixture adapter does not publish global notices, elevate administrators, mutate shared course catalogs, or create real payment transactions. Unsupported fixture configurations are setup failures, not model failures or passes.
+
+The private payment history reads dated payments and reversals from its own ledger. The unchanged “How much did I actually pay during November2026?” question checks the exact month through that reader. If the month has no dated entries, the reply distinguishes that from any saved amount without a payment date. The protected ledger packet uses two isolated owners, separately checks a funded and an empty month, and pins both natural and compact question forms. The dated history page also has its own protected-route browser scenario.
 - Only live endpoint evaluation, matched deployment provenance, fixture readback/cleanup and independent browser observations can satisfy the complete release gate. The existing Vercel preview is protected by SSO and the local approved environment has no model API key; local contracts do not substitute for that gate.
 
 ## Current evidence and future runs
@@ -95,6 +107,12 @@ The audit also identified narrower gaps that must not disappear from the coverag
 
 The deployed persistence harness `tests/integration/assistant-conversation-http-live.mjs` requires the exact production revision and applied migration `20261112190000`. It uses two disposable real-JWT accounts, actual HTTP writes/reads, cache-empty browser restoration, 40 expandable observable steps, an 8,000-UTF-16-unit answer, replay/stale protection, cross-account isolation and real local-scope sign-out. Its answer text is an explicitly synthetic persistence fixture, and its report always states `modelAcceptance:false`. Passing this harness cannot substitute for model/SSE or whole-site browser acceptance.
 
+The same operator harness has a separate `--preview-delete` mode for the UUIDv7 conversation protocol. Use a clean checkout at the deployed revision, the exact immutable URL in both `ASSISTANT_ORIGIN` and `APPROVED_PREVIEW_ORIGIN`, the SHA in `EXPECTED_RELEASE_REVISION`, and the existing Development OIDC and client fixture environment. The mode requires migration `20261115230000` and runs thirteen pinned conversation requests. It verifies foreign read and write denial, preserves the owner row after an unrelated caller's deletion receipt, checks the exact account marker and expiry, and rejects stale saves after both save-first and delete-first orderings. The private ledger captures mutations before sending them. A final SQL check confirms removal of the fixture identities, rows, markers, and creation floors.
+
+```sh
+node tests/integration/assistant-conversation-http-live.mjs --preview-delete
+```
+
 ## Evaluation method
 
 The design follows task-specific datasets, explicit criteria, tool-selection checks and repeated evaluation described in [OpenAI's evaluation guidance](https://developers.openai.com/api/docs/guides/evaluation-best-practices). It runs in this repository instead of depending on a hosted evaluation product. Independent facts and executable checks are primary; optional semantic review cannot turn missing test execution or unsupported capabilities into a pass. Human relevance review remains useful for nuanced answers and must be recorded honestly when performed.
@@ -116,3 +134,366 @@ Graduation run `97c178c3-9a3b-4577-83f1-ebb17961a5d7` passed all four groups, in
 Grades run `679298e5-822e-429d-8d59-e305d82270d9` passed all four groups, including the five actual-model answers, literal transcript/warning/ranking values, a supported grade-view clarification, account isolation, deployed page layouts and manager replay/conflict/clearing checks. Exact cleanup completed without failures and the owner fingerprint check passed. The test-only clarification fix accepts legitimate English/Chinese choices while still requiring supported views, local grounding and no implicit write.
 
 Attendance run `1b97e0d5-de4d-4628-a1fb-415c6cbc2d77` still failed its initial missing-current-term question: the actual model withheld the answer after two evidence checks with `unsupported_claims`. Cleanup and the owner's final fingerprint check passed. Live provider-log metadata reported one unsupported claim on each review, with `answersQuestion:true` and no unmatched references; the specific rejected claim was not retained. This remains a real answerability failure; the harness has not been relaxed to accept a generic refusal.
+
+
+The 14-1 assistant now verifies explicit attendance answers using the signed-in caller's saved term and selected view. A missing designation can be answered after checking the metadata alone. Dated detail questions filter by the course date and preserve the separately recorded roll-call timestamp. Weekly-hour requests explain the stored term scope without looking up unrelated rows. The six original attendance questions pass the independent rubric against the actual HTTP handler with controlled source responses and provider calls disabled. This is local evidence. A fresh protected Preview replay is pending.
+
+The 11-1 and 11-2 assistant answers standalone history, timetable and exact saved-remark questions directly from the selected owner's course-selection records. Timetable inclusion and scheduled slots come from separate saved fields. A recorded review remark cannot establish approved enrollment. The older handler used the broad workspace path for all 12 frozen account and service questions. The scoped handler passes their unchanged rubrics and checks both callers against migrated PostgreSQL. The local directory and unsupported-change replies read no private records. Scoped record checks distinguish a verified empty result from temporary and permanent read failures. This is local evidence. Protected Preview replay is pending.
+
+## November 14 candidate and acceptance
+
+The candidate adds scoped conduct and loan readers, preserves an explicitly named academic term, and keeps a prior user-named course consistent across evidence, review, correction and record cards. General career coaching reads no student records. Mixed course catalog and Moodle questions compose from both selected sources before the first review. Correlation IDs join private evaluator reports to count-only model diagnostics.
+
+The current bank has 959 API cases. Source discovery includes 576 route patterns, 74 uncovered semantic routes and 586 required browser observations. The runner also records 50 browser-dispatch questions across ten native scopes as a separate unexecuted acceptance requirement. Graph API results cannot satisfy these cases.
+
+Run the reported conversation against the pinned candidate with `node tests/evaluation/run.mjs --mode live --only account:reproduction- --fixture-module tests/evaluation/live-fixtures.mjs --out artifacts/assistant-evaluation/issue100-reproduction.json`. The six SAMP cases require an exact read-only binding of the five published sample sections and the saved sample quiz. The adapter seeds only disposable account records, reads them back through the actual authenticated API, and verifies fixture and protected-owner cleanup. The other relevant prefixes are `account:student-conduct-`, `account:student-loan-`, `account:catalog-` and `account:tuition-`. Run serially under the shared lease. A partial packet remains ineligible for the whole-system release gate.
+
+An existing model-enabled deployment must match the evaluated Git revision. The reproduced career coaching and record overview require separate evidence-bound helpfulness assessments. Retain the original failed or unreviewed reports and save independent review to a new report.
+
+## Aid claims and salary next candidate
+
+The browser sends saved aid claim and salary questions to the account verification graph. The reader uses the caller's existing aid inquiry RPC. It supports count-only queries and literal details for the selected claim or salary view. It separates a completed zero-row read, missing fields, a failed view, and an excerpt. The assistant does not receive bank suffixes or use saved salary amounts to establish a bank transfer.
+
+Eight aid cases cover registered tools, claim status, multiple pay periods, tax zero versus missing, both inquiry views, empty records, unknown bank settlement and foreign access. The two-owner fixture checks actual scoped detail and summary replies before and after a question. Its tests simulate both sides of a lost transaction acknowledgement and reject unplanned owned rows. The Chromium entry suite with synthetic responses confirms that a compound salary request enters the graph endpoint and retains activity. No model or live database acceptance has been established for this candidate.
+
+## Native Moodle grades
+
+Plain Moodle grade prompts select the caller's saved native report. A personal grade-tracker request still selects the tracker, and a file review or assignment request selects its own records when asked separately. The result preserves stored text and prioritizes requested totals and feedback when the report is large. Detail citations open the exact course report. The fixture independently covers missing reports, missing totals, zero weight, stored totals in a 20-item report and late-item feedback. It journals both sides of a transition and checks the caller-owned detail endpoints and cross-owner denial before and after a model request. The authenticated handler and Chromium dispatch were checked with synthetic responses. On exact protected Preview `0b88ca1`, both signed-in grade packets passed (10 report and six overview cases), with paired ownership checks and exact fixture cleanup. The native outage remains controlled.
+
+The study-planning repair passed injected-source checks with the recorded first-week prompt. Its actual model response still needs review against the public-resource and helpfulness criteria. The current inventory lists 975 cases across 576 routes. It still has 73 route omissions and 45 separate direct-reader browser questions that require execution. Counts describe the inventory. Titles, links and generic saved notes alone cannot establish native workflow behavior.
+
+## Remote-learning enrollment with DTM assignments
+
+The signed-in browser previously returned a separate remote-learning reply before the verification graph could read DTM assignments. The replacement uses the caller's native remote-learning workspace, joins saved enrollments to their catalog titles, and passes that evidence alongside DTM assignments to the same answer review. Course listings without an owned enrollment stay outside the model evidence. Remote-learning personal grades, assignments, submissions and attendance remain unlinked. An unavailable lookup stays distinct from a successful lookup with zero enrollments.
+
+The four new signed-in cases cover saved enrollment, a compound assignment question, an empty enrollment list and an unlinked-grades answer. The fixture checks its saved catalog references, the two disposable owners' distinct enrolled course IDs, exact readback, and the before/after digest without changing shared catalog rows. The release runner verifies the exact manifest before fixtures or assistant requests and checks it again after each request and cleanup. A protected preview counts only once the runner can read and verify it through authorized access.
+
+The actual assistant handler can verify these four unchanged questions without a
+model. It checks the saved enrollment through the caller's remote-learning
+workspace. The mixed request separately validates the DTM course and unfinished
+assignment rows. A failed source is reread once within the request deadline,
+while the other verified source remains available. An unavailable source is
+described as unavailable. A grade request verifies the connector's capability
+without loading a DTM grade report or enrollment rows.
+
+```sh
+node tests/evaluation/run.mjs --mode live --domain elearningEnrollments \
+  --fixture-module tests/evaluation/live-fixtures.mjs --preview-auth oidc \
+  --origin "$PREVIEW_ORIGIN" --approved-preview-origin "$PREVIEW_ORIGIN"
+```
+
+The four-case run requires a clean checkout matching the exact protected
+Preview. Paired caller readback, unchanged records, a completed native check
+and verified cleanup are mandatory. The hosted packet still needs to run.
+
+With mocked Auth and HTTP responses, the School Affairs Chromium suite reopened the combined answer after reload and expanded both recorded checks. The remote-learning Chromium suite observed the authenticated graph request for courses and grades from My courses. A separate planner regression verifies that the page supplies the remote-learning scope for unqualified course wording. The independent formatter test rejects enrollment dates attached to an unrelated course, unsupported grades from DTM or Academic Services, and a response that treats a failed lookup as a confirmed empty list.
+
+The combined worktree passed 1,219 API/source tests and 612 evaluator tests. The inventory now contains 980 cases, 72 route omissions out of 576 routes, and 40 direct-reader questions awaiting live browser acceptance. The facility repair packet exercises owned status, handling notes and a compound timetable question offline. Its reader still needs mounting through the graph. Course-outline activity questions also require a separate evidence reader. The protected `c77b3c7` preview verified the earlier public first-week reply with three links. Its signed-in model gate and the combined candidate's live evaluation remain open.
+
+## Facility repair status and next class
+
+A signed-in student can request cancellation from the exact saved report detail or give its full report ID in chat. One caller-owned detail read supplies the current status and version. The student reviews the report reference and date before confirming. The existing repair action handles the write with its version check and request ID. Chat displays completion only after the matching cancellation receipt, and the visible report refreshes. Missing, foreign, conflicting and held requests cannot produce a cancellation proposal. Controlled API and Chromium checks cover ownership, stale revisions, invalid receipts and exact retry; protected hosted cancellation is still pending.
+
+The account assistant sends repair history questions through LangGraph. A specific report returns its saved status and, when requested, its latest saved handling note. The source does not identify the note author or confirm physical completion. Combining repair status with the next class requires both the repair reader and School Affairs timetable. A failed repair lookup leaves the requested status unknown, even if the timetable can be read independently.
+
+The facility fixture verifies both disposable owners before touching report or event rows. It journals the previous and pending plans, checks exact persisted fields, reads both caller-authorized lists and details, and requires 404 for missing and other-account reports. It reads both owners before and after each response. The grader requires unchanged owned-record digests for signed-in repair cases. A case with uncertain cleanup cannot count toward live acceptance.
+
+Fifteen native repair cases include both repair-plus-class question orders. They bind the published sample timetable and freeze the next occurrence in Taipei before the request. The evaluator checks that the same occurrence still applies immediately before the assistant POST and after the fixture readback. Synthetic failed reads and incomplete event histories remain in the offline packet. The inventory now has 996 cases and 35 separate direct-reader questions. The public production manifest still identifies `076c79a`. The prior enrollment candidate `1b97a1c` matched all 99 allowlisted files and passed GitHub Quality `43593442884`. Its public guide passed in the authorized preview browser. Vercel device authorization is still pending for the signed-in runner.
+
+### Dormitory notices and remote-learning outlines
+
+The browser sends both sources through account verification. A dormitory notice at 34-2 reads only the signed-in caller's saved metadata and distinguishes the stored values `empty` and `unknown` from a missing notice or failed read. A request for a bed number, housing fee or tuition balance uses its separately selected source. The outline reader uses the course and activity selectors available to the caller. Its answer retains the exact activity and section together with the local link. It cannot infer file content, attendance, completion or enrollment from the outline.
+
+Ten authored dormitory cases and five outline cases each declare required and forbidden tools, facts, local links and unchanged owned records. Add `--only account:dormitory-conduct-` or `--only account:elearning-outline-` to the pinned live command. The adapter journals exact preceding and pending records before changing disposable notices or access links, reads the native endpoints as both fixture users, verifies cross-course access, and checks exact cleanup. The published outline rows are never changed for a run. Offline transport and browser tests are separate from a signed-in actual-model result.
+
+The `aa31201` protected Preview passed five of ten dormitory questions. Four replies lost a precise notice label or limitation. The mixed housing setup could not bind its expected shared period. Local handler regressions now grade all eight standalone questions and the mixed housing reply after a deliberately rejected model review. Each bounded retry rereads and checks the selected native evidence. The protected replay still needs a fresh candidate and the mixed housing fixture needs an independently verified period binding.
+
+### Tuition remission and fee balance
+
+School Affairs service 21-3 provides the caller's saved tuition-remission history. LangGraph uses the caller's fee-remission reader for that question and separately reads the caller's charges when an independent balance is requested. The balance reader checks the associated student and charge rows. The fee-remission reader preserves literal year, semester, category, amount and checking status. Empty text, missing data and stored zero remain distinct. Payment, approval, eligibility and document issuance need their own evidence. The assistant asks which academic period the student means when the records cannot establish the requested period.
+
+The local handler tests inject the two source responses and the verification model. They cover refusal of foreign-account requests, guest sign-in links, both orders of the compound question, a failed charge read with an independently verified remission answer, and an independently checked correction after a source reread. The browser entry test uses synthetic authentication and checks that the combined question sends one graph request and preserves both activity labels. The independent bank adds 20 prospective live cases and seven offline controls. Signed-in model acceptance requires an accessible pinned Preview, both disposable owners' native readbacks and verified cleanup.
+
+A standalone question naming a charge uses its own scoped balance path. The selected charge label stays bound when the graph refreshes evidence. A controlled test rejects the first draft, changes the matching paid amount, and proves the updated balance while a second charge stays outside the model and visible reply. A successful empty match preserves the missing-record result without inventing an amount.
+
+### Health examination availability
+
+Service 36-1 questions use the signed-in account's existing paged inquiry. The assistant receives examination codes, the paired report-availability flag, and explicit page counts. After a rejected review of a standalone health question, the verification graph refreshes the same selected page and checks the exact rendering against that evidence. It keeps the total distinct from the returned count and preserves every included code and its paired flag in the answer even when the table has a shorter display limit. Ambiguous pages and write requests do not read the metadata. Clinical content, examination dates and file authorization stay in their existing service flows. Navigation questions give the relevant page link. Signed-out inquiries return to sign-in with the requested local page preserved. Combined tuition questions read charges separately and retain verified facts if one source is unavailable.
+
+The 26-question health packet includes 19 planned live cases and seven offline controls. Sixteen planned cases use only disposable health metadata or verify an access boundary. Three need a separately prepared charge ledger. The pure fixture plan includes two account owners, exact paged DTOs and cleanup contracts. Its planned rows keep all report flags false. The true-flag control uses a synthetic native response. The API and Chromium checks run with injected provider boundaries. Signed-in deployed-model evaluation, private object testing for live true flags, and fixture cleanup acceptance remain pending.
+
+### Counseling appointment history
+
+Questions about counseling appointments enter the verification graph with the current caller's native appointment reader. The answer keeps a preferred date or period separate from a scheduled time, and treats cancelled and closed appointments as historical. A successful empty response and a failed read produce distinct answers. A response at the native 50-row limit leaves the total unknown. After a rejected standalone review, the verifier repeats the same caller-scoped read and checks the rendered dates, statuses, record counts and links against the refreshed metadata. It preserves the saved timestamps and displays PostgreSQL UTC offsets as Z. Booking, cancellation, private notes, identities, files and coordinator views have no authority through this reader. The protected runner binds its independent SQL digest and both caller readbacks to the shared unchanged-record check. The binding requires exact pre/post equality and the expected counts for both disposable accounts.
+
+An exact combined fee question reads the caller's charge records separately. Both sections use bounded evidence, and the independent review can reject the draft and force both readers to refresh. The displayed charge card uses the same evidence as the answer. The signed-in endpoint and browser tests exercise both question orders, an unavailable source and unrelated or excluded questions with injected dependencies. The 28-question independent packet includes 21 planned model cases and seven offline controls. The fixture plan specifies both disposable owners and exact cleanup. Three planned cases require an independent charge ledger. Deployment acceptance still requires the isolated live fixture adapter and authorized runner access.
+
+### Graduation clearance
+
+The assistant reads saved clearance applications and assigned windows through the caller-only School Affairs endpoint. Each decision retains its term and office. An office note is included only when requested for that office. The separate Academic Services graduation reports remain independently routed.
+
+For a combined question, a narrow enrollment read calculates the next class in Asia/Taipei and links to My Subjects. The two sources refresh after a rejected draft. A failed timetable read, an unlinked student, and a successful lookup with no future meeting have distinct results. An unsuccessful source does not prevent the other part from being verified.
+
+The independent packet covers 34 questions, including 25 planned fixtures and nine offline controls. The planned cases require a verified binding to existing academic terms and assigned windows. They report a setup failure before any model request until the binding and disposable-owner fixture adapter are available. Local browser and HTTP checks use synthetic authentication, scoped data and model responses.
+
+### Tutor evaluation
+
+The two original 28-1 questions about saved submission status and a named tuition balance now verify the separate records directly. The third original question explicitly excludes the questionnaire and checks only the named charge. All three pass their unchanged grading rules through the actual streaming handler with migrated PGlite, independent caller and crossed-account readbacks, and no provider call. Isolated tests cover either unavailable source and a second caller with a different amount for the same charge label. This is local evidence. The original 11 protected standalone questionnaire cases remain separate from this compound packet.
+
+The protected compound operator is `tests/evaluation/run-tutor-tuition-preview.mjs`. It binds the same three immutable questions and both disposable owners before dispatch. The runtime must emit the expected native check and the two independent sources must retain their complete before-and-after projections. A test exercises refused cleanup when a stored amount no longer matches the reserved fixture. Protected execution is pending.
+
+Service 28-1 answers questions about the student's saved questionnaire. The assistant reads submission status and time, plus numbered responses and comments when requested. Tracking notes remain available through the separate notes page. The assistant makes no questionnaire changes. The saved form does not establish a school term, approval, delivery or receipt.
+
+For a combined fee question, the account graph checks the selected fee and questionnaire independently and rereads both after a rejected draft. A failed read stays distinct from a successful lookup that found no submission. Private profile fields from the form never enter the assistant's evidence. Questions about other students are refused without a record lookup.
+
+The independent packet covers 33 scenarios, with 27 planned live cases and six offline controls. Three planned cases need separate charge fixtures. The live fixture and two-account cleanup checks remain unmounted. Local HTTP, graph and browser tests use synthetic accounts, model responses and record fixtures.
+
+### Protected Health and Counseling replay
+
+From the clean checkout used for the protected Preview, run the local preflight and then the replay with its authorized Development OIDC environment.
+
+```sh
+node tests/evaluation/run-health-counseling-preview.mjs <protected-preview-origin> <full-deployed-revision> --preflight
+node tests/evaluation/run-health-counseling-preview.mjs <protected-preview-origin> <full-deployed-revision>
+```
+
+The preflight lists the frozen packet sizes without dispatching requests. The replay writes `health.json`, `counseling.json` and `summary.json` in an owner-only, unique directory under `artifacts/assistant-evaluation`. Health runs first. Counseling begins only after verified Health cleanup. Interrupted reports retain their latest graded results, and the summary distinguishes a complete behavioral failure from blocked or incomplete execution. A successful replay requires both complete packets, their exact deployment pins and verified cleanup. Standalone Counseling uses `tests/evaluation/run-counseling-preview.mjs` with the same arguments and reporting.
+
+### Private tracking notes
+
+The standalone 110-question packet covers seven services (27-1, 30-1, 30-2, 31-1, 31-2, 32-1 and 35-1). `tests/api/service-notes-assistant-graph.test.ts` checks the actual graph and API against injected Supabase and model transports. `tests/integration/service-notes-assistant-dispatch-ui.mjs` verifies that each signed-in page displays its own saved note and tracking status, opens the existing note editor, cancels without a write, and sends the question with the exact page context. It also exercises Group Insurance on mobile and verifies its signed-out return with no private record read. The browser uses synthetic authentication and response fixtures. The protected evaluator pairs an approved Preview with the disposable fixture adapter and before-and-after readbacks.
+
+Additional signed-in and guest handler cases exercise natural English and Chinese requests about injury filing, Student Health equipment approval, rental registration and insurance coverage. Outcome questions provide the matching service page without opening private notes or using web search. Navigation retains the local path on sign-in. Generic equipment borrowing stays on 30-2 when that page supplies the context. A request explicitly about club equipment still links to the separate club service. The [protected signed-in packet](../../tests/evaluation/README.md#protected-preview-school-affairs-service-boundaries) adds 20 questions, exact route checks, two-owner note projections and unchanged record checks. The prior guest replay passed nine checks on `6c76997`. The signed-in packet passed against controlled handler transport and still needs its pinned hosted replay.
+
+### Student conduct at 38-1
+
+The browser dispatch uses the verified account path for native conduct and nearby privacy or navigation requests. The conduct reader checks the signed-in account and returns literal saved cells, including blank and zero. Compound tuition and timetable requests use separate account sources. A campus conduct report and a dormitory notice have separate tools. The browser, injected HTTP and graph tests check foreign denial, latest exclusion, public and sign-in return links, independent evidence and retry. Signed-in provider evaluation remains pending.
+
+### Aid claims and salary at 37-1
+
+The focused API tests exercise direct account and guest navigation, wrong owners, skipped reads, page selection, stale history, and an actual caller-scoped reader behind the verification graph with synthetic HTTP. The reader uses the same saved ordering and 25-row pagination as the visible page. Rejected drafts cause a fresh read of the same selected page. The tests distinguish a failed read, zero total, an empty later page and null financial fields.
+
+Run `node --experimental-strip-types --test tests/api/aid-payments-assistant-routing.test.ts tests/api/account-aid-payments-evidence.test.ts`. These tests use synthetic credentials and responses. The independent aid question bank and its observation checks are offline. They do not count toward signed-in acceptance on a protected deployment.
+
+## Teaching feedback coverage
+
+The independent 40-question packet models both student teaching feedback views, caller ownership, exact course filters, anonymous-response limitations and companion School Affairs requests. The isolated PostgreSQL replay now passes 26 original questions through the actual handlers, including exact UTC timestamps, explicit exclusions, empty views and separate review and delivery meanings. A combined answer requires evidence from both requested views. The frozen packet still needs its own hosted fixture and companion coverage. See the [case guide](TEACHING_FEEDBACK_LIVE_EVALUATION.md).
+
+### Native internship views
+
+The default bank registers the 30 bilingual internship cases from [the native reader packet](INTERNSHIP_NATIVE_READ.md). Local tests cover exact caller scope, field selection and the verification loop. Four prior internship oracles retain their original question and expectations with a fixture rebind requirement. Live eligibility requires two isolated caller fixtures, exact request-bound observations and cleanup evidence. The runner reports `run.nativeInternshipFixtureUnbound` until the binding is available.
+
+## Combined candidate on Student Leave Preview
+
+The local API and source checks passed 1,708 tests, the evaluator passed 1,056
+tests, and the unit suite passed 541 tests. The public and signed-in menu
+handler checks exercised 22 matching catalogs with no account data reads or
+external research. The Custom menu case keeps saved links in the browser.
+The 12 Moodle material and 30 internship cases passed the actual handler
+with controlled authentication and provider responses. Signed-in Moodle
+material dispatch passed at 1440 and 390 pixels with intercepted auth and
+assistant endpoints.
+
+The current inventory registers 1,214 questions, 94 services, 40 tools and
+395 public captures. It identifies 29 paths without semantic cases. A
+registered route still needs its live browser and answer observations. The
+four reported prompts require authorized protected Preview access, a bound
+disposable account, conversation readback, independent review and verified
+cleanup.
+
+### Native Moodle assignment lists
+
+The default evaluator includes 25 questions about the course assignment list and My assignments. The independent observations use only the two owner-qualified tracker relations. The tests cover open, submitted, graded and completed tracker states, exact Taipei day boundaries, count-only output, pagination limits and data failures. The main runner records the native fixtures and four legacy rebindings as unexecuted until trusted live request observations are available.
+
+## Reviewed actions, Moodle lists and Student Leave observations
+
+The assistant selects a single requested change from the original current-turn text. Controlled endpoint checks grade all eight existing proposal and target-boundary cases. They cover explicit consent, literal fields, the exact caller, task-title ambiguity, personal DTM status, and the database administrator check. The compiled browser shows no write before confirmation, withholds an unmatched receipt, and retries with the original operation ID.
+
+The Moodle assignment-list packet independently grades 25 signed-in and guest outcomes. It checks deadlines and tracker statuses from the selected local account or course list. File submission and grade report claims require their own sources. Four earlier cases remain visible as fixture rebind obligations.
+
+The Student Leave observer verifies 18 data cases and 14 boundary cases with controlled two-owner transport. It binds the current request and exact leave selectors to the observed reader calls and projected results. This caught a UUID parsing bug. A complete offline observation records no live answer result.
+
+The combined candidate passed 1,717 API and source checks, 1,096 offline evaluator checks and 541 unit tests. Build, TypeScript, lint, handoff and dependency audit finished successfully. The inventory is 1,240 questions, 94 services, 41 tools and 395 public page captures. There are 28 routes without a semantic case. Pinned live transcript, real browser acceptance and hosted fixture readback remain open.
+
+## Digital Academy catalog and saved chat receipts
+
+The exact Digital Academy search and category reader uses the same filter, page and caller as the open catalog. The independent bank registers 25 cases. Nineteen exercise the actual handler with controlled reads. Six category and notice metadata cases still need a scoped reader. The compiled guest and account cases verify that the link matches the page and that sign-in preserves its search and page.
+
+The compiled conversation test rejects a successful response that omits saved activity, retries with the same conversation ID and version, and restores the activity by reading the saved chat. It also removes a row that already committed before its save response failed. An original create that commits after the delete still needs a database ordering guard.
+
+The integrated local checkpoint passed 1,717 API/source, 1,153 offline evaluation and 541 unit checks. The inventory registers 1,266 questions, 94 services, 42 reader tools and 395 captured pages. Twenty-one paths still have no registered semantic case. Some registered cases, including the six metadata cases, remain pending implementation or fixture admission. The signed-in hosted transcript and end-to-end site acceptance remain pending.
+
+## Venue requests and conversation ordering
+
+The signed-in venue reader checks the exact saved room, dates, periods, status and count. It retries once after a failed or mismatched read. The account answer excludes availability, review notes, and university booking confirmation. The five existing venue browser cases now identify the account assistant as their source. Combined venue and fee or timetable questions still need independent source selection.
+
+The conversation migration was exercised in scratch PostgreSQL with two concurrent sessions. The test reproduced a late insert after a legacy delete, then checked both concurrent orderings with the new lock and private deletion ID. It also checked the preexisting replay behavior, cross-account isolation, denied direct receipt access and receipt cleanup when a fixture user was removed. The migration is pending client preflight and deployment.
+
+The combined build passed 1,731 API and source checks, 1,153 offline evaluation checks, 541 unit tests, and both focused compiled Chromium suites. These tests cannot satisfy the pinned hosted transcript and live fixture gates.
+
+The compiled School Affairs inventory followed all 94 menu destinations under synthetic authentication and observed one enabled, visible launcher at every destination. The DTM and Digital Academy browser suites also passed. The menu inventory verifies navigation and launcher presence. It does not exercise each destination's records or workflow.
+
+## Selected records and protected conversation IDs
+
+The course catalog and syllabus reader uses the exact selected offering. Controlled requests distinguish a saved zero, a blank field and a failed lookup. Compiled Chromium completes synthetic Google sign-in from both selected routes and returns to the same record. The Digital Academy metadata reader checks the selected category or notice through the bounded read-only RPC. A signed-in attendance question reads the selected club-attendance page. Saved venue and tuition facts have independent verification so a temporary failure in one source can preserve the other.
+
+The new conversation runtime passed local Chromium and PostgreSQL checks alongside the previous production runtime. Both write orderings, caller isolation, bounded markers and replay of a late save were exercised. The four-prompt evaluator now uses a generated UUIDv7 through planning, journaling, reads, saves and reconciliation. Run `node --test tests/evaluation/transcript-*.test.mjs` for the offline contracts. The isolated PostgreSQL cutover test checks revocation and the insert guard after the old runtime drains. The cutover is a separate release step.
+
+The integrated candidate passed 1,763 API/source checks, 1,173 offline evaluator checks, 541 unit checks, and the compiled course catalog, Digital Academy and conversation suites. The evaluation inventory registers 1,277 questions, 94 services, 44 tools and 395 captures. Nineteen paths still lack semantic cases. The two additive migrations, live fixture bindings, the protected four-turn replay, independent review and systemwide hosted acceptance remain pending.
+
+The sign-in follow-up reads the caller's verified Google session for exact sign-in status and email questions. Seven separately graded cases cover two caller identities, status without email disclosure, a missing email, guest and expired access, and a question from the landing page. This raises the inventory to 1,285 cases and 45 tools, with 18 routes without semantic cases. The compiled Moodle test verifies a restored first reply and a newly appended second reply at two widths. The sign-in fixtures remain local.
+
+The rollover test keeps the previous production browser tab open while its requests begin using the upgraded handler with scratch PostgreSQL. Fresh legacy drafts save during coexistence; a delayed legacy retry returns a conflict after protected deletion. The simulated cutover rejects a fresh legacy draft and still supports reading and editing earlier conversations. Run `node --experimental-strip-types --test tests/api/assistant-conversations.test.ts` to check protocol admission and exact RPC routing.
+
+## Club attendance and protected evaluation access
+
+The main suite includes 18 bilingual club attendance questions. The fixture checks two disposable identities, exact page rows, literal Taipei timestamps, and unchanged records before and after each request. It rejects unexpected dependent rows before deleting the fixtures. Scratch PostgreSQL and controlled API checks exercised pages 1, 2, 3, and 1,000. Hosted native attendance and real model execution remain distinct in the evaluation. The inventory now lists 1,304 cases across 579 routes and 46 tools, with 18 semantic/navigation route omissions.
+
+Both evaluation runners accept the client's short-lived Vercel Development identity for the exact deployment-specific Preview. The main runner uses it for pinning, assistant requests and authorized readbacks. The transcript also binds saves and reads to its one generated chat ID. The transport rejects other origins and mutable aliases. The Moodle security check now requires the application-specific JSON denial, so an edge-layer 403 cannot count as cross-account isolation. The focused transport checks and all 1,194 offline evaluator checks passed. The hosted login and real replay remain pending.
+
+## Learning entry and private service notes
+
+The learning assistant recognizes eight entry and legacy paths for DTM and Digital Academy. It explains the current Google sign-in and links to the exact valid destination without reading student data. The login components use the same continuation validation. The isolated compiled browser observed every signed-in/out redirect and eight valid or rejected continuations with controlled Auth. The 24 entry questions run through the actual assistant handlers offline.
+
+The 110 service-note cases across 27-1, 30-1, 30-2, 31-1, 31-2, 32-1 and 35-1 are registered in the main evaluator. The 109 eligible for hosted testing include the four companion timetable and tuition questions when the timetable can be bound to the reviewed evaluation window. Two disposable callers verify the saved notes and crossed RLS projections around a request. Transaction cleanup checks exact ownership and preserves unrelated rows. A source-failure case still requires a controlled failure in the exact scoped note transport. The companion fixture checks the reserved tuition rows or the complete published timetable and the frozen Taipei occurrence on both sides of the assistant request. The local handler tests check that the seven note destinations and seven combined edit-and-submit requests use the exact service link without a note read or a write. Ten separately selectable work permit and campus service questions add English and Chinese phrasing, navigation, owned note reads, and cases that ask the assistant to renew a permit or log hours. Their protected Preview acceptance is pending.
+
+The integrated candidate passed 1,764 API/source, 1,227 evaluator, and 541 unit checks. The inventory lists 1,408 questions, 94 services, 46 tools and 395 captures. Ten route paths lack semantic/navigation cases.
+
+## First authenticated Preview replay
+
+The authorized Development identity verified the exact protected baseline `64a8ccb0`. Run `81860fb7-9a59-4a4e-8be6-1209fa93de3f` stopped at the first fixture readback. It verified cleanup of the disposable accounts and zero saved conversation rows. It sent no model request. A diagnostic with the same release verified that the DTM projection disagreed with the independent fixture. The real API returns a separate `targetUrl` for materials, and the fixture omitted that field. The repaired fixture preserves both the source and target links during insertion and comparison. Hosted answers and independent review remain pending.
+
+### Signed-in hosted baseline replay
+
+Run `53075e6d-7330-4487-a175-38e6f82a46e0` used the authenticated protected baseline `64a8ccb0` and the repaired evaluator `9fa095b`. All four turns returned and were saved and read back. The record overview passed independent AI review. The course and year answer abstained after two attempts despite both scoped reads completing. The balance correctly stated TWD 23,000 from the saved sample charges, with wording that failed the strict local-provenance check. The interview answer abstained after two attempts without giving actionable coaching. This is baseline diagnostic evidence. A new pinned run and its independent review remain necessary for the candidate.
+
+Automatic cleanup retained the deletion witness. A read-only probe verified that Postgres.js was binding the pre-serialized transcript as a JSON string for a JSONB comparison against the message array. The evaluator now binds the serialized value as text and lets PostgreSQL parse it once into JSONB. Separate, exact manual recovery removed both disposable identities and the bound conversation, verified zero action rows and residue across 54 direct Auth foreign-key edges, and preserved the protected owner. The original report records the failed automatic cleanup and the independent recovery receipt records the successful recovery. Neither artifact belongs in Git.
+
+### Combined current-record, coaching and route checkpoint
+
+The production-shaped endpoint and a stubbed reviewer exercise both paths of the current-semester and year question. The first draft uses the same bounded fields sent to the reviewer. Following rejection, the graph refreshes both authorized reads and compares the corrected answer with their exact field projection. The suite covers genuine renewal of the year value, unavailable sources, no linked record, malicious or incomplete review claims, and no unrelated readers. The exact interview prompt uses zero private record tools. The coaching retry offers a practice structure with placeholders for personal facts. The fee answer explains that its sample charge totals belong to the saved stu.best record scope.
+
+The clean rendered matrix at `361b76f` passed 394 observations across 189 destinations, eight attendance return guards and four account-menu focus checks. It separately marked 21 outcomes whose specialized response fixtures were unavailable. The campus entry browser proof exercised 16 local route states and two controlled OAuth callback outcomes. The combined source passed 1,766 API/source checks, 1,255 offline evaluations, 541 unit tests and both typechecks. A new exact protected run is required for live acceptance.
+
+### Adaptive public source verification
+
+The actual handler regression begins with a genuine link whose independently read page lacks the requested detail. A failed check triggers one focused school-domain search. The correction uses the newly fetched primary source and the graph verifies the resulting claims. Additional tests reject duplicate links, refuse private or credential-bearing requests before public search, enforce the remaining time budget, and exercise a third check without another retrieval. The evaluator requires observed terminal third-check activity, and conversation serialization preserves it.
+
+This uses the evaluator–optimizer pattern described in [Anthropic's engineering guide](https://www.anthropic.com/research/building-effective-agents) and the conditional loop in [LangGraph's workflow documentation](https://docs.langchain.com/oss/javascript/langgraph/workflows-agents). Standard checks keep the deployed server-only model configuration. The deeper pass uses medium reasoning and accepts a server-side model override for a paid-call quality comparison. Hosted acceptance and durable conversation behavior require separate exact evidence.
+
+The web handler can follow a different publication after a deeper search returns no new link if the verifier has rejected a draft after checking distinct sources. Unvisited pages come before rereads. One regression verifies the answer on check four using a separately read primary source. A paired scenario exhausts the alternate search and stops after three reviews with no citations. Duplicate-only and expired-budget cases still stop without another review.
+
+The library hours source contains ordinary reading-area times and separate weekend and special-holiday schedule tabs. The handler verifies content from the exact institutional page or its checksum-verified dated capture. The independent tests cover both guest languages, a signed-in follow-up with private history omitted, and exact search-domain fallback when no page text can be read. See the [published library schedule](https://lis.stu.edu.tw/115-08-26-9/).
+
+An explicit public library question paired with a registrar contact or Wi-Fi setup question checks both parts before replying. A supported directory result retains its citation when library evidence is unavailable. Tests exercise guest and signed-in dispatch, both question orders, public evidence failure, an unrelated private page and a private-grade clause that must stay out of public research.
+
+Protected Preview `90d0f86` returned four pinned public requests. The founding question used the new follow-up and verified against an institutional capture dated 2026-11-03. The storage quota question performed a follow-up and abstained because independently read pages could not establish the requested quota and date. The captured academic FAQ verified and a guest's private grades query reached the sign-in boundary. The exact browser test passed both embedded session states with controlled authentication. These outcomes show live follow-up and safe boundaries. The public requests did not reach a third review, so the comparison between verification models remains pending.
+
+The separate answer-only signed-in replay on the same SHA found that the overview and balance withheld drafts after two checks even though their scoped reads returned the fixture evidence. The course/year answer passed, and interview guidance remained available. Both disposable accounts were removed and their protected-owner comparator was unchanged. The previous Preview passed all four independently graded responses. The next candidate needs direct verified recovery for the two affected queries, a fresh replay, and the separate persistence gate.
+
+### Verified correction from saved records
+
+A rejected account overview refreshes the same seven caller-owned projections, checks the exact fields, counts and source links, and reconstructs the overview. A rejected remaining-balance answer rereads only saved charges, validates the amounts and displays totals grouped by currency and source label. Failed refreshes withhold stale values. The four-turn local replay uses a deliberately rejected first review. A separate browser check at 1,440 and 390 pixels verifies that all three review events and the reason for each rejection remain visible after a reload.
+
+### Switch sources after a failed knowledge check
+
+If managed excerpts still leave an evidence gap and time remains, the public handler can switch to official pages. It submits only the screened public question to search, reads the returned page independently, and spends the remaining verification check on that evidence. The earlier checks and source switch stay in the Activity timeline. Controlled handler cases verify a recovered answer, missing web results, expiring budget, a prior web attempt and a provider outage. No search is sent for a private question or image in this path.
+
+A managed answer can also pass claim verification while leaving a requested detail unanswered. The public graph keeps that checked answer and its citations while it reads a new school source independently. A replacement must cite new readable evidence and reduce the missing fields without introducing a new gap. Failed reads, mirrored content, no improvement and expired time all preserve the original answer. The controlled tests check both one and two prior managed reviews, source privacy, exact review counts and saved Activity. A school URL returned by public discovery can supply new evidence even if the managed excerpt cites the same URL. Identical normalized body text, including inside a dated capture, cannot trigger another review.
+
+With 18 seconds left after two failed managed drafts, the actual handler can compose and verify a third draft from an independently read indexed notice. The tests also cover a sign-in-gated notice and insufficient time. When a deeper search reads a separate page with mirrored content, the graph can look for a different publication within the remaining budget. It only spends the fourth review if it receives usable new evidence. The streamed alternate lookup and its completed review survive conversation reload. Follow-up search receives only verified public school domains and fixed page categories as navigation context. Exact checked URLs filter repeated search results locally.
+
+### Protected source recovery Preview
+
+Vercel deployment `dpl_392BytNSPQ9uxFuQm9a3tuMQ6jnz` served exact revision `8cfbd8d`. The local suite passed 1,783 API and source checks, 1,260 evaluator checks and 541 unit checks. Build, type checks, lint, handoff, dependency audit and the two-width Activity browser check passed. The Preview build also reported two non-strict TypeScript diagnostics while emitting the API. Follow-up `c8f5a48` resolves both in the strict and non-strict compilers.
+
+Four live public requests passed deployment pinning and transport checks. The founding request independently read a new official source and reached a third review. The reviewer still found unsupported claims, so the assistant withheld the answer. The quota response explained the missing quota and date based on the checked pages. The academic FAQ verified in one check. The private guest question required sign-in without web search. A successful third review and the switch from managed knowledge to web have controlled evidence on this revision. The stronger model comparison remains open.
+
+The same Preview passed independent grading on all four signed-in prompts. The balance recovered on the second check using refreshed charges, and interview coaching passed its six helpfulness criteria with zero account readers. Both disposable identities were removed and the protected owner was preserved. This run covers answering and scoped fixture readback. The conversation migration and exact durable chat replay remain pending.
+
+GitHub Quality passed on the exact protected revision. [Quality run](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43675881682)
+
+### Hosted saved conversations and deadline recovery
+
+The client preflight selected only `20261115230000` and observed zero existing UUIDv7 chat rows. The checksum-matched migration committed in a bounded transaction under the migration lock. The catalog confirmed 170 migrations, 206 public tables, two private RLS tables and three authenticated versioned RPCs. The protected owner fingerprint and the legacy save grant matched their preflight values.
+
+Production `076c79a` passed its legacy conversation HTTP and browser suite after the migration. The suite made 13 real HTTP and 21 browser requests and restored a saved chat in a fresh browser context. It verified cross-account denial, stale and duplicate saves, account-local sign-out and exact cleanup.
+
+Protected Preview `927ea4c` completed all 13 pinned transcript requests. The four live replies were saved and exactly read back, including observed activity. Independent grading passed all four turns, including four overview and six interview criteria. Cleanup verified zero fixture conversation rows. This gate covers the exact conversation and coexisting legacy runtime. Protected HTTP delete and the sitewide model gate remain open.
+
+The GitHub run on `927ea4c` found a timer race in the Moodle grade reader while Vercel built without the earlier API type diagnostics. Deterministic tests reproduced a new provider dispatch after expiry when the wall clock still appeared to be before the deadline. The local fixes latch the timeout for the Moodle grade, saved submission, and supplemental account queues.
+
+The saved About STU source now takes priority for explicit stable institutional questions. Its own dated text drives answer composition and independent review. If it fails verification, the graph can retrieve a new official source. The paired model harness holds the public evidence, prompt, draft, feedback, effort and deadline constant. Its controlled harness tests pass. The live comparison requires an authorized OpenAI runtime.
+
+### Protected source and Student Leave data acceptance
+
+The exact `a3da38a` protected deployment answered the founding-and-mission question on check three after reading another school source. Its final citation was the checksummed institutional capture dated 2026-11-03. The Chinese motto verified from that capture in one check. The storage quota and effective date remained unverified. An anonymous private-grade question required sign-in before search. [Quality run](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43678171264)
+
+Four independent hosted case grades on `927ea4c` passed for saved tracking notes at 27-1, 30-1, 31-1 and 35-1. The caller scopes and fixture cleanup matched their exact expected state.
+
+Protected `a3da38a` passed all eight Student Leave data families, 128 PostgREST reads across own and crossed callers, and 50 manifest checks. Cleanup removed both disposable identities and preserved the owner fingerprint. This test prepared and verified data only. The 42 native and nine legacy questions still require independent hosted observations of the actual assistant request and its readers.
+
+Digital Academy metadata migration `20261115110100` passed the exact isolated PostgreSQL permission and selector tests. Client preflight selected only that file, then the committed SQL checksum and authenticated-only grant matched. The live source still contains 43 categories and 20 notices. The six category and notice cases need hosted acceptance.
+
+### School sign-in leads
+
+The public source reader stops before following a recognized school sign-in redirect. A relevant original school link can appear under **Official source links**. The section provides navigation and keeps the unread notice outside the answer’s citations and verification evidence. A published notice index can still provide its original link after a timeout. The sign-in label requires an observed access gate.
+
+An unauthenticated read of the original OneDrive notice on 2026-11-15 returned HTTP 303 to the school’s DTM login path. The check stopped at that redirect. The public assistant can provide the indexed notice link while the student quota and publication date remain unverified. The local handler regressions cover both a withheld answer and a separately verified partial answer without including the login path or notice text in the reviewer input.
+
+### Confirmed counseling cancellation
+
+Ask “Cancel my counseling appointment” while signed in to School Affairs. The assistant matches one caller-owned eligible appointment and offers a confirmation with its saved status and Taipei calendar date. An exact appointment date can distinguish the target. The native cancellation runs after confirmation. The assistant checks the cancellation receipt and retains the same request ID if the confirmation needs a retry. Booking an appointment uses the existing consent screen.
+
+`node --experimental-strip-types --test tests/api/counseling-cancellation-assistant.test.ts` covers caller ownership, date and status selection, ambiguous and foreign requests, the signed-out handoff, and the confirmed native request. The local browser scenario in `tests/integration/assistant-confirmed-action-ui.mjs` checks the confirmation, mismatched receipt, same-ID retry and verified status text. All nine requests passed on exact protected Preview `2427eee`. The evaluator checked paired owner readbacks, the confirmed receipt, stale and crossed denials, replay, unchanged protected owner, and fixture cleanup.
+
+The localized public-page check accepts only exact saved-date markers in English or Traditional Chinese. A known relevant school notice can be linked separately from verified evidence. The answer can explain that its contents are unavailable without asking the reader to supply the link again.
+
+
+### Public library service sources
+
+The controlled endpoint regression checks visitor entry, discussion room bookings and off-campus databases against the library FAQ and space-reservation pages. Generic discovery gives the library domain first priority. The tests cover English and Traditional Chinese, an English correction after a wrong-language draft, HTTP 405, a browser verification page with misleading body text and a private request that cannot trigger public search. Unread page links stay outside the citations and cannot establish current eligibility, group size or reservation duration.
+
+```sh
+node --test tests/api/public-library-sources.test.ts
+```
+
+### Public recovery after unreadable sources
+
+When search supplies a legitimate lead without a usable draft, the handler independently reads the page. After an empty read it can try an unread lead or retry a transient read once. If both reads are empty, one different official publication may be searched while the time budget can still cover independent composition and review. Repeated or blocked URLs remain ineligible after the read limit. The preparatory steps remain visible in saved activity and do not count as completed reviews. Managed reviewer output truncation can also switch to public evidence with time left for a deeper check. Fixed archived page, private account and confirmed action paths use their existing scopes.
+
+`node --experimental-strip-types --test tests/api/research-assistant-web-follow-up.test.ts` reproduces the two-check stop, checks recovery on the third verification and tests the initial transient read, unavailable evidence, expired time, duplicate content, reviewer outage and saved-activity behavior.
+
+The protected `5430bd5` fee setup completed on its second run. The provider reported exhausted credit during remote draft verification. Five of six dispatched cases could be graded and failed their answer checks. The intentional stop interrupted the sixth paired readback. Verified cleanup completed. The later direct evidence paths pass the frozen local oracle for all 18 applicable fee cases without a model invocation. The two access cases follow the existing guest and foreign-account controls. Hosted acceptance remains a separate result.
+
+The complete fee-remission run on exact protected `4d7cc15` passed all 20 hosted cases, 62 deployment checks, the two caller-bound readbacks and verified fixture disposal. It covers both named-charge orders, literal record values, bounded history and guest and foreign-account isolation. The broader release gate is separate.
+
+The exact protected DTM browser run on `53a7599` saved and independently checked both original answers through HTTP and SQL, opened the second from the server in a fresh browser and expanded both saved Activity timelines. The crossed-account checks and exact fixture disposal passed. The local desktop and mobile replay separately verifies incremental Activity during the answer. The whole-system release gate still requires the remaining capability and acceptance coverage.
+
+### Health, Moodle materials, and signed-in entry
+
+Protected `53a7599` repeated all 16 student health metadata cases. Exact protected `6e819f5` separately passed the frozen true PDF availability case against private Storage and all 11 mounted Moodle material questions. The native inquiry verified the owned PDF bytes and the assistant saw availability metadata only. The material questions checked concrete course links and fields without downloading files. Both protected operators confirmed scoped readbacks and removed the disposable fixtures. The injected Moodle reader outage remains controlled-only.
+
+The local Chromium sweep passed 552 comparisons across 265 routes, 16 guest return checks and four account menus. Thirty-nine native response fixtures were unavailable. Local mixed health and named-charge cases verified both healthy orders, an explicit health exclusion and the verified half of either single-source outage. The 22-case Learning Support action packet uses the actual migration on isolated PostgreSQL and simulated hosting. Hosted Learning Support still needs an isolated schema target and replay. These outcomes cover specific checks within the open release gate.
+
+### Clearance and Academic Services after provider quota errors
+
+Protected `639f81b` produced four passing clearance answers out of 16 with stable persisted records and disposal. The deployed reviewer reported exhausted quota. The revised LangGraph checks complete typed clearance data, exact selected office notes and stable links before returning a response. A separately confirmed staff or write boundary can verify without a student record read. `b9aa9b3` passed all 16 mounted clearance cases and all 11 selected Academic Services cases. Native academic verification was required and both operators checked exact readbacks and disposed of their test accounts. Academic Services covers transcript, warning, ranking and saved English requirement views. Unavailable views preserve their precise capability limit. Three positive clearance window cases still require an isolated available window. The pure formatter boundary repair has separate follow-up quality checks.
+
+### Facility Repair reads during reviewer outages
+
+The exact repair path checks saved status, handling-note state, report counts, and links against the selected caller-owned evidence. A next-class request alongside a repair question uses the dedicated enrollment timetable read. A failed source leaves that part unavailable while the assistant retains independently verified records from the other source. A request to cancel a report and message the technician stays read-only and explains both action limits.
+
+The protected baseline withheld six repair replies after successful owned reads because the model reviewer had exhausted its quota. Paired fixture readbacks and cleanup passed. The local regression uses the actual request handler and native transport contract against all 18 unchanged reference cases, plus two independent source outages. It simulates provider quota exhaustion and asserts zero provider requests, zero writes, and no broad account snapshot or public research. Hosted replay remains separate.
+
+```sh
+node --experimental-strip-types --test tests/evaluation/facility-repair-native-handler.test.mjs
+```
+
+Exact protected `fc357c6` passed all 15 mounted Facility Repair questions after the direct verification change. The evaluator completed all 15 request pairs and 46 release checks. It verified the saved note, no-event and blank-note distinctions, selected and list scopes, both next-class question orders, exact absence, and action and other-caller boundaries. Two disposable accounts were removed. The separate protected cancellation replay `c123fd5` passed 13 checks. [Issue #100](https://github.com/LuxArt0317/std_edu_ai/issues/100#issuecomment-6898834727)
+
+### School Affairs notice screens
+
+The Teaching Assistant report and grant receipt dialogs each include a Campus Assistant button. The browser check opens the assistant from the notice at desktop and phone widths, sends the exact notice route, saves the chat, and checks keyboard focus again before using Confirm. Four bilingual questions require the actual notice and destination link. Both HTTP handlers answer from the same notice definitions displayed by the app. A notice provides no payment, award or submission status.
+
+Run `node tests/integration/assistant-renderer-inventory.mjs --family school-service-acknowledgements` for the eight browser comparisons. Run `node --experimental-strip-types --test tests/evaluation/school-service-notice-handler.test.mjs tests/evaluation/route-contracts.test.mjs` for the route and reply checks.

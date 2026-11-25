@@ -1,6 +1,6 @@
 /** Read bounded assistant SSE frames, preserving JSON for older servers. */
 export async function readAssistantReply(response,onProgress) {
-  if (!response.headers.get('content-type')?.includes('text/event-stream')) return response.json().catch(()=>null);
+  if (!response.headers?.get?.('content-type')?.includes('text/event-stream')) return response.json().catch(()=>null);
   if (!response.body) throw new Error('The assistant stream could not be opened.');
   const reader=response.body.getReader(), decoder=new TextDecoder();
   let buffer='',bytes=0,terminal=null;

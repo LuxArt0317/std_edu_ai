@@ -5,18 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { savePersonalSchoolRecord, type AffairsSnapshot, type ServiceRecord } from '@/services/schoolAffairsWorkspace';
+import { studentLeaveDraftCategories } from '../../../../server/studentLeaveDraft.js';
 import { campusAssistantOpenEvent } from '../PublicAssistant';
 import { referenceAsset } from '../site/reference';
 import { leavePath, officialLeaveUrl } from './studentServices.js';
 import { useAffairsRecords } from './useAffairsRecords';
 import './student-leave.css';
 
-const categories = [
-  ['personal','事假','Personal leave'], ['sick','病假','Sick leave'],
-  ['official','公假','Official duty'], ['bereavement','喪假','Bereavement leave'],
-  ['nursing','哺育假','Nursing leave'], ['mental_health','心理假','Mental health leave'],
-  ['maternity','產假','Maternity leave'], ['menstrual','生理假','Menstrual leave'],
-] as const;
+const categories = Object.entries(studentLeaveDraftCategories).map(([key,[english,chinese]])=>[key,chinese,english] as const);
 const leaveTimes = [['am','上午(08-13時)'],['pm','下午(13-18時)'],['day','全天']] as const;
 const statuses = {draft:'草稿',filed:'自行標記已送出',withdrawn:'已取消追蹤'};
 const reviews = {open:'站內待審',in_review:'站內審核中',resolved:'站內已處理'};

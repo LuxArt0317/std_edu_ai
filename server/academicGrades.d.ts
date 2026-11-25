@@ -4,5 +4,7 @@ export const academicGradeReadSources:Array<{key:'records'|'termSummaries'|'rank
 export const academicGradesNavigation:{id:string;match:RegExp;title:string[];officialUrl:string;localUrl:string;description:string[]};
 export function mapAcademicGrades(records?:Record<string,unknown>[],termSummaries?:Record<string,unknown>[],rankings?:Record<string,unknown>[],metadata?:Record<string,unknown>[]):AcademicGradesRecords;
 export function isAcademicGradesQuestion(question:string,route?:string,history?:Array<{role:string;content:string}>):boolean;
+export function standaloneAcademicGradeView(question:string,route:string):'transcript'|'warning'|'ranking'|'english'|'gpa'|'current'|'transfer'|'cycle'|null;
 export function academicGradesQuery(question:string,route?:string,history?:Array<{role:string;content:string}>):{view:string|null;academicYear?:number;semester?:number;invalid:boolean;multipleScopes:boolean;relativeTermUnresolved:boolean};
+export function selectAcademicGradeCourses<T extends {courseTitle:string}>(question:string,rows:T[]):T[];
 export function answerAcademicGrades(question:string,snapshot:{profile?:{userId?:string};academicGrades?:AcademicGradesRecords},route?:string,history?:Array<{role:string;content:string}>):{answer:string;title:string;url:string}|null;

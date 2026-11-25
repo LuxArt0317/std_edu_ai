@@ -3,6 +3,14 @@ import type { Database } from '@/types/database.generated';
 import { clearAssistantConversation } from '@/services/assistantConversation';
 import { permanentCoursesPath } from './permanentCourseRouting.js';
 import { venuePaths,venueScheduleSelection } from './venueContract.js';
+import { healthExaminationPath } from '../../../../server/healthExaminationContract.js';
+import { aidPaymentsMaxPage,aidPaymentsPaths } from '../../../../server/aidPaymentsContract.js';
+import { elearningCatalogPageRoute } from '../../../../server/elearningCatalogPageIntent.js';
+import { clubAttendancePath, clubAttendancePagePattern } from '../../../../server/clubAttendanceIntent.js';
+import { clubEquipmentNewPath, clubUuid } from '../../../../server/clubServicesContract.js';
+import {chargePaymentHistoryPath, chargePaymentOperationStoragePrefix} from '../../../../server/chargePaymentContract.js';
+import {chargePaymentHistorySelection,chargePaymentHistoryUrl} from './chargePaymentHistoryRoute';
+import { catalogDetailRoute } from '../../../../server/catalogDetailIntent.js';
 
 const url = import.meta.env.VITE_SUPABASE_URL?.trim();
 const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
@@ -10,6 +18,27 @@ export const affairsStorageKey = 'stu-school-affairs-auth';
 export const affairsCallbackPath = '/school-affairs/auth/callback';
 const returnKey = 'stu-school-affairs-return';
 export function safeSchoolReturnPath(value:string|null,fallback='/school-affairs') {
+  const selectedOffering=catalogDetailRoute(value);
+  if(selectedOffering)return selectedOffering.path;
+  if(value?.startsWith('/elearning/')){
+    const catalog=elearningCatalogPageRoute(value);
+    if(catalog)return catalog.path;
+  }
+  if(value?.startsWith(chargePaymentHistoryPath+'?')&&value.length<=240&&!value.includes('#')){
+    const selection=chargePaymentHistorySelection(new URLSearchParams(value.slice(chargePaymentHistoryPath.length+1)));
+    if(selection)return chargePaymentHistoryUrl(selection);
+  }
+  if(value?.includes('?')){
+    const [path,query]=value.split('?');
+    if(path===clubAttendancePath&&query.startsWith('page=')&&clubAttendancePagePattern.test(query.slice(5))
+      &&value===path+'?'+query)return value;
+    if(path===clubEquipmentNewPath&&query.startsWith('edit=')&&clubUuid.test(query.slice(5))
+      &&value===path+'?'+query)return value;
+    if(path===healthExaminationPath||Object.values(aidPaymentsPaths).includes(path)){
+      const match=/^page=([1-9]\d{0,2})$/u.exec(query);
+      if(match&&value===path+'?'+match[0]&&Number(match[1])<=aidPaymentsMaxPage)return value;
+    }
+  }
   if (value?.startsWith(venuePaths.schedule+'?') && value.length<=240 && !value.includes('#')) {
     const venue=venueScheduleSelection(new URLSearchParams(value.slice(venuePaths.schedule.length+1)));
     if(venue)return venuePaths.schedule+'?'+new URLSearchParams(venue);
@@ -96,6 +125,12 @@ export function signOutAffairs() {
     const { error } = await client.auth.signOut({ scope: 'local' });
     if (error) throw new Error('Sign out failed. Check your connection and try again.');
     clearAssistantConversation();
+    try {
+      for (let index=sessionStorage.length-1;index>=0;index--) {
+        const key=sessionStorage.key(index);
+        if (key?.startsWith(chargePaymentOperationStoragePrefix)) sessionStorage.removeItem(key);
+      }
+    } catch { /* A blocked storage API cannot prevent sign-out. */ }
   })().finally(() => { signOutTask = null; });
   return signOutTask;
 }

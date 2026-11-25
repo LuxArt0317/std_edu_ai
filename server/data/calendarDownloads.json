@@ -1,0 +1,63 @@
+{
+  "title": "行事曆｜Calendar | 樹德科技大學 教務處",
+  "url": "/school-sites/www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/",
+  "source": "https://www.aca.stu.edu.tw/%E8%A1%8C%E4%BA%8B%E6%9B%86%EF%BD%9Ccalendar/",
+  "capturedOn": "2026-11-03",
+  "checksum": "0cf45f58ffc4b7afba511930de4039e868e8df32152722fa68fe4169994dd324",
+  "years": [
+    {
+      "academicYear": 115,
+      "start": 2026,
+      "end": 2027
+    },
+    {
+      "academicYear": 114,
+      "start": 2025,
+      "end": 2026
+    }
+  ],
+  "downloads": [
+    {
+      "title": "115學年度行事曆(教職員)_1150415",
+      "url": "/school-assets/52fa47f17dcdfeeb8add.pdf",
+      "academicYear": 115,
+      "edition": "staff",
+      "checksum": "52fa47f17dcdfeeb8add8da21e94b60c61f2d348a30444cf064f34ecb6d43d63"
+    },
+    {
+      "title": "115學年度行事曆(學生)_1150415",
+      "url": "/school-assets/45b4315881485ac84bff.pdf",
+      "academicYear": 115,
+      "edition": "student",
+      "checksum": "45b4315881485ac84bffb68fdde30629e8067da4990136f52f93affc3d47933c"
+    },
+    {
+      "title": "2026-2027 Academic Calendar_1150415",
+      "url": "/school-assets/37d6b8aa4582665ff784.pdf",
+      "academicYear": 115,
+      "edition": "english",
+      "checksum": "37d6b8aa4582665ff7847bb7cad886eb9a0796100efedd739d5f4d8747b5facf"
+    },
+    {
+      "title": "114學年度行事曆(教職員)_1140618",
+      "url": "/school-assets/068ae7a4d1a70630e6f1.pdf",
+      "academicYear": 114,
+      "edition": "staff",
+      "checksum": "068ae7a4d1a70630e6f1b8dea5cabe93a05cbbc9c58ed0b0a4d15b0099f184c2"
+    },
+    {
+      "title": "114學年度行事曆(學生)_1140618",
+      "url": "/school-assets/8a6897ffcf591cdb28f2.pdf",
+      "academicYear": 114,
+      "edition": "student",
+      "checksum": "8a6897ffcf591cdb28f2704e299da121886bcd1273f567631e8ec519840cfd46"
+    },
+    {
+      "title": "2025-2026 Academic Calendar_1140618",
+      "url": "/school-assets/8cdb4fdd518483938a51.pdf",
+      "academicYear": 114,
+      "edition": "english",
+      "checksum": "8cdb4fdd518483938a51fdadaf4554834d40c242496a073c02a3f59c121b5762"
+    }
+  ]
+}

@@ -1,15 +1,27 @@
+import {clubAttendanceRunnerCases} from './club-attendance-cases.mjs';
+import {venueRunnerCases} from './venue-native-runner.mjs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
+import {readFile} from 'node:fs/promises';
 import {assessCoverage} from './coverage.mjs';
 import {discoverSurfaces} from './surface-inventory.mjs';
 import {buildAccountCases} from './account-cases.mjs';
 import {buildServiceCases} from './service-cases.mjs';
 import {buildPublicCases} from './public-cases.mjs';
+import {buildSchoolMenuNativeCases} from './school-menu-native-cases.mjs';
+import {buildSchoolServiceNoticeCases} from './public-cases.mjs';
+import {buildDtmMaterialCases} from './dtm-material-cases.mjs';
+import {internshipRunnerCases} from './internship-native-runner.mjs';
+import {dtmAssignmentListCases} from './dtm-assignment-list-cases.mjs';
+import {studentLeaveRunnerCases} from './student-leave-runner.mjs';
+import {elearningCatalogRunnerCases} from './elearning-catalog-runner.mjs';
+import {accountStatusCases} from './account-status-cases.mjs';
+import {schoolServiceViews} from './school-service-views.mjs';
 
 const revision='offline-route-contract';
 const observe=(route,extra={})=>({route,status:'passed',assistantPresent:true,keyboardUsable:true,sessionVerified:true,authenticated:true,...extra});
-function assess(families,routeResults){
-  return assessCoverage({cases:[],results:[],inventory:{services:[],tools:[],routeFamilies:families},sourceRevision:revision,
+function assess(families,routeResults,cases=[]){
+  return assessCoverage({cases,results:[],inventory:{services:[],tools:[],routeFamilies:families},sourceRevision:revision,
     browserAcceptance:{status:'passed',sourceRevision:revision,routeResults}});
 }
 const family=(id,routes,extra={})=>({id,routes,auth:'either',browserChecks:['assistantPresent','keyboardUsable','sessionVerified'],...extra});
@@ -38,6 +50,36 @@ test('wrong frame or unspecified authentication cannot satisfy a required state'
   const missingState=assess(families,[observe('/assistant',{scenario:'embedded',frame:'iframe',authenticated:undefined})]);
   assert.equal(missingState.browserAcceptance.passed,false);assert.ok(hasFailure(missingState,'browser.unexpectedAuthState'));
   assert.equal(missingState.browserAcceptance.missingScenarios.length,2);
+});
+
+test('embedded assistant uses host semantics but still requires context and answer scope in both browser states',async()=>{
+  const {routeFamilies}=await discoverSurfaces();
+  const assistant=routeFamilies.find(row=>row.id==='assistant-sessions');
+  const [standalone,embed]=assistant.routes;
+  const cases=[{id:'standalone-question',route:standalone}];
+  const observations=[false,true].flatMap(authenticated=>[
+    observe(standalone,{scenario:'standalone',authenticated}),
+    observe(embed,{scenario:'embedded',frame:'iframe',authenticated,hostContextVerified:true,answerScopeVerified:true}),
+  ]);
+  const complete=assess([assistant],observations,cases);
+  assert.deepEqual(complete.coverage.routes.missing,[]);
+  assert.deepEqual(complete.coverage.routes.hostContextFrames,[embed]);
+  assert.equal(complete.coverage.routes.registered,1);
+  assert.equal(complete.coverage.routes.executed,0);
+  assert.equal(complete.browserAcceptance.passed,true,JSON.stringify(complete.browserAcceptance));
+
+  assert.deepEqual(assess([assistant],observations).coverage.routes.missing,[standalone,embed]);
+  for(const missingCheck of ['hostContextVerified','answerScopeVerified']){
+    const reduced=observations.map(row=>row.route===embed&&!row.authenticated?{...row,[missingCheck]:false}:row);
+    const incomplete=assess([assistant],reduced,cases).browserAcceptance;
+    assert.equal(incomplete.passed,false);
+    assert.deepEqual(incomplete.incompleteScenarios,[{route:embed,scenario:'embedded',frame:'iframe',authState:'signed-out'}]);
+  }
+  const missing=assess([assistant],observations.filter(row=>row.route!==embed||!row.authenticated),cases);
+  assert.deepEqual(missing.browserAcceptance.missingScenarios,[{route:embed,scenario:'embedded',frame:'iframe',authState:'signed-in'}]);
+
+  const malformed={...assistant,browserScenarios:assistant.browserScenarios.map(row=>row.route===embed?{...row,frame:'top-level'}:row)};
+  assert.ok(hasFailure(assess([malformed],observations,cases),'browser.inventoryInvalid'));
 });
 
 test('an unknown scenario cannot conceal a failed observation or replace a declared context',()=>{
@@ -131,35 +173,107 @@ test('malformed or downgraded transition contracts fail closed',()=>{
   }
 });
 
-test('scenario bookkeeping preserves all 561 routes and all 59 raw semantic gaps',async()=>{
+test('remote-learning inventory follows the authenticated workspace and distinct login/redirect states',async()=>{
+  const {routeFamilies,services}=await discoverSurfaces();
+  assert.equal(services.find(row=>row.id==='4-2').route,'/elearning');
+  const workspace=routeFamilies.find(row=>row.id==='elearning');
+  assert.equal(workspace.auth,'signed-in');
+  assert.deepEqual(workspace.browserChecks,['assistantPresent','keyboardUsable','sessionVerified']);
+  assert.deepEqual(workspace.routes,[
+    '/elearning','/elearning/categories','/elearning/my-courses','/elearning/search','/elearning/category/:id','/elearning/notice/:id',
+    '/elearning/course/:id','/elearning/course/:courseId/activity/:activityId',
+    '/elearning/search?q=:query','/elearning/search?q=:query&page=:page','/elearning/category/:id?page=:page',
+  ]);
+  // Guard the actual Content dispatcher, not a second claimed page catalog.
+  const source=await readFile(new URL('../../src/features/public/elearning/ElearningWorkspace.tsx',import.meta.url),'utf8');
+  const views=[...source.matchAll(/if\(view==='([^']+)'&&segments\.length===(\d)\)/gu)].map(match=>[match[1],Number(match[2])]);
+  assert.deepEqual(views,[['categories',1],['my-courses',1],['search',1],['category',2],['notice',2]]);
+  assert.match(source,/if\(!user&&!isLogin\)return <Navigate/u);
+  const login=routeFamilies.find(row=>row.id==='elearning-authentication');
+  const validLogin=[observe('/elearning/login',{scenario:'signed-out-login',authenticated:false}),
+    observe('/elearning/login',{scenario:'already-signed-in',initialAuthenticated:true,authenticated:true,
+      resultingRoute:'/elearning',navigationSucceeded:true,assistantPresent:false})];
+  assert.equal(assess([login],validLogin).browserAcceptance.passed,true);
+  assert.equal(assess([login],validLogin.slice(0,1)).browserAcceptance.passed,false);
+  assert.equal(assess([login],validLogin.map(row=>row.scenario==='already-signed-in'?{...row,resultingRoute:'/elearning/login'}:row)).browserAcceptance.passed,false);
+  const redirects=routeFamilies.find(row=>row.id==='elearning-entry-transitions');
+  assert.equal(redirects.auth,'transition');
+  const actual=value=>value.replaceAll(':id','123');
+  const entries=redirects.browserScenarios.map(row=>observe(actual(row.route),{
+    scenario:row.id,initialAuthenticated:row.initialAuthenticated,authenticated:row.resultingAuthenticated,
+    resultingRoute:actual(row.resultingRoute),navigationSucceeded:true,assistantPresent:false,
+  }));
+  assert.equal(assess([redirects],entries).browserAcceptance.passed,true);
+  assert.equal(assess([redirects],entries.map(row=>({...row,navigationSucceeded:false}))).browserAcceptance.passed,false);
+  assert.equal(assess([redirects],entries.map(row=>row.scenario==='signed-in-category'
+    ?{...row,resultingRoute:'/elearning/category/987'}:row)).browserAcceptance.passed,false);
+  assert.equal(assess([redirects],entries.map(row=>row.scenario==='signed-out-category'
+    ?{...row,resultingRoute:'/elearning/login?next='+encodeURIComponent('/elearning/category/987')}:row)).browserAcceptance.passed,false);
+});
+
+test('route coverage retains only unresolved semantic cases after adding public assistant guidance',async()=>{
   const inventory=await discoverSurfaces();
-  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...buildPublicCases(inventory)];
+  const leaveCases=studentLeaveRunnerCases(),internshipCases=internshipRunnerCases(),assignmentList=dtmAssignmentListCases();
+  const catalogCases=elearningCatalogRunnerCases(),venueCases=venueRunnerCases(),identityCases=accountStatusCases(),clubCases=clubAttendanceRunnerCases();
+  const cases=[...buildServiceCases(),...buildAccountCases({now:'2026-11-13T02:00:00Z'}),...leaveCases,...internshipCases,...buildDtmMaterialCases(),...assignmentList,...catalogCases,...venueCases,...identityCases,...clubCases,...buildPublicCases(inventory)];
   const report=assessCoverage({cases,results:[],inventory,sourceRevision:revision,requireLive:false});
-  const join=(prefix,suffixes)=>suffixes.map(suffix=>prefix+suffix);
   const expected=[
-    '/school-affairs/search',
-    ...join('/school-affairs/menu/menu/',['custom','common','external','help','course','graduation']),
-    ...join('/school-affairs/menu/aca/',['all','input','query','portal']),
-    ...join('/school-affairs/menu/sao/',['all','input','query','portal']),
-    ...join('/school-affairs/menu/swd/',['all','input','query']),
-    ...join('/school-affairs/menu/rdd/',['all','input','query','portal']),
-    ...join('/school-affairs/menu/personal/',['all','input']),
-    ...join('/school-affairs/menu/infoSystem/',['all','library']),
-    ...join('/school-affairs/services/leave/',['index','archive','periods','edit/:id']),
-    ...join('/school-affairs/services/internship/',['contract','self_assessment','company','directory']),
-    '/school-affairs/services/12-4?course=%3Aid','/school-affairs/services/12-4?syllabus=%3Aid',
-    '/dtm/dashboard','/dtm/my','/dtm/grades','/dtm/course/:id/materials','/dtm/course/:id/assignments',
-    '/dtm/course/:courseId/assignment/:assignmentId','/dtm/course/:courseId/assignment/:assignmentId/edit',
+    '/school-affairs/services/40-1/equipment','/school-affairs/services/40-1/equipment/new','/school-affairs/services/40-1/equipment/new?edit=%3Aid',
+    '/dtm/dashboard','/dtm/my',
+    '/dtm/course/:courseId/assignment/:assignmentId/edit',
     '/ePortal/index.asp','/ePortal/apMenu.asp','/school-sites/dtm.stu.edu.tw',
-    '/school-affairs/login','/dtm/login','/dtm/login/index.php','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml',
-    '/school-affairs/auth/callback','/school-affairs/signed-out','/school-affairs/privacy','/account-status',
-    '/campus-assistant','/campus-assistant?embed=1','/campus-directory','/local-pages',
+    '/school-sites/dtm.stu.edu.tw/course/:id/assignment/:assignmentId/edit','/school-sites/dtm.stu.edu.tw/course/:id/grades/overview',
+    '/dtm/login','/dtm/login/index.php','/ePortal/login.asp','/auth/realms/stuarm/protocol/saml',
+    '/school-affairs/auth/callback','/school-affairs/signed-out','/school-affairs/privacy',
+    '/campus-directory','/local-pages',
   ];
-  assert.equal(cases.length,931);assert.equal(report.coverage.routes.total,561);
-  assert.equal(expected.length,59);assert.deepEqual(report.coverage.routes.missing,expected);
-  assert.equal(report.browserAcceptance.total,561);assert.equal(report.browserAcceptance.requiredScenarios,566);
-  assert.equal(report.coverage.routeFamilies.total,50);
-  assert.deepEqual(report.coverage.routeFamilies.missing,['school-menus','dtm-submissions','legacy-route-aliases','authentication-transitions','account-information','assistant-sessions','campus-navigation']);
+  const added=[
+    '/elearning/login',
+    '/school-affairs/services/4-2','/school-sites/elearning.stu.edu.tw','/school-sites/elearning.stu.edu.tw/login/index.php',
+    '/school-sites/elearning.stu.edu.tw/course/index.php?categoryid=48',
+  ];
+  const reproductionIds=['record-overview','current-courses-year','remaining-balance','interview-help','completed-subject','friday-class']
+    .map(id=>'account:reproduction-'+id);
+  const nativeIds=['student-conduct-literal','student-conduct-empty','student-conduct-detail-unavailable','student-conduct-count-owned','student-conduct-count-empty',
+    'student-loan-literal','student-loan-empty','student-loan-document-unavailable'].map(id=>'account:'+id);
+  const aidIds=['salary-count','salary-multipart','salary-tax','claim','both','empty','bank-unavailable','foreign'].map(id=>'account:aid-payments-'+id);
+  const dtmIds=['feedback','absent','total','saved-total','tail'].map(id=>'account:dtm-native-report-'+id);
+  const elearningIds=['enrollment','enrollment-mixed','enrollment-empty','grades-unlinked'].map(id=>'account:elearning-'+id);
+  const facilityIds=['detail-status','status-not-physical-proof','latest-note','latest-blank','no-review-event','owned-list','all-overrides-detail',
+    'ambiguous-reference','exact-not-found','empty-owned-list','read-only-action','foreign-account','anonymous','compound-next-class','compound-reversed'].map(id=>'account:facility-repair-'+id);
+  const outlineIds=['videos','feedback-and-slides','follow-up-slides','mixed-enrollments','crossed-access'].map(id=>'account:elearning-outline-'+id);
+  const dormitoryIds=['saved-empty','saved-unknown','missing-metadata','empty-not-clearance','details-unavailable','document-unavailable',
+    'follow-up','chinese-empty','mixed-housing','mixed-tuition'].map(id=>'account:dormitory-conduct-'+id);
+  const receiptIds=['housing-receipt-metadata','housing-receipt-term-prefix','housing-receipt-and-bed','housing-bed-and-receipt','housing-receipt-and-balance','housing-receipt-excluded','housing-receipt-foreign','empty-housingApplications'].map(id=>'account:'+id);
+  const addedPrivacyIds=['anonymous-records-studentConduct','anonymous-records-studentLoan','anonymous-records-aidPayments','anonymous-records-dtmGradeReport','anonymous-records-dtmAssignment',
+    'anonymous-records-elearningEnrollments','anonymous-records-facilityRepairs','anonymous-records-elearningOutline','anonymous-records-dormitoryConduct','anonymous-records-feeRemission','anonymous-records-healthExaminations','anonymous-records-counselingAppointments','anonymous-records-graduationClearance','anonymous-records-tutorEvaluation','anonymous-records-teachingFeedback','anonymous-records-housingApplications','anonymous-records-paymentHistory'];
+  const menuIds=['public-affairs-system-search','public-affairs-facilities-input','public-affairs-facilities-query','public-custom-menu-browser-only',...buildSchoolMenuNativeCases().map(row=>row.id)];
+  const newIds=[...reproductionIds,...nativeIds,...aidIds,...dtmIds,...elearningIds,...facilityIds,...outlineIds,...dormitoryIds,...receiptIds,...addedPrivacyIds,...menuIds,...leaveCases.map(row=>row.id),'public-study-first-week','anonymous-records-leaveRecords','anonymous-records-dtmMaterials','anonymous-records-internshipRecords',...internshipCases.map(row=>row.id),...buildDtmMaterialCases().map(row=>row.id),...assignmentList.map(row=>row.id),'anonymous-records-dtmAssignmentList'];
+  newIds.push(...catalogCases.map(row=>row.id),'anonymous-records-elearningCatalog','anonymous-records-elearningMetadata');
+  newIds.push(...venueCases.map(row=>row.id),'anonymous-records-venueRequests');
+  newIds.push(...identityCases.map(row=>row.id),'anonymous-records-accountIdentity');
+  newIds.push(...clubCases.map(row=>row.id),'anonymous-records-clubAttendance','anonymous-records-clubEquipment');
+  const institutionalIds=['public-institution-founding-mission','public-institution-motto'];
+  const publishedCoachingIds=['account:published-sample-current-courses-plus-interview-draft'];
+  const noticeIds=buildSchoolServiceNoticeCases().map(row=>row.id);
+  newIds.push(...institutionalIds,...publishedCoachingIds,...noticeIds);
+  assert.equal(cases.filter(row=>!newIds.includes(row.id)).length,945);
+  for(const ids of [reproductionIds,nativeIds,aidIds,dtmIds,elearningIds,facilityIds,outlineIds,dormitoryIds,receiptIds,addedPrivacyIds,menuIds,institutionalIds,publishedCoachingIds,noticeIds])
+    assert.deepEqual(cases.filter(row=>ids.includes(row.id)).map(row=>row.id).sort(),[...ids].sort());
+  const alreadyCoveredServiceViews=new Set(['/school-affairs/services/45-1/history','/school-affairs/services/45-1/history/:id',
+    '/school-affairs/services/29-1/appointments','/school-affairs/services/37-1/salary','/school-affairs/services/39-1/payment-history?from=:from&through=:through']);
+  const missingServiceViews=schoolServiceViews.filter(route=>!alreadyCoveredServiceViews.has(route)).map(route=>
+    route.replace('?page=:page','?page=%3Apage').replace('?from=:from&through=:through','?from=%3Afrom&through=%3Athrough'));
+  const unresolved=[...expected,...added,...missingServiceViews,
+    '/school-affairs/course-selection','/school-affairs/course-selection/review/tutor','/school-affairs/course-selection/review/dean',
+    '/school-affairs/course-selection/review/academic','/school-affairs/admin/records','/dtm/course/:id/grades/overview'];
+  assert.equal(report.coverage.routes.total,676);
+  assert.equal(expected.length,20);assert.equal(added.length,5);
+  assert.deepEqual([...report.coverage.routes.missing].sort(),unresolved.sort());
+  assert.equal(report.browserAcceptance.total,676);assert.equal(report.browserAcceptance.requiredScenarios,686);
+  assert.equal(report.coverage.routeFamilies.total,57);
+  assert.deepEqual(report.coverage.routeFamilies.missing,['student-club-equipment','dtm-submissions',
+    'elearning-authentication','elearning-entry-transitions','legacy-route-aliases','authentication-transitions','campus-navigation']);
   assert.equal(report.releaseReady,false);assert.equal(report.totals.executed,0);
-  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,59);
+  assert.equal(report.failures.filter(row=>row.id==='routes.omitted').length,unresolved.length);
 });

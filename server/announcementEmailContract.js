@@ -3,6 +3,7 @@ import {feeRemissionUuid} from './feeRemissionContract.js';
 export const announcementEmailPath='/school-affairs/services/2-1';
 export const announcementEmailScope='announcement-email';
 export const announcementEmailAction='save_announcement_email';
+export const announcementEmailInboxLimit='I can’t verify whether an announcement arrived in your Gmail inbox. This setting only shows your saved announcement email preference.';
 const exact=(value,keys)=>value&&typeof value==='object'&&!Array.isArray(value)&&
   Object.keys(value).length===keys.length&&keys.every(key=>Object.hasOwn(value,key));
 const version=value=>Number.isInteger(value)&&value>=0&&value<=2147483647;
@@ -32,11 +33,16 @@ export function announcementEmailQuestion(question){
   return 'guide';
 }
 
+export function announcementEmailInboxQuestion(question){
+  return /\b(?:Gmail|inbox)\b|信箱|收件匣/iu.test(question)
+    &&/\b(?:arrived?|delivered?|reached?|received?|got|confirm|verify)\b|收到|寄到|寄達/iu.test(question);
+}
+
 export function announcementEmailForeignAnswer(question){
   const zh=/[\u3400-\u9fff]/u.test(question);
   const summary=zh?'無法查閱其他學生的公告郵件設定。':'I can’t check another student’s announcement email preference.';
   const title=zh?'校園公告 E-MAIL 設定':'Announcement email settings';
-  return {status:'handoff',answer:summary+'\n\n['+title+']('+announcementEmailPath+')',
+  return {status:'handoff',answer:`${summary}\n\n[${title}](${announcementEmailPath})`,
     citations:[],suggestedQuestions:[],grounding:{source:'directory',webSearched:false},
     activity:[{kind:'announcement-email-privacy',label:title,detail:summary,status:'complete'}]};
 }

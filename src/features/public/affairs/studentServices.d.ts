@@ -2,9 +2,11 @@ import type { PortalProgram } from './model';
 
 export const leavePath: string;
 export const teachingAssistantPath: '/school-affairs/services/25-1';
+export const learningSupportPath: '/school-affairs/services/27-1';
 export const tutorEvaluationPath: '/school-affairs/services/28-1';
 export const schoolSubjectRecordsPath: '/school-affairs/records/subjects';
 export const interdisciplinaryProgramsPath: '/school-affairs/services/12-6';
+export const schoolServiceNoteIds: readonly string[];
 export const internshipPath: string;
 export const officialLeaveUrl: string;
 export const officialInternshipUrl: string;
@@ -17,6 +19,8 @@ export type AccountQuery = 'enrollments'|'timetable'|'grades'|'attendance'|'cred
 export const accountQueryByService: Readonly<Partial<Record<string,AccountQuery>>>;
 export type SchoolServiceEntry = PortalProgram & {officialUrl:string;localUrl:string};
 export const schoolServiceEntries: SchoolServiceEntry[];
+export const commonSchoolMenuPrograms: SchoolServiceEntry[];
+export function schoolMenuPrograms(group:string,view:string,favorites?:readonly string[]):SchoolServiceEntry[];
 export function officialServiceUrl(sourcePath:string):string;
 export function serviceDestination(program:PortalProgram):string;
 export function nativeServiceAlias(key:string):string|undefined;

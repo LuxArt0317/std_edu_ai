@@ -1,6 +1,6 @@
 import {academicGradeReadSources,mapAcademicGrades} from './academicGrades.js';
 import {graduationReviewReadSource,isGraduationReviewKind,mapGraduationReview,validateGraduationReviewContent} from './graduationReview.js';
-import {academicAttendanceFields,academicAttendanceReadSources,mapAcademicAttendance,validateAcademicAttendancePayload} from './academicAttendance.js';
+import {academicAttendanceFields,academicAttendanceReadSources,mapAcademicAttendance,validateAcademicAttendancePayload,academicAttendanceQuery} from './academicAttendance.js';
 
 const sources=[...academicGradeReadSources,graduationReviewReadSource,...academicAttendanceReadSources];
 const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value));
@@ -85,10 +85,8 @@ function map(rows){
  * Every persisted row is validated before mapping; malformed sources reject the
  * entire load instead of becoming an empty or apparently complete collection.
  */
-export async function loadNativeAcademicRecords(userId,includeAdmin,readRows) {
-  if(!uuid(userId)||typeof readRows!=='function')throw new Error('Academic record access is unavailable.');
-  async function load(admin) {
-    return Promise.all(sources.map(async ({table,order})=>{
+async function loadRows(userId,admin,readRows,selected=sources){
+    return Promise.all(selected.map(async ({table,order})=>{
       const rows=await readRows(table,{select:'*',...(!admin?{user_id:`eq.${userId}`} : {}),order});
       if(!Array.isArray(rows)||Array.from(rows).some(row=>!object(row)||!Object.hasOwn(row,'user_id')||!uuid(row.user_id)||(!admin&&row.user_id!==userId)))
         throw new Error('Academic records returned an invalid account scope.');
@@ -101,12 +99,46 @@ export async function loadNativeAcademicRecords(userId,includeAdmin,readRows) {
       }
       return rows;
     }));
-  }
-  const [own,admin]=await Promise.all([load(false),includeAdmin===true?load(true):Promise.resolve(null)]);
+}
+export async function loadNativeAcademicRecords(userId,includeAdmin,readRows) {
+  if(!uuid(userId)||typeof readRows!=='function')throw new Error('Academic record access is unavailable.');
+  const [own,admin]=await Promise.all([loadRows(userId,false,readRows),includeAdmin===true?loadRows(userId,true,readRows):Promise.resolve(null)]);
   return {
     own:map(own),
     ...(admin?{admin:map(admin)}:{}),
     adminUserIds:admin?[...new Set(admin.flat().map(row=>row.user_id))]:[],
     completeness:Object.fromEntries(sources.map(({table},index)=>[table,{returned:own[index].length,complete:true}])),
   };
+}
+
+export async function loadNativeGradeView(userId,view,readRows){
+  if(!uuid(userId)||typeof readRows!=='function')throw new Error('Academic record access is unavailable.');
+  const keys=view==='transcript'||view==='warning'?['records','termSummaries']
+    :view==='ranking'?['rankings']:view==='english'?['metadata']:[];
+  const selected=academicGradeReadSources.filter(source=>keys.includes(source.key));
+  const values=await loadRows(userId,false,readRows,selected);
+  const byKey=new Map(selected.map((source,index)=>[source.key,values[index]]));
+  return mapAcademicGrades(...academicGradeReadSources.map(source=>byKey.get(source.key)??[]));
+}
+
+/** The caller's designation and the selected term/view are read separately.
+ * Unsupported scopes never fetch attendance rows as substitutes. */
+export async function loadNativeAttendanceView(userId,question,route,readRows){
+  if(!uuid(userId)||typeof readRows!=='function')throw new Error('Academic attendance access is unavailable.');
+  let selection=academicAttendanceQuery(question,[],route),metadata=[];
+  if(selection.reason==='current_term_missing'){
+    [metadata]=await loadRows(userId,false,readRows,academicAttendanceReadSources.filter(source=>source.key==='metadata'));
+    selection=academicAttendanceQuery(question,mapAcademicAttendance([],[],metadata).metadata,route);
+  }
+  const selected=academicAttendanceReadSources.find(source=>source.key===selection.view);
+  let rows=[];
+  if(!selection.reason){
+    const filters={academic_year:'eq.'+selection.academicYear,semester:'eq.'+selection.semester,
+      ...(selection.courseDate?{course_date:'eq.'+selection.courseDate}:{})};
+    const reader=(table,query)=>readRows(table,{...query,...filters});
+    [rows]=await loadRows(userId,false,reader,[selected]);
+    if(rows.some(row=>row.academic_year!==selection.academicYear||row.semester!==selection.semester||selection.courseDate&&row.course_date!==selection.courseDate))
+      throw new Error('Academic attendance returned rows outside the selected term or date.');
+  }
+  return {selection,records:mapAcademicAttendance(selection.view==='statistics'?rows:[],selection.view==='details'?rows:[],metadata)};
 }

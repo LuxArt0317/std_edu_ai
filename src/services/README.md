@@ -2,8 +2,18 @@
 
 ## Assistant conversations
 
+Leave history, archive, periods and exact form routes dispatch through the authenticated verification endpoint with the current route and eligible follow-up history.
+
+Selected School Affairs catalog and syllabus field questions use the signed-in verification endpoint, with the selected offering ID retained through sign-in.
+
+The School Affairs assistant dispatcher passes the exact Moodle assignment route to the authenticated endpoint, including when chat opens on the edit page. The API binds all record reads to the verified caller.
+
 `assistantSessions.ts` handles account-bound conversation API calls and a bounded tab cache. `assistantConversation.ts` preserves observed activity, verification results and record views while dropping executable proposals and raw images on restore. Guest chats stay in the tab; signed-in chats sync to owner-only database rows. Account/scope changes discard the prior account's local view. The UI exposes save/conflict failures rather than pretending a chat was synced.
 
+Conversation serialization normalizes absent grounding and citation fields consistently with the server so the client can compare the returned transcript with the submitted one.
+
+Account follow-ups preserve complete Unicode characters within the existing history limit. The browser and server share the eight-column persistence limit for assistant record cards.
+Public campus follow-ups use the same Unicode-safe truncation.
 
 Browser clients call the public, School Affairs and protected Nexus endpoints. `schoolAffairsAssistant.ts` uses only the isolated School Affairs session. Provider secrets stay on the server.
 
@@ -14,6 +24,8 @@ Browser clients call the public, School Affairs and protected Nexus endpoints. `
 `schoolAffairsWorkspace.ts` reads account-scoped School Affairs and DTM data and sends student record edits to the audited RPCs. Its manager call uses the verified Google session and is separately authorized by the database.
 
 `performSchoolAffairsAction` and `manageSchoolAffairsRecord` also accept optional `{expectedUserId, signal}`. The separate administrative page supplies both, preventing a pending form from acquiring a different account's token. Payloads, existing callers and server permissions are unchanged. Cancellation cannot undo a write already accepted by the server.
+
+The assistant's Student Leave review also uses `performSchoolAffairsAction` with the expected signed-in user and original request ID. It displays a link to the existing draft editor once the receipt confirms that ID.
 
 `savePersonalSchoolRecord(action, {expectedUserId, signal})` optionally binds a mutation to its initiating caller. It captures the expected ID before session lookup, requires the returned session's user ID to match, and checks cancellation before sending the POST and after reading the response. The DTM account-menu course creator supplies both the caller ID and a signal aborted when its editor unmounts, preventing an old draft from being sent with a newly switched account's token. Existing callers without the options retain their API shape; server authorization and payloads are unchanged.
 
@@ -62,3 +74,19 @@ The student profile client uses the School Affairs session and rechecks the call
 The announcement email client reloads the caller-owned preference and preserves the same request ID when a confirmation receipt is lost.
 
 The certificate award client uses the School Affairs session for application and Storage requests, checks account binding and uses only the private proof bucket.
+
+Accommodation bed questions from service 34-1 use the common account verification endpoint. The signed-out assistant can show the service route and sign-in return link.
+
+Housing receipt and bed questions go through the School Affairs verification endpoint. Its returned record cards include the same metadata shape as other assistant cards, so the conversation serializer retains the count, timestamp and source note.
+
+For the four School Affairs internship views, `schoolAffairsAssistant.ts` sends matching questions to the account verification endpoint before the legacy snapshot branch. The endpoint selects and verifies the actual record fields.
+
+Written requests about the Moodle assignment-list view go through the signed-in account endpoint. Explicit assignment-detail paths retain their separate evidence selector.
+
+`assistantContext.js` shares the browser/server/model history policy: up to all 24 currently retained messages, 8,000 characters per message, and a total 64,000-byte UTF-8 input budget, with newest messages prioritized. This expands the previous six-message/1,000–2,000-character context; it does not expand durable storage or make the model context unlimited. Existing owner/session isolation and untrusted-history rules remain in force.
+
+`assistantLanguage.js` resolves explicit English/Traditional-Chinese preferences from user messages and distinguishes a language-only instruction from a substantive question. It shares that preference between prompt generation and chat controls. It does not grant authorization or establish account facts.
+
+`assistantLanguage.js` keeps an English surrounding request in English when it contains an isolated parenthesized Chinese interface label. Explicit current or prior user language preferences continue to take precedence.
+
+`websiteAssistant.ts` is the shared website/Answer Lab entry point. It selects the existing public or authenticated client from the actual session user. `assistantTransport.ts` permits request-scoped evaluation configuration without changing routing or global fetch.

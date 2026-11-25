@@ -1,0 +1,15 @@
+{
+  "source": "https://docs.google.com/spreadsheets/d/1JUDwxx5LmdwtIJ0hDZEjuwM4UNMN3cr7Gmx-m5F6M-Y/edit?gid=1159453213",
+  "retrievedOn": "2026-11-25",
+  "timezone": "Asia/Manila",
+  "rows": 53,
+  "columns": [
+    "Category",
+    "Question",
+    "Directory path",
+    "URL",
+    "Notes",
+    "unlabelled supplementary note"
+  ],
+  "csvSha256": "cef66fcfc310118e8466c27be8bb6ea37d288447b9cfa79b768f084eb0da4e8d"
+}

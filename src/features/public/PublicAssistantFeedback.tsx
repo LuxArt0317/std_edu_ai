@@ -21,10 +21,13 @@ type Category =
 export function PublicAssistantFeedback({
   capability,
   status,
+  language="en",
 }: {
   capability: AssistantFeedbackCapability;
+  language?: "en" | "zh-Hant";
   status?: "answered" | "clarification" | "abstained" | "handoff";
 }) {
+  const english=language==='en';
   const [choice, setChoice] = useState<"" | "yes" | "no">("");
   const [category, setCategory] = useState<Category>("incorrect");
   const [comment, setComment] = useState("");
@@ -48,14 +51,14 @@ export function PublicAssistantFeedback({
       setState("saved");
     } catch (reason) {
       setState("error");
-      setError(reason instanceof Error ? reason.message : "無法儲存意見回饋。");
+      setError(reason instanceof Error ? reason.message : (english?"Could not save your feedback.":"無法儲存意見回饋。"));
     }
   }
 
   if (state === "saved")
     return (
       <p className="assistant-feedback-saved" role="status">
-        謝謝，你的意見已安全記錄。
+        {english?"Thank you—your feedback has been saved.":"謝謝，你的意見已安全記錄。"}
       </p>
     );
   return (
@@ -66,10 +69,10 @@ export function PublicAssistantFeedback({
           target="_blank"
           rel="noreferrer"
         >
-          聯絡校方確認 ↗
+          {english?"Check with the school ↗":"聯絡校方確認 ↗"}
         </a>
       ) : null}
-      <span>這個回答有幫助嗎？</span>
+      <span>{english?"Was this answer helpful?":"這個回答有幫助嗎？"}</span>
       <div>
         <Button variant="outline"
           type="button"
@@ -80,7 +83,7 @@ export function PublicAssistantFeedback({
           }}
           aria-label="This answer was helpful"
         >
-          有幫助
+          {english?"Helpful":"有幫助"}
         </Button>
         <Button variant="outline"
           type="button"
@@ -88,7 +91,7 @@ export function PublicAssistantFeedback({
           onClick={() => setChoice("no")}
           aria-expanded={choice === "no"}
         >
-          需要修正
+          {english?"Needs improvement":"需要修正"}
         </Button>
       </div>
       {choice === "no" ? (
@@ -99,18 +102,18 @@ export function PublicAssistantFeedback({
           }}
         >
           <Label>
-            問題類型
+            {english?"Issue type":"問題類型"}
             <NativeSelect
               value={category}
               onChange={(event) => setCategory(event.target.value as Category)}
             >
-              <NativeSelectOption value="incorrect">資訊不正確</NativeSelectOption>
-              <NativeSelectOption value="stale">資料已過期</NativeSelectOption>
-              <NativeSelectOption value="missing_source">缺少官方來源</NativeSelectOption>
-              <NativeSelectOption value="unclear">說明不清楚</NativeSelectOption>
-              <NativeSelectOption value="unsafe">可能不安全</NativeSelectOption>
-              <NativeSelectOption value="wrong_route">路線不正確</NativeSelectOption>
-              <NativeSelectOption value="other">其他</NativeSelectOption>
+              <NativeSelectOption value="incorrect">{english?"Incorrect information":"資訊不正確"}</NativeSelectOption>
+              <NativeSelectOption value="stale">{english?"Outdated information":"資料已過期"}</NativeSelectOption>
+              <NativeSelectOption value="missing_source">{english?"Missing source":"缺少官方來源"}</NativeSelectOption>
+              <NativeSelectOption value="unclear">{english?"Unclear explanation":"說明不清楚"}</NativeSelectOption>
+              <NativeSelectOption value="unsafe">{english?"Potentially unsafe":"可能不安全"}</NativeSelectOption>
+              <NativeSelectOption value="wrong_route">{english?"Wrong destination":"路線不正確"}</NativeSelectOption>
+              <NativeSelectOption value="other">{english?"Other":"其他"}</NativeSelectOption>
             </NativeSelect>
           </Label>
           <Label className="assistant-feedback-resolved">
@@ -119,10 +122,10 @@ export function PublicAssistantFeedback({
               checked={resolved}
               onChange={(event) => setResolved(event.target.checked)}
             />
-            我仍然解決了需求
+            {english?"I still resolved my question":"我仍然解決了需求"}
           </Label>
           <Label>
-            補充說明（選填）
+            {english?"Additional comments (optional)":"補充說明（選填）"}
             <Textarea
               maxLength={1000}
               rows={2}
@@ -131,7 +134,7 @@ export function PublicAssistantFeedback({
             />
           </Label>
           <Button type="submit" disabled={state === "saving"}>
-            {state === "saving" ? "儲存中…" : "送出意見"}
+            {state === "saving" ? (english?"Saving…":"儲存中…") : (english?"Send feedback":"送出意見")}
           </Button>
         </form>
       ) : null}

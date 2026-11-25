@@ -1,6 +1,9 @@
 export const aidPaymentsScope='aid-payments';
 export const aidPaymentsPageSize=25;
+export const aidPaymentsMaxPage=201;
 export const aidPaymentsPaths={claims:'/school-affairs/services/37-1',salary:'/school-affairs/services/37-1/salary'};
+export const aidPaymentsPagePath=(view,page)=>aidPaymentsPaths[view]+(page>1?'?page='+page:'');
+export const aidPaymentsRowsOnPage=(total,page)=>Math.max(0,Math.min(aidPaymentsPageSize,total-(page-1)*aidPaymentsPageSize));
 export const aidPaymentsFields={
   claims:[['reason','請款事由'],['amount','請領金額'],['approval_result','簽核結果'],['approval_status','各單位簽核狀態']],
   salary:[['appointment_type','任用類別'],['payment_period','給付起迄日'],['rate','單位薪資'],['work_units','工讀基數'],['gross','給付金額'],

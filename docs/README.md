@@ -13,6 +13,7 @@
 - [Role/action catalog](product/needed.md), [lifecycle contract](product/neededv2.md), and [relationship contract](product/neededv3.md)
 - [Role permissions](security/roles.md)
 - [User guide](guides/portal.md)
+- [Survey-derived school FAQ](guides/SURVEY_FAQ.md): 53 answers, local links and source gaps
 - [Platform schema](PLATFORM_SCHEMA_MAP.md), [research schema](RESEARCH_SYSTEM_SCHEMA.md), and [calendar schema](product/CALENDAR_SCHEMA.md)
 - [Nexus action tools](NEXUS_ACTION_TOOLS.md)
 

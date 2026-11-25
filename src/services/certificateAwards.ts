@@ -1,5 +1,5 @@
 import {affairsClient} from '@/features/public/affairs/authClient';
-import {certificateAwardScope,certificateProofBucket,certificateProofLimit,type CertificateWorkspace,
+import {certificateAwardBankReceiptNote,certificateAwardBankReceiptQuestion,certificateAwardScope,certificateProofBucket,certificateProofLimit,type CertificateWorkspace,
   type CertificateCatalogRow,type CertificateAwardReceipt,type CertificateProof,type ManagerAwardOp,type StudentAwardOp} from '../../server/certificateAwardsContract.js';
 import {feeRemissionUuid as uuid} from '../../server/feeRemissionContract.js';
 import type {AssistantResponse} from './researchAssistant';
@@ -97,8 +97,16 @@ export async function downloadCertificateProof(userId:string,proof:CertificatePr
   const link=document.createElement('a');link.href=url;link.download=proof.filename;link.click();
   window.setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
-export async function readCertificateAwardAnswer(userId:string,question:string,signal?:AbortSignal):Promise<AssistantResponse>{
-  const value=await request(userId,signal,endpoint({view:'mine',answer:/[\u3400-\u9fff]/u.test(question)?'zh':'en'}));
+export async function readCertificateAwardAnswer(userId:string,question:string,signal?:AbortSignal,id?:string):Promise<AssistantResponse>{
+  const zh=/[\u3400-\u9fff]/u.test(question);
+  const bankReceipt=certificateAwardBankReceiptQuestion(question);
+  const query={view:'mine',answer:zh?'zh':'en',...(id?{id}:{}),...(bankReceipt?{bank_receipt:'requested'}:{})};
+  const value=await request(userId,signal,endpoint(query)).catch(error=>{
+    if(!id||!(error instanceof CertificateAwardError)||error.status!==404)throw error;
+    const message=zh?'找不到此帳戶的這筆證照申請。':'I couldn’t find this saved certificate application for your account.';
+    return {status:'handoff',answer:bankReceipt?message+'\n\n'+certificateAwardBankReceiptNote[zh?0:1]:message,citations:[],suggestedQuestions:[],grounding:{source:'account',webSearched:false},
+      activity:[{kind:'certificate-awards',label:zh?'證照申請':'Certificate application',detail:message,status:'unavailable'}]};
+  });
   if(typeof value?.answer!=='string'||value.grounding?.source!=='account')throw new CertificateAwardError(503);
   return value;
 }

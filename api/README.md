@@ -12,7 +12,17 @@
 
 ## Account conversations and verified replies
 
+New conversation IDs use the versioned save, read and delete RPCs. During rollout, a first-save request for an old UUIDv4 draft uses the shared locking wrapper so an open tab can save and a delayed retry respects a protected deletion. Retiring that admission requires the separate legacy cutover. Exact sign-in questions read only the caller's verified Google session.
+
+Student leave history, archive, periods and exact-form questions select the caller's leave reader before any broad account load. Requested fee balances, the next class and native Moodle grades use their own scoped sources. Guest requests receive local sign-in return links.
+
+Focused Moodle assignment questions use the signed-in caller's exact course and assignment route, including the edit page. A combined assignment and native grade question dispatches separate scoped readers. The retry reuses the same scope and cannot perform a write.
+
 `affairs-data.ts?resource=conversations` (public alias `/api/affairs-conversations`) supports owner-only list/read/save/delete with the School Affairs Google session. Saves enforce a 190KB request limit, bounded text/history and database version checks. `affairs-assistant.ts` selects account evidence and runs the bounded LangGraph verification loop; `research-assistant.ts` verifies generated knowledge/web/image answers. `affairs-action.ts` accepts an optional reviewed-action `requestId` and uses durable receipts for replay protection. None of these endpoints borrow Nexus credentials or execute a write during answer verification.
+
+The conversation DELETE handler requires migration `20261115230000`. The owner-only RPC records the deleted ID and returns the same receipt for absent and existing IDs. The save RPC checks that ID under the same account lock.
+
+The assistant uses the selected published-offering ID from the course or syllabus route to answer field questions. It retries only the published detail RPC and retains a separate enrollment boundary.
 
 
 Vercel serverless endpoints live here. `research-assistant.ts` answers public school questions from governed knowledge, the captured service directory, images, and verified web sources. `affairs-assistant.ts` verifies a separate School Affairs Google session and never loads Nexus records; `school-assistant.ts` remains the protected Nexus operating assistant.
@@ -57,6 +67,8 @@ Moodle resource reads use strict `dtm-course-resource` scope with one course and
 
 `GET /api/affairs-data?scope=tutor-evaluation` reads the signed-in account’s evaluation and verified profile fields. `POST /api/affairs-action` accepts `submit_tutor_evaluation` with a request ID, ten ratings and an optional comment. Both routes require the caller’s Google identity.
 
+`POST /api/affairs-assistant` uses the caller’s private tutor evaluation read for submission status and time, explicitly requested numbered ratings and the saved comment. A combined fee question reads the caller’s charge ledger separately.
+
 `GET /api/affairs-data?scope=curriculum-plan&code=115101` returns an inline public curriculum PDF for an allowlisted plan code. This scope takes no user ID and sends no account token. The preview is bounded to 4.4 MB. The UI provides the direct university download for preview failures.
 
 `GET /api/affairs-data?scope=curriculum-map&program=1&year=115&track=L創新應用` reads the public curriculum map. It accepts only captured selectors and returns plain-text summary and semester tables.
@@ -81,4 +93,62 @@ Announcement email settings use the protected `announcement-email` scope and `sa
 
 Certificate awards use the caller-scoped `certificate-awards` scope and dedicated `certificate_award_` action or manager requests.
 
-The private Answer Lab is multiplexed through `affairs-data?resource=evaluation-lab&op=...`, retaining the existing Vercel Function count. Google sign-in and the trusted School Affairs administrator check precede all evaluation operations.
+### Private service notes in the account assistant
+
+`POST /api/affairs-assistant` accepts the signed-in caller’s question. A request for the selected service notes uses their existing Google session. Pure notes, note plus fee balance, and note plus next class use scoped reads. Other supported account clauses can use the existing workspace or their dedicated readers. The API returns an own-account boundary for foreign requests and a link to the service page when the requested official workflow is unavailable.
+
+### Student conduct questions
+
+A request for a student's own conduct records uses its dedicated source at 38-1. A direct question about tuition or the next class can use its independent source in the same response. Public form navigation returns 38-1, while private lookup guidance preserves the 38-1 return path through sign-in.
+
+### Salary and aid claim questions
+
+The verified School Affairs assistant forwards the exact 37-1 claims or salary page to the existing caller-scoped RPC. Guests receive navigation or a sign-in return link. An invalid page or another student's records are handled before any read.
+
+### Current subjects and year level
+
+A signed-in question asking for both uses the owned School Affairs timetable and a separate year-level lookup. A rejected draft triggers one refresh of both sources. The revised response uses the exact refreshed fields, including any failed or unlinked source state. Interview practice without a requested record dependency uses general coaching and preserves private account records in the app.
+
+### Teaching feedback questions
+
+The signed-in assistant can verify caller-owned questionnaire completion and immediate teaching feedback from services 7-5 and 7-6. Explicitly selected immediate comments can be shown. Anonymous survey responses are unavailable. A rejected draft triggers a fresh read of the selected records. Navigation and unsupported operations use the service links.
+
+### Saved account overview
+
+The assistant uses a read-only overview for a general request about saved account records. It checks the caller’s name, program, year, current School Affairs subjects and saved DTM labels. It counts assignment tracker items, charges, tasks and service requests without reading their contents. No account provisioning runs on this path.
+
+### Saved dormitory bed assignments
+
+The assistant reads service 34-1 for its authenticated caller. A bed-only question reads the assignment and its linked period. Monetary fields require an explicit request. A separate request for the next class, a balance, or the dormitory conduct notice uses that source. Public navigation returns the local route and guest record requests preserve the sign-in return path.
+
+Explicitly excluded and foreign-account companion requests stay outside the account read. An independently requested own balance or timetable remains eligible.
+
+The signed-in account handler answers School Affairs keyword-field help after verifying the session. It uses the public search controls and skips private record queries for that help request.
+
+### Housing receipt and native Moodle questions
+
+The account assistant reads the signed-in user's housing receipt number, submission time and linked term from service 26-1. Bed assignments at 34-1 use a separate reader. A question about both housing receipts and the Moodle grade overview uses those two readers. Focused native Moodle grade questions skip the general account snapshot and planner. A failed first check reloads the selected records before one correction.
+
+### Verified internship record questions
+
+`affairs-assistant.ts` reads only the verified caller's selected internship subtype. It derives the local contract, self-assessment, company application or enterprise directory from the question and current route. The same filters apply when verification retries. Explicit fee balance or next-class requests use their own read scopes. Guests receive a local sign-in return for the selected destination.
+
+`affairs-assistant.ts` routes written questions on the two Moodle assignment-list views to the scoped tracker reader before the broad snapshot branch. Exact assignment detail, submission and grade paths retain their existing readers.
+
+`affairs-data?resource=evaluation-lab&op=...` multiplexes the private hosted Answer Lab without adding a deployment Function. Every lab operation checks the School Affairs Google identity and existing trusted administrator permission before data/model access.
+
+The authenticated affairs assistant can answer public service-navigation and record-access-boundary questions after verifying the session, before querying private records. These public guides do not grant additional permissions and never confirm a record mutation.
+
+General published tuition-rate and payment-method/deadline questions use the same source projections in the authenticated and public assistants. This occurs after identity verification but before private record reads. Personal balance, payment-status and invoice requests retain the account-scoped pipeline.
+
+Public transcript/certificate procedure questions share the public research handler; personal document downloads, grades and application-status requests retain their account boundary.
+
+Public club-directory and recruitment questions share the public research route; this does not establish personal membership or execute a join action.
+
+General admission-language questions share public prospectus research, while personal certificate results and eligibility decisions remain account-scoped.
+
+Public institution-wide calendar dates share public research. Static calendar sources cannot establish the caller’s class schedule, graduation eligibility, degree issuance, cancellations or emergency closures.
+
+General dorm prices/application/checkout questions use public policy research before personal housing lookups. Bed assignments, personal amounts, application status and receipts retain their authenticated paths. Network/repair questions are excluded from the general housing-policy shortcut.
+
+Public student-card replacement instructions share public research; personal application status and actual card issuance remain separate.

@@ -19,7 +19,9 @@ const fixed = new Map(Object.entries({
 }));
 const services = new Map(schoolServiceEntries.map(entry=>[entry.id,entry.localUrl]));
 for(const key of ['leave','internship'])services.set(key,studentServiceByKey(key).localUrl);
-const serviceRoutes = new Set(services.values());
+services.set('28-1','/school-affairs/services/28-1/notes');
+// Keep the legacy service page allowlisted for unrelated existing tracker drafts.
+const serviceRoutes = new Set([...services.values(),'/school-affairs/services/28-1']);
 const reservedIds = new Set(['__proto__','prototype','constructor']);
 const segment = id=>typeof id==='string'&&/^[\p{L}\p{N}_-][\p{L}\p{M}\p{N}_-]{0,127}$/u.test(id)&&!reservedIds.has(id)
   ?encodeURIComponent(id):null;

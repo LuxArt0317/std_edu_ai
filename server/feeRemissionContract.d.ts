@@ -26,4 +26,4 @@ export function feeRemissionUuid(value: unknown): value is string;
 export function validateFeeRemissionPayload(kind: unknown, payload: unknown): boolean;
 export function parseFeeRemission(value: unknown, userId: string): FeeRemissionHistory;
 export function parseFeeRemissionReceipt(value: unknown, action: FeeRemissionAction): FeeRemissionReceipt;
-export function readFeeRemissionJson(response: Response): Promise<unknown>;
+export function readFeeRemissionJson(response: Response, limit?: number): Promise<unknown>;
