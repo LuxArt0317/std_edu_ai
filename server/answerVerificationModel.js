@@ -20,6 +20,9 @@ export async function verificationModelCall(name, schema, instructions, input, d
   // of detailed academic reports before the JSON can be completed.
   const review = name === 'answer_evidence_review';
   const evaluationReview = name === 'evaluation_match_review';
+  const configuredAuditReasoning=process.env.OPENAI_VERIFICATION_REASONING_EFFORT;
+  const reasoning=review&&['low','medium','high'].includes(configuredAuditReasoning)
+    ?configuredAuditReasoning:assistantReasoning(deeperReview);
   const standardModel=process.env.OPENAI_VERIFICATION_MODEL || process.env.OPENAI_PUBLIC_MODEL || process.env.OPENAI_MODEL || 'gpt-5.6-terra';
   // Selecting an answer model must not replace an explicitly configured
   // independent source auditor. Composition still uses the request override.
@@ -63,7 +66,7 @@ export async function verificationModelCall(name, schema, instructions, input, d
     signal: AbortSignal.timeout(Math.min(review ? publicEvidenceOnly ? 40_000 : 25_000 : evaluationReview ? 30_000 : sourceOnlyComposition ? 28_000 : 15_000, Math.max(1, deadline - Date.now()))),
     body: JSON.stringify({
       model,
-      store: false, reasoning: { effort: assistantReasoning(deeperReview) }, max_output_tokens: review ? 8192 : deeperReview ? 4096 : 2400,
+      store: false, reasoning: { effort: reasoning }, max_output_tokens: review ? 8192 : deeperReview ? 4096 : 2400,
       instructions,
       input: [{ role: 'user', content: [
         { type: 'input_text', text: JSON.stringify(input) },

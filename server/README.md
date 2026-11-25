@@ -1,5 +1,7 @@
 # Server helpers
 
+Scholarship response-needs notes use only source-present form, policy, tier and obligation sections. They explicitly separate the applicant group, programme obligations and award conditions, and include a repayment consequence only when the supplied policy text contains it. They contain no expected-answer values.
+
 `evaluation_match_review` uses up to its caller's existing30-second deadline rather than the planner's15-second transport cap. It keeps the explicitly selected grader and2400-token output budget; source-auditor selection and planner limits are unchanged.
 
 Focus-only verification rejection retains bounded missing-detail labels as repair hints. They supply no facts or authorization, and the rejected draft never becomes a verified partial answer. Public review interruption can use one review-only retry when an answered draft, existing evidence, no proposed action and at least25seconds remain; quota exhaustion and time limits still stop. This rechecks the same draft without another read/rewrite and stays within the existing check/request limits.
@@ -283,7 +285,7 @@ Unconfirmed answers use conversational, reason-specific wording in English and C
 
 `assistantImageAnswer.js` handles explicit image-description requests directly from validated attachments. Composition, verification and correction receive the same current-message images. This route does not search school pages or infer account-record facts from an image. A failed image read acknowledges receipt and never asks for an attachment already supplied. The ordinary public verification/correction path also retains attachments.
 
-`assistantReasoning.js` validates optional server-only `OPENAI_REASONING_EFFORT` (`low`, `medium`, `high`). Without it, existing reasoning defaults remain unchanged. Local manual configuration selects GPT-6.2 Astra with medium reasoning; model metadata returned HTTP 200, but inference has not been accepted because the local credential previously reported exhausted credits.
+`assistantReasoning.js` validates optional server-only `OPENAI_REASONING_EFFORT` (`low`, `medium`, `high`). Without it, existing reasoning defaults remain unchanged. `OPENAI_VERIFICATION_REASONING_EFFORT` optionally selects effort for source audits only; it changes neither answer composition nor evaluation grading. Invalid/unset values retain the request/default effort. Current local QA uses Luna answers and Terra6.1 grading/source auditing; see `.env.example` for the optional controls, rather than older local credential/model snapshots.
 
 Signed-in screenshot-description requests are dispatched before page/history-based record selection. The shared predicate includes requests to give the contents of a screenshot, transcribe and extract. Public image parsing remains responsible for validating the image bytes and size; no caller identity or private conversation is forwarded, and no account records are read.
 

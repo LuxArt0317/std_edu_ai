@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Clarify scholarship source coverage for applicant scope, programme/award obligations and source-present repayment consequences. Add optional independent source-audit reasoning effort without changing answer/grading settings or unset production defaults.
+
 - Let evaluation grading use its already configured30-second deadline instead of the shared15-second planner timeout; retain the selected grader, token budget and request deadline.
 
 - Preserve validated missing-detail labels as untrusted repair hints after focus-only rejection, without approving the rejected draft. Allow one budgeted recheck of an interrupted public review using the same draft and evidence.

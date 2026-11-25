@@ -209,16 +209,23 @@ test('public review is scoped while mixed account review retains its contracts',
 });
 
 test('an answer-model selection preserves the independently configured source auditor',async()=>{
- const nativeFetch=globalThis.fetch,names=['OPENAI_API_KEY','OPENAI_VERIFICATION_MODEL'] as const;
+ const nativeFetch=globalThis.fetch,names=['OPENAI_API_KEY','OPENAI_VERIFICATION_MODEL','OPENAI_VERIFICATION_REASONING_EFFORT'] as const;
  const previous=Object.fromEntries(names.map(name=>[name,process.env[name]]));
  process.env.OPENAI_API_KEY='unit-test';process.env.OPENAI_VERIFICATION_MODEL='independent-review-model';
+ process.env.OPENAI_VERIFICATION_REASONING_EFFORT='low';
  const requests:any[]=[];
  globalThis.fetch=async(_url,options)=>{requests.push(JSON.parse(String(options?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{}'}]}]});};
  try{
   await withAssistantModel({model:'selected-answer-model',reasoning:'medium'},async()=>{
    await verificationModelCall('compose_grounded_answer',{},'Compose',{},Date.now()+5000);
    await verificationModelCall('answer_evidence_review',{},'Review',{},Date.now()+5000);
+   await verificationModelCall('evaluation_match_review',{},'Grade',{},Date.now()+5000);
+   process.env.OPENAI_VERIFICATION_REASONING_EFFORT='invalid';
+   await verificationModelCall('answer_evidence_review',{},'Review',{},Date.now()+5000);
   });
   assert.equal(requests[0].model,'selected-answer-model');assert.equal(requests[1].model,'independent-review-model');
+  assert.equal(requests[0].reasoning.effort,'medium');assert.equal(requests[1].reasoning.effort,'low');
+  assert.equal(requests[2].reasoning.effort,'medium','Source audit settings must not change independent grading.');
+  assert.equal(requests[3].reasoning.effort,'medium','Invalid audit settings retain the original request behavior.');
  }finally{globalThis.fetch=nativeFetch;for(const name of names){if(previous[name]===undefined)delete process.env[name];else process.env[name]=previous[name];}}
 });
