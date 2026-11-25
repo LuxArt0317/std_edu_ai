@@ -1368,8 +1368,8 @@ Do not resume deployment or cloud overwrite. Production was rolled back; staged 
 ## Authorized publication [Issues #100/#101]
 - [x] User explicitly requested deploying all current changes through the existing GitHub pipeline.
 - [x] Runtime-import lint291files/0errors; isolated JS-only packaging passes without provider calls.
-- [ ] Reconcile11remote release commits with555local commits in isolated release integration; retain shared-admin actor/workspace access and current agent logic.
-- [ ] Run required lint/tests/build gates, publish by authenticated owner GitHub merge, verify exact production revision and hosted lab operation.
+- [x] Reconcile remote release commits with local work in isolated integration; retain shared-admin actor/workspace access and current agent logic.
+- [x] Run required gates, publish by authenticated owner GitHub merge, verify exact production revision and public lab/API boundaries. Signed-in execution remains manual.
 - [ ] Resume unfinished quality/authenticated evaluations after publication; do not mark53-case goalcomplete.
 
 ## Authorized production release —25 November2026 [Issue #100, Issue #101]
@@ -1377,8 +1377,8 @@ Do not resume deployment or cloud overwrite. Production was rolled back; staged 
 - [x] Integrate latest GitHub main without overwriting shared lab/admin fixes.
 - [x] Verify runtime import lint and JavaScript-only hosted packaging.
 - [x] Run API/unit/build/handoff/dependency gates; repair integration regression failures.
-- [ ] Pass the complete assistant evaluation suite on the final release tree.
-- [ ] Publish through owner-authenticated GitHub PR/main pipeline and verify exact deployed revision.
-- [ ] Verify public lab entry, assets and unauthorized API boundary; record remaining signed-in acceptance.
+- [x] Pass the complete assistant evaluation suite on the final release tree.
+- [x] Publish through owner-authenticated GitHub PR/main pipeline and verify exact deployed revision.
+- [x] Verify public lab entry, assets and unauthorized API boundary; record remaining signed-in acceptance.
 
-All53question quality goal remains open; this release does not claim full private-account or rendered-browser acceptance.
+All53question quality goal remains open; this release does not claim full private-account or production rendered-browser acceptance.
