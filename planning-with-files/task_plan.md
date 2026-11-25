@@ -1,5 +1,12 @@
 # Task Plan
 
+## Graduation requirements evidence [Issue #100]
+
+- [x] Audit existing curriculum-plan and report destinations; distinguish directory availability from unread PDFs.
+- [x] Include source-derived curriculum/report capability guidance in selected private graduation evidence and allow its real directory link.
+- [x] Check report-kind isolation, privacy and no cohort/eligibility inference in the native evidence suite.
+- [ ] Evaluate Q15 in a verified signed-in session; do not assign a fixture score.
+
 ## Scholarship status navigation [Issue #100]
 
 - [x] Inspect the real local scholarship menu, period/history UI and saved response gaps.

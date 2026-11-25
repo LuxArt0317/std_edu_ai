@@ -1,5 +1,7 @@
 # Server helpers
 
+`graduationPageGuide.js` links the implemented curriculum-plan directory with the selected current or legacy graduation report. It describes programme/department/admission-year selectors and the report's explicit requirement/language fields. It supplies no universal graduation threshold or eligibility decision and does not claim every curriculum PDF is available or has been read. The account evidence link allowlist includes the real curriculum directory for graduation lookups.
+
 `scholarshipRecords.js` exposes a page guide tied to the existing service catalog entry and scholarship workspace fields. Account evidence includes this guide only when scholarship records are selected. Navigation questions receive a useful starting draft; the model can rewrite it against the same evidence. Pending review, award approval and payment remain distinct. No evaluation reference is imported into the producer.
 
 `venueBooking.js` validates the public schedule, persists room occupancy, and serves caller-scoped requests and review operations.

@@ -1,5 +1,9 @@
 # Current state —25 November2026
 
+## Q15 local evidence repair
+
+ImplementedgraduationPageGuide.jsforpersonalgraduationevidencewithactual12-5directory/programselectorsandselectedcurrent/legacyreportcapabilities.Theaccountallowlistnowpermits12-5.NoPDFavailability,universalcreditthreshold,cohortoreligibilityclaimadded.12nativeevidencecheckspassed;typesandruntimeimportlint293/0passed.PrivateQ15modelacceptanceremainspending.Noregressionserverrestart;thesechangesareconfinedtotheprivateaccountgraph,nottherunningpublicresearchgraph.
+
 ## Active regression — resume this process
 
 Serial24-case public retrieval regression is LIVE in execsession76511, labelretrieval-regression-20261125, sourcef89ace7f. Current localserver is session63573. Do not restart either solely because an observation times out. Poll76511 or inspect its actual PID/terminal summary first. Q06producer verified/HTTP200, grader transport timed out (ungraded, not answer failure); Q07passed75; Q08started. Grade-only retry Q06 after the batch if provider recovers; do not regenerate its completed answer. All results/provenance remain private in.evaluation-lab/bank-runs/retrieval-regression-20261125. Q04/Q45alreadyfresh85/90; unchangedpreparedguidesexcluded.

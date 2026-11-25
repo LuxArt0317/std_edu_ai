@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Include the existing curriculum-plan directory and selected report capabilities in personal graduation evidence, preserving current/legacy report separation and missing-cohort limits.
+
 - Give scholarship answers page-backed navigation, period/history fields and review/payment distinctions as model evidence, while retaining caller-owned records and confirmation boundaries.
 
 - Explain leave-count units, unfiltered tracking states and date scope; ask for the intended usage measure instead of equating request counts with approved days. Add caller-scoped current leave evidence to evaluation grading.

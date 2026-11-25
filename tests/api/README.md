@@ -1,5 +1,7 @@
 # API contract checks
 
+The native academic evidence suite checks that graduation guidance links the actual curriculum directory while retaining the requested current/legacy report kind. It also checks that page capabilities do not expose private values or turn current year level/total credits into an entry cohort or eligibility decision.
+
 `scholarship-workspace.test.ts` binds assistant navigation/evidence to the catalog's scholarship destination, preserves period and application fields, and prevents pending review from becoming an award/payment claim. It retains caller-only reads and confirmed student/manager writes.
 
 The leave suite verifies that count responses describe request units, all-status/date scope and an explicit clarification for ambiguous usage in English and Chinese. The private grading suite verifies caller-bound leave reconstruction through the existing read-only reader and blocks a different run actor before any read. Fixture checks do not establish a live signed-in evaluation score.
