@@ -1440,3 +1440,7 @@ All53question quality goal remains open; this release does not claim full privat
 - [x] Add exact caller-scoped Q12 source reconstruction for grading; retain historical comparison limits.
 - [x] Verify English/Chinese presentation, existing leave boundaries and caller isolation.
 - [ ] Run Q12 through a real verified signed-in session and Terra grading; do not substitute fixture scores.
+
+## Timetable grading [Issue #101]
+- [x] Add caller-scoped Q13 timetable reconstruction and isolation checks.
+- [ ] Complete real signed-in Q13 model acceptance.

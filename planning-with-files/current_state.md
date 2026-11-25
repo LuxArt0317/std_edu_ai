@@ -58,3 +58,6 @@ FreshLuna/mediumanswerswithTerra6.1/mediumgradingpassedQ20=75(25.5s,verified1),Q
 
 ## Signed-in/public routing parity repair
 Offlineactualauthenticated-handlerauditof41publicFAQquestionsfound7wrongprivate-snapshotselections(Q20,Q25,Q32,Q34,Q36,Q50,Q51).NewpublicSignedInDispatch.jsreusessharedpublicsourcepredicatesbeforeaccountselection,withqualifiedown/foreign-record/writeexclusionsandregisteredpublicroutesonly.Noauth/historyforwarding.22focuseddispatchchecks,types/importlintandthe41caseauditnowpasswith0privateselections/errors.Thisisroutingfixtureproof,notrealsigned-inbrowser/modelacceptance.Club/Q16patchiscommitted0ff1e623;routingpatchawaitscommit/reload.Q43lastpublicretrievalcaseawaitsitsonefreshmodeltest;privateQ12authquestionpending.
+
+## Current checkpoint superseding earlier runtime notes
+Local HEAD044bd644 serves on exec50855. Q43 passed100; Q09/Q20/Q30/Q44 passed95/75/80/90. The19-case post-repair regression exec76837 remains live, with16 cases passed70–100 through Q50 and Q51 started. New Q13 grading adapter uses the existing caller-owned timetable reader; complete/owner/cap/deadline checks and unlinked uncertainty are enforced. Real private acceptance remains pending the user’s Codex sign-in/run. No new deployment or cloud data sync.

@@ -64,3 +64,35 @@ test('leave grading reconstructs only caller-scoped request counts, never approv
  const denied=await resolveAccountJudgeEvidence(account,{...leaveRun,actor:{id:'foreign'}},leaveCase,{loadLeaves:async()=>{forbidden++;throw Error('forbidden');}});
  assert.equal(forbidden,0);assert.equal(denied.summary.reason,'different_or_missing_actor');
 });
+
+const timetableCase={...row,id:'survey-faq-q13',question:'What is my class schedule?',route:'/school-affairs/services/11-2'};
+const timetableRun={...run,caseId:timetableCase.id,question:timetableCase.question,route:timetableCase.route};
+const timetable=(linked=true,courses:any[]=[])=>({profile:{userId:id},checkedAt:snapshot.checkedAt,source:'stu.best School Affairs' as const,officialUniversityData:false as const,studentRecordFound:linked,courses,
+ completeness:{courses:{scope:'owned_enrolled_timetable' as const,returned:courses.length,complete:linked,cap:200 as const,reason:linked?null:'student_unlinked' as const,meaning:'Owned bounded timetable only'}}});
+test('timetable grading retains explicit empty versus unlinked coverage and reads only the current caller',async()=>{
+ for(const linked of [true,false]){
+  let calls=0;
+  const result=await resolveAccountJudgeEvidence(account,timetableRun,timetableCase,{loadCharges:async()=>assert.fail('No charges'),loadTimetable:async(caller,options)=>{
+   calls++;assert.equal(caller.user.id,id);assert.ok(options!.deadline!<=Date.now()+5000);return timetable(linked);
+  }});
+  assert.equal(calls,1);assert.equal(result.summary.reason,null);assert.equal(result.summary.selection,'current_caller_timetable_only');
+  const data=JSON.parse(result.evidence.find(item=>item.id==='account:courses')!.content);
+  assert.equal(data.studentRecordFound,linked);assert.equal(data.readerCoverage.complete,linked);assert.equal(data.readerCoverage.reason,linked?null:'student_unlinked');
+  assert.doesNotMatch(JSON.stringify(result.summary),/PRIVATETOKEN|PRIVATEKEY|studentRecordFound|readerCoverage/u);
+ }
+});
+test('timetable failures, partial/capped or crossed-owner results never become a verified empty schedule',async()=>{
+ const variants=[{...timetable(),profile:{userId:'foreign'}},{...timetable(),completeness:{courses:{...timetable().completeness.courses,complete:false}}},{...timetable(),completeness:{courses:{...timetable().completeness.courses,returned:201}}}];
+ for(const value of variants){const result=await resolveAccountJudgeEvidence(account,timetableRun,timetableCase,{loadTimetable:async()=>value});assert.deepEqual(result.evidence,[]);assert.equal(result.summary.reason,'read_unavailable');}
+ const failure=await resolveAccountJudgeEvidence(account,timetableRun,timetableCase,{loadTimetable:async()=>{throw Error('private transport detail');}});
+ assert.equal(failure.summary.reason,'read_unavailable');assert.doesNotMatch(JSON.stringify(failure),/private transport detail/u);
+ const denied=await resolveAccountJudgeEvidence(account,{...timetableRun,actor:{id:'foreign'}},timetableCase,{loadTimetable:async()=>assert.fail('No foreign read')});assert.equal(denied.summary.reason,'different_or_missing_actor');
+});
+test('timetable fields remain ephemeral while summary exposes only source hashes and read scope',async()=>{
+ const courses=[{enrollmentId:'10000000-0000-4000-8000-000000000008',status:'enrolled' as const,sourceMode:'sample' as const,code:'OFFLINE101',title:'Private timetable course',term:'Offline term',termStartsOn:'2026-09-01',termEndsOn:'2027-01-31',weekday:2,startsAt:'09:00',endsAt:'10:30',room:'PRIVATE_ROOM'}];
+ const result=await resolveAccountJudgeEvidence(account,timetableRun,timetableCase,{loadTimetable:async()=>timetable(true,courses)});
+ assert.equal(result.summary.reason,null);const data=JSON.parse(result.evidence.find(item=>item.id==='account:courses')!.content);
+ assert.equal(data.records[0].room,'PRIVATE_ROOM');assert.equal(data.records[0].weekday,2);assert.equal(data.records[0].startsAt,'09:00');
+ assert.doesNotMatch(JSON.stringify(result.summary),/PRIVATE_ROOM|OFFLINE101|Private timetable/u);
+ assert.equal(result.summary.actorAttested,false);assert.equal(result.summary.temporalComparability,'current-reconstruction-only');
+});

@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Reconstruct Q13 grading evidence from the verified caller’s bounded timetable reader; preserve unlinked/partial-read uncertainty and store only value-free provenance summaries.
+
 - Keep seven additional public-guidance families on the public research path after sign-in; protect personal compounds, qualified record requests and writes, and forward no history or credentials.
 
 - Retain bounded source-published club Instagram contacts through compaction and link verification, keeping club names distinct and meeting locations unconfirmed.
