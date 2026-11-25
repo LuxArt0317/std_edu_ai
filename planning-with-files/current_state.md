@@ -67,3 +67,5 @@ Exec76837 completed19/19 at70orhigher, zero below-target/ungraded/errors. Exact 
 
 ## Q17 next local repair
 Audit found unspecified-term subject questions fell through exact course-history selection. Added bounded bilingual missing-term navigation clarification before account reads, linking existing11-1/11-2 pages. Explicit terms, follow-ups, compounds, writes, images and other owners retain their existing paths. This prepared guide was not paid-regressed per user policy; real private evaluation remains pending. No deployment.
+
+Runtime reloaded after terminal regression: local exec68713 now serves0f5b17c7, including Q13 grading and Q17 clarification. Login route returned HTTP200.

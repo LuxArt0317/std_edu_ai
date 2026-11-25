@@ -70,3 +70,5 @@
 - Post-repair regression terminal:19/19 >=70, no errors or ungraded cases. Preserved exact artifacts and reconciled quality ledger. Q13 types/import lint/JS-only packaging passed; all24 public retrieval cases now have current-flow passing evidence. Private acceptance still pending.
 
 - Q17: audited source-backed selectors and added missing-term navigation clarification, avoiding broad personal lookup or invented term/enrollment. Added focused bilingual and boundary checks; no paid regression for prepared guidance.
+
+- Reloaded local runtime after completed regression; exec68713 serves0f5b17c7 and login route returned200. No production change.
