@@ -160,3 +160,5 @@ Public student-card replacement instructions share public research; personal app
 Backend runtime source imports are checked by `npm run lint:runtime-imports`. Hosted evaluation loads generated JavaScript rather than importing another API TypeScript source at runtime.
 
 Public and account assistant handlers use the same server-only assistantRequestBudget helper and preserve parent deadlines. The default remains55seconds within the unchanged60-second hosting configuration. Longer local budgets do not authorize or configure a longer hosted function.
+
+The signed-in assistant can clarify missing course-selection term scope using existing history/timetable destinations without reading account records.

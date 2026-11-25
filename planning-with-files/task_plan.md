@@ -1444,3 +1444,7 @@ All53question quality goal remains open; this release does not claim full privat
 ## Timetable grading [Issue #101]
 - [x] Add caller-scoped Q13 timetable reconstruction and isolation checks.
 - [ ] Complete real signed-in Q13 model acceptance.
+
+## Q17 missing-term guidance [Issue #100]
+- [x] Use existing course-history selectors to ask for unspecified academic year/semester before account reads.
+- [ ] Verify with the real signed-in model evaluation; no fixture grade substitutes.

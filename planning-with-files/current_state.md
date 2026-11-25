@@ -64,3 +64,6 @@ Local HEAD044bd644 serves on exec50855. Q43 passed100; Q09/Q20/Q30/Q44 passed95/
 
 ## Terminal post-repair regression
 Exec76837 completed19/19 at70orhigher, zero below-target/ungraded/errors. Exact results remain in .evaluation-lab/bank-runs/retrieval-regression-post-repair-20261125/summary.json; ledger reconciled preserving history. Together with five recent repaired-case passes, all24 public retrieval questions pass under the updated flow/configuration. Unchanged prepared guides were excluded. Private12-case real-session acceptance remains open. Q13 committed304821b7; types,9focused checks,294-file import lint and JS-only packaging pass. Local server50855 still caches044bd644; reload before Q13 grading. No deployment/cloud sync.
+
+## Q17 next local repair
+Audit found unspecified-term subject questions fell through exact course-history selection. Added bounded bilingual missing-term navigation clarification before account reads, linking existing11-1/11-2 pages. Explicit terms, follow-ups, compounds, writes, images and other owners retain their existing paths. This prepared guide was not paid-regressed per user policy; real private evaluation remains pending. No deployment.

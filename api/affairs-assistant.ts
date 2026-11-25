@@ -87,7 +87,7 @@ import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidenc
 import {isForeignDtmGradesQuestion,isNativeDtmGradeOnlyQuestion} from '../server/dtmGradeEvidenceIntent.js';
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
-import {answerExactCourseSelection,courseSelectionPageDisposition,courseSelectionWriteBoundary,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
+import {answerExactCourseSelection,courseSelectionTermGuide,courseSelectionPageDisposition,courseSelectionWriteBoundary,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
 import {answerExactAcademicAttendance,selectExactAcademicAttendance} from '../server/accountAcademicAttendanceAnswer.js';
 import {answerExactElearning,selectExactElearningReply} from '../server/accountElearningExactAnswer.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
@@ -587,6 +587,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(200,navigation);return;
     }
   }
+  const termGuide=!(Array.isArray(input?.images)&&input.images.length)?courseSelectionTermGuide(question,route,history):null;
+  if(termGuide){stream.send(200,termGuide);return;}
   const exactSelection=selectExactCourseSelection(question,route,history);
   if(exactSelection){
     if(Array.isArray(input?.images)&&input.images.length){

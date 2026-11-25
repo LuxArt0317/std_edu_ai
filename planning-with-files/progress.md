@@ -68,3 +68,5 @@
 - Continued local goal: verified live regression76837 through Q50; reviewed Q13 caller-scoped grading adapter and updated documentation. No private browser acceptance or production change claimed.
 
 - Post-repair regression terminal:19/19 >=70, no errors or ungraded cases. Preserved exact artifacts and reconciled quality ledger. Q13 types/import lint/JS-only packaging passed; all24 public retrieval cases now have current-flow passing evidence. Private acceptance still pending.
+
+- Q17: audited source-backed selectors and added missing-term navigation clarification, avoiding broad personal lookup or invented term/enrollment. Added focused bilingual and boundary checks; no paid regression for prepared guidance.

@@ -117,3 +117,5 @@ The guidance history test now validates the existing24-message/64kB/8000-charact
 Account-judge evidence tests enforce current-caller ownership, exact saved case scope, read failures versus empty records, and redacted summaries; saved chatbot flags and views never become independent evidence. Admission/training tests also cover bounded approval-year clauses and registration/schedule source projections.
 
 Q13 account grading tests cover caller/version/route isolation, complete timetable evidence, unlinked-student uncertainty, failed/partial reads, and value-free provenance summaries. These fixtures do not establish signed-in model acceptance.
+
+Course-selection term-guide checks cover bilingual missing-term navigation and exclusions for explicit terms, conversation context, foreign owners, compounds and writes.

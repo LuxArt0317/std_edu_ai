@@ -368,3 +368,5 @@ Funding evidence includes only exact verified source aliases plus registered loc
 Leave count presentation distinguishes request rows from approved days or class periods. It makes the selected date/status scope explicit and asks for the intended unit and semester when usage is ambiguous. This does not infer approval, attendance or remaining allowance.
 
 Admission language evidence retains literal numbered obligations and program-approval-year scope separately from entry cohort. Faculty discovery includes published event schedules and registration-button labels; unread registration destinations are not treated as absent links.
+
+Q17 missing-term course questions receive a bounded bilingual navigation clarification before record reads. Exact terms, follow-ups, images, writes and other owners retain existing handling; no term or enrollment is inferred.
