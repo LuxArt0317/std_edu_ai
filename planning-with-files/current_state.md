@@ -61,3 +61,6 @@ Offlineactualauthenticated-handlerauditof41publicFAQquestionsfound7wrongprivate-
 
 ## Current checkpoint superseding earlier runtime notes
 Local HEAD044bd644 serves on exec50855. Q43 passed100; Q09/Q20/Q30/Q44 passed95/75/80/90. The19-case post-repair regression exec76837 remains live, with16 cases passed70–100 through Q50 and Q51 started. New Q13 grading adapter uses the existing caller-owned timetable reader; complete/owner/cap/deadline checks and unlinked uncertainty are enforced. Real private acceptance remains pending the user’s Codex sign-in/run. No new deployment or cloud data sync.
+
+## Terminal post-repair regression
+Exec76837 completed19/19 at70orhigher, zero below-target/ungraded/errors. Exact results remain in .evaluation-lab/bank-runs/retrieval-regression-post-repair-20261125/summary.json; ledger reconciled preserving history. Together with five recent repaired-case passes, all24 public retrieval questions pass under the updated flow/configuration. Unchanged prepared guides were excluded. Private12-case real-session acceptance remains open. Q13 committed304821b7; types,9focused checks,294-file import lint and JS-only packaging pass. Local server50855 still caches044bd644; reload before Q13 grading. No deployment/cloud sync.
