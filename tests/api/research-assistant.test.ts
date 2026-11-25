@@ -96,10 +96,12 @@ test("public drawer uses the live grounded endpoint and renders official citatio
     service,
     /knowledgeBase|setTimeout|prototype currently focuses/,
   );
-  assert.match(app, /Sources/);
-  assert.match(app, /PublicAssistantFeedback/);
-  assert.match(app, /citation\.url/);
-  assert.match(app, /rel="noreferrer"/);
+  const message=fs.readFileSync('src/features/public/AssistantChatMessage.tsx','utf8');
+  assert.match(app, /AssistantChatMessage/);
+  assert.match(message, /Sources/);
+  assert.match(message, /PublicAssistantFeedback/);
+  assert.match(message, /citation\.url/);
+  assert.match(message, /rel="noreferrer"/);
 });
 
 test("hybrid retrieval filters governance and freshness before rank fusion", () => {

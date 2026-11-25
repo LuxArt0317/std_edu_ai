@@ -57,7 +57,7 @@ test('guest archive questions get a local link before public retrieval',async()=
     const response={status(value:number){code=value;return response;},json(value:unknown){reply=value as typeof reply;},setHeader(){}};
     await handler({method:'POST',headers:{'x-real-ip':'203.0.113.25'},body:{question,route}},response);
     assert.equal(code,200);
-    assert.equal(reply?.citations[0].url,expected);
+    assert.equal(reply?.citations[0].url,expected,question);
     assert.equal(reply?.grounding?.webSearched,false);
   }
 });

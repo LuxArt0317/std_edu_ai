@@ -173,7 +173,7 @@ for (const signedIn of [false,true]) test(`a registrar phone question does not h
   const regular='Library reading areas are open 08:30–19:00 Monday through Thursday.';
   const hoursQuote='Reading areas: Monday to Thursday, 08:30–19:00.';
   const auth='controlled-public-lookup';
-  const wifi='https://help.ecc.stu.edu.tw/wireless-setting/';
+  const wifi='/school-sites/help.ecc.stu.edu.tw/wireless-setting/';
   let reads=0;
   mockProvider(t,wire=>{
     const name=wire.text.format.name,packet=JSON.parse(wire.input[0].content[0].text);

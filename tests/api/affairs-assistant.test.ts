@@ -138,7 +138,7 @@ test('School Affairs search and General Affairs menu cases answer from their rou
 });
 
 test('personal School Affairs question reads only the caller site records, never Nexus',async()=>{
- configured();const calls:string[]=[];
+ configured();process.env.VITE_SUPABASE_URL='https://xiftudmvxphxcjtmfmib.supabase.co';const calls:string[]=[];
  const userId='00000000-0000-4000-8000-000000000002';
  const id=(part:number)=>'00000000-0000-4000-8001-'+String(part).padStart(12,'0');
  const range=(rows:unknown[])=>Response.json(rows,{headers:{'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
@@ -200,6 +200,11 @@ test('personal School Affairs question reads only the caller site records, never
     assert.equal(selected.get('user_id'),'eq.'+userId);
     return range([]);
   }
+  if(path==='/rest/v1/affairs_students'&&selected.get('select')==='id,user_id')return range([{id:id(1),user_id:userId}]);
+  if(path==='/rest/v1/affairs_charges'&&selected.get('select')?.includes('occurrence_on'))return range([{
+    id:id(20),student_id:id(1),label:'Sample Fall 2026 tuition',amount_due:28000,amount_paid:5000,currency:'TWD',
+    due_on:'2026-12-15',source_mode:'sample',occurrence_on:null,category:'tuition',contact_unit:null,contact_extension:null,payment_unit:null,
+  }]);
   if(overview){
     const params=new URL(url).searchParams;
     if(init?.method==='HEAD'){
@@ -318,9 +323,9 @@ test('personal School Affairs question reads only the caller site records, never
 
 test('public image question accepts validated PNG and reports actual image analysis',async()=>{
  configured();const bytes=Buffer.concat([Buffer.from('89504e470d0a1a0a','hex'),Buffer.alloc(40)]);const dataUrl=`data:image/png;base64,${bytes.toString('base64')}`;
- globalThis.fetch=async(input,init)=>{assert.equal(String(input),'https://api.openai.com/v1/responses');const request=JSON.parse(String(init?.body));assert.equal(request.input[0].content[1].type,'input_image');assert.equal(request.store,false);const value=request.text.format.name==='answer_evidence_review'?{supported:true,answersQuestion:true,claims:[{claim:'The image shows a menu',supported:true,evidenceId:'attached-image',quote:''}]}:{answer:'The screenshot shows a School Affairs menu.',source_titles:['線上報修']};return new Response(JSON.stringify({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(value)}]}]}),{status:200});};
+ globalThis.fetch=async(input,init)=>{assert.equal(String(input),'https://api.openai.com/v1/responses');const request=JSON.parse(String(init?.body));assert.equal(request.input[0].content[1].type,'input_image');assert.equal(request.store,false);const value=request.text.format.name==='answer_evidence_review'?{supported:true,answersQuestion:true,claims:[{claim:'The image shows a menu',supported:true,evidenceId:'attached-image',quote:''}]}:{status:'answered',answer:'The screenshot shows a School Affairs menu.',sourceIds:['attached-image']};return new Response(JSON.stringify({output:[{type:'message',content:[{type:'output_text',text:JSON.stringify(value)}]}]}),{status:200});};
  const result=await invoke(publicHandler,{question:'Please explain this screenshot',images:[{name:'menu.png',dataUrl}],route:'/school-affairs/menu/swd/input'});
- assert.equal(result.status,200);assert.equal(result.body.grounding.source,'attached-image');assert.match(result.body.answer,/screenshot shows a School Affairs menu/u);assert.deepEqual(result.body.citations,[]);assert.ok(result.body.activity.some((step:any)=>step.kind==='image'));
+ assert.equal(result.status,200);assert.equal(result.body.grounding.source,'attached-image');assert.match(result.body.answer,/screenshot shows a School Affairs menu/u);assert.deepEqual(result.body.citations,[]);assert.ok(result.body.activity.some((step:any)=>step.kind==='attached-image'));
  const rejected=await invoke(publicHandler,{question:'Explain this',images:[{name:'fake.png',dataUrl:'data:image/png;base64,'+Buffer.alloc(40).toString('base64')} ]});
  assert.equal(rejected.status,400);
 });

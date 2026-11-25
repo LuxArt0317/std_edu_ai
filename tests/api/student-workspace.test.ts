@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import { answerPrivateAffairsQuestion } from '../../server/affairsAnswer.js';
 import { answerCampusNavigation, directoryEntries } from '../../server/schoolAffairsDirectory.js';
 import { questionKind } from '../../server/schoolWebSearch.js';
-import { officialInternshipUrl, officialLeaveUrl, serviceDestination } from '../../src/features/public/affairs/studentServices.js';
+import {  officialLeaveUrl, serviceDestination } from '../../src/features/public/affairs/studentServices.js';
 
 const snapshot = {
   checkedAt:'2026-11-12T03:30:00Z',
@@ -76,9 +76,9 @@ test('DTM courses can be queried by academic year and semester',async()=>{
 
 test('verified public links distinguish the leave system, internship, Wi-Fi, and registrar',()=>{
   const leave=answerCampusNavigation('Where can I file leave?');
-  assert.equal(leave?.citations[0].url,officialLeaveUrl);
+  assert.equal(leave?.citations[0].url,'/school-affairs/services/leave');
   assert.match(leave?.answer||'',/\/school-affairs\/services\/leave/);
-  assert.equal(answerCampusNavigation('Where is the internship system?')?.citations[0].url,officialInternshipUrl);
+  assert.equal(answerCampusNavigation('Where is the internship system?')?.citations[0].url,'/school-affairs/services/internship');
   assert.match(answerCampusNavigation('Where can I find the Wi-Fi?')?.answer||'',/help\.ecc\.stu\.edu\.tw\/wireless-setting/);
   assert.match(answerCampusNavigation('Where can I find the registrar?')?.answer||'',/www\.aca\.stu\.edu\.tw/);
   assert.match(answerCampusNavigation('What is the contact number of the registrar?')?.answer||'',/615 8000.*2012/);

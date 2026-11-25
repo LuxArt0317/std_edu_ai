@@ -85,3 +85,5 @@ Validation checkpoint: 18 targeted public/source checks and 49 existing native S
 - 2026-11-25: Resumed authorized release repair. Fixed owned club/calendar routing; 28 attendance/equipment checks passed. Updated shared client VM harness to execute real transport/context helpers. Second full suite 1,987/2,009 before final membership language fix; remaining failures unresolved. No production push, cloud overwrite, account mutation, or asset migration performed.
 
 - Follow-up: 58 routing/native tests passed; fixed personal owed-tuition versus published-rate distinction. Focused51-test run passed49, with remaining account fee-fixture and image-test expectations under repair. Release snapshot committed locally; no push or cloud mutation.
+
+- Release verification: full npm test2,010/2,010, production build and handoff all passed. Cloud sync read-only comparison53 cases/151 runs locally vs53/53 cloud revision55. No cloud mutation yet; next publish exact release through GitHub then apply backed-up replacement.

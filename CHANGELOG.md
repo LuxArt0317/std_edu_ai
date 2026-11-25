@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Explain failed Moodle material reads with a specific local destination and preserve independent facts; keep remote-learning Moodle navigation separate from DTM.
+
 - Keep personal tuition amounts owed out of published-rate guidance; preserve shared conversation-history limits in compiled client checks.
 
 - Correct public club/calendar routing so personal attendance and membership use caller-owned records; align compiled client checks with the shared per-call transport and conversation context. Publication remains pending release verification.

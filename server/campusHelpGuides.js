@@ -18,7 +18,8 @@ export function campusHelpGuide(question){
     :'I can help with records your account is authorized to access. Knowing your friend’s name or student number, or signing in with Google, does not by itself grant access to their grades. Your friend can open [Grade Inquiry](/school-affairs/services/13-1) in their own account and choose what to share.',
     [{title:zh?'成績查詢':'Grade Inquiry',url:'/school-affairs/services/13-1'}]);
 
-  const learning=/\b(?:moodle|dtm|digital teaching materials)\b|數位教材|教材網/iu.test(question);
+  const learning=/\b(?:moodle|dtm|digital teaching materials)\b|數位教材|教材網/iu.test(question)
+    &&!/\b(?:remote[ -]learning|e[ -]?learning)\b|數位學園/iu.test(question);
   const navigation=/\b(?:how (?:do|can|should) i (?:open|log in|login|sign in|access|find|check|view)|how to (?:open|log in|sign in|access|find|check|view)|where (?:is|can i (?:open|find|check|view|access))|open|login link)\b|(?:如何|怎麼|哪裡|在哪).{0,15}(?:登入|開啟|查詢|查看)|(?:登入|開啟).{0,12}(?:教材|moodle|dtm)/iu.test(question);
   // Leave multi-domain questions to the evidence planner, not a partial shortcut.
   const anotherTopic=/\b(?:tuition|scholarship|leave|wifi|wi-fi|repair|dorm|graduation|internship)\b|學費|獎學金|請假|宿舍|實習|畢業|報修/iu.test(question);

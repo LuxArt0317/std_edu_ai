@@ -201,7 +201,8 @@ test('the graph checks a rejected appointment answer against a fresh own record'
   },{retry:true});
 });
 
-test('the handler verifies each hosted counseling question against exact refreshed appointment metadata',async()=>{
+test('the handler verifies each hosted counseling question against exact refreshed appointment metadata',async t=>{
+  t.mock.timers.enable({apis:['Date'],now:Date.parse('2026-11-18T08:00:00Z')});
   const cases=buildAccountCases({includePlannedCounselingAppointments:true});
   const oldFetch=globalThis.fetch,oldKey=process.env.OPENAI_API_KEY;
   const row=(index:number,kind:string,status:string,preferred_on:string,preferred_period:string,scheduled_at:string|null)=>({
@@ -259,7 +260,7 @@ test('the handler verifies each hosted counseling question against exact refresh
       const {requireUnchangedOwnedRecords:_hostedReadback,...expected}=testCase.expected;
       const grade=gradeCase({...testCase,expected},{statusCode:result.status,execution:'deterministic',fixtureKey:testCase.fixtureKey,
         body:{...result.body,activity:result.steps}});
-      assert.deepEqual(grade.failures,[],suffix);
+      assert.deepEqual(grade.failures,[],suffix+": "+result.body.answer);
     }
   }finally{
     globalThis.fetch=oldFetch;

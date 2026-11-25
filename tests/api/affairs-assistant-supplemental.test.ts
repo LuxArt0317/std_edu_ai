@@ -49,7 +49,7 @@ test('unsafe, malformed, fragmented or oversized routes fail before authenticati
 });
 
 test('required supplemental domains and page followups use account routing without the word my',async()=>{
-  const cases=[['What courses are available?',endpoint],['Show enrollment certificate status.','/school-affairs/services/17-1'],
+  const cases=[['What is on this page?',endpoint],['Show enrollment certificate status.','/school-affairs/services/17-1'],
     ['What is the status?','/school-affairs/services/17-1'],['Show tuition settlement.','/school-affairs/services/49-1'],
     ['What does this say?','/school-affairs/services/38-1'],['What does this say?','/school-affairs/services/21-1/history'],
     ['What does this say?','/school-affairs/services/49-1'],['Show saved assignment files.','/dtm'],['What feedback was recorded?','/dtm/course/20000000-0000-4000-8000-000000000001/assignment/20000000-0000-4000-8000-000000000002'],

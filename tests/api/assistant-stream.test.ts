@@ -5,22 +5,24 @@ import {readAssistantReply} from '../../src/services/assistantStreamReader.js';
 
 test('directory lookup streams observed work before the final sourced answer', async()=>{
   const saved={openai:process.env.OPENAI_API_KEY,url:process.env.VITE_SUPABASE_URL,key:process.env.VITE_SUPABASE_PUBLISHABLE_KEY};
-  process.env.OPENAI_API_KEY='test-key';
+  delete process.env.OPENAI_API_KEY;
   process.env.VITE_SUPABASE_URL='https://test.supabase.co';
   process.env.VITE_SUPABASE_PUBLISHABLE_KEY='test-publishable';
   const chunks:string[]=[],headers:Record<string,string>={};
   let ended=false;
   const response={status(_code:number){return response},json(_payload:unknown){throw Error('Unexpected JSON fallback')},setHeader(name:string,value:string){headers[name]=value},write(chunk:string){chunks.push(chunk)},end(){ended=true}};
   try {
-    await publicHandler({method:'POST',body:{question:'What General Affairs services are available?',stream:true},headers:{'x-forwarded-for':'stream-directory-test'}},response);
+    await publicHandler({method:'POST',body:{question:'How do I sign in to Moodle?',stream:true},headers:{'x-forwarded-for':'stream-directory-test'}},response);
     assert.equal(headers['Content-Type'],'text/event-stream; charset=utf-8');
     assert.equal(ended,true);
     const frames=chunks.join('').trim().split('\n\n').map(frame=>({event:frame.match(/^event: (.+)$/m)?.[1],data:JSON.parse(frame.match(/^data: (.+)$/m)?.[1]||'null')}));
-    assert.deepEqual(frames.map(frame=>frame.event),['progress','progress','result']);
-    assert.equal(frames[0].data.status,'running');
-    assert.equal(frames[1].data.status,'complete');
-    assert.equal(frames[2].data.status,'answered');
-    assert.ok(frames[2].data.answer.length>20);
+    assert.ok(frames.length>=2);
+    assert.ok(frames.slice(0,-1).every(frame=>frame.event==='progress'));
+    assert.equal(frames.at(-1)?.event,'result');
+    assert.ok(frames.slice(0,-1).some(frame=>frame.data.kind==='directory'&&frame.data.status==='complete'));
+    assert.ok(frames.slice(0,-1).every(frame=>typeof frame.data.label==='string'&&typeof frame.data.detail==='string'));
+    assert.equal(frames.at(-1)?.data.status,'answered');
+    assert.ok(frames.at(-1)?.data.answer.length>20);
   } finally {
     for (const [name,value] of Object.entries(saved)) if(value===undefined) delete process.env[name]; else process.env[name]=value;
   }

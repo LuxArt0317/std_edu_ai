@@ -318,3 +318,5 @@ Club skill recommendations are mixed guidance: match listed resource types to op
 `publicStudentCardIntent.js` retrieves the registered card-information capture for replacement questions and preserves the distinction between initial issuance, replacement, temporary access and iPASS activation. It does not invent a replacement fee or accept personal application-status requests as public guidance.
 
 Public club/calendar intent matching excludes owned attendance, membership and foreign-student records; these requests must reach caller-scoped account readers. General club navigation and institution calendar questions remain public.
+
+Moodle material read failures retain an unverified status and explain the failed course lookup with its known local link, while independent fee evidence stays available. Remote-learning Moodle navigation remains distinct from DTM navigation.

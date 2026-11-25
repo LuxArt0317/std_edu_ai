@@ -98,6 +98,7 @@ export async function answerDtmMaterial({account,selection,question,deadline,onP
     throw new TypeError('Invalid Moodle material selection.');
   const caller = Object.freeze({...account,user:Object.freeze({id:account.user.id})});
   const activity = [];
+  let readSucceeded = false;
   const progress = step => {
     const index = activity.findIndex(item => item.kind === step.kind);
     if (index === -1) activity.push(step);
@@ -110,6 +111,7 @@ export async function answerDtmMaterial({account,selection,question,deadline,onP
     const emit = (detail,status) => progress({kind,label,detail,status});
     try {
       const payload = await readMaterial(caller,currentSelection,deadline,loaders);
+      readSucceeded = true;
       emit(payload.complete ? 'Checked the selected local material records.' : 'Some saved details are outside this result.', 'complete');
       return [{id:sourceId,url:currentSelection.path,content:JSON.stringify(payload)}];
     } catch {
@@ -130,5 +132,11 @@ export async function answerDtmMaterial({account,selection,question,deadline,onP
     },
     repair:async ({evidence}) => evidence.length ? format(evidence) : initial,
   });
+  if (!readSucceeded && result.verification?.status === 'unverified') {
+    const zh = /\p{Script=Han}/u.test(question);
+    return {...result,answer:zh
+      ? `目前無法讀取這門課程的 Moodle 教材，因此我還不能確認內容。您可以先[開啟課程教材](${currentSelection.path})查看。`
+      : `I could not verify your saved Moodle materials because the course page could not be read. You can [open the course materials](${currentSelection.path}) to check them directly.`,citations:[],activity};
+  }
   return {...result,activity};
 }
