@@ -1039,6 +1039,17 @@ function sectionFor(parsed,question,zh){
     if(s.range)section.lead.push(t('Date range ', '日期範圍 ')+s.range.from+' – '+s.range.through);
     if(s.countOnly){
       section.lead.push(t('Matching saved leave records: ','相符的請假紀錄筆數：')+c.matching+'.');
+      section.lead.push(t('That counts request records, not approved leave days or class periods.',
+        '這是請假申請紀錄的筆數，不是已核准的請假天數或節數。'));
+      if(!s.range)section.lead.push(t('No date range was selected, so this is not a semester-specific total.',
+        '本次沒有指定日期範圍，因此不是某學期的合計。'));
+      const statuses=s.filters?.statuses;
+      if(statuses&&!statuses.included.length&&!statuses.excluded.length)
+        section.lead.push(t('The count includes matching draft, filed and withdrawn records; it does not filter by an approval decision.',
+          '筆數包含相符的草稿、已送出與已撤回紀錄，沒有依核准結果篩選。'));
+      if(/\b(?:used|taken|remaining|allowance)\b|已用|用掉|已請|已请|剩餘|剩余/iu.test(question))
+        section.lead.push(t('Do you mean requests, approved days or class periods—and for which semester or dates?',
+          '你想算的是申請筆數、已核准天數，還是課堂節數？要查哪個學期或日期範圍？'));
       return section;
     }
     if(envelope.readState==='empty'){

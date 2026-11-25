@@ -39,3 +39,28 @@ test('only exact current or retained case versions resolve; no silent current-ve
  assert.equal(accountJudgeCaseSnapshot({cases:[{...row,version:3}],referenceHistory:[{...row,id:undefined,caseId:row.id}]},run)?.route,row.route);
  assert.equal(accountJudgeCaseSnapshot({cases:[row],referenceHistory:[{...row,id:undefined,caseId:row.id,route:'/dtm'}]},run),null);
 });
+
+test('leave grading reconstructs only caller-scoped request counts, never approval or attendance totals',async()=>{
+ const {readStudentLeaveEvidence}=await import('../../server/accountStudentLeaveEvidence.js');
+ const leaveCase={...row,id:'survey-faq-q12',question:'How many leaves have I already used?',route:'/school-affairs/services/leave/history'};
+ const leaveRun={...run,caseId:leaveCase.id,question:leaveCase.question,route:leaveCase.route};
+ let reads=0;
+ const result=await resolveAccountJudgeEvidence({...account,url:'https://xiftudmvxphxcjtmfmib.supabase.co'},leaveRun,leaveCase,{
+  loadCharges:async()=>assert.fail('No tuition lookup for leave grading'),
+  loadLeaves:async(caller,options)=>readStudentLeaveEvidence(caller,options,{fetchImpl:async(input,init)=>{
+   reads++;const url=new URL(String(input));assert.equal(url.pathname,'/rest/v1/affairs_service_records');
+   assert.equal(url.searchParams.get('user_id'),'eq.'+id);
+   assert.equal((init?.headers as Record<string,string>).Authorization,'Bearer PRIVATETOKEN');
+   return Response.json([],{headers:{'content-range':'*/0'}});
+  }}),
+ });
+ assert.equal(reads,1);assert.equal(result.summary.reason,null);
+ const payload=JSON.parse(result.evidence[0].content);
+ assert.equal(payload.counts.matching,0);assert.equal(payload.selection.countOnly,true);
+ assert.equal(payload.selection.range,null);assert.deepEqual(payload.selection.filters.statuses,{included:[],excluded:[]});
+ assert.equal(result.summary.selection,'current_caller_leave_records_only');
+ assert.doesNotMatch(JSON.stringify(result.summary),/PRIVATETOKEN|PRIVATEKEY|"matching":|"records":/u);
+ let forbidden=0;
+ const denied=await resolveAccountJudgeEvidence(account,{...leaveRun,actor:{id:'foreign'}},leaveCase,{loadLeaves:async()=>{forbidden++;throw Error('forbidden');}});
+ assert.equal(forbidden,0);assert.equal(denied.summary.reason,'different_or_missing_actor');
+});

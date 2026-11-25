@@ -5,7 +5,8 @@
 - [x] Trace saved production Q04/Q45 failures to authenticated account dispatch.
 - [x] Delegate clearly public funding/enrollment requests before private intent selection; retain mixed personal requests and strip credentials/history.
 - [x] Verify 30 focused routing/source/boundary checks, API types and runtime-import lint.
-- [ ] Finish current Q04 Luna/Terra evaluation and subsequent retrieval-case regression; do not equate fixture routing with authenticated live acceptance.
+- [x] Finish Q04 and Q45 Luna/Terra evaluations:85 and90.
+- [ ] Complete subsequent retrieval-case regression and authenticated live acceptance; fixtures/public API runs are not signed-in browser proof.
 
 ## Club activities and equipment borrowing [Issue #98]
 
@@ -1389,3 +1390,10 @@ Do not resume deployment or cloud overwrite. Production was rolled back; staged 
 - [x] Verify public lab entry, assets and unauthorized API boundary; record remaining signed-in acceptance.
 
 All53question quality goal remains open; this release does not claim full private-account or production rendered-browser acceptance.
+
+## Leave usage interpretation [Issue #100]
+
+- [x] Distinguish counted request records from approved days/class periods and show date/status scope.
+- [x] Add exact caller-scoped Q12 source reconstruction for grading; retain historical comparison limits.
+- [x] Verify English/Chinese presentation, existing leave boundaries and caller isolation.
+- [ ] Run Q12 through a real verified signed-in session and Terra grading; do not substitute fixture scores.

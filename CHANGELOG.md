@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Explain leave-count units, unfiltered tracking states and date scope; ask for the intended usage measure instead of equating request counts with approved days. Add caller-scoped current leave evidence to evaluation grading.
+
 - Route signed-in public tuition-discount and enrollment-date questions to public research before account-record selection; retain mixed personal requests on the account path.
 
 - Add current-caller charge evidence to Q03 evaluation without exposing private values in saved grading summaries; preserve reference-only history and historical-drift limits.

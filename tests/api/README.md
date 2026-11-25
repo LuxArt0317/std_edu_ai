@@ -1,5 +1,7 @@
 # API contract checks
 
+The leave suite verifies that count responses describe request units, all-status/date scope and an explicit clarification for ambiguous usage in English and Chinese. The private grading suite verifies caller-bound leave reconstruction through the existing read-only reader and blocks a different run actor before any read. Fixture checks do not establish a live signed-in evaluation score.
+
 `affairs-public-dispatch.test.ts` checks authenticated funding/admission public dispatch before private reads, public route preservation, JSON/SSE parity, and mixed personal-request isolation. These fixtures prove routing and privacy contracts, not real-model answer quality.
 
 `public-release-assets.test.ts` verifies the generated copied documents and their assistant/CSP assets, including absence of the removed floating public-page notice/account-status widget. It uses local captures only.
