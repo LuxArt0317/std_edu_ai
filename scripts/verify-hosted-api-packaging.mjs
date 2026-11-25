@@ -8,10 +8,10 @@ import ts from 'typescript';
 
 // Execute compiled JavaScript, without the source .ts files that Vercel omits.
 const root=process.cwd(),temporary=await mkdtemp(path.join(os.tmpdir(),'stu-api-package-'));
-const configuration=JSON.parse(await readFile(path.join(root,'tsconfig.json'),'utf8'));
-assert.equal(configuration.compilerOptions.rewriteRelativeImportExtensions,true);
+
 const files=execFileSync('git',['ls-files','-z','api','server','src','tools/evaluation-lab','tests/evaluation'],{encoding:'utf8'}).split('\0')
   .filter(name=>/\.(?:[mc]?js|tsx?|json)$/.test(name)&&! /\.d\.(?:ts|mts|cts)$/.test(name));
+files.push('server/affairsAssistantRuntime.js');
 const originalFetch=globalThis.fetch;
 try{
   await writeFile(path.join(temporary,'package.json'),'{"type":"module"}\n');
@@ -20,10 +20,12 @@ try{
     const source=await readFile(path.join(root,name),'utf8');
     const typed=/\.tsx?$/.test(name),destination=path.join(temporary,typed?name.replace(/\.tsx?$/,'.js'):name);
     const code=typed?ts.transpileModule(source,{fileName:name,compilerOptions:{target:ts.ScriptTarget.ES2023,
-      module:ts.ModuleKind.ESNext,jsx:ts.JsxEmit.ReactJSX,rewriteRelativeImportExtensions:true}}).outputText:source;
+      module:ts.ModuleKind.ESNext,jsx:ts.JsxEmit.ReactJSX}}).outputText:source;
+    if((name.startsWith('api/')||name.startsWith('server/'))&&/(?:from\s*|import\s*\()(['\"])[^'\"]+\.ts\1/.test(code))throw Error('Source-only runtime import in '+name);
     await mkdir(path.dirname(destination),{recursive:true});await writeFile(destination,code);
   }
   globalThis.fetch=async()=>{throw Error('Packaging verification must not contact a provider.');};
+  await import(pathToFileURL(path.join(temporary,'server/affairsAssistantRuntime.js')).href);
   const {default:handler}=await import(pathToFileURL(path.join(temporary,'api/affairs-data.js')).href);
   let status=0,body;
   const response={setHeader(){},status(value){status=value;return this;},json(value){body=value;return this;}};

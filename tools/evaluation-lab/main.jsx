@@ -116,8 +116,8 @@ function App() {
     [selected, setSelected] = useState(""),
     [query, setQuery] = useState(""),
     [filter, setFilter] = useState("all");
-  const [scoreFilter,setScoreFilter]=useState('all'),[scoreModel,setScoreModel]=useState('all'),
-    [minimumScore,setMinimumScore]=useState(0),[maximumScore,setMaximumScore]=useState(100),[scoreSort,setScoreSort]=useState('question');
+  const [scoreFilter,setScoreFilter]=useState('all'),[scoreModel,setScoreModel]=useState('selected'),
+    [minimumScore,setMinimumScore]=useState(0),[maximumScore,setMaximumScore]=useState(100),[scoreSort,setScoreSort]=useState('high');
   const [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),

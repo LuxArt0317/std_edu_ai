@@ -1,5 +1,4 @@
 import {serveEvaluationLab} from "../server/evaluationLabHosted.js";
-import affairsAssistant from "./affairs-assistant.ts";
 import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
 import { clubStudentScope } from '../server/clubStudentContract.js';
@@ -69,7 +68,7 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
-  if(first(request.query?.resource)==='evaluation-lab')return serveEvaluationLab(request,response,{accountHandler:affairsAssistant});
+  if(first(request.query?.resource)==='evaluation-lab')return serveEvaluationLab(request,response);
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
   const chargePaymentScope=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(chargePaymentHistoryScope));
   const chargePaymentAdminSelection=request.query?.scope===chargePaymentHistoryAdminScope?chargePaymentAdminQuery(request.query):null;

@@ -93,3 +93,5 @@ Validation checkpoint: 18 targeted public/source checks and 49 existing native S
 - Hosted run-account packaging failure reproduced from user report and audited across backend dynamic imports. Removed the single shared .ts runtime loader, linked real handlers through API entry, and added compiled-JS-only runtime verification; package check and typecheck pass. Cloud data preserved.
 
 - Runtime hotfix: full2,010 backend tests/build/compiled-JS packaging check passed. Previous broader CI evaluation suite is red and remains follow-up work. Preparing urgent packaging fix and All models default for publication, preserving newer cloud runs.
+
+- Live startup failure caught and production rolled back to7aa9d0bd; authenticated lab state53/154/138 and imported151 intact. Corrected build emits explicit JS handler artifact and Node trace confirms inclusion284 files/0warnings. New candidate will be staged and checked before domain promotion. User changed default filter to Selected model / All statuses / Highest score.

@@ -321,4 +321,4 @@ Public club/calendar intent matching excludes owned attendance, membership and f
 
 Moodle material read failures retain an unverified status and explain the failed course lookup with its known local link, while independent fee evidence stays available. Remote-learning Moodle navigation remains distinct from DTM navigation.
 
-Hosted Answer Lab receives its account handler from the typed API entry and imports the public handler as a normal module. It never imports an API TypeScript source dynamically at runtime. Both lab paths still use the actual chatbot handlers and retain server-side model selection and authorization.
+Hosted Answer Lab loads the build-derived `affairsAssistantRuntime.js` generated from the actual account chatbot source, and imports the public handler as a normal module. No runtime path depends on an API `.ts` source. Both lab paths retain the same chatbot logic, server-side model selection and authorization.

@@ -153,4 +153,4 @@ General dorm prices/application/checkout questions use public policy research be
 
 Public student-card replacement instructions share public research; personal application status and actual card issuance remain separate.
 
-`affairs-data.ts` statically links the shared account chatbot handler for hosted evaluation. Root TypeScript compilation rewrites relative source extensions to emitted JavaScript. The production build verifies the compiled API graph in a temporary directory containing no TypeScript sources, before publication.
+Hosted evaluation uses a generated JavaScript module compiled from `affairs-assistant.ts` before packaging. The combined data entry does not import another API TypeScript entry at runtime. The production build checks the generated handler and combined API in a temporary tree containing no TypeScript sources.
