@@ -87,3 +87,9 @@ Validation checkpoint: 18 targeted public/source checks and 49 existing native S
 - Follow-up: 58 routing/native tests passed; fixed personal owed-tuition versus published-rate distinction. Focused51-test run passed49, with remaining account fee-fixture and image-test expectations under repair. Release snapshot committed locally; no push or cloud mutation.
 
 - Release verification: full npm test2,010/2,010, production build and handoff all passed. Cloud sync read-only comparison53 cases/151 runs locally vs53/53 cloud revision55. No cloud mutation yet; next publish exact release through GitHub then apply backed-up replacement.
+
+- Production7aa9d0bd Ready/live via owner-authorized exact Git deployment after automatic author restriction. Cloud sync backed up and copied53/151 with138 judgments; next read153 indicates new cloud runs, so no repeat overwrite. Fixing overview default to All models so stored scores are visible regardless of the next-run model.
+
+- Hosted run-account packaging failure reproduced from user report and audited across backend dynamic imports. Removed the single shared .ts runtime loader, linked real handlers through API entry, and added compiled-JS-only runtime verification; package check and typecheck pass. Cloud data preserved.
+
+- Runtime hotfix: full2,010 backend tests/build/compiled-JS packaging check passed. Previous broader CI evaluation suite is red and remains follow-up work. Preparing urgent packaging fix and All models default for publication, preserving newer cloud runs.

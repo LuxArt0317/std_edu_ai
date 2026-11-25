@@ -1,6 +1,10 @@
 # Changelog
 ## Unreleased
 
+- Fix hosted Answer Lab account execution by linking compiled chatbot handlers; add a JavaScript-only API packaging check to the production build.
+
+- Show saved Answer Lab evaluations across all models by default; keep explicit model filters and reference-version checks.
+
 - Explain failed Moodle material reads with a specific local destination and preserve independent facts; keep remote-learning Moodle navigation separate from DTM.
 
 - Keep personal tuition amounts owed out of published-rate guidance; preserve shared conversation-history limits in compiled client checks.

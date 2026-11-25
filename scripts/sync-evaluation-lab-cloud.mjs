@@ -13,7 +13,7 @@ if(configuration.repository!=='LuxArt0317/std_edu_ai'||configuration.supabase.pr
 const local=JSON.parse(await fs.readFile(stateFile,'utf8'));
 if(!Array.isArray(local.cases)||!Array.isArray(local.runs)||local.cases.length>250||Buffer.byteLength(JSON.stringify(local))>3_000_000)throw Error('Invalid or oversized local state');
 if(new Set(local.cases.map(row=>row.id)).size!==local.cases.length||new Set(local.runs.map(row=>row.id)).size!==local.runs.length)throw Error('Duplicate question/run IDs');
-const canonical=value=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
+const canonical=value=>value instanceof Date?value.toISOString():Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonical(value[key])])):value;
 const digest=value=>createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
 const imageIds=[...new Set([...local.cases,...local.runs].flatMap(row=>row.attachments||[]).map(file=>file.id))];
 const images=[];
@@ -42,7 +42,7 @@ try{
   const existing=await tx`select owner_id,revision,document,updated_at from public.evaluation_lab_workspaces where owner_id=${owner} for update`;
   const attachments=await tx`select id,content,created_at from public.evaluation_lab_attachments where owner_id=${owner}`;
   const previous=existing[0]||null;
-  const overview={applied:apply,localCases:local.cases.length,localRuns:local.runs.length,localAttachments:images.length,cloudCases:previous?.document?.cases?.length||0,cloudRuns:previous?.document?.runs?.length||0,cloudRevision:previous?.revision??0,localDigest:digest(local)};
+  const overview={applied:apply,localCases:local.cases.length,localRuns:local.runs.length,localAttachments:images.length,cloudCases:previous?.document?.cases?.length||0,cloudRuns:previous?.document?.runs?.length||0,cloudScoredRuns:(previous?.document?.runs||[]).filter(run=>Number.isFinite(run.judge?.score)).length,cloudRevision:previous?.revision??0,localDigest:digest(local),cloudDigest:previous?digest(previous.document):null};
   if(!apply)return overview;
   const directory=path.join(path.dirname(stateFile),'cloud-backups');await fs.mkdir(directory,{recursive:true,mode:0o700});
   backupFile=path.join(directory,'before-sync-'+new Date().toISOString().replace(/[:.]/g,'-')+'.json');

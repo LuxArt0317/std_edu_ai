@@ -12,6 +12,7 @@
     }
   ],
   "compilerOptions": {
+    "rewriteRelativeImportExtensions": true,
     "paths": {
       "@/*": [
         "./src/*"

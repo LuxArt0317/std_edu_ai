@@ -91,3 +91,5 @@ Answer Lab is included in the multi-entry Vite build at `/evaluation-lab`, with 
 Local chatbot task strategies and verified public-source imports are documented in [server architecture](server/README.md) and the [answer strategy review](docs/guides/CHATBOT_ANSWER_STRATEGY_REVIEW.md).
 
 The canonical spreadsheet-based evaluation reference is [School questions and answers](docs/question-answer/README.md); the local lab versions references while preserving prior runs. See [lab architecture](tools/evaluation-lab/README.md).
+
+Hosted evaluation packaging and compiled-runtime validation are documented in [API README](api/README.md) and [scripts README](scripts/README.md).

@@ -2,6 +2,7 @@ import { createEvaluationLab } from "../tools/evaluation-lab/server.mjs";
 import { validateEvaluationModel } from "../tools/evaluation-lab/models.mjs";
 import { verifyAffairsToken } from "./affairsWorkspace.js";
 import { withAssistantModel } from "./assistantModelConfig.js";
+import publicAssistant from "./researchAssistantHandler.js";
 
 const first = (value) => (Array.isArray(value) ? value[0] : value);
 class LabError extends Error {
@@ -35,7 +36,7 @@ async function rpc(account, name, body = {}) {
   }
   return response.json();
 }
-export async function serveEvaluationLab(req, res) {
+export async function serveEvaluationLab(req, res, {accountHandler} = {}) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("X-Content-Type-Options", "nosniff");
   try {
@@ -62,10 +63,9 @@ export async function serveEvaluationLab(req, res) {
       if (!["low", "medium", "high"].includes(reasoning))
         throw new LabError("Invalid reasoning effort.", 400);
       res.setHeader("X-STU-Evaluation-Model", model);
-      const { default: handler } =
-        operation === "run-account"
-          ? await import("../api/affairs-assistant.ts")
-          : await import("./researchAssistantHandler.js");
+      const handler = operation === "run-account" ? accountHandler : publicAssistant;
+      if (typeof handler !== "function")
+        throw new LabError("The evaluation handler is unavailable in this release.");
       await withAssistantModel({ model, reasoning }, () => handler(req, res));
       return;
     }

@@ -152,3 +152,5 @@ Public institution-wide calendar dates share public research. Static calendar so
 General dorm prices/application/checkout questions use public policy research before personal housing lookups. Bed assignments, personal amounts, application status and receipts retain their authenticated paths. Network/repair questions are excluded from the general housing-policy shortcut.
 
 Public student-card replacement instructions share public research; personal application status and actual card issuance remain separate.
+
+`affairs-data.ts` statically links the shared account chatbot handler for hosted evaluation. Root TypeScript compilation rewrites relative source extensions to emitted JavaScript. The production build verifies the compiled API graph in a temporary directory containing no TypeScript sources, before publication.

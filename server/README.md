@@ -320,3 +320,5 @@ Club skill recommendations are mixed guidance: match listed resource types to op
 Public club/calendar intent matching excludes owned attendance, membership and foreign-student records; these requests must reach caller-scoped account readers. General club navigation and institution calendar questions remain public.
 
 Moodle material read failures retain an unverified status and explain the failed course lookup with its known local link, while independent fee evidence stays available. Remote-learning Moodle navigation remains distinct from DTM navigation.
+
+Hosted Answer Lab receives its account handler from the typed API entry and imports the public handler as a normal module. It never imports an API TypeScript source dynamically at runtime. Both lab paths still use the actual chatbot handlers and retain server-side model selection and authorization.
