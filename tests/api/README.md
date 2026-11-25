@@ -119,3 +119,5 @@ Account-judge evidence tests enforce current-caller ownership, exact saved case 
 Q13 account grading tests cover caller/version/route isolation, complete timetable evidence, unlinked-student uncertainty, failed/partial reads, and value-free provenance summaries. These fixtures do not establish signed-in model acceptance.
 
 Course-selection term-guide checks cover bilingual missing-term navigation and exclusions for explicit terms, conversation context, foreign owners, compounds and writes.
+
+Academic outcome intent checks cover both independent evidence families, retained transcript/rank scope ambiguity and exclusions for other owners, writes, extra domains and lone record requests.

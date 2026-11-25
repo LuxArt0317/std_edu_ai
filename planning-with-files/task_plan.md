@@ -1448,3 +1448,8 @@ All53question quality goal remains open; this release does not claim full privat
 ## Q17 missing-term guidance [Issue #100]
 - [x] Use existing course-history selectors to ask for unspecified academic year/semester before account reads.
 - [ ] Verify with the real signed-in model evaluation; no fixture grade substitutes.
+
+## Q18 compound academic outcome [Issue #100]
+- [x] Confirm and repair graduation evidence exclusion caused by a grade/rank compound.
+- [x] Preserve independent source families, term ambiguity and no inferred eligibility/rank.
+- [ ] Run real signed-in Luna answer/Terra evaluation; authentication gate remains.

@@ -1,3 +1,4 @@
+import {isCombinedAcademicOutcomeQuestion} from './academicOutcomeIntent.js';
 import {groundedAnswerStrategy} from './assistantAnswerStrategy.js';
 import {assistantModelOverride} from './assistantModelConfig.js';
 import {prepareAccountAction} from './accountAssistantActions.js';
@@ -74,6 +75,7 @@ export function accountQuestionIntent(question,history=[],route='') {
   // not an assertion of enrolment, eligibility or a request to change records.
   // Unrecognized selectors/compound domains keep the existing planner boundary.
   const planningText=q.trim().replace(/[?？!！。.]$/u,'').trim();
+  if(!contextTruncated&&isCombinedAcademicOutcomeQuestion(q))return {kind:'mixed',recognized:true,contextQuestion,baseTools:['academicGrades','graduationReview'],overview:false,currentCourses:false,courseTerms:[],year:false,explicitDtm:false,scheduleWeekday:null};
   const coursePlanning=!contextTruncated&&(
     /^(?:(?:which|what) (?:classes|courses|subjects) should i (?:take|choose)(?: (?:next (?:semester|term)|for (?:next (?:semester|term)|my (?:next (?:semester|term)|degree))))?(?: to (?:meet|reach) (?:my )?(?:credit (?:threshold|target|requirements?)|required credits))?|(?:can you |please )?help me plan my (?:classes|courses|subjects)(?: for next (?:semester|term))?|(?:can you |please )?recommend (?:classes|courses|subjects)(?: for me)?(?: for next (?:semester|term)| next (?:semester|term))?|(?:which|what) (?:classes|courses|subjects) would you recommend for (?:my )?next (?:semester|term))$/iu.test(planningText)
     || /^(?:我(?:下學期)?(?:應該|該|可以)選(?:什麼|哪些)(?:課|課程|科目)(?:才能(?:達到|滿足)(?:我的)?(?:學分要求|學分門檻))?|(?:請|請你)?幫我規劃(?:下學期的?|我的下學期)?(?:選課|課程)|(?:請|請你)?推薦我下學期(?:的)?(?:課程|科目))$/u.test(planningText));

@@ -69,3 +69,6 @@ Exec76837 completed19/19 at70orhigher, zero below-target/ungraded/errors. Exact 
 Audit found unspecified-term subject questions fell through exact course-history selection. Added bounded bilingual missing-term navigation clarification before account reads, linking existing11-1/11-2 pages. Explicit terms, follow-ups, compounds, writes, images and other owners retain their existing paths. This prepared guide was not paid-regressed per user policy; real private evaluation remains pending. No deployment.
 
 Runtime reloaded after terminal regression: local exec68713 now serves0f5b17c7, including Q13 grading and Q17 clarification. Login route returned HTTP200.
+
+## Q18 compound evidence repair
+The exact Q18 initially matched grades but not graduation because the other-topic guard rejected its grade clause. Added bounded bilingual first-person compound intent selecting academicGrades and graduationReview as mixed guidance and allowing the independent graduation report predicate. Existing transcript/rank multi-scope clarification remains; no eligibility or future rank derived from grades. Focused intent/boundary checks, existing academic/grade/planning contracts, types and runtime lint pass. Real signed-in model acceptance remains unverified. Server68713 still caches pre-Q18 modules; reload before testing. No deployment/cloud sync.

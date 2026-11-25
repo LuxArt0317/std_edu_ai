@@ -72,3 +72,5 @@
 - Q17: audited source-backed selectors and added missing-term navigation clarification, avoiding broad personal lookup or invented term/enrollment. Added focused bilingual and boundary checks; no paid regression for prepared guidance.
 
 - Reloaded local runtime after completed regression; exec68713 serves0f5b17c7 and login route returned200. No production change.
+
+- Q18 actual source-selector audit found graduation evidence excluded by grade/rank compound. Added bounded bilingual mixed intent retaining independent grades/graduation evidence and original scope/non-prediction limits. Offline focused/existing contracts and types/import lint pass; signed-in acceptance pending.

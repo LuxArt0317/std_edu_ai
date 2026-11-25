@@ -370,3 +370,5 @@ Leave count presentation distinguishes request rows from approved days or class 
 Admission language evidence retains literal numbered obligations and program-approval-year scope separately from entry cohort. Faculty discovery includes published event schedules and registration-button labels; unread registration destinations are not treated as absent links.
 
 Q17 missing-term course questions receive a bounded bilingual navigation clarification before record reads. Exact terms, follow-ups, images, writes and other owners retain existing handling; no term or enrollment is inferred.
+
+`academicOutcomeIntent.js` recognizes bounded first-person combined graduation/ranking guidance in English and Chinese. It selects academic-grade and graduation-reference evidence independently. Existing explicit-term grade selection and graduation-status limits remain authoritative; the intent grants no eligibility prediction, rank forecast or write capability.
