@@ -1,6 +1,9 @@
 # Changelog
 ## Unreleased
 
+- Run public browser gates alongside backend validation, retaining every gate while exposing UI regressions earlier.
+
+
 - Align public browser checks with the assistant’s current language and valid feedback capabilities while retaining accessibility assertions.
 
 

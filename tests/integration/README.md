@@ -205,3 +205,5 @@ Certificate award suites cover the observed geometry, catalog and form, protecte
 With the synthetic local Vite environment used by the student payment history test, run `PUBLIC_SITE_ORIGIN=http://127.0.0.1:5309 node tests/integration/charge-payment-manager-ui.mjs`. It opens the real manager route, commits one synthetic entry behind a failed response, replays the same request after reload, then reverses the saved payment. It checks the legacy editor, foreign response rejection, mobile sizing, accessibility and sign-out cleanup.
 
 The direct copied-page assistant CI check uses the current exact English iframe title, while retaining conversation persistence, viewport containment and top-level Google sign-in recovery checks. It does not export a real browser session.
+
+The copied-page gate keeps CSP/bridge assertions on static captures and separately renders the native contact directory on desktop/mobile. Native checks cover published contacts and source links, extension search, empty/reset behavior, assistant availability and page containment; a SPA boot document is not accepted as rendered-directory evidence.

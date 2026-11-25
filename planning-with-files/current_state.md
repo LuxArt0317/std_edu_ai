@@ -88,3 +88,5 @@ The fce969ea deployment reached Ready but live authenticated checks caught a sta
 ## Current publication gate
 
 PR103 integrates concurrent main994f840b. First cleanCIpassed allbackend/build/securitygates; publicbrowseraccessibility stopped onobsoletebilingualheading. Currenttest-onlyrepair preserves exactlocalizedlabels, feedback capabilities and allaxe assertions. Fullclientverification isblockedbeforeanyexternalI/O bymissingownercredentialfile inisolatedreleasecheckout. Signed-inmanualacceptance staysopen; no cloudstateoverwrite.
+
+Latest:9d35edd8 cleanCIpassedallbackend/build/auditanda11ygates, thenstaticmirrorassertionmisclassifiednative/分機表. Testnowchecksstaticcapturesandnativecontactrenderingseparately. BackendandbrowserCIjobsexecuteparallelwithallgatesretained; publicationwaitsforboth.
