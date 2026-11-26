@@ -59,7 +59,8 @@ export async function verificationModelCall(name, schema, instructions, input, d
       'Independently classify every server-numbered answerPart exactly once. Any part asserting a fact or factual premise is factual and needs supported claims with exact references. Pure suggestions are optional approaches, not guaranteed training, credits, outcomes or performed actions. Clarifications must have no unsupported factual premise. Nonfactual parts have empty claims arrays and accepted true only after checking that no assertion is hidden in them. A template must remain hypothetical, with unresolved personal placeholders. Useful guidance may pass without private data, but cannot substitute for requested available facts.'
     ]:[]),
   ].join(' ');
-  const genericApiEvidence=Array.isArray(input?.evidence)&&input.evidence.length>0
+  const importedGradesOnly=Array.isArray(input?.evidence)&&input.evidence.length===1&&input.evidence[0].id==='account:dtmGradeReport'&&input.evidence[0].provenance==='imported';
+  const genericApiEvidence=importedGradesOnly||Array.isArray(input?.evidence)&&input.evidence.length>0
     &&input.evidence.some(source=>source.id?.startsWith('account-api:'))
     &&input.evidence.every(source=>source.id?.startsWith('account-api:')||source.id?.startsWith('public-page:'));
   if(genericApiEvidence&&(review||name==='compose_grounded_answer'||name==='correct_grounded_answer')){
@@ -83,10 +84,10 @@ export async function verificationModelCall(name, schema, instructions, input, d
   try { response = await fetch('https://api.openai.com/v1/responses', {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}`, 'Content-Type': 'application/json' },
-    signal: AbortSignal.timeout(Math.min(review ? publicEvidenceOnly ? 40_000 : 25_000 : evaluationReview ? 30_000 : sourceOnlyComposition ? 28_000 : 15_000, Math.max(1, deadline - Date.now()))),
+    signal: AbortSignal.timeout(Math.min(review ? publicEvidenceOnly ? 40_000 : 25_000 : evaluationReview ? 30_000 : sourceOnlyComposition||importedGradesOnly ? 35_000 : 15_000, Math.max(1, deadline - Date.now()))),
     body: JSON.stringify({
       model,
-      store: false, reasoning: { effort: reasoning }, max_output_tokens: review ? 8192 : deeperReview ? 4096 : 2400,
+      store: false, reasoning: { effort: reasoning }, max_output_tokens: review ? 8192 : importedGradesOnly ? 6000 : deeperReview ? 4096 : 2400,
       instructions,
       input: [{ role: 'user', content: [
         { type: 'input_text', text: JSON.stringify(input) },

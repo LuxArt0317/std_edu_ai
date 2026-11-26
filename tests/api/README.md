@@ -127,3 +127,5 @@ Issue108 discovery checks: website-discovery tests cover source retrieval, seman
 Issue109 tests cover empty-transcript to alternate-source recovery, duplicate/read-only enforcement, released assessment ownership and generic exact-reference verification. Existing provider/retry/native-routing checks also pass.
 
 `local-dtm-library.test.ts` checks persistent SQLite imports, repeatable upserts, caller isolation, credential-bearing URL rejection and hosted disablement. It uses temporary databases and never reads or changes the user capture database.
+
+`imported-dtm-grade-evidence.test.ts` covers literal imported totals versus percentages, dash preservation, caller gating and native UUID source restrictions. The local library test also exercises the established grade evidence entry point against a temporary SQLite import.

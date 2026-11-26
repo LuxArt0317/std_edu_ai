@@ -439,3 +439,5 @@ Local signed-in browser acceptance retrieved an existing released assessment sco
 ## Local original Moodle library (Issue #110)
 
 Original authorized DTM captures now live in a separate private, owner-scoped SQLite database, exposed by the existing verified `affairs-data` API under `dtm-library`. Courses, activity metadata, source pages, literal grade rows and import history are stored transactionally. The built-in Node SQLite module adds no package dependency. Hosted runtime and imports remain disabled. See [storage, import and coverage](local-dtm/README.md). No Supabase schema or production records were changed.
+
+Imported Moodle grade questions now share the local website database through both API discovery and the established DTM evidence reader. Capture administration queues are excluded from normal account answers. See [Moodle reader details](local-dtm/README.md#assistant-grade-reads-issue-111).

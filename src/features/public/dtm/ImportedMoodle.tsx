@@ -9,13 +9,13 @@ async function request(userId:string,path:string,signal?:AbortSignal,body?:strin
  const response=await fetch(path,{signal:boundedSignal,method:body?'POST':'GET',headers:{Authorization:'Bearer '+data.session.access_token,...(body?{'Content-Type':'application/json'}:{})},body});
  const value=await response.json();if(!response.ok)throw Error(value.error||'Could not load Moodle content.');return value;
 }
-export function useImportedMoodle(userId:string){
+export function useImportedMoodle(userId:string,coverage=false){
  const [state,setState]=useState<{userId:string;data:ImportedLibrary}>();
- useEffect(()=>{const controller=new AbortController();void request(userId,'/api/affairs-data?scope=dtm-library',controller.signal).then(data=>{if(!controller.signal.aborted)setState({userId,data});}).catch(()=>{});return()=>controller.abort();},[userId]);
+ useEffect(()=>{const controller=new AbortController();void request(userId,'/api/affairs-data?scope=dtm-library'+(coverage?'&view=coverage':''),controller.signal).then(data=>{if(!controller.signal.aborted)setState({userId,data});}).catch(()=>{});return()=>controller.abort();},[userId,coverage]);
  return state?.userId===userId?state.data:undefined;
 }
 export function DtmImport({userId}:{userId:string}){
- const library=useImportedMoodle(userId);
+ const library=useImportedMoodle(userId,true);
  const [value,setValue]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false);
  return <main className="dtm"><h1>Moodle content import</h1><p>Imports into the private local database for this signed-in account.</p>
  <label>Captured Moodle JSON<textarea aria-label="Captured Moodle JSON" value={value} onChange={e=>setValue(e.target.value)} rows={12}/></label>

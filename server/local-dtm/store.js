@@ -47,11 +47,12 @@ export async function importLibrary(account,input){
  }catch(e){db.exec('ROLLBACK');throw e;}finally{db.close();}
 }
 export async function readLibrary(account,query={}){
- const user=principal(account);if(Object.keys(query).some(k=>!['scope','course_id','page_key','q'].includes(k)))throw Object.assign(Error('Invalid Moodle library query.'),{status:400});
+ const user=principal(account);if(Object.keys(query).some(k=>!['scope','course_id','page_key','q','view'].includes(k)))throw Object.assign(Error('Invalid Moodle library query.'),{status:400});
+ if(query.view!==undefined&&!['coverage','grades'].includes(query.view))throw Object.assign(Error('Invalid Moodle library view.'),{status:400});
  const db=await open();if(!db)return {enabled:libraryEnabled(),courses:[],pages:[],counts:{pages:0,activities:0,gradeRows:0}};
  try{const courses=db.prepare('SELECT id,title,term,code,instructor FROM courses WHERE owner=? ORDER BY term DESC,id').all(user.id);
- for(const course of courses){const rows=db.prepare('SELECT g.cells FROM grade_rows g JOIN pages p ON p.owner=g.owner AND p.key=g.page_key WHERE g.owner=? AND p.course_id=? AND p.key LIKE ? ORDER BY g.row_index').all(user.id,course.id,'/grade/report/user/%');const total=rows.map(r=>JSON.parse(r.cells)).find(r=>r[0]==='課程總分');course.gradeText=total?.[2]??null;}
- const pending=db.prepare('SELECT a.course_id courseId,a.source_key sourceKey,a.title FROM activities a LEFT JOIN pages p ON p.owner=a.owner AND p.key=a.source_key WHERE a.owner=? AND a.source_key IS NOT NULL AND p.key IS NULL ORDER BY a.course_id,a.position').all(user.id);
+ for(const course of courses){const rows=db.prepare('SELECT g.cells FROM grade_rows g JOIN pages p ON p.owner=g.owner AND p.key=g.page_key WHERE g.owner=? AND p.course_id=? AND p.key LIKE ? ORDER BY g.row_index').all(user.id,course.id,'/grade/report/user/%');const total=rows.map(r=>JSON.parse(r.cells)).find(r=>r[0]==='課程總分');course.gradeText=total?.[2]??null;course.rangeText=total?.[3]??null;course.percentageText=total?.[4]??null;course.rankText=total?.[5]??null;course.url='/dtm/course/import-'+course.id+'/grades';}
+ const pending=query.view==='coverage'?db.prepare('SELECT a.course_id courseId,a.source_key sourceKey,a.title FROM activities a LEFT JOIN pages p ON p.owner=a.owner AND p.key=a.source_key WHERE a.owner=? AND a.source_key IS NOT NULL AND p.key IS NULL ORDER BY a.course_id,a.position').all(user.id):undefined;
  const counts={pages:db.prepare('SELECT COUNT(*) n FROM pages WHERE owner=?').get(user.id).n,activities:db.prepare('SELECT COUNT(*) n FROM activities WHERE owner=?').get(user.id).n,gradeRows:db.prepare('SELECT COUNT(*) n FROM grade_rows WHERE owner=?').get(user.id).n};
  let rows=[];if(query.page_key){const key=sourceKey(query.page_key);rows=db.prepare('SELECT payload,captured_at FROM pages WHERE owner=? AND key=?').all(user.id,key);}
  else if(query.course_id){if(!/^\d{1,12}$/.test(query.course_id))throw Object.assign(Error('Choose an imported course.'),{status:400});rows=db.prepare('SELECT payload,captured_at FROM pages WHERE owner=? AND course_id=? ORDER BY key LIMIT 150').all(user.id,query.course_id);}

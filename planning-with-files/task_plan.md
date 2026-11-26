@@ -1,3 +1,9 @@
+## Imported Moodle chatbot grade integration [Issue #111]
+
+- [x] Reproduce the disconnected legacy grade reader and oversized capture-queue response.
+- [x] Connect established grade evidence and semantic API discovery to the imported source.
+- [x] Verify all-course scores, privacy, source restrictions and local runtime; no deployment.
+
 ## Complete owned Moodle content import [Issue #110]
 
 - [x] Inspect the signed-in original DTM and enumerate owned courses.

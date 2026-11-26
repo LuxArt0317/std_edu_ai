@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Connect chatbot grade evidence to the same imported Moodle database as the local UI, separate capture queues from score reads, and budget full-course answer generation without weakening verification (Issue #111).
+
 - Add an owner-scoped local SQLite Moodle content library, transactional browser import, actual course/grade navigation and a shared assistant read API (Issue #110). Preserve source-disabled activities and literal grades; remaining capture coverage is tracked. No deployment or production database changes.
 
 - Preserve both grade and graduation-report evidence for bounded combined graduation/ranking questions; keep term clarification and non-prediction limits.

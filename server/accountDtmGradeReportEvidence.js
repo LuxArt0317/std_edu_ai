@@ -1,3 +1,4 @@
+import {readImportedDtmGradeEvidence} from './local-dtm/gradeEvidence.js';
 import {isDtmGradeReportEvidenceQuestion,dtmGradeRouteInfo as routeInfo,previousDtmGradeQuestion as previousQuestion,currentDtmGradeIntent as currentIntent,dtmGradeNativeTopic as nativeTopic,dtmGradeOtherDomain as otherDomain,dtmGradeFollowup as followup,explicitDtmGradeOverview as explicitOverview} from './dtmGradeEvidenceIntent.js';
 export {isDtmGradeReportEvidenceQuestion} from './dtmGradeEvidenceIntent.js';
 import {loadDtmGradeReport,loadDtmGradeReportOverview,parseDtmGradeReportData,parseDtmGradeReportOverviewData,dtmGradeReportMaxResponseBytes} from './dtmGradeReport.js';
@@ -33,7 +34,7 @@ function safeData(value,depth=0){
 function captureAccount(account){
   if(!dataObject(account)||!Object.hasOwn(account,'user')||!dataObject(account.user)||!Object.hasOwn(account.user,'id')||!uuid.test(account.user.id)||!['url','key','token'].every(key=>Object.hasOwn(account,key)&&typeof account[key]==='string'&&account[key].trim())
     ||!/^https:\/\/xiftudmvxphxcjtmfmib\.supabase\.co\/?$/.test(account.url))return null;
-  return {url:account.url,key:account.key,token:account.token,user:{id:account.user.id},requestDeadline:undefined};
+  return {url:account.url,key:account.key,token:account.token,user:{id:account.user.id,...(typeof account.user.email==='string'?{email:account.user.email}:{})},requestDeadline:undefined};
 }
 function failureReason(error){
   try{const val=key=>Object.getOwnPropertyDescriptor(error,key)?.value;
@@ -128,6 +129,7 @@ export async function readDtmGradeReportEvidence(account,options={},dependencies
     let deadlineReached=false;
     const checkDeadline=()=>{if(deadlineReached||Date.now()>=deadline)throw {evidenceDeadline:true};};
     const work=async()=>{
+      if(!dependencies.loadOverview&&!dependencies.loadReport&&!dependencies.observeOverview){const imported=await readImportedDtmGradeEvidence(readAccount,{...options,question:context});if(imported)return imported;}
       const courses=[];let afterId,complete=false;
       for(let pageIndex=0;pageIndex<maxPages;pageIndex++){
         checkDeadline();
