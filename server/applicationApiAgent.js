@@ -41,7 +41,7 @@ export async function answerWithApplicationApis({account,question,history=[],rou
   if(decision?.kind==='recover'){emit('planning','Adjusting the lookup','Preparing the next valid lookup step.','running');return false;}
   if(!decision||!schema.properties.kind.enum.includes(decision.kind))return true;
   if(decision.kind==='delegate')return true;
-  if(decision.kind==='clarify'){finalResult={status:'clarification',answer:String(decision.answer||'Which record or service would you like to check?').slice(0,3000),citations:[],activity,grounding:{source:account?'account':'public-page-context',webSearched:false}};return true;}
+  if(decision.kind==='clarify'){emit('clarification-request','A detail is needed',String(decision.answer||'Which record or service would you like to check?').slice(0,2000),'complete');finalResult={status:'clarification',answer:String(decision.answer||'Which record or service would you like to check?').slice(0,3000),citations:[],activity,grounding:{source:account?'account':'public-page-context',webSearched:false}};return true;}
   if(decision.kind==='answer'){
    if(!evidence.length){observations.push({error:'Read supporting source evidence before answering account facts.'});return false;}
    const ids=Array.isArray(decision.sourceIds)?decision.sourceIds:[],selected=evidence.filter(e=>ids.includes(e.id));

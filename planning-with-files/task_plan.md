@@ -1,3 +1,10 @@
+## Event-driven commentary and queued turns [Issue #116]
+
+- [x] Remove ten-second update polling; retain immediate acknowledgment.
+- [x] Add bounded removable FIFO queue and clarification pause/reply controls.
+- [x] Remove steering entirely per latest user instruction.
+- [x] Check local browser queue dispatch and types/unit checks. No deployment.
+
 ## Production memory preparation [Issue #115]
 
 - [x] Replace signed-in browser storage with server-owned Supabase persistence.

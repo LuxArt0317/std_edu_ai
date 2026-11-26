@@ -22,3 +22,5 @@ Unified discovery is implemented locally. See current_state.md and archive/progr
 2026-11-27 #115: Inspected context clipping (24 messages/64KB), added local browser memory at shared dispatcher, protected historical provenance and owner scopes, documented commands/limits. Verified three focused tests, TypeScript build and import lint. No production deployment or infrastructure mutation.
 
 2026-11-27 #115: Prepared hosted memory storage and wired verified account handler; disabled signed-in browser memory path. Added migration, service-only writes, generation-fenced erase, evaluator exclusion and build memory-test gate. Tested disposable isolated-network PostgreSQL; no hosted database writes. Staging/cross-device acceptance remains pending.
+
+2026-11-27 #116: Replaced commentary heartbeat with meaningful-event policy, queued turns and clarification signal. Verified queue removal/autodispatch in Codex browser. User then requested no steering; removed all steering code and controls, retaining noninterrupting queue. Added clarification queued-item reply choice. Local only.

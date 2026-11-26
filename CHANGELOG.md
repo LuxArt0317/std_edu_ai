@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Replace timed chat updates with event-driven commentary; add removable queued messages and clarification replies. No steering, per user request.
+
 - Prepare durable server-owned assistant memory with owner RLS, verified-only writes, bounded retention, generation-fenced deletion, evaluator isolation and build checks. Pending migration/configuration; not deployed.
 
 - Local-only account-scoped browser memory preserves verified source-linked answer snapshots beyond the conversation window; `/memory status` and `/memory clear` controls. Historical recall is not fresh evidence.
