@@ -1,3 +1,10 @@
+## Local conversation memory [Issue #115]
+
+- [x] Inspect rolling context and request-local evidence.
+- [x] Add bounded source-linked short-term and browser-persistent memory.
+- [x] Verify owner isolation, admission rules and compilation; keep local.
+- [ ] Follow up with server-owned durable evidence ledger and signed-in model recall acceptance.
+
 ## Contextual conversational updates [Issue #114]
 
 - [x] Replace canned acknowledgment with asynchronous model-generated commentary and10second updates using actual activity.
