@@ -457,8 +457,9 @@ test('compiled signed-in client sends exact filters directly to the authenticate
     if(specifier.endsWith('catalogDetailIntent.js'))return {catalogDetailIntent};
     if(specifier.endsWith('elearningCatalogPageIntent.js'))return {isElearningCatalogPageQuestion};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{
-      getSession:async()=>({data:{session:{user:{id:owner},access_token:account.token}},error:null}),
+      getUser:async()=>({data:{user:{id:owner}},error:null}),getSession:async()=>({data:{session:{user:{id:owner},access_token:account.token}},error:null}),
     }}};
     return new Proxy({},{get:()=>forbidRemote});
   },fetch:async(url,init)=>{

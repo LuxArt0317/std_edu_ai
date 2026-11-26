@@ -108,8 +108,9 @@ test('compiled client sends the status question to the authenticated API and sto
     if(specifier.endsWith('campusEntryContract.js'))return {campusEntryIntent};
     if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{
-      getSession:async()=>({data:{session:{user:{id:owner},access_token:signature+'first'}},error:null}),
+      getUser:async()=>({data:{user:{id:owner}},error:null}),getSession:async()=>({data:{session:{user:{id:owner},access_token:signature+'first'}},error:null}),
     }}};
     return new Proxy({},{get:()=>forbid});
   },fetch:async(target,init)=>{

@@ -360,7 +360,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
   const identityQuestion=accountStatusContextQuestion(question,history);
-  if(!hasProbe&&identityQuestion&&!(Array.isArray(input?.images)&&input.images.length)){
+  if(!hasProbe&&identityQuestion&&accountStatusIntent(identityQuestion)!=='displayName'&&!(Array.isArray(input?.images)&&input.images.length)){
     try{stream.send(200,await answerAccountStatus({account,question,identityQuestion,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));}
     catch{stream.send(503,{error:'Your sign-in could not be checked. Please try again.'});}
     return;
@@ -398,8 +398,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   // account path; public dispatch never receives account history or credentials.
   const publicFundingOrEnrollment=!/\b(?:my|our|mine|am i|did i|have i|for me|on my behalf|another student|someone else's)\b|我的|我們的|幫我|帮我|其他學生|其他学生/iu.test(question)
     &&Boolean(publicFundingIntent(question)||isPublicEnrollmentDateQuestion(question));
+  const earlyCampusEntry=campusEntryIntent(question,route);
+  if(earlyCampusEntry){stream.send(200,answerCampusEntry(question,earlyCampusEntry,true));return;}
+  const nativeGuidanceBoundary=Boolean(campusEntryIntent(question,route)||nativePageLookupContext(question,route,history).selected||internshipAssistantPlan(question,route,history)||studentLeaveAssistantPlan(question,route,history));
   const additionalPublicGuidance=isAdditionalPublicGuidanceQuestion(question);
-  if(!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)&&(additionalPublicGuidance||publicFundingOrEnrollment||isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
+  if(!hasProbe&&!nativeGuidanceBoundary&&!(Array.isArray(input?.images)&&input.images.length)&&(additionalPublicGuidance||publicFundingOrEnrollment||isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
     try{
       const research=await dispatchPublicResearch(publicResearch,{method:'POST',headers:{'content-type':'application/json'},
         body:{question,history:[],route:additionalPublicGuidance?additionalPublicGuidanceRoute(route):publicFundingOrEnrollment&&/^(?:\/admissions\/?|\/school-sites\/[^?#]+)$/u.test(route)?route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,

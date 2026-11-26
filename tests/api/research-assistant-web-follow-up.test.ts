@@ -245,11 +245,11 @@ test('a temporary failure on the second check does not discard a queued primary 
   const answer = await invoke({question:testQuestion},attempt.run,'web-second-review-outage',progress);
   assert.equal(attempt.searchRequests.length,2);
   assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,officialNotice]);
-  assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+  assert.deepEqual(answer.verification,{status:'verified',attempts:4});
   assert.match(answer.answer,/opens at 10:30 a\.m\./u);
   assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
   assert.deepEqual(progress.filter(step=>/^verification-\d+$/u.test(step.kind)&&step.status!=='running')
-    .map(({kind,status})=>[kind,status]),[['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','complete']]);
+    .map(({kind,status})=>[kind,status]),[['verification-1','unavailable'],['verification-2','unavailable'],['verification-3','unavailable'],['verification-4','complete']]);
   assert.equal(progress.some(step=>step.kind==='verification-stop'),false);
 });
 
@@ -259,7 +259,7 @@ test('after a second-review outage, an empty or mirrored batch leaves the next q
     const answer = await invoke({question:testQuestion},attempt.run,outcome,progress);
     assert.equal(attempt.searchRequests.length,2);
     assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,...queuedBatch,officialNotice]);
-    assert.deepEqual(answer.verification,{status:'verified',attempts:3});
+    assert.deepEqual(answer.verification,{status:'verified',attempts:4});
     assert.match(answer.answer,/opens at 10:30 a\.m\./u);
     assert.deepEqual(answer.citations.map(({url}:{url:string})=>url),[officialNotice]);
     const finalReview = attempt.scopes.filter(({name})=>name==='answer_evidence_review').at(-1);
@@ -275,8 +275,8 @@ test('additional queued pages share the original evidence read deadline', async 
   const answer = await invoke({question:testQuestion},attempt.run,'second-review-batch-budget',progress);
   assert.equal(attempt.searchRequests.length,2);
   assert.deepEqual(attempt.acquiredUrls,[officialDirectory,officialOffice,eventCalendar,...queuedBatch]);
-  assert.deepEqual(attempt.scopes.map(({name})=>name),['answer_evidence_review','correct_grounded_answer','answer_evidence_review']);
-  assert.deepEqual(answer.verification,{status:'unverified',attempts:2,reason:'source_read_time_limit'});
+  assert.deepEqual(attempt.scopes.map(({name})=>name),['answer_evidence_review','correct_grounded_answer','answer_evidence_review','answer_evidence_review']);
+  assert.deepEqual(answer.verification,{status:'unverified',attempts:3,reason:'source_read_time_limit'});
   assert.deepEqual(answer.citations,[]);
   const stops=progress.filter(step=>step.kind==='verification-stop');
   assert.equal(stops.length,1);
@@ -284,7 +284,7 @@ test('additional queued pages share the original evidence read deadline', async 
   const saved=sanitizeStoredConversation([{id:'queued-budget',role:'assistant',content:answer.answer,activity:answer.activity,result:answer}]);
   assert.deepEqual(saved[0].activity.filter((step:Progress)=>step.kind==='verification-stop'),stops);
   assert.deepEqual(saved[0].result.activity.filter((step:Progress)=>step.kind==='verification-stop'),stops);
-  assert.deepEqual(saved[0].result.verification,{status:'unverified',attempts:2});
+  assert.deepEqual(saved[0].result.verification,{status:'unverified',attempts:3});
 });
 
 test('a queued read timeout keeps a verified partial answer and saves the reason', async () => {
@@ -1383,10 +1383,10 @@ test('verified public detail can advance through four checks and survives stalle
     const answer=await invoke({question:question+(unresolved.length?' Are guide handouts available?':'')},run,'verified-public-continuation-'+outcome,progress);
     const usedQueuedLead=outcome==='same-gaps-with-lead'||outcome==='timeout-then-recovered';
     const reachedFourth=usedQueuedLead||['complete','still-partial','rejected-then-recovered','truncated-then-recovered'].includes(outcome);
-    const expectedReviews=reachedFourth?4:['outage','swapped-gaps','relabeled','truncated-no-time'].includes(outcome)?3:2;
+    const expectedReviews=reachedFourth||outcome==='outage'?4:['outage','swapped-gaps','relabeled','truncated-no-time'].includes(outcome)?3:2;
     assert.deepEqual(answer.verification,{status:'verified',attempts:expectedReviews},outcome);
     assert.equal(reviews,expectedReviews,outcome);
-    assert.equal(corrections,expectedReviews-1,outcome);
+    assert.equal(corrections,outcome==='outage'?2:expectedReviews-1,outcome);
     assert.equal(searches,reachedFourth&&!usedQueuedLead?4:outcome==='time'?2:3,outcome);
     assert.deepEqual(acquired,usedQueuedLead?[...sourceUrls.slice(0,3),calendarMirror,officialNotice]:reachedFourth?sourceUrls:
       [...sourceUrls.slice(0,2),...(outcome==='time'?[]:[outcome==='mirror'?mirror:eventCalendar])]);

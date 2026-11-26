@@ -69,7 +69,7 @@ test('PublicAssistant supplies the route helper to the existing authenticated/an
   const source=readFileSync(new URL('../../src/features/public/PublicAssistant.tsx',import.meta.url),'utf8');
   assert.match(source,/import\s*\{assistantPageRoute\}\s*from ['"]\.\.\/\.\.\/services\/assistantPageRoute\.js/);
   assert.match(source,/const route\s*=\s*assistantPageRoute\(embedded\)/);
-  assert.match(source,/askWebsiteAssistant\(\{userId:user\?\.id,question,history:messages,signal:controller\.signal,images:attached,route,onProgress,preferences:commands\.preferences\}\)/);
+  assert.match(source,/askWebsiteAssistant\(\{userId:user\?\.id,question,history:messages\.filter\(m=>m\.phase!=='working'\),signal:controller\.signal,images:attached,route,onProgress,preferences:commands\.preferences\}\)/);
   const transport=readFileSync(new URL('../../src/services/websiteAssistant.ts',import.meta.url),'utf8');
   assert.match(transport,/askSchoolAffairsAssistant\(/);
   assert.match(transport,/askCampusAssistant\(/);

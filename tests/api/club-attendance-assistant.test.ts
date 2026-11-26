@@ -273,7 +273,8 @@ test('the actual authenticated browser dispatcher enters the verification endpoi
     if(specifier.endsWith('clubAttendanceIntent.js'))return intent;
     if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
-    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:owner},access_token:token}},error:null})}}};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:owner}},error:null}),getSession:async()=>({data:{session:{user:{id:owner},access_token:token}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url:string,init:RequestInit)=>{
     calls.push([url,new Headers(init.headers).get('authorization'),JSON.parse(String(init.body))]);
@@ -293,7 +294,8 @@ test('the five frozen club-attendance questions route from the compiled client t
   const probe=(h:ReturnType<typeof fixture>)=>{
     const exports:Record<string,any>={},requests:unknown[]=[];
     runInNewContext(code,{exports,require:(specifier:string)=>{
-      if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:h.owner},access_token:token}},error:null})}}};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+      if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:h.owner}},error:null}),getSession:async()=>({data:{session:{user:{id:h.owner},access_token:token}},error:null})}}};
       if(specifier.endsWith('.js'))return requireModule(specifier);
       return new Proxy({},{get:()=>()=>assert.fail('Unexpected direct dispatch: '+specifier)});
     },fetch:async(url:string,init:RequestInit)=>{

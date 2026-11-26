@@ -99,7 +99,7 @@ export function inspectClientDispatchSource(source){
   if(api.some(call=>call.name!==fetchBindings[0]))throw new Error('Account endpoint bypassed the imported shared transport.');
   const graphCalls=calls.filter(call=>call.name==='askVerifiedAccount');
   const fallback=graphCalls.at(-1);
-  if(api.length!==1||graphCalls.length!==2||!fallback)throw new Error('Expected one shared account graph transport and final fallback.');
+  if(api.length!==1||graphCalls.length!==3||!fallback)throw new Error('Expected one shared account graph transport and final fallback.');
   const session=calls.find(call=>call.name==='affairsClient.auth.getSession');
   const guard=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='error||!data.session'&&ts.isThrowStatement(node.thenStatement));
   const identity=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='data.session.user.id!==expectedUserId'&&ts.isThrowStatement(node.thenStatement));
@@ -116,10 +116,12 @@ export function inspectClientDispatchSource(source){
       throw new Error('Native client dispatch changed: '+definition.id);
     return {id:definition.id,call:definition.call,source:dispatchPath,line:selected[0].line,beforeGraphFallback:true,callerArgument:'data.session.user.id'};
   });
-  const first=graphCalls[0];
+  const unified=entry.body.statements.find(node=>ts.isIfStatement(node)&&node.expression.getText(file).replace(/\s/g,'')==='unifiedAssistantDiscoveryEnabled()');
+  if(!unified||!ts.isReturnStatement(unified.thenStatement)||unified.thenStatement.expression?.getStart(file)!==graphCalls[0].at)throw new Error('Missing explicit opt-in unified transport.');
+  const first=graphCalls[1];
   const verifiedDispatch=entry.body.statements.find(node=>ts.isIfStatement(node)&&ts.isReturnStatement(node.thenStatement)
     &&node.thenStatement.expression?.getStart(file)===first.at);
-  const graphPredicates={campusEntryIntent:['campusEntryContract','question,route'],learningEntryIntent:['learningEntryContract','question,route'],accountStatusIntent:['accountStatusIntent','question,route'],clubAttendanceSelection:['clubAttendanceIntent','question,route'],clubMembershipSelection:['clubMembershipIntent','question,route'],clubEquipmentPlan:['clubEquipmentIntent','question,route,history'],isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
+  const graphPredicates={accountStatusContextQuestion:['accountStatusIntent','question,history'],campusEntryIntent:['campusEntryContract','question,route'],learningEntryIntent:['learningEntryContract','question,route'],accountStatusIntent:['accountStatusIntent','question,route'],clubAttendanceSelection:['clubAttendanceIntent','question,route'],clubMembershipSelection:['clubMembershipIntent','question,route'],clubEquipmentPlan:['clubEquipmentIntent','question,route,history'],isElearningMetadataQuestion:['elearningMetadataIntent','question,route'],catalogDetailIntent:['catalogDetailIntent','question,route'],isElearningCatalogPageQuestion:['elearningCatalogPageIntent','question,route'],parseExplicitAccountAction:['accountActionIntent','question'],dtmAssignmentListSelection:['dtmAssignmentListIntent','question,route'],dtmMaterialIntent:['dtmMaterialIntent','question,route'],isInternshipEvidenceQuestion:['internshipEvidenceIntent','question,route,history'],
     isStudentLeaveEvidenceQuestion:['studentLeaveEvidenceIntent','question,route,history'],
     isVenueRequestQuestion:['venueRequestIntent','question,route,history'],
     isDtmAssignmentEvidenceQuestion:['dtmAssignmentEvidenceIntent','question,route,history'],

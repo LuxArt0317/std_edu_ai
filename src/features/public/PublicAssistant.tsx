@@ -261,7 +261,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       const summary=result.summary.replace(/[\r\n]+/gu,' ').replace(/[\\`*_\[\]<>]/gu,'\\$&');
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
-        content:`${item.content}\n\n✓ ${summary}. [View records](${action.url||'/school-affairs/records'}).`,
+        content:`${item.content}\n\n✓ ${summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
         activity:mergeAssistantActivity(item.activity,[{kind:'action',label:kind==='invoke_application_api'?'Application API responded':'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));

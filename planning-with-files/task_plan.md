@@ -1,3 +1,11 @@
+## Production release [Issue #117]
+
+- [x] Verify client registry, authorized account and exact pending migrations.
+- [x] Apply migrations, enable release configuration, schedule memory expiry and verify owner RLS with rollback-only fixtures.
+- [x] Repair pre-release runtime/fixture regressions.
+- [ ] Publish via GitHub pipeline and verify exact production artifact.
+- [ ] Verify live anonymous/signed-in chat, memory and queue behavior.
+
 ## Event-driven commentary and queued turns [Issue #116]
 
 - [x] Remove ten-second update polling; retain immediate acknowledgment.

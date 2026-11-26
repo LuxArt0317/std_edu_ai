@@ -121,7 +121,8 @@ test('actual compiled client preserves detail/edit contexts and caller identity 
     if(specifier.endsWith('dtmAssignmentEvidenceIntent.js'))return intent;
     if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
-    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:user},access_token:'OFFLINE_CLIENT'}},error:null})}}};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:user}},error:null}),getSession:async()=>({data:{session:{user:{id:user},access_token:'OFFLINE_CLIENT'}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url,init)=>{sent.push({url,headers:init.headers,body:JSON.parse(init.body)});return Response.json({status:'answered',answer:'Verified API dispatch mock',citations:[]});}});
   for(const row of bank.filter(row=>row.fields||row.stop)){

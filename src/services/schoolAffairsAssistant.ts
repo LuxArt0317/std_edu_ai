@@ -1,3 +1,4 @@
+import {unifiedAssistantDiscoveryEnabled} from './assistantDeploymentFlags.js';
 import {assistantFetch,type AssistantTransport} from './assistantTransport';
 import {assistantContext} from './assistantContext.js';
 import {learningSupportQuestion} from '../../server/learningSupportAssistantIntent.js';
@@ -80,9 +81,9 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   signal?.throwIfAborted();
   if(verified.error||verified.data.user?.id!==expectedUserId)throw new Error('Please sign in to School Affairs again before checking personal records.');
   const {access_token:accessToken}=data.session;
-  if(import.meta.env.VITE_ASSISTANT_UNIFIED_DISCOVERY==='true')
+  if(unifiedAssistantDiscoveryEnabled())
     return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress,transport);
-  if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||accountStatusContextQuestion(question,history)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
+  if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||accountStatusContextQuestion?.(question,history)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
     ||selectDtmSubmissionTiming(question,route,history)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)

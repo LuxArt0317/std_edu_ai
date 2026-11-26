@@ -77,7 +77,8 @@ test('compiled client selects account verification before older direct readers a
     if(specifier.endsWith('studentLeaveEvidenceIntent.js'))return leaveIntent;
     if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
-    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:caller},access_token:'OFFLINE_LEAVE_BROWSER'}},error:null})}}};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:caller}},error:null}),getSession:async()=>({data:{session:{user:{id:caller},access_token:'OFFLINE_LEAVE_BROWSER'}},error:null})}}};
     return new Proxy({},{get:()=>()=>assert.fail('An unrelated fallback was evaluated before the leave graph.')});
   },fetch:async(url,init)=>{
     assert.equal(url,'/api/affairs-assistant');

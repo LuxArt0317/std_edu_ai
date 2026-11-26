@@ -281,7 +281,8 @@ test('the compiled browser client sends exact venue context through the verified
     if(specifier.endsWith('venueRequestIntent.js'))return intent;
     if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
-    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>(
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:sessionOwner}},error:null}),getSession:async()=>(
       {data:{session:{user:{id:sessionOwner},access_token:token}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url:string,init:RequestInit)=>{
