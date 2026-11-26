@@ -463,7 +463,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(payment){stream.send(200,payment);return;}
   const paymentHistory=selectChargePaymentHistory(requestedQuestion,route,history,now);
   if(paymentHistory){
-    if(paymentHistory.reason){stream.send(200,chargePaymentHistoryBoundary(paymentHistory));return;}
+    if(!('filter' in paymentHistory)){stream.send(200,chargePaymentHistoryBoundary(paymentHistory));return;}
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Ask about your payment history using text.'});return;
     }

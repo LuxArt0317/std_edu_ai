@@ -34,3 +34,5 @@ Unified discovery is implemented locally. See current_state.md and archive/progr
 2026-11-27 #117: Production-readiness check found normal server citation links are often site-relative. Canonicalized verified relative memory sources to stu.best and added regression coverage, preventing silently empty memory admission for normal account replies.
 
 2026-11-27 #117: Final clean-checkout CI completed API suite with one stale60s config assertion; browser accessibility/all394copied pages passed, then the assistant test used the old sign-in link label. Updated both contracts to120s and the current signed-out link while retaining runtime import isolation and actual navigation assertions. No runtime gate was removed.
+
+2026-11-27 #117: Both GitHub jobs passed on1443b1c9. Vercel's additional function compiler exposed a payment-history union guard that depended on strictNullChecks. Replaced it with a structural discriminator and added the builder-compatible compiler pass to typecheck:api so the mismatch is caught before future deployment. No behavior or permission change.
