@@ -43,3 +43,5 @@ npm run verify:dependency-audit
 The current app interface uses compact transactional screens and plain labels. See the [frontend reference](docs/reference/FRONTEND.md#transactional-ui) and [portal guide](docs/guides/portal.md).
 
 Automatic API discovery for the signed-in chatbot is documented in [server tools](server/README.md#automatic-application-api-tools-issue-104). New APIs reuse their existing authorization and expose reviewed changes through chat.
+
+The local-first unified chatbot discovery flow searches website sources and discovers authenticated API operations. See [architecture, flags and limitations](server/README.md#unified-websitedatabase-discovery-issue-108).

@@ -1300,3 +1300,7 @@
 
 ## Local account identity and grades — Issue #107
 - Show verified identity and direct sign-out in chat; isolate academic grade planning, reads and evidence from practice quizzes. Use concise sample labels rather than blanket unofficial-record disclaimers.
+
+## Unreleased — unified discovery
+
+- Local unified website/API discovery with hybrid retrieval, LangGraph adaptive tools, source-following and independent verification (Issue108); no deployment.

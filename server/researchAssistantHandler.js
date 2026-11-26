@@ -1,3 +1,4 @@
+import {answerWithApplicationApis} from './applicationApiAgent.js';
 import {guestAssistantAccess,guestSignInAnswer} from './guestAssistantAccess.js';
 import {publicAdmissionResponseNeeds} from './publicAdmissionResponseNeeds.js';
 import {publicProspectusResponseNeeds} from './publicProspectusResponseNeeds.js';
@@ -430,6 +431,10 @@ export function createResearchAssistantHandler(dependencies = {}) {
         // Resolve privacy before any keyword shortcut, source lookup or progress.
         const access=!input.images.length?await (dependencies.guestAccess||guestAssistantAccess)(input.question,input.history):null;
         if(access?.access==='personal'){stream.send(200,guestSignInAnswer(input.question));return;}
+        if(process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!input.images.length){
+            const result=await (dependencies.discover||answerWithApplicationApis)({account:null,question:input.question,history:input.history,route:input.route,deadline:assistantRequestDeadline(Date.now()),onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)},{unified:true,maxSteps:12});
+            if(result){stream.send(200,result);return;}
+        }
         const retrievalQuestion=access?.access==='public'&&access.publicQuestion?access.publicQuestion:input.question;
         const publishedHelp=!input.images.length?(publishedSchoolGuidance(input.question)||publishedSchoolGuidance(retrievalQuestion)):null;
         if(publishedHelp){for(const step of publishedHelp.activity)stream.progress(step.kind,step.label,step.detail,step.status);stream.send(200,await conversationalGuidance(input.question,input.history,publishedHelp,{deadline:Date.now()+40000,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));return;}

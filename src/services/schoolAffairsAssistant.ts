@@ -80,6 +80,8 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   signal?.throwIfAborted();
   if(verified.error||verified.data.user?.id!==expectedUserId)throw new Error('Please sign in to School Affairs again before checking personal records.');
   const {access_token:accessToken}=data.session;
+  if(import.meta.env.VITE_ASSISTANT_UNIFIED_DISCOVERY==='true')
+    return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress,transport);
   if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
     ||selectDtmSubmissionTiming(question,route,history)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)

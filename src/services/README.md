@@ -94,3 +94,5 @@ Written requests about the Moodle assignment-list view go through the signed-in 
 `assistantPreferences.js` parses /model and /thinking commands separately from ordinary path questions. `websiteAssistant.ts` applies selected settings through the existing transport and checks server acknowledgement before attaching settings to a saved answer. Commands never enter message history.
 
 School Affairs assistant calls now revalidate the existing session before private lookups or progress. Cached identity does not establish authorization; the server also verifies every authenticated request (Issue #105).
+
+VITE_ASSISTANT_UNIFIED_DISCOVERY routes verified account chat directly to the unified server flow, bypassing frontend question shortcuts. Fresh session validation remains required. Pair it with the server discovery flag and restart/refresh; see server/README.md (Issue108).

@@ -17,3 +17,5 @@ For local evaluation model defaults and slash controls, see [Answer Lab setup](t
 For local source refresh and independent source-audit model configuration, see [server helpers](server/README.md) and [source projection scripts](scripts/README.md). These changes do not deploy or replace cloud evaluation data.
 
 For automatic chatbot API discovery, local feature flags and hosted action-review prerequisites, see [server setup](server/README.md#automatic-application-api-tools-issue-104).
+
+For local website/database discovery, embedding-cache generation and planner-versus-answer model settings, see [discovery setup](server/README.md#unified-websitedatabase-discovery-issue-108).

@@ -1,10 +1,11 @@
+import type {answerWithApplicationApis} from './applicationApiAgent.js';
 import type {guestAssistantAccess} from './guestAssistantAccess.js';
 import type {readVerificationSources} from './answerVerificationSources.js';
 import type {loadPublicPageContext} from './publicPageContext.js';
 export type ResearchApiRequest={method?:string;body?:unknown;headers:Record<string,string|string[]|undefined>;socket?:{remoteAddress?:string}};
 export type ResearchApiResponse={status:(code:number)=>ResearchApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
 export type ResearchApiHandler=(request:ResearchApiRequest,response:ResearchApiResponse,context?:{deadline:number})=>Promise<void>;
-export function createResearchAssistantHandler(dependencies?:{guestAccess?:typeof guestAssistantAccess;readSources?:typeof readVerificationSources;loadPublicPage?:typeof loadPublicPageContext}):ResearchApiHandler;
+export function createResearchAssistantHandler(dependencies?:{discover?:typeof answerWithApplicationApis;guestAccess?:typeof guestAssistantAccess;readSources?:typeof readVerificationSources;loadPublicPage?:typeof loadPublicPageContext}):ResearchApiHandler;
 export function detectEvidenceConflict<T extends {authority_level:string;document_logical_key?:string;document_checksum?:string;source_id:string;fused_score:number}>(retrieved:T[]):readonly[T,T]|null;
 export const config:{maxDuration:number};
 declare const handler:ResearchApiHandler;

@@ -349,7 +349,11 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const stream=createAssistantStream(input?.stream===true,response);
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
-  if(process.env.ASSISTANT_API_TOOLS_ENABLED==='true'&&!hasProbe&&!isAcademicGradesQuestion(question,route,history)&&!isNativeDtmGradeOnlyQuestion(question,route,history)&&!(Array.isArray(input?.images)&&input.images.length)){
+  if(process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)){
+    const result=await answerWithApplicationApis({account,question,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)},{unified:true,maxSteps:12});
+    if(result){stream.send(200,result);return;}
+  }
+  if(process.env.ASSISTANT_DISCOVERY_ENABLED!=='true'&&process.env.ASSISTANT_API_TOOLS_ENABLED==='true'&&!hasProbe&&!isAcademicGradesQuestion(question,route,history)&&!isNativeDtmGradeOnlyQuestion(question,route,history)&&!(Array.isArray(input?.images)&&input.images.length)){
     const result=await answerWithApplicationApis({account,question,history,route,deadline,
       onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
     if(result){stream.send(200,result);return;}

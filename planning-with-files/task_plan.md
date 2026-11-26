@@ -1,3 +1,11 @@
+## Unified discovery agent [Issue #108]
+
+- [x] Build searchable public-page/document index without evaluation references.
+- [x] Add semantic/lexical discovery and registered page reads.
+- [x] Run public and authenticated API tools through a shared adaptive LangGraph.
+- [x] Verify unseen paraphrases, source fidelity and account boundaries.
+- [x] Enable locally and document limitations; no deployment.
+
 ## Visible identity and grade source isolation [Issue #107]
 
 - [x] Show verified identity and direct sign-out in chat.

@@ -1,0 +1,1 @@
+export function runDiscoveryGraph(options:{plan:()=>Promise<any>;execute:(decision:any)=>Promise<boolean>;verify:(decision:any)=>Promise<boolean>;canContinue:()=>boolean;maxSteps?:number}):Promise<unknown>;

@@ -121,3 +121,5 @@ Q13 account grading tests cover caller/version/route isolation, complete timetab
 Course-selection term-guide checks cover bilingual missing-term navigation and exclusions for explicit terms, conversation context, foreign owners, compounds and writes.
 
 Academic outcome intent checks cover both independent evidence families, retained transcript/rank scope ambiguity and exclusions for other owners, writes, extra domains and lone record requests.
+
+Issue108 discovery checks: website-discovery tests cover source retrieval, semantic fallback, registered reads, guest isolation and unread-source coverage recovery; website-discovery-build checks automatic new-page indexing, expected-answer exclusion and checksum failures. discovery-embeddings checks vector/transport validation. Run with node --experimental-strip-types --test tests/api/website-discovery*.test.ts tests/api/discovery-embeddings.test.ts.

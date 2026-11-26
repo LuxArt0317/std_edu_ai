@@ -24,6 +24,9 @@ try{validUrl=new URL(localUrl).protocol==='https:';}catch{}
 if(!validUrl||!localKey||placeholders.has(localKey))throw new Error('Configure valid local client Supabase settings in ignored .env.local; encrypted placeholders cannot be used.');
 if(!process.env.OPENAI_API_KEY||placeholders.has(process.env.OPENAI_API_KEY))throw new Error('Configure the existing server-only model credential in ignored .env.local.');
 const {generateApplicationApis}=await import('../server/applicationApiCatalogBuild.js');
+const {generateWebsiteDiscovery}=await import('../server/websiteDiscoveryBuild.js');
+await generateWebsiteDiscovery(root);
+if(process.env.ASSISTANT_EMBEDDINGS_ENABLED==='true')await import('./compile-discovery-embeddings.mjs');
 await generateApplicationApis(root);
 process.env.VERCEL_ENV='development';
 process.env.STU_LOCAL_CAPTURE_ORIGIN=`http://127.0.0.1:${port}`;

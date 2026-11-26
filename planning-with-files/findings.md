@@ -457,3 +457,5 @@ User explicitly authorized multiple agents; campus_support ownsQ37/Q48, scholars
 
 ## November25 source evaluation checkpoint [Issue #100]
 Verified public composition can fail on source-scope or translation errors even when all facts are present: Q53 inferred site-wide absence from a limited lookup; Q30 confused resuming students with continuing students. Keep unknown feature coverage explicit, preserve exact cohorts, and diagnose actual reviewer claims before another paid run. Q53now80; Q19regression90; Q45regression45 and Q30regression20 require current fixes despite historicalpasses. Prior logs archived in archive/progress_2026-11-25_source-evaluation.md.
+
+Issue108: generic source discovery needs document-level reads and links, not isolated retrieval windows; ranking is not factual verification. Keep stronger tool planning separate from the selected answer model. Public sources only are indexed; account permissions remain endpoint/RLS enforced. Generated indexes and vectors are local derived artifacts, never expected-answer input.

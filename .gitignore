@@ -64,3 +64,8 @@ artifacts/
 # Build-generated executable API handlers; never import TypeScript at runtime.
 server/applicationApiRuntime-*.js
 server/applicationApiCatalog.generated.js
+
+server/websiteDiscovery.generated.json
+server/websiteDiscovery.generated.json.tmp
+server/websiteDiscovery.embeddings.json
+server/websiteDiscovery.embeddings.json.tmp

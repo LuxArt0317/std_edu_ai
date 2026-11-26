@@ -94,3 +94,8 @@ Fixed local API-preflight interruption: established grade intents bypass the gen
 
 ## Issue #107
 Codex browser confirmed a restored session for the user account, not anonymous private retrieval. Added visible verified email and Sign out. Browser sign-out succeeded, private chats disappeared, and anonymous “what are my grades” returned only the login handoff. Academic grade-only planning/read/evidence now excludes practice and DTM substitution. Concise sample provenance remains; ordinary stored records get no blanket unofficial disclaimer. Local server62707 running; production unchanged.
+
+## Issue #108 unified discovery — local
+Implemented shared LangGraph planning/tool/verification flow for guest website search and authenticated API discovery. Public index842chunks/491destinations, all842vectors cached. Public-only hybrid retrieval, full bounded document reads and indexed-link following; no expected answers or private rows indexed. Planner Terra is independent of selected final-answer model. Live calendar discovery and unseen commencement paraphrase passed with source verification; anonymous forged identity returned sign-in only. Existing specialized paths remain fallback. Local flags enabled; restart running on5173. Production unchanged; signed-in live model acceptance remains outstanding.
+
+Final Issue108 endpoint checks: unseen stage/commencement phrasing returned June12,2027 with website search/read/composition/source-check activity; laptop-online phrasing returned source-backed campus Wi-Fi setup without a Wi-Fi keyword. Both independently verified. Forged-account anonymous grades request returned authentication-only handoff. Final planner uses Terra; final answer remains selected model.

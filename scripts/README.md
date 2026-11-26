@@ -73,3 +73,5 @@ Cloud sync enforces the deployed lab’s3MB mutation limit, even though the data
 The local API adapter optionally verifies a private grading request’s existing Bearer session before invoking the same caller-scoped charge reader. Missing or invalid sessions perform no record read and remain reference-only. Isolated QA worktrees can point their ignored `.evaluation-lab` path to the preserved private store; no secrets or evaluation state enter Git.
 
 `compile-application-apis.mjs` builds the automatic API tool catalog and JavaScript-only handler modules. `lint-application-apis.mjs` rejects unsupported API structures. See [contracts and setup](../server/README.md#automatic-application-api-tools-issue-104).
+
+`compile-website-discovery.mjs` builds the public source/directory index; `compile-discovery-embeddings.mjs` incrementally caches public source vectors. Build/startup compile source discovery before importing handlers. With embedding enabled, only missing vectors invoke the provider. No evaluator reference or private account rows enter this index. See [server setup](../server/README.md#unified-websitedatabase-discovery-issue-108).
