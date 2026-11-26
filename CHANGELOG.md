@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Animate chatbot activity expansion and collapse with keyboard support, reversible toggles and reduced-motion handling (Issue #113).
+
 - Fix whole-envelope imported-grade size accounting and add strict imported source/URL validation in the actual supplemental formatter (Issue #111).
 
 - Show immediate conversational acknowledgments, keep real activity collapsed in one expandable line, preserve user expansion, and retain acknowledgment before the final answer in live chat and shared rendering (Issue #112).

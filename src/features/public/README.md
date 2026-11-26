@@ -37,3 +37,5 @@ The assistant header displays the verified account email and a direct Sign out c
 ## Conversational progress (Issue #112)
 
 Submitting a question immediately creates a short acknowledgment without waiting for the network or model. It is stored separately from final answer content and remains above the activity disclosure and final answer. The single activity line is collapsed by default, stays expanded if the user opens it, and retains the actual reported tool/source checks. Working drafts stay hidden. The shared message renderer gives Answer Lab the same collapsed activity behavior. No new model call or permission is introduced.
+
+Activity disclosures animate their measured height over220ms when opened or closed (Issue #113). Native summary keyboard behavior is retained, rapid toggles cancel the previous animation, and reduced-motion preference switches instantly. The shared renderer also supplies this behavior in Answer Lab.

@@ -1,3 +1,8 @@
+## Activity expansion motion [Issue #113]
+
+- [x] Animate native disclosure expansion/collapse with rapid-toggle cancellation and reduced-motion support.
+- [x] Verify type checks and the local interaction; document and commit locally.
+
 ## Immediate conversational feedback [Issue #112]
 
 - [x] Acknowledge immediately without claiming a lookup or exposing an unverified draft.
