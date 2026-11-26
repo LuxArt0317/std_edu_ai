@@ -1291,3 +1291,6 @@
 
 ## Unreleased — Issue #104
 - Automatic authenticated API tools and reviewed actions; local only, hosted migration unapplied.
+
+## Local privacy repair — Issue #105
+- Gate personal guest questions before public shortcuts, add semantic public paraphrase routing, and revalidate sign-in before private assistant dispatch. No deployment.

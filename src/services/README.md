@@ -92,3 +92,5 @@ Written requests about the Moodle assignment-list view go through the signed-in 
 `websiteAssistant.ts` is the shared website/Answer Lab entry point. It selects the existing public or authenticated client from the actual session user. `assistantTransport.ts` permits request-scoped evaluation configuration without changing routing or global fetch.
 
 `assistantPreferences.js` parses /model and /thinking commands separately from ordinary path questions. `websiteAssistant.ts` applies selected settings through the existing transport and checks server acknowledgement before attaching settings to a saved answer. Commands never enter message history.
+
+School Affairs assistant calls now revalidate the existing session before private lookups or progress. Cached identity does not establish authorization; the server also verifies every authenticated request (Issue #105).

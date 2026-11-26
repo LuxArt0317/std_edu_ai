@@ -387,3 +387,9 @@ Admission language evidence retains literal numbered obligations and program-app
 Q17 missing-term course questions receive a bounded bilingual navigation clarification before record reads. Exact terms, follow-ups, images, writes and other owners retain existing handling; no term or enrollment is inferred.
 
 `academicOutcomeIntent.js` recognizes bounded first-person combined graduation/ranking guidance in English and Chinese. It selects academic-grade and graduation-reference evidence independently. Existing explicit-term grade selection and graduation-status limits remain authoritative; the intent grants no eligibility prediction, rank forecast or write capability.
+
+## Guest privacy and semantic routing (Issue #105)
+
+`guestAssistantAccess.js` runs before public answer shortcuts. It classifies personal versus public meaning with bounded recent user questions, ignoring prior assistant claims as identity evidence. Explicit personal fee/record wording also gates independently of the model. Personal questions receive a sign-in handoff with authentication-only activity and no source lookup. Public semantic paraphrases can select the existing published guidance; answer composition still receives the original question. Classification failure retains public-only retrieval and existing privacy guards; this classifier does not grant access or expose account tools. Image descriptions remain separate and never authorize account access.
+
+The signed-in client revalidates its token with `getUser` before any private dispatch/progress. Server authorization remains authoritative. Regression command: `node --experimental-strip-types --test tests/api/guest-assistant-access.test.ts`. Live local intent checks covered the reported tuition question, an unpaid-bill paraphrase and public payment options/deadlines. Broader wording coverage and signed-in browser acceptance remain separate checks.

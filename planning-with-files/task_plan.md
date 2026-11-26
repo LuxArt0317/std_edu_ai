@@ -1,3 +1,9 @@
+## Signed-out privacy and paraphrases [Issue #105]
+
+- [x] Gate guest personal intent before all source shortcuts.
+- [x] Add semantic paraphrase routing and fresh session validation.
+- [x] Verify anonymous personal/public variants and document local-only status.
+
 ## Automatic application API tools [Issue #104]
 
 - [x] Generate a complete API catalog and JavaScript-only handler loaders from API source files.

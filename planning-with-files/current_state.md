@@ -85,3 +85,6 @@ The same real-session gate persists across at least three consecutive goal turns
 
 ## Issue #104 local API tools checkpoint
 Automatic API discovery and reviewed invocation are implemented locally in the release checkout. Fourteen catalog routes include aliases; nine are callable, with recursive control endpoints excluded. Sixteen focused tests, TypeScript and JS-only packaging passed. Local HTTP5173 responds200, but Codex browser connection failures prevent signed-in UI/model acceptance. Hosted migration is prepared but NOT applied; production flag remains unchanged.
+
+## Issue #105 local repair
+Guest personal intent now gates before public shortcuts, with sign-in-only activity. Public paraphrases can use semantic retrieval wording while composition retains the original question. Private dispatch revalidates its session. Focused tests, live intent checks, types/import/packaging checks pass. Local5173 restarted; no production deployment. Signed-in browser acceptance remains unverified.

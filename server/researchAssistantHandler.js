@@ -1,3 +1,4 @@
+import {guestAssistantAccess,guestSignInAnswer} from './guestAssistantAccess.js';
 import {publicAdmissionResponseNeeds} from './publicAdmissionResponseNeeds.js';
 import {publicProspectusResponseNeeds} from './publicProspectusResponseNeeds.js';
 import {composeSavedPublicSource} from './composeSavedPublicSource.js';
@@ -425,7 +426,12 @@ export function createResearchAssistantHandler(dependencies = {}) {
             stream.send(200,imageReply);return;
         }
 
-        const publishedHelp=!input.images.length?publishedSchoolGuidance(input.question):null;
+        // This handler is anonymous even when a client supplies identity claims.
+        // Resolve privacy before any keyword shortcut, source lookup or progress.
+        const access=!input.images.length?await (dependencies.guestAccess||guestAssistantAccess)(input.question,input.history):null;
+        if(access?.access==='personal'){stream.send(200,guestSignInAnswer(input.question));return;}
+        const retrievalQuestion=access?.access==='public'&&access.publicQuestion?access.publicQuestion:input.question;
+        const publishedHelp=!input.images.length?(publishedSchoolGuidance(input.question)||publishedSchoolGuidance(retrievalQuestion)):null;
         if(publishedHelp){for(const step of publishedHelp.activity)stream.progress(step.kind,step.label,step.detail,step.status);stream.send(200,await conversationalGuidance(input.question,input.history,publishedHelp,{deadline:Date.now()+40000,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));return;}
         const publicHelp=!input.images.length?campusHelpGuide(input.question):null;
         if(publicHelp){for(const step of publicHelp.activity)stream.progress(step.kind,step.label,step.detail,step.status);stream.send(200,await conversationalGuidance(input.question,input.history,publicHelp,{deadline:Date.now()+40000,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));return;}
