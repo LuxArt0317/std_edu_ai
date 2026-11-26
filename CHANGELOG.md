@@ -1297,3 +1297,6 @@
 
 ## Local grades recovery — Issue #106
 - Keep established grades workflows ahead of generic API exploration; add precise grade selectors, bounded fallback and readable activity/source labels.
+
+## Local account identity and grades — Issue #107
+- Show verified identity and direct sign-out in chat; isolate academic grade planning, reads and evidence from practice quizzes. Use concise sample labels rather than blanket unofficial-record disclaimers.

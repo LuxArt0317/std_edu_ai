@@ -1,3 +1,9 @@
+## Visible identity and grade source isolation [Issue #107]
+
+- [x] Show verified identity and direct sign-out in chat.
+- [x] Isolate academic grade reads/evidence from practice courses.
+- [x] Verify auth boundaries, source isolation and concise provenance locally.
+
 ## Grades tool recovery [Issue #106]
 
 - [x] Add precise focused academic-grades API contract and DTM selector guidance.

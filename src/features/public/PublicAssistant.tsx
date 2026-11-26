@@ -1,3 +1,4 @@
+import {signOutAffairs} from './affairs/authClient';
 import { AssistantChatMessage } from "./AssistantChatMessage";
 import {useAssistantCommands} from './AssistantCommands';
 import {assistantLanguage} from '../../services/assistantLanguage.js';
@@ -264,7 +265,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>{english?"Campus assistant":"校園助理"}</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
-            {user ? "Ask about your stu.best School Affairs records, or request an action. Sample courses and grades are clearly labeled; actions need your review." : "Ask about School Affairs services and public school information. Sign in to ask about your stu.best records."}
+            {user ? "Ask about your stu.best School Affairs records, or request an action. Actions need your review." : "Ask about School Affairs services and public school information. Sign in to ask about your stu.best records."}
           </SheetDescription>
         </header>
         <div className="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm">
@@ -273,8 +274,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             href="/school-affairs/login"
             target={embedded ? "_top" : undefined}
           >
-            {user ? "School Affairs account" : "School Affairs sign in"}
+            {user ? `Signed in as ${user.email || "your School Affairs account"}` : loading ? "Checking sign-in…" : "Signed out · Sign in"}
           </a>
+          {user?<Button size="sm" variant="outline" onClick={async()=>{
+            sequence.current++;pending.current?.abort();pendingAction.current?.abort();setBusy(false);setActionBusy(null);
+            try{await signOutAffairs();}catch(reason){setError(reason instanceof Error?reason.message:'Sign out failed.');}
+          }}>Sign out</Button>:null}
           <Button
             size="sm"
             variant="ghost"

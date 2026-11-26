@@ -129,7 +129,7 @@ import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuesti
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, AffairsWorkspaceReadUnavailableError, loadAffairsSnapshot, loadOwnAcademicGrades, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
-import {isAcademicGradesQuestion,standaloneAcademicGradeView} from '../server/academicGrades.js';
+import {academicGradesQuery,isAcademicGradeOnlyQuestion,isAcademicGradesQuestion,standaloneAcademicGradeView} from '../server/academicGrades.js';
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -1099,7 +1099,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return {...scopedSnapshot(),courses:[],charges:[],timetableReadUnavailable:true,chargeReadUnavailable:true};
       return {...timetable,...charges};
     };
-    const academicGradeView=question===requestedQuestion&&!history.length&&!notes.keys.length&&!pageContext.selected
+    const academicGradeView=isAcademicGradeOnlyQuestion(question,route,history)
+      ?academicGradesQuery(question,route,history).view||'transcript'
+      :question===requestedQuestion&&!history.length&&!notes.keys.length&&!pageContext.selected
       &&!dtmCompound&&!teachingSelection&&!housingSelection&&!applicationSelection&&!intent.baseTools.length
       ?standaloneAcademicGradeView(question,route):null;
     const loadBaseSnapshot=(initialize?:false)=>academicGradeView?loadOwnAcademicGrades(account,academicGradeView,{deadline}):housingOnly

@@ -91,3 +91,6 @@ Guest personal intent now gates before public shortcuts, with sign-in-only activ
 
 ## Issue #106
 Fixed local API-preflight interruption: established grade intents bypass the generic loop; failed verification falls back instead of becoming a final generic response. Added focused academic-grades API contract and corrected DTM selector guidance. Activity no longer displays raw API paths/status.28focused tests pass with full types/import/catalog/JS-only packaging. Local server restarted; no deployment or production data mutation. Signed-in browser acceptance remains unverified.
+
+## Issue #107
+Codex browser confirmed a restored session for the user account, not anonymous private retrieval. Added visible verified email and Sign out. Browser sign-out succeeded, private chats disappeared, and anonymous “what are my grades” returned only the login handoff. Academic grade-only planning/read/evidence now excludes practice and DTM substitution. Concise sample provenance remains; ordinary stored records get no blanket unofficial disclaimer. Local server62707 running; production unchanged.

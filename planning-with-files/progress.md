@@ -96,3 +96,8 @@
 - Traced grades400to insufficient conditional API contract and generic preflight precedence. Added focused caller-only academic-grades reader, DTM selector documentation and bounded fallback.
 - Replaced developer API paths/status in generic progress/citations with record labels.
 -28focused tests pass, including real endpoint fixture dispatch and failed-draft recovery; types/import/catalog/packaging passed. Local-only restart.
+
+## Issue #107
+- Verified live account-mode chat and then the new email badge. The browser had a restored account session.
+- Added direct sign-out; exercised it in Codex, verified private chat removal, and submitted anonymous grades question: login handoff only, no records. Local session is now signed out.
+- Isolated standalone academic grade tools/reads/evidence and tightened concise data provenance wording. Focused checks and full types/import/JS-only packaging verified; no deployment.

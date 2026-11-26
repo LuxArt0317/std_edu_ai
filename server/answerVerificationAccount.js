@@ -30,7 +30,7 @@ import { studentAidPath } from '../src/features/public/affairs/studentAidLinks.j
 import {accountRecordViews,nativeAccountQuery} from './accountRecordViews.js';
 import {studyCalendar} from './affairsSchedule.js';
 import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
-import {academicGradesPaths,answerAcademicGrades,isAcademicGradesQuestion,standaloneAcademicGradeView} from './academicGrades.js';
+import {academicGradesPaths,answerAcademicGrades,isAcademicGradeOnlyQuestion,isAcademicGradesQuestion,standaloneAcademicGradeView} from './academicGrades.js';
 import {graduationReviewPaths,isGraduationReviewQuestion} from './graduationReview.js';
 import {academicAttendancePaths,isAcademicAttendanceQuestion} from './academicAttendance.js';
 import {selectAccountEvidence,boundSelectedEvidence,ownEvidenceRows} from './accountEvidenceSelection.js';
@@ -154,6 +154,7 @@ function plannerRouteContext(route){
 }
 
 export async function planAccountLookup(question, history, route, deadline, retry, skipServiceNoteScope=false) {
+  if(isAcademicGradeOnlyQuestion(question,route,history))return {tools:['academicGrades'],publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const leave=studentLeaveAssistantPlan(question,route,history);
   if(leave)return {tools:studentLeaveSelectedTools(leave),publicTopics:[],catalogQuery:null,responseIntent:'records'};
   const internship=internshipAssistantPlan(question,route,history);
@@ -568,6 +569,7 @@ function boundHousingSource(source,budget,unavailable){
 }
 
 export function accountEvidence(snapshot,tools=toolNames,context={}) {
+  if(isAcademicGradeOnlyQuestion(context.question||'',context.route||'',context.history||[]))tools=['academicGrades'];
   const selected=completeAccountTools(tools),selectedTools=completeReadTools(tools);
   const intent=accountQuestionIntent(context.question||'',context.history||[],context.route||'');
   const resolvedFollowup=intent.contextQuestion!==(context.question||'').trim();
@@ -578,7 +580,7 @@ export function accountEvidence(snapshot,tools=toolNames,context={}) {
     role:context.scopedReadOnly?undefined:snapshot.profile?.role,selectedTools,
     availableTools:Object.fromEntries(selectedTools.map(key=>[key,accountTools[key]||supplementalAccountTools[key]])),
     catalogScope:context.scopedReadOnly?'selected_for_this_request':undefined,
-    rules:context.scopedReadOnly?'Only the selected readers for this authenticated account contribute facts. Collections absent from this evidence were not selected. Omitted or unread records cannot prove absence or completeness. Sample and local_demo records are demonstration data. Use the provenance, scope, record counts and capabilities in each selected source. No action has run.':'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Personal records are saved/imported by the account, not a live university sync. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
+    rules:context.scopedReadOnly?'Only the selected readers for this authenticated account contribute facts. Collections absent from this evidence were not selected. Omitted or unread records cannot prove absence or completeness. Sample and local_demo records are demonstration data. Use the provenance, scope, record counts and capabilities in each selected source. No action has run.':'Only the authenticated account records were queried. Sample/local_demo records are fictional demonstration data. Stored account records support the requested answer; do not add an unsolicited institutional disclaimer. Empty selected data does not establish absence elsewhere. Native coverage describes the loaded owned snapshot; historyCompleteness remains unknown even if database pagination is complete. Excerpted collections and suppressed values cannot prove completeness or absence. Never infer eligibility or official enrollment from a catalog or selection snapshot. Site tasks/requests require user confirmation; no action has executed during this answer. Housing/aid/native academic projections omit sensitive identity fields; use the linked records page for those fields.',
     completeness:context.scopedReadOnly?undefined:snapshot.completeness || 'Legacy snapshot: catalog, enrollments, released grades, attendance, notices, tasks and requests may be capped. Do not claim a complete history or overall absence for those collections.',
     actions:context.scopedReadOnly?[]:['create_task','complete_task','create_service_request','update_display_name','set_assignment_status (personal DTM tracker only)',...(snapshot.profile?.role==='admin'?['publish_announcement']:[])],
   })}];
