@@ -1304,3 +1304,6 @@
 ## Unreleased — unified discovery
 
 - Local unified website/API discovery with hybrid retrieval, LangGraph adaptive tools, source-following and independent verification (Issue108); no deployment.
+
+## Local alternate grade-source recovery — Issue #109
+- Check alternative authorized API scopes before ending on an empty view; expose existing released assessment rows through a narrow owned reader. Keep grade families distinct and retain exact-reference verification.

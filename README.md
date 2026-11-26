@@ -45,3 +45,5 @@ The current app interface uses compact transactional screens and plain labels. S
 Automatic API discovery for the signed-in chatbot is documented in [server tools](server/README.md#automatic-application-api-tools-issue-104). New APIs reuse their existing authorization and expose reviewed changes through chat.
 
 The local-first unified chatbot discovery flow searches website sources and discovers authenticated API operations. See [architecture, flags and limitations](server/README.md#unified-websitedatabase-discovery-issue-108).
+
+For alternate account-source lookup and grade-family scope behavior, see [server documentation](server/README.md#alternate-account-source-completion-issue-109).

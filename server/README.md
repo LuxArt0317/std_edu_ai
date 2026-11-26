@@ -425,3 +425,13 @@ Verification includes local live discovery of the commencement date from the act
 Run focused checks with `node --experimental-strip-types --test tests/api/website-discovery*.test.ts tests/api/discovery-embeddings.test.ts tests/api/application-api-*.test.ts tests/api/guest-assistant-access.test.ts tests/api/academic-grade-isolation.test.ts`; also run API/full TypeScript, runtime-import lint and JS-only packaging checks.
 
 Actual local HTTP acceptance also passed “How can I get my laptop online while on campus?” through search, page read, coverage follow-up and verification; no Wi-Fi keyword predicate or expected answer was used. The anonymous forged-account grades endpoint check remained authentication-only.
+
+## Alternate account-source completion (Issue #109)
+
+Discovery completion review now inspects callable read-only API operations, described contracts and previous read results, including alternate scopes of the same endpoint. A single empty view is insufficient for a broad record question when another relevant authorized read can answer it. Recovery may describe and read that operation using returned/user-provided selectors; writes and repeated equivalent reads are excluded. An unresolved coverage result is returned to planning instead of silently approved. Explicit source/term restrictions remain part of the review.
+
+GET affairs-data with scope=released-assessments reads only the current account’s released enrollment assessment items through owner/student/enrollment filters. It returns literal score/maximum, labels, course/term context, sample flags and bounded-completeness metadata. It does not compute transcript grades, final course totals or GPA, seed records, or modify the database. Assessment scores can answer broad grade questions under their own labels; they never substitute for an explicitly requested transcript or final total.
+
+Generic API evidence uses a compact source-based composition/audit instruction set rather than unrelated legacy collection contracts. Exact-reference, citation, scope and unsupported-claim validation remain in place; fabricated JSON pointers are still rejected. Raw field names/null values are phrased for users.
+
+Local signed-in browser acceptance retrieved an existing released assessment score after the empty transcript. The DTM overview had a blank total and its course report could not load; these remain distinct from missing assessment items. No production migration or deployment was applied.36focused checks and18existing verification/native-routing regression checks passed, along with full types, import lint and JS-only packaging.

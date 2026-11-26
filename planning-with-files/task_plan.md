@@ -1,3 +1,9 @@
+## Authorized operation coverage [Issue #109]
+
+- [x] Extend completion review beyond public leads to read-only operations and scopes.
+- [x] Recover from an empty view without substituting practice results or bypassing authorization.
+- [x] Verify alternate-source recovery and explicit-source restrictions locally.
+
 ## Unified discovery agent [Issue #108]
 
 - [x] Build searchable public-page/document index without evaluation references.

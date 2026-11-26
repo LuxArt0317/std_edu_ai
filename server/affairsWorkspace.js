@@ -584,3 +584,32 @@ export async function manageAffairsRecord(account,kind,payload) {
     throw new AffairsWorkspaceError('Unsupported manager action.',400);
   return request(account,'affairs_manage_record',{rpc:true,body:{p_kind:kind,p_payload:payload}});
 }
+
+/** Released enrollment assessment rows, not transcript grades or course totals. */
+export async function loadOwnReleasedAssessments(account,{deadline=Date.now()+12000}={}){
+ const userId=account?.user?.id;if(!chargeUuid.test(userId??'')||account.url!=='https://xiftudmvxphxcjtmfmib.supabase.co'||!account.token||!account.key)throw new AffairsWorkspaceError('Verified account access is required.',403);
+ const scoped={...account,requestDeadline:Math.min(deadline,Date.now()+12000)};
+ const rows=async(table,query)=>{const result=await request(scoped,table,{query});if(!Array.isArray(result))throw new AffairsWorkspaceError('Assessment records could not be verified.');return result;};
+ const students=await rows('affairs_students',{select:'id,user_id',user_id:'eq.'+userId,limit:2});
+ if(students.length>1||students.some(row=>!chargeUuid.test(row.id??'')||row.user_id!==userId))throw new AffairsWorkspaceError('Assessment ownership could not be verified.');
+ const empty={checkedAt:new Date().toISOString(),profile:{userId},source:'enrollment_assessments',grades:[],complete:true,scope:'Released assessment items only, not an academic transcript, course total or GPA.'};
+ if(!students.length)return {...empty,studentRecordFound:false};
+ const all=await rows('affairs_enrollments',{select:'id,student_id,section_id',student_id:'eq.'+students[0].id,order:'id.asc',limit:101});
+ if(all.some(row=>!chargeUuid.test(row.id??'')||!chargeUuid.test(row.section_id??'')||row.student_id!==students[0].id))throw new AffairsWorkspaceError('Assessment ownership could not be verified.');
+ const enrollments=all.slice(0,100),enrollmentIds=enrollments.map(row=>row.id);if(!enrollments.length)return {...empty,studentRecordFound:true};
+ const [items,sections]=await Promise.all([
+  rows('affairs_grade_items',{select:'id,enrollment_id,label,score,maximum,released_at,source_mode',enrollment_id:byIds(enrollmentIds),released_at:'not.is.null',order:'id.asc',limit:201}),
+  rows('affairs_sections',{select:'id,course_id,term_id',id:byIds([...new Set(enrollments.map(row=>row.section_id))]),limit:100})
+ ]);
+ if(sections.some(row=>!chargeUuid.test(row.id??'')||!chargeUuid.test(row.course_id??'')||!chargeUuid.test(row.term_id??'')||!enrollments.some(item=>item.section_id===row.id)))throw new AffairsWorkspaceError('Assessment course links could not be verified.');
+ const [courses,terms]=await Promise.all([
+  rows('affairs_courses',{select:'id,code,title',id:byIds([...new Set(sections.map(row=>row.course_id))]),limit:100}),
+  rows('affairs_terms',{select:'id,label',id:byIds([...new Set(sections.map(row=>row.term_id))]),limit:100})
+ ]);
+ if(courses.some(row=>!sections.some(item=>item.course_id===row.id)||typeof row.code!=='string'||typeof row.title!=='string')||terms.some(row=>!sections.some(item=>item.term_id===row.id)||typeof row.label!=='string')||new Set(items.map(row=>row.id)).size!==items.length)throw new AffairsWorkspaceError('Assessment source links could not be verified.');
+ if(items.some(row=>!chargeUuid.test(row.id??'')||!enrollmentIds.includes(row.enrollment_id)||typeof row.label!=='string'||row.label.length>1000||!['sample','verified'].includes(row.source_mode)||typeof row.released_at!=='string'||!Number.isFinite(Date.parse(row.released_at))||![row.score,row.maximum].every(value=>(typeof value==='number'||typeof value==='string'&&value.trim())&&Number.isFinite(Number(value)))||Number(row.score)<0||Number(row.maximum)<=0||Number(row.score)>Number(row.maximum)))throw new AffairsWorkspaceError('Assessment values could not be verified.');
+ return {...empty,studentRecordFound:true,complete:all.length<=100&&items.length<=200,grades:items.slice(0,200).map(row=>{
+  const enrollment=enrollments.find(item=>item.id===row.enrollment_id),section=sections.find(item=>item.id===enrollment.section_id),course=courses.find(item=>item.id===section?.course_id),term=terms.find(item=>item.id===section?.term_id);
+  return {id:row.id,label:row.label,score:Number(row.score),maximum:Number(row.maximum),sourceMode:row.source_mode,releasedAt:row.released_at,courseCode:typeof course?.code==='string'?course.code:null,courseTitle:typeof course?.title==='string'?course.title:null,term:typeof term?.label==='string'?term.label:null};
+ })};
+}

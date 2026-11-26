@@ -99,3 +99,5 @@ The local assistant source coverage and independent-auditor configuration are do
 The application API catalog, adaptive tool loop and reviewed actions share actual endpoint handlers. See [server architecture](server/README.md#automatic-application-api-tools-issue-104). No new dependencies were added.
 
 The chatbot now has a shared request-scoped LangGraph for website/API discovery, source reads, coverage review and answer verification. It reuses installed LangGraph/Cheerio; no dependencies were added. See [server architecture](server/README.md#unified-websitedatabase-discovery-issue-108).
+
+The API discovery loop now checks alternative read scopes before finalizing a partial result; released assessment reads remain separate from transcript/final grades. See [server implementation](server/README.md#alternate-account-source-completion-issue-109).

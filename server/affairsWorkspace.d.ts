@@ -25,3 +25,4 @@ export function manageAffairsRecord(account:AffairsAccount,kind:string,payload:u
 
 export type OwnServiceNote={id:string;serviceKey:string;recordType:'note';title:string;notes:string;status:'draft'|'filed'|'withdrawn';updatedAt:string;userId:string};
 export function loadOwnServiceNotes(account:AffairsAccount&{requestDeadline?:number},keys:string[],options?:{deadline?:number}):Promise<OwnServiceNote[]>;
+export function loadOwnReleasedAssessments(account:AffairsAccount,options?:{deadline?:number}):Promise<{checkedAt:string;profile:{userId:string};source:string;studentRecordFound:boolean;complete:boolean;scope:string;grades:Array<{id:string;label:string;score:number;maximum:number;sourceMode:string;releasedAt:string;courseCode:string|null;courseTitle:string|null;term:string|null}>}>;

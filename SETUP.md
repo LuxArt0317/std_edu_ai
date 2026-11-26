@@ -19,3 +19,5 @@ For local source refresh and independent source-audit model configuration, see [
 For automatic chatbot API discovery, local feature flags and hosted action-review prerequisites, see [server setup](server/README.md#automatic-application-api-tools-issue-104).
 
 For local website/database discovery, embedding-cache generation and planner-versus-answer model settings, see [discovery setup](server/README.md#unified-websitedatabase-discovery-issue-108).
+
+The local discovery runner includes alternate account-source completion and the released assessment read scope. No additional migration or environment variable is required; see [server documentation](server/README.md#alternate-account-source-completion-issue-109).

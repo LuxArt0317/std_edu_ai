@@ -168,3 +168,5 @@ Application APIs are inventoried automatically for the signed-in chatbot. Declar
 `GET /api/affairs-data?scope=academic-grades&view=transcript` exposes the caller-bound native grade reader. Only scope/view are accepted; the default is transcript. DTM report detail requires course_id; the overview lists accessible courses. Existing authorization remains required (Issue #106).
 
 With ASSISTANT_DISCOVERY_ENABLED, guest research and authenticated affairs handlers use the same discovery graph before legacy question-specific answer paths. Guest identity is always null; authenticated calls preserve original endpoint permissions. See [server discovery](../server/README.md#unified-websitedatabase-discovery-issue-108).
+
+Issue109 adds GET affairs-data?scope=released-assessments with no extra filters. The caller-owned released assessment reader supplies literal item scores and labels, separately from academic transcript and DTM report scopes. It is automatically discoverable from the API contract.
