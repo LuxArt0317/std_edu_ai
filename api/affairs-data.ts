@@ -1,3 +1,5 @@
+import assistantApiToolsHandler from '../server/assistantApiToolsHttp.js';
+export const assistantApi = {"description":"School Affairs and DTM data: private student records, course selections, academic grades, attendance, graduation reports, assignments, scholarship, aid, housing, leave, clubs, student services and authorized manager views. Select an explicit scope and precise filters; never read all records to answer a narrow question.","methods":["GET"],"readMethods":["GET"]};
 import {serveEvaluationLab} from "../server/evaluationLabHosted.js";
 import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
@@ -68,6 +70,7 @@ type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHea
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
 export const config={maxDuration:60};
 export default async function handler(request:Request,response:Response) {
+  if(first(request.query?.resource)==='assistant-api-tools')return assistantApiToolsHandler(request,response);
   if(first(request.query?.resource)==='evaluation-lab')return serveEvaluationLab(request,response);
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
   const chargePaymentScope=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(chargePaymentHistoryScope));

@@ -55,6 +55,7 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               {message.result?.proposedAction && (canApply || readOnly) ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
                 <p className="font-semibold">Review action</p>
                 <p className="my-2 break-words">{message.result.proposedAction.label}</p>
+                {message.result.proposedAction.kind==='invoke_application_api' ? <details open className="mb-3"><summary>Exact API request</summary><pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs">{message.result.proposedAction.payload.review}</pre><p className="mt-2 text-xs">Review expires after 10 minutes. This runs with your current account permissions.</p></details> : null}
                 {message.result.proposedAction.kind==='publish_announcement' ? <p className="mb-2 whitespace-pre-wrap break-words">{message.result.proposedAction.payload?.body}</p> : null}
                 {message.result.proposedAction.kind==='create_service_request' ? <>
                   <p className="mb-1 text-xs text-muted-foreground">Request category · {message.result.proposedAction.payload?.request_type}</p>
@@ -68,7 +69,7 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
                 </dl> : null}
                 {message.result.proposedAction.kind===studentLeaveDraftAction&&validStudentLeaveDraft(message.result.proposedAction.payload) ?
                   <StudentLeaveDraftReview payload={message.result.proposedAction.payload}/> : null}
-                <p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p>
+                <p className="mb-3 text-xs text-muted-foreground">{message.result.proposedAction.kind==='invoke_application_api'?'The application endpoint validates this request and may reject missing fields or insufficient permissions.':'This changes stu.best records only. No university system is contacted.'}</p>
                 <Button size="sm" disabled={readOnly || !!actionBusy} onClick={()=>onApplyAction?.(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button>
               </div> : null}
               {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}

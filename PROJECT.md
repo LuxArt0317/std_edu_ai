@@ -95,3 +95,5 @@ The canonical spreadsheet-based evaluation reference is [School questions and an
 Local chatbot slash settings, model catalog and request-scoped overrides are described in [server documentation](server/README.md), [public UI documentation](src/features/public/README.md) and [Answer Lab documentation](tools/evaluation-lab/README.md). No new dependency was added.
 
 The local assistant source coverage and independent-auditor configuration are documented in [server helpers](server/README.md); public source projections and their refresh commands are in [server data](server/data/README.md).
+
+The application API catalog, adaptive tool loop and reviewed actions share actual endpoint handlers. See [server architecture](server/README.md#automatic-application-api-tools-issue-104). No new dependencies were added.

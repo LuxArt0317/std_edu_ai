@@ -27,7 +27,7 @@ test('personal graduation evidence includes curriculum navigation without inferr
    question:'What are the graduation requirements for my department?',route,scopedReadOnly:true});
   const source=evidence.find(row=>row.id==='account:graduationReview')!;
   const guide=JSON.parse(source.content).pageGuide;
-  assert.deepEqual(guide,graduationPageGuide(kind));
+  assert.deepEqual(JSON.parse(source.content).pageGuide,graduationPageGuide(kind));
   assert.ok(source.urls?.includes('/school-affairs/services/12-5'));
   assert.equal(guide.review.reportKind,kind);
   assert.match(guide.interpretation,/year level does not establish entry cohort/u);

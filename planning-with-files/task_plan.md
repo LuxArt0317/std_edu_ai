@@ -1,3 +1,12 @@
+## Automatic application API tools [Issue #104]
+
+- [x] Generate a complete API catalog and JavaScript-only handler loaders from API source files.
+- [x] Add bounded authenticated discovery, schema inspection and invocation of actual handlers.
+- [x] Add an adaptive model/tool loop and reviewed action execution to the school chatbot.
+- [x] Enforce credential isolation, endpoint authorization, mutation approval, replay and timeout boundaries.
+- [x] Verify automatic discovery of a new API, actual dispatch, denied calls, UI action-review contracts and hosted packaging. Signed-in browser acceptance remains unverified.
+- [x] Document how future APIs become tools; keep all changes local.
+
 # Task Plan
 
 ## Public guidance parity after sign-in [Issue #100]

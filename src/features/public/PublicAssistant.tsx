@@ -25,7 +25,7 @@ import { changeLearningSupport } from '../../services/learningSupport';
 import { repairId } from './affairs/facilityRepair.js';
 import { learningSupportPath, leavePath } from './affairs/studentServices.js';
 import { studentLeaveDraftAction, validStudentLeaveDraft } from '../../../server/studentLeaveDraft.js';
-import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
+import { performSchoolAffairsAction, confirmApplicationApiToolAction } from "../../services/schoolAffairsWorkspace";
 import { finishAssistantActivity, mergeAssistantActivity, mergeFinalAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
 import {useAssistantSessions} from './useAssistantSessions';
 import {assistantPageRoute} from '../../services/assistantPageRoute.js';
@@ -172,7 +172,10 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         :['set_assignment_status','cancel_club_equipment','counseling_cancel','cancel_facility_repair','withdraw_learning_support'].includes(kind)?payload.id
         :kind==='update_display_name'?user.id:undefined;
       let result;
-      if(kind==='cancel_club_equipment'||kind==='counseling_cancel'){
+      if(kind==='invoke_application_api'){
+        if(!clubUuid.test(requestId)||typeof payload.confirmationToken!=='string')throw new Error('Ask for a new action review.');
+        result=await confirmApplicationApiToolAction(requestId,payload.confirmationToken,{expectedUserId:user.id,signal});
+      }else if(kind==='cancel_club_equipment'||kind==='counseling_cancel'){
         const expected_version=Number(payload.expected_version);
         if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^\d{1,6}$/u.test(payload.expected_version)||expected_version<1)
           throw new Error('This action needs a new review. Ask again before applying it.');
@@ -210,9 +213,9 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       const summary=result.summary.replace(/[\r\n]+/gu,' ').replace(/[\\`*_\[\]<>]/gu,'\\$&');
       setMessages(old=>old.map(item=>item.id===message.id?{
         ...item,
-        content:`${item.content}\n\n✓ ${summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
+        content:`${item.content}\n\n✓ ${summary}. [View records](${action.url||'/school-affairs/records'}).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
-        activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
+        activity:mergeAssistantActivity(item.activity,[{kind:'action',label:kind==='invoke_application_api'?'Application API responded':'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));
       window.dispatchEvent(new Event('school-affairs:updated'));
     } catch(reason) {

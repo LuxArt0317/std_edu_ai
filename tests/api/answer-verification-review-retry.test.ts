@@ -17,7 +17,7 @@ test('an interrupted public review can recheck the same draft once without new s
     return {ok:true};
    }});
   assert.equal(reads,1);assert.equal(reviews,2);assert.equal(result.verification.status,'verified');
-  assert.equal(result.verification.attempts,2);assert.ok(result.activity.some(step=>step.kind==='verification-review-retry'));
+  assert.equal(result.verification.attempts,2);assert.ok(result.activity);assert.ok(result.activity.some(step=>step.kind==='verification-review-retry'));
  }
 });
 test('review-only recovery stays bounded and respects time, quota and proposed actions',async()=>{

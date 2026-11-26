@@ -1,5 +1,20 @@
 # Server helpers
 
+## Automatic application API tools (Issue #104)
+
+`applicationApiCatalogBuild.js` inventories root `api/<lowercase-hyphen>.ts` handlers and static Vercel API aliases. `applicationApiTools.js` dispatches the actual compiled handlers; `applicationApiAgent.js` lets the model discover operations, inspect schemas, read results, propose changes and independently verify factual answers. This is an adaptive bounded tool loop alongside the existing specialized assistant flows, not an MCP server or a replacement for endpoint authorization.
+
+New root API handlers become discoverable on the next compilation/server restart without editing an AI tool list. Export an optional static JSON-literal `assistantApi` object with `description`, `methods`, `readMethods`, `querySchema` and `bodySchema` to describe their contract. Only explicitly declared read methods execute without action review. Undocumented methods default to reviewed effects. Literal scope/action hints are extracted from source; this cannot infer every undocumented payload. Nested API directories, unsupported names and runtime TypeScript imports fail compilation rather than silently disappear. Assistant/control endpoints remain visible but non-callable to prevent recursion.
+
+`npm run compile:application-apis` generates ignored JavaScript handlers and the catalog. `npm run lint:application-apis` checks inventory conventions; build and local development run compilation automatically. The hosted packaging check loads all callable handlers with TypeScript absent and verifies a denied authenticated API call.
+
+Enable locally with `ASSISTANT_API_TOOLS_ENABLED=true`. Set `ASSISTANT_API_ACTION_STORE` to an absolute private directory for durable local reviews. The development server and tool reads still use online providers and the signed-in account. Local file reviews are forbidden on Vercel. Hosted reviews require the unapplied migration `20261126090000_application_api_action_reviews.sql` and a stable server-only `ASSISTANT_API_SIGNING_SECRET` (existing server provider key is a fallback). This change does not apply migrations or enable production.
+
+Calls forward only the original verified account token. Native handlers retain roles, validation and RLS. Model input cannot set credentials, headers or arbitrary destinations. Responses are bounded and credential-redacted. Writes show the exact request in chat and require a short-lived account-bound confirmation. Atomic claims prevent duplicate execution; timeout or interrupted outcomes require checking records rather than blind retries. Hosted reviews and receipts are server-signed. Existing conversation persistence does not retain confirmation capabilities.
+
+Verification: `node --experimental-strip-types --test tests/api/application-api-*.test.ts`, `npm run typecheck:api`, `npx tsc -b --pretty false`, `npm run lint:application-apis`, and `npm run verify:api-packaging`. Signed-in browser/model acceptance remains separate from fixture verification.
+
+
 `publicSignedInDispatch.js` keeps public-source guidance public after authentication using the same domain predicates as research. It distinguishes generic repair instructions from report/status/write requests and treats harmless “my department”/“my learning” as public context while rejecting qualified own/foreign-record compounds. It forwards only registered public page routes; account routes, query strings, history and credentials are excluded.
 
 `publicClubIntent.js` retains exact named Instagram contacts from the verified club-directory capture, with64-contact/8KB bounds and strict HTTPS/profile/query validation. These are outgoing source-published contact links, not mirrored social pages, verified meeting locations, live account content or membership outcomes. An ambiguous club name needs clarification.

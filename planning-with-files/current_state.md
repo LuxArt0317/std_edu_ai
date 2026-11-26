@@ -81,3 +81,7 @@ Q22 assignment-list selector correctly chooses open rows with deadlines/statuses
 
 ## Private acceptance blocked audit
 The same real-session gate persists across at least three consecutive goal turns. Rechecked local state:338total runs,18private runs, latest private run2026-11-25T06:55:11.786Z; no fresh private acceptance. Login endpoint returns200, so server availability is not the blocker. Available Codex tools expose open_in_codex but no computer/browser controls. Existing pending user request asks for real sign-in and a Q12 run. No token export, impersonation, desktop/headless fallback or fabricated acceptance is authorized. Further targeted behavior tuning requires actual current private failures; speculative edits and additional public paid tests are not justified. Mark goal blocked, not complete, until the user supplies a signed-in lab run or supported browser controls become available. Local server48696 remains available.
+
+
+## Issue #104 local API tools checkpoint
+Automatic API discovery and reviewed invocation are implemented locally in the release checkout. Fourteen catalog routes include aliases; nine are callable, with recursive control endpoints excluded. Sixteen focused tests, TypeScript and JS-only packaging passed. Local HTTP5173 responds200, but Codex browser connection failures prevent signed-in UI/model acceptance. Hosted migration is prepared but NOT applied; production flag remains unchanged.

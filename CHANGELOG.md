@@ -1288,3 +1288,6 @@
 - rebuilt the homepage as a section-complete, responsive reconstruction of the current `stu.edu.tw` experience
 - added official navigation, carousel, audience, performance, story, admissions, news, hot-link, public-information, contact, social, and footer destinations
 - moved the research-driven AI assistant into a floating drawer so it does not disrupt the cloned homepage layout
+
+## Unreleased — Issue #104
+- Automatic authenticated API tools and reviewed actions; local only, hosted migration unapplied.

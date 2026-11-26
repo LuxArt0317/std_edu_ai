@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Authorized knowledge-document ingestion and publication operations. Actual API checks account permissions. Creates or changes managed knowledge and requires review.","methods":["POST"],"readMethods":[]};
 import { createClient } from "@supabase/supabase-js";
 import {
   canonicalizeHttpsUrl,

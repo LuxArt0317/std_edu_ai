@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Verified public campus place directory (GET) and walking/accessibility route calculation (POST: origin,destination,wheelchair,language).","methods":["GET","POST"],"readMethods":["GET","POST"],"bodySchema":{"type":"object","properties":{"origin":{"type":"string","maxLength":160},"destination":{"type":"string","maxLength":160},"wheelchair":{"type":"boolean"},"language":{"type":"string","enum":["en","zh-Hant"]}},"required":["origin","destination"],"additionalProperties":false}};
 import {calculateCampusRoute, resolvePlace, type CampusAlias, type CampusEdge, type CampusNode, type CampusPlace} from "../server/campusRouting.js";
 import {operationalCorrelation,recordResearchOperation,safeOperationalCode} from "../server/researchOperations.js";
 

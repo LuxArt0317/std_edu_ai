@@ -1,3 +1,4 @@
+import {answerWithApplicationApis} from '../server/applicationApiAgent.js';
 import {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute} from '../server/publicSignedInDispatch.js';
 import {assistantRequestDeadline} from '../server/assistantRequestBudget.js';
 import {conversationalGuidance} from '../server/conversationalGuidance.js';
@@ -346,6 +347,15 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
   const stream=createAssistantStream(input?.stream===true,response);
+  // API tools reuse actual endpoint handlers and current caller auth. Probes and
+  // image-specific workflows retain their established specialized boundaries.
+  if(process.env.ASSISTANT_API_TOOLS_ENABLED==='true'&&!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)){
+    const result=await answerWithApplicationApis({account,question,history,route,deadline,
+      onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+    if(result){stream.send(200,result);return;}
+  }
+
+
   // Describing an attachment uses user-supplied image evidence, not private
   // account records. Resolve this before route/history-based record selection.
   if(!hasProbe&&Array.isArray(input?.images)&&input.images.length&&isImageDescriptionQuestion(question)){

@@ -162,3 +162,5 @@ Backend runtime source imports are checked by `npm run lint:runtime-imports`. Ho
 Public and account assistant handlers use the same server-only assistantRequestBudget helper and preserve parent deadlines. The default remains55seconds within the unchanged60-second hosting configuration. Longer local budgets do not authorize or configure a longer hosted function.
 
 The signed-in assistant can clarify missing course-selection term scope using existing history/timetable destinations without reading account records.
+
+Application APIs are inventoried automatically for the signed-in chatbot. Declare static `assistantApi` metadata for accurate schemas and read classification; authorization remains in each handler. See [tool registry and review setup](../server/README.md#automatic-application-api-tools-issue-104).

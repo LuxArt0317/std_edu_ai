@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
+      "source": "/api/assistant-api-tools",
+      "destination": "/api/affairs-data?resource=assistant-api-tools"
+    },
+    {
       "source": "/evaluation-lab",
       "destination": "/tools/evaluation-lab/index.html"
     },

@@ -147,10 +147,10 @@ test('focus-only repair still rejects the draft and requires valid references',a
   assert.ok(verdict.feedback.some(note=>note.includes('application submission procedure')&&note.includes('not facts')));
   reference='/missing';
   const invalid=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});assert.equal(invalid.answerFocusOnly,false);
-  assert.ok(!invalid.feedback.some(note=>note.includes('application submission procedure')));
+  assert.ok(!(invalid.feedback??[]).some(note=>note.includes('application submission procedure')));
   reference='/rule';missing=['x'.repeat(161)];
   const oversized=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});
-  assert.equal(oversized.ok,false);assert.ok(!oversized.feedback.some(note=>note.includes('x'.repeat(161))));
+  assert.equal(oversized.ok,false);assert.ok(!(oversized.feedback??[]).some(note=>note.includes('x'.repeat(161))));
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
 test('the verification loop passes rejected coverage labels to repair and independently checks the correction',async()=>{
@@ -169,7 +169,7 @@ test('the verification loop passes rejected coverage labels to repair and indepe
    deadline:Date.now()+20000,loadEvidence:async()=>evidence,
    verify:context=>verifyEvidenceAnswer({...context,trackPublicCoverage:true}),
    repair:async({feedback,evidence:current})=>{
-    repairs++;assert.ok(feedback.some(note=>note.includes('submission procedure')));
+    repairs++;assert.ok(feedback);assert.ok(feedback.some(note=>note.includes('submission procedure')));
     assert.deepEqual(current,evidence);
     return {status:'answered',answer:Object.values(JSON.parse(current[0].content)).join(' '),citations:[]};
    }});

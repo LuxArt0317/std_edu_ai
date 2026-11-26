@@ -23,6 +23,8 @@ let validUrl=false;
 try{validUrl=new URL(localUrl).protocol==='https:';}catch{}
 if(!validUrl||!localKey||placeholders.has(localKey))throw new Error('Configure valid local client Supabase settings in ignored .env.local; encrypted placeholders cannot be used.');
 if(!process.env.OPENAI_API_KEY||placeholders.has(process.env.OPENAI_API_KEY))throw new Error('Configure the existing server-only model credential in ignored .env.local.');
+const {generateApplicationApis}=await import('../server/applicationApiCatalogBuild.js');
+await generateApplicationApis(root);
 process.env.VERCEL_ENV='development';
 process.env.STU_LOCAL_CAPTURE_ORIGIN=`http://127.0.0.1:${port}`;
 const {default:configFactory}=await import('../vite.config.ts');
@@ -50,6 +52,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     let route=url.pathname.slice(5);
     if(route==='affairs-conversations'){route='affairs-data';url.searchParams.set('resource','conversations');}
+    if(route==='assistant-api-tools'){route='affairs-data';url.searchParams.set('resource','assistant-api-tools');}
     if(!/^[a-z][a-z0-9-]*$/.test(route))return res.status(404).json({error:'Local API route not found.'});
     const filename=resolve(root,'api',route+'.ts');
     try{await access(filename);}catch{return res.status(404).json({error:'Local API route not found.'});}

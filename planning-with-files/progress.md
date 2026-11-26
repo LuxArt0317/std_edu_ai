@@ -78,3 +78,11 @@
 - Audited all53 exact-version cases without provider calls. Separated latest attempts from latest judged answers:41public historical/current passes,1private historicalpass,11private below/missing. Confirmed Q22/Q27 source selections; retained passing prepared guidance and all later failure history. No new signed-in runs detected.
 
 - Final private gate check: no new private runs, local login200, Codex browser controls unavailable. Same blocker persisted across three goal turns. Saved restartable handoff; goal blocked rather than falsely completed. No deployment or additional paid tests.
+
+- Started Issue104 for automatic application API tools. Current handlers are manually mirrored into AI registries. Dedicated planning skill paths were not found in the checkout or installed skill catalogs; maintaining existing planning files. GitHub MCP is unavailable; authenticated gh is the fallback. No deployment/DB/role changes authorized for this local task.
+
+
+## Issue #104 automatic API tools
+- Added generated API inventory, real-handler dispatch, adaptive model discovery/read/proposal loop, credential isolation and reviewed replay-safe changes.
+- Added local durable review storage and an unapplied hosted RLS/RPC migration with signed reviews and receipts. No production changes.
+- Sixteen focused tests, full TypeScript checks and JavaScript-only hosted packaging passed. Local HTTP returned200; Codex browser showed connection errors, so signed-in UI/model acceptance is not claimed.

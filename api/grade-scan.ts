@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Authorized staff grade-sheet image analysis. Requires imageDataUrl, maxScore and roster; does not authorize editing grades. Requires explicit review because image data and model usage are transmitted.","methods":["POST"],"readMethods":[]};
 import { createHash } from 'node:crypto'
 import { verifySupabaseRequest } from '../server/apiAuth.js'
 

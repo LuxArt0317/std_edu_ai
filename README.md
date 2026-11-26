@@ -41,3 +41,5 @@ npm run verify:dependency-audit
 [Operational setup](docs/operations/SETUP.md) covers database migrations and live client checks. Historical research and acceptance evidence is retained under `docs/` and `planning-with-files/`; it is not evidence of completion in the client environment.
 
 The current app interface uses compact transactional screens and plain labels. See the [frontend reference](docs/reference/FRONTEND.md#transactional-ui) and [portal guide](docs/guides/portal.md).
+
+Automatic API discovery for the signed-in chatbot is documented in [server tools](server/README.md#automatic-application-api-tools-issue-104). New APIs reuse their existing authorization and expose reviewed changes through chat.

@@ -15,3 +15,5 @@ Question/reference source and sync behavior: [Q&A README](docs/question-answer/R
 For local evaluation model defaults and slash controls, see [Answer Lab setup](tools/evaluation-lab/SETUP.md) and [server documentation](server/README.md). Production remains independently configured.
 
 For local source refresh and independent source-audit model configuration, see [server helpers](server/README.md) and [source projection scripts](scripts/README.md). These changes do not deploy or replace cloud evaluation data.
+
+For automatic chatbot API discovery, local feature flags and hosted action-review prerequisites, see [server setup](server/README.md#automatic-application-api-tools-issue-104).
