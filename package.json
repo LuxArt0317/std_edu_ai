@@ -94,7 +94,7 @@
     "compile:assistant-runtime": "npm run compile:website-discovery && npm run compile:application-apis && node scripts/compile-affairs-assistant.mjs",
     "verify:api-packaging": "node scripts/verify-hosted-api-packaging.mjs",
     "lint:runtime-imports": "node scripts/lint-runtime-imports.mjs",
-    "pretest": "npm run compile:website-discovery && npm run compile:application-apis",
+    "pretest": "npm run prepare:school-assets && npm run compile:website-discovery && npm run compile:application-apis",
     "compile:application-apis": "node scripts/compile-application-apis.mjs",
     "lint:application-apis": "node scripts/lint-application-apis.mjs",
     "compile:website-discovery": "node scripts/compile-website-discovery.mjs",
