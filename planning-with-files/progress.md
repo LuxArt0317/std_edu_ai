@@ -32,3 +32,5 @@ Unified discovery is implemented locally. See current_state.md and archive/progr
 2026-11-27 #117: Verified project Fluid compute enabled and current Vercel duration contract. Raised assistant/evaluation entrypoint caps120s and set server-owned work budget115s so production can use the same bounded90s discovery loop as local without a60s platform cutoff.
 
 2026-11-27 #117: Production-readiness check found normal server citation links are often site-relative. Canonicalized verified relative memory sources to stu.best and added regression coverage, preventing silently empty memory admission for normal account replies.
+
+2026-11-27 #117: Final clean-checkout CI completed API suite with one stale60s config assertion; browser accessibility/all394copied pages passed, then the assistant test used the old sign-in link label. Updated both contracts to120s and the current signed-out link while retaining runtime import isolation and actual navigation assertions. No runtime gate was removed.
