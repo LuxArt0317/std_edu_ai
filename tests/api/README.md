@@ -125,3 +125,5 @@ Academic outcome intent checks cover both independent evidence families, retaine
 Issue108 discovery checks: website-discovery tests cover source retrieval, semantic fallback, registered reads, guest isolation and unread-source coverage recovery; website-discovery-build checks automatic new-page indexing, expected-answer exclusion and checksum failures. discovery-embeddings checks vector/transport validation. Run with node --experimental-strip-types --test tests/api/website-discovery*.test.ts tests/api/discovery-embeddings.test.ts.
 
 Issue109 tests cover empty-transcript to alternate-source recovery, duplicate/read-only enforcement, released assessment ownership and generic exact-reference verification. Existing provider/retry/native-routing checks also pass.
+
+`local-dtm-library.test.ts` checks persistent SQLite imports, repeatable upserts, caller isolation, credential-bearing URL rejection and hosted disablement. It uses temporary databases and never reads or changes the user capture database.

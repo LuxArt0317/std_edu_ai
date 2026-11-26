@@ -1,3 +1,4 @@
+import {DtmImport,DtmImportedCourse,DtmImportedGrades,useImportedMoodle} from './ImportedMoodle';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { Bell, ChevronDown, ChevronRight, ExternalLink, LogOut, MessageSquare, Search } from 'lucide-react';
@@ -252,16 +253,19 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
 }) {
   const {snapshot:loadedSnapshot,error,loading,refresh}=useAffairsRecords(userId);
   const snapshot=loadedSnapshot?.profile.userId===userId?loadedSnapshot:undefined;
+  const imported=useImportedMoodle(userId);
+  const importedCourses=(imported?.courses||[]).map(c=>({...c,id:'import-'+c.id,role:'student',sourceMode:'personal',materials:[]}));
+  const importedCourse=route.id?.startsWith('import-')?importedCourses.find(c=>c.id===route.id):undefined;
+  const allCourses=importedCourses.length?importedCourses:(snapshot?.dtm.courses||[]);
   const navigate=useNavigate();
   const exactResource=useDtmCourseResource(userId,route.materialId?route.id:undefined,route.materialId,snapshot?.checkedAt);
   const resourceCourse=exactResource.data?.course;
-  const knownCourse=snapshot?.dtm.courses.find(course=>course.id===route.id);
+  const knownCourse=allCourses.find(course=>course.id===route.id);
   const exactHeaderNeeded=route.mode==='course'&&!route.materialId&&!knownCourse&&(route.view==='materials'||Boolean(route.assignmentId));
   const header=useDtmCourseHeader(userId,exactHeaderNeeded?route.id:undefined,snapshot?.checkedAt);
   const fallbackCourse=route.mode==='course'&&route.view==='materials'&&!route.assignmentId&&!route.materialId&&!knownCourse;
   const selected:CourseHeader|undefined=route.materialId?resourceCourse:knownCourse??header.course??undefined;
-  const navigationCourses=selected&&!snapshot?.dtm.courses.some(course=>course.id===selected.id)
-    ?[...(snapshot?.dtm.courses||[]),selected]:snapshot?.dtm.courses||[];
+  const navigationCourses=selected&&!allCourses.some(course=>course.id===selected.id)?[...allCourses,selected]:allCourses;
   const material=exactResource.data?.material??undefined;
   const exactAssignment=useDtmCourseAssignment(userId,route.id,route.assignmentId,snapshot?.checkedAt);
   const assignment=exactAssignment.assignment??undefined;
@@ -274,11 +278,13 @@ function SignedInWorkspace({userId,route,t,hash,displayName,creatingCourse,onCre
     {(route.mode!=='dashboard'||!snapshot)&&<WorkspaceHeader route={route} course={selected} assignment={assignment} material={material} displayName={displayName} t={t}/>}
     {error&&<div role="alert" className="dtm-error">{error} <Button size="sm" variant="outline" onClick={refresh}>{t('重試','Retry')}</Button></div>}
     {loading&&!snapshot&&<p role="status">{t('載入課程紀錄中…','Loading course records…')}</p>}
-    {snapshot&&route.mode==='dashboard'&&<DtmDashboardLayout userId={userId} t={t} renderHeader={configuration=><WorkspaceHeader route={route} displayName={displayName} t={t} dashboardConfiguration={configuration}/>} renderBlock={(id,controls)=><Navigation courses={snapshot.dtm.courses} home={false} dashboard displayName={snapshot.profile.displayName||displayName} t={t} dashboardBlock={id} dashboardControls={controls}/>}/>}
-    {(snapshot||route.mode==='course')&&route.mode!=='dashboard'&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
+    {snapshot&&route.mode==='dashboard'&&<DtmDashboardLayout userId={userId} t={t} renderHeader={configuration=><WorkspaceHeader route={route} displayName={displayName} t={t} dashboardConfiguration={configuration}/>} renderBlock={(id,controls)=><Navigation courses={allCourses} home={false} dashboard displayName={snapshot.profile.displayName||displayName} t={t} dashboardBlock={id} dashboardControls={controls}/>}/>}
+    {(snapshot||importedCourses.length>0||route.mode==='course')&&route.mode!=='dashboard'&&<div className={'dtm-columns'+(route.mode==='home'?'':' dtm-columns-course')}>
       <Navigation courses={navigationCourses} home={route.mode==='home'} dashboard={false} selected={selected} view={route.view} gradeReportView={route.gradeReportView} material={material} displayName={snapshot?.profile.displayName||displayName} t={t}/>
       <section className={'dtm-center'+(route.mode==='course'?' dtm-course-center':'')+((route.mode==='grades'||route.view==='grades')?' dtm-grade-center':'')+(route.assignmentId?' dtm-submission-center':'')+(route.materialId?' dtm-resource-center':'')} aria-label={t('教材網內容','Digital teaching materials content')}>
-        {route.mode==='home'?<DtmHome courses={snapshot?.dtm.courses||[]} t={t}/>
+        {route.mode==='home'?<DtmHome courses={allCourses} t={t}/>
+          :route.mode==='grades'&&imported?.courses.length?<DtmImportedGrades library={imported}/>
+          :importedCourse?<DtmImportedCourse userId={userId} courseId={importedCourse.id.slice(7)} view={route.view}/>
           :route.materialId?exactResource.loading?<p role="status">{t('載入教材中…','Loading material…')}</p>
             :exactResource.failed?<div role="alert" className="dtm-error">{t('無法載入教材。請重試。','Could not load this material. Please retry.')} <Button size="sm" variant="outline" onClick={exactResource.retry}>{t('重試','Retry')}</Button></div>
             :material?<DtmCourseResource material={material} t={t}/>:<div className="dtm-card"><h2>{t('找不到教材','Material unavailable')}</h2><Link to={selected?courseHref(selected.id):'/dtm/dashboard'}>{t('返回課程','Back to course')}</Link></div>
@@ -337,6 +343,7 @@ export default function DigitalMaterials() {
     catch (reason) {setError(reason instanceof Error?reason.message:t('登出失敗。','Sign out failed.'));}
     finally {setBusy(false);}
   }
+  if(user&&pathname==='/dtm/import')return <DtmImport userId={user.id}/>;
   const displayName = user?.user_metadata?.full_name || user?.email || 'Google';
   return <div className={user?'dtm is-signed-in'+(route.mode==='dashboard'?' is-dashboard':''):'dtm'} lang={locale}>
     <a className="dtm-skip" href="#dtm-content">{t('跳至主內容','Skip to main content')}</a>

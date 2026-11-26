@@ -435,3 +435,7 @@ GET affairs-data with scope=released-assessments reads only the current accountâ
 Generic API evidence uses a compact source-based composition/audit instruction set rather than unrelated legacy collection contracts. Exact-reference, citation, scope and unsupported-claim validation remain in place; fabricated JSON pointers are still rejected. Raw field names/null values are phrased for users.
 
 Local signed-in browser acceptance retrieved an existing released assessment score after the empty transcript. The DTM overview had a blank total and its course report could not load; these remain distinct from missing assessment items. No production migration or deployment was applied.36focused checks and18existing verification/native-routing regression checks passed, along with full types, import lint and JS-only packaging.
+
+## Local original Moodle library (Issue #110)
+
+Original authorized DTM captures now live in a separate private, owner-scoped SQLite database, exposed by the existing verified `affairs-data` API under `dtm-library`. Courses, activity metadata, source pages, literal grade rows and import history are stored transactionally. The built-in Node SQLite module adds no package dependency. Hosted runtime and imports remain disabled. See [storage, import and coverage](local-dtm/README.md). No Supabase schema or production records were changed.

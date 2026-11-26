@@ -1,6 +1,7 @@
+import {readLibrary} from '../server/local-dtm/store.js';
 import {loadOwnReleasedAssessments,loadOwnAcademicGrades} from '../server/affairsWorkspace.js';
 import assistantApiToolsHandler from '../server/assistantApiToolsHttp.js';
-export const assistantApi = {"description":"School Affairs and DTM data: private student records, course selections, academic grades, attendance, graduation reports, assignments, scholarship, aid, housing, leave, clubs, student services and authorized manager views. For released course quiz/assessment scores use scope=released-assessments (no other fields). These are assessment items, not transcript or final course grades; keep their labels distinct. For School Affairs transcript grades use scope=academic-grades and view=transcript (or warning, ranking, english; current, gpa, transfer and cycle may return explicit unavailability). Only scope and view are accepted. For Moodle grades without a course ID use scope=dtm-grade-report-overview; dtm-grade-report requires course_id from the overview. Select precise filters; never read all records for a narrow question.","methods":["GET"],"readMethods":["GET"]};
+export const assistantApi = {"description":"For imported original Moodle course content, assignments, submission status and literal grade tables, use scope=dtm-library; no other fields lists owned courses and coverage. Then pass course_id from this catalog to read its captured pages, or page_key from a returned source URL to read an exact page, or q for text search. This local library is separate from sample courses. School Affairs and DTM data: private student records, course selections, academic grades, attendance, graduation reports, assignments, scholarship, aid, housing, leave, clubs, student services and authorized manager views. For released course quiz/assessment scores use scope=released-assessments (no other fields). These are assessment items, not transcript or final course grades; keep their labels distinct. For School Affairs transcript grades use scope=academic-grades and view=transcript (or warning, ranking, english; current, gpa, transfer and cycle may return explicit unavailability). Only scope and view are accepted. For Moodle grades without a course ID use scope=dtm-grade-report-overview; dtm-grade-report requires course_id from the overview. Select precise filters; never read all records for a narrow question.","methods":["GET"],"readMethods":["GET"]};
 import {serveEvaluationLab} from "../server/evaluationLabHosted.js";
 import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
@@ -153,6 +154,7 @@ export default async function handler(request:Request,response:Response) {
       return;
     }
     const scope=request.query?.scope;
+    if(scope==='dtm-library'){response.status(200).json(await readLibrary(account,request.query));return;}
     if(scope==='released-assessments'){
       if(Object.keys(request.query??{}).some(key=>key!=='scope')){response.status(400).json({error:'Released assessment records do not accept account filters.'});return;}
       response.status(200).json(await loadOwnReleasedAssessments(account,{deadline:requestDeadline}));return;

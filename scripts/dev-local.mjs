@@ -44,6 +44,15 @@ const evaluationLab=createEvaluationLab(root,{resolveAccountJudgeEvidence:async(
 const modules=new Map();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url||'/',`http://127.0.0.1:${port}`);
+  if(url.pathname==='/__dtm_library/import'){
+    res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
+    try{
+      if(req.method!=='POST'||req.headers.origin!==url.origin){res.writeHead(403);res.end(JSON.stringify({error:'Use the signed-in local importer.'}));return;}
+      const account=await verifyAffairsToken((req.headers.authorization||'').replace(/^Bearer /,''));
+      const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>12_000_000)throw Object.assign(Error('Import is too large.'),{status:413});chunks.push(chunk);}const raw=Buffer.concat(chunks).toString('utf8');
+      const {importLibrary}=await import('../server/local-dtm/store.js');const result=await importLibrary(account,JSON.parse(raw));res.end(JSON.stringify(result));
+    }catch(error){res.writeHead(error.status||400);res.end(JSON.stringify({error:error.status===401?'Sign in again.':error.message==='Invalid or oversized Moodle import.'?error.message:'Moodle import failed validation or access checks.'}));}return;
+  }
   if(url.pathname.startsWith('/__evaluation_lab/'))return evaluationLab(req,res);
   if(url.pathname==='/evaluation-lab'||url.pathname==='/evaluation-lab/'){res.writeHead(302,{Location:'/tools/evaluation-lab/index.html'+url.search});res.end();return;}
   if(!url.pathname.startsWith('/api/'))return vite.middlewares(req,res);

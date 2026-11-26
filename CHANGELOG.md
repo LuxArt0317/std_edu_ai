@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Add an owner-scoped local SQLite Moodle content library, transactional browser import, actual course/grade navigation and a shared assistant read API (Issue #110). Preserve source-disabled activities and literal grades; remaining capture coverage is tracked. No deployment or production database changes.
+
 - Preserve both grade and graduation-report evidence for bounded combined graduation/ranking questions; keep term clarification and non-prediction limits.
 
 - Clarify unspecified year/semester subject questions with existing course-history and timetable links before account lookup; preserve contextual and scoped record handling.

@@ -1,3 +1,10 @@
+## Complete owned Moodle content import [Issue #110]
+
+- [x] Inspect the signed-in original DTM and enumerate owned courses.
+- [ ] Finish capture: 47 courses, 47 grade reports and 20 activity pages saved; 661 linked details remain after browser transport disconnected.
+- [x] Store independently in an owner-scoped local database and connect Moodle and assistant readers.
+- [ ] Verify persistence, privacy and rendered pages; commit locally without deployment.
+
 ## Authorized operation coverage [Issue #109]
 
 - [x] Extend completion review beyond public leads to read-only operations and scopes.
