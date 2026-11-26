@@ -1,3 +1,4 @@
+import {openAssistantMemory} from '../server/assistantMemory.js';
 import {answerWithApplicationApis} from '../server/applicationApiAgent.js';
 import {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute} from '../server/publicSignedInDispatch.js';
 import {assistantRequestDeadline} from '../server/assistantRequestBudget.js';
@@ -346,7 +347,16 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   active.push(now);requestWindows.set(account.user.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
+  const memory=await openAssistantMemory(account,{disabled:hasProbe||Boolean(value(request.headers['x-stu-evaluation-run'])||value(request.headers['x-stu-evaluation-model']))||route.includes('evaluation-lab')});
+  if(/^\/memory\s+(clear|status)$/i.test(question.trim())){
+    if(!memory){response.status(503).json({error:'Account memory is not configured or is temporarily unavailable.'});return;}
+    try{const clear=/clear$/i.test(question.trim());if(clear)await memory.clear();response.status(200).json({status:'answered',answer:clear?'I cleared your saved account memory. Existing conversations are unchanged.':`Your account has ${memory.count} historical answer snapshots. Use /memory clear to delete them.`,citations:[],suggestedQuestions:[]});}catch{response.status(503).json({error:'Memory deletion could not be confirmed. Please try again.'});}return;
+  }
+  if(memory)history=memory.context(question,history);
   const stream=createAssistantStream(input?.stream===true,response);
+  const send=stream.send.bind(stream);let memoryPending=Promise.resolve();
+  stream.send=(status,payload)=>{memoryPending=(status===200&&memory?memory.remember(question,payload).catch(()=>{console.warn('Assistant memory save unavailable',{code:'memory_store_unavailable'});}):Promise.resolve()).then(()=>send(status,payload));};
+  try {
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
   const identityQuestion=accountStatusContextQuestion(question,history);
@@ -1203,6 +1213,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }
+  } finally {await memoryPending;}
 };
 }
 

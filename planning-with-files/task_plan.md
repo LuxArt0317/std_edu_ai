@@ -1,3 +1,10 @@
+## Production memory preparation [Issue #115]
+
+- [x] Replace signed-in browser storage with server-owned Supabase persistence.
+- [x] Add owner RLS, service-only writes, expiry/caps and clear fencing.
+- [x] Check disposable PostgreSQL and runtime build boundaries.
+- [ ] Apply migration/configure cleanup and run hosted staging acceptance before enabling release.
+
 ## Local conversation memory [Issue #115]
 
 - [x] Inspect rolling context and request-local evidence.

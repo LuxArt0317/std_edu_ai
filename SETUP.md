@@ -25,3 +25,5 @@ The local discovery runner includes alternate account-source completion and the 
 For the local original Moodle import database, private environment settings and resuming remaining captures, see [Moodle library setup](server/local-dtm/README.md).
 
 For optional `OPENAI_CONVERSATION_UPDATE_MODEL` and interim update behavior, see [conversation commentary setup](server/README.md#conversational-commentary-and-identity-continuity-issue-114). Default commentary model is GPT6Luna; production remains unchanged.
+
+Assistant memory deployment prerequisites and staging acceptance are documented in [server/README.md](server/README.md#durable-assistant-memory-115). It requires a pending migration, server-only secrets and daily expiry cleanup before enabling; it is not enabled by a frontend build.

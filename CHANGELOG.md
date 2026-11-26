@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Prepare durable server-owned assistant memory with owner RLS, verified-only writes, bounded retention, generation-fenced deletion, evaluator isolation and build checks. Pending migration/configuration; not deployed.
+
 - Local-only account-scoped browser memory preserves verified source-linked answer snapshots beyond the conversation window; `/memory status` and `/memory clear` controls. Historical recall is not fresh evidence.
 
 - Replace canned chat receipts with contextual model commentary on10second ticks, persist interim updates, and resolve identity confirmations against recent turns and the current verified session (Issue #114).

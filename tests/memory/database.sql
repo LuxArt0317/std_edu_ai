@@ -1,0 +1,34 @@
+\set ON_ERROR_STOP on
+create role anon;
+create role authenticated;
+create role service_role bypassrls;
+create schema auth;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+grant usage on schema auth to authenticated;
+grant execute on function auth.uid() to authenticated;
+\i /tmp/migration.sql
+insert into auth.users values('11111111-1111-4111-8111-111111111111'),('22222222-2222-4222-8222-222222222222');
+set role service_role;
+select public.assistant_memory_save('11111111-1111-4111-8111-111111111111',0,repeat('a',64),'grades','8/10','["https://stu.best/dtm/grades"]');
+reset role;
+set role authenticated;
+select set_config('request.jwt.claim.sub','22222222-2222-4222-8222-222222222222',false);
+do $$begin if (select count(*) from public.assistant_memory_entries)<>0 then raise exception 'Other owner leak';end if;
+if has_function_privilege(current_user,'public.assistant_memory_save(uuid,bigint,text,text,text,jsonb)','execute') then raise exception 'Client may forge verified memory';end if;end$$;
+select set_config('request.jwt.claim.sub','11111111-1111-4111-8111-111111111111',false);
+do $$begin if (select count(*) from public.assistant_memory_entries)<>1 then raise exception 'Own read failed';end if;end$$;
+select public.assistant_memory_clear();
+reset role;
+set role service_role;
+do $$begin if public.assistant_memory_save('11111111-1111-4111-8111-111111111111',0,repeat('a',64),'grades','8/10','["https://stu.best/dtm/grades"]') then raise exception 'Deleted memory resurrected';end if;end$$;
+select public.assistant_memory_save('11111111-1111-4111-8111-111111111111',1,md5(i::text)||md5(i::text),'question '||i,'answer','["https://stu.best/dtm"]') from generate_series(1,90)i;
+do $$begin if(select count(*) from public.assistant_memory_entries)<>80 then raise exception 'Unbounded memory';end if;end$$;
+reset role;
+update public.assistant_memory_entries set expires_at=now()-interval '1 hour';
+set role authenticated;
+do $$begin if(select count(*) from public.assistant_memory_entries)<>0 then raise exception 'Expired memory visible';end if;end$$;
+reset role;
+set role service_role;
+do $$begin if public.assistant_memory_purge_expired()<>80 then raise exception 'Expiry purge failed';end if;end$$;
+select 'MEMORY DATABASE CHECKS PASSED';

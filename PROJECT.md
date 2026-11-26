@@ -105,3 +105,5 @@ The API discovery loop now checks alternative read scopes before finalizing a pa
 The local original Moodle library uses built-in Node SQLite and the existing signed-in DTM shell. See [library architecture](server/local-dtm/README.md); no npm dependency was added.
 
 Contextual interim commentary and identity follow-up handling reuse the existing API Function and installed model transport; see [server design](server/README.md#conversational-commentary-and-identity-continuity-issue-114). No dependencies were added.
+
+Durable chatbot memory uses the existing account API and Supabase RLS, without new runtime dependencies. Configuration, privacy limits, retention and release gates: [server/README.md](server/README.md#durable-assistant-memory-115).
