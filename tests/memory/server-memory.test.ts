@@ -4,7 +4,7 @@ import {memoryEntry,openAssistantMemory} from '../../server/assistantMemory.js';
 const account={url:'https://example.supabase.co',key:'anon-test',token:'user-test',user:{id:'owner-a'}};
 const answer={status:'answered',answer:'Grade: 8',verification:{status:'verified'},citations:[{url:'https://stu.best/dtm/grades'}]};
 test('admission excludes drafts, actions, credentials and credentialed URLs',()=>{
- assert.ok(memoryEntry('grades',answer));assert.equal(memoryEntry('grades',{...answer,verification:{status:'unverified'}}),null);
+ assert.ok(memoryEntry('grades',answer));assert.deepEqual(memoryEntry('grades',{...answer,citations:[{url:'/school-affairs'}]}).p_sources,['https://stu.best/school-affairs']);assert.equal(memoryEntry('grades',{...answer,verification:{status:'unverified'}}),null);
  assert.equal(memoryEntry('password',answer),null);assert.equal(memoryEntry('grades',{...answer,proposedAction:{}}),null);
  assert.equal(memoryEntry('grades',{...answer,citations:[{url:'https://stu.best/?token=secret'}]}),null);
 });

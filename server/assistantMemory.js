@@ -2,7 +2,7 @@ import {createHash} from 'node:crypto';
 const sensitive=/(?:password|passwd|api[_ -]?key|access[_ -]?token|bearer\s|private key|密碼|密码)/iu;
 export function memoryEntry(question,result){
  if(result?.status!=='answered'||result?.verification?.status!=='verified'||typeof result.answer!=='string'||sensitive.test(question+' '+result.answer)||result.proposedAction)return null;
- const sources=(result.citations||[]).flatMap(c=>{try{const u=new URL(c.url);return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password&&!u.search?[u.href]:[];}catch{return [];}}).slice(0,6);
+ const sources=(result.citations||[]).flatMap(c=>{try{if(typeof c.url!=='string'||c.url.startsWith('//'))return [];const u=new URL(c.url,'https://stu.best');return ['http:','https:'].includes(u.protocol)&&!u.username&&!u.password&&!u.search?[u.href]:[];}catch{return [];}}).slice(0,6);
  if(!sources.length)return null;
  return {p_fingerprint:createHash('sha256').update(question.normalize('NFKC').trim().toLowerCase()).digest('hex'),p_question:question.slice(0,800),p_answer:result.answer.slice(0,2400),p_sources:sources};
 }
