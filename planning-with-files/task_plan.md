@@ -1,3 +1,10 @@
+## Immediate conversational feedback [Issue #112]
+
+- [x] Acknowledge immediately without claiming a lookup or exposing an unverified draft.
+- [x] Persist acknowledgment independently of final answer; reuse shared live/lab renderer.
+- [x] Collapse activity by default and preserve user expansion while progress arrives.
+- [x] Verify rendering/persistence and restart locally; no deployment.
+
 ## Imported Moodle chatbot grade integration [Issue #111]
 
 - [x] Reproduce the disconnected legacy grade reader and oversized capture-queue response.

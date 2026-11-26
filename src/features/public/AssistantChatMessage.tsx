@@ -34,9 +34,11 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               <p className="mb-2 text-xs font-semibold">
                 {message.role === "user" ? "You" : "Assistant"}
               </p>
+              {message.role==='assistant'&&(message.acknowledgment||message.phase==='working')&&<p className="assistant-acknowledgment text-sm" role={message.phase==='working'?'status':undefined}>{message.acknowledgment||message.content||'Let me take a look.'}</p>}
+              {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.role === "user" ? (
                 <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=>image.dataUrl?<img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />:<p key={image.name} className="mt-2 text-xs">Attached image · {image.name}</p>)}</>
-              ) : message.phase === 'working' && !message.content ? <p className="text-sm text-muted-foreground">Preparing your answer…</p> : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
+              ) : message.phase === 'working' ? null : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.modelSettings&&<p className="text-xs text-muted-foreground">Model setting: {message.result.modelSettings.model} · Thinking: {message.result.modelSettings.thinking}</p>}
@@ -73,7 +75,6 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
                 <Button size="sm" disabled={readOnly || !!actionBusy} onClick={()=>onApplyAction?.(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button>
               </div> : null}
               {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
-              {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.result?.citations.length ? (
                 <ul
                   className="space-y-2 border-t pt-3 text-xs"

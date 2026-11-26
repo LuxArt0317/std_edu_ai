@@ -1,3 +1,4 @@
+import {assistantAcknowledgment} from '../../services/assistantAcknowledgment';
 import {signOutAffairs} from './affairs/authClient';
 import { AssistantChatMessage } from "./AssistantChatMessage";
 import {useAssistantCommands} from './AssistantCommands';
@@ -116,7 +117,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     setMessages((old) => [
       ...old,
       { id: `u-${turnId}`, role: "user", content: question, images:attached },
-      { id: answerId, role: "assistant", content: "", phase:'working', activity:[] },
+      { id: answerId, role: "assistant", content: "", acknowledgment:assistantAcknowledgment(question), phase:'working', activity:[] },
     ]);
     setQuery("");
     setImages([]);

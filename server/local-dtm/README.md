@@ -9,3 +9,6 @@ Set `LOCAL_DTM_DATABASE` to an absolute private file path and `LOCAL_DTM_IMPORT_
 ## Assistant grade reads (Issue #111)
 
 Normal library reads exclude the capture queue; only `view=coverage` returns pending import links. `view=grades` returns the compact course catalog with literal total, range, percentage, rank and local grade URL. The established DTM evidence reader now reads this owner-scoped source before its previous store when imported courses exist; explicit UUID report routes keep their original source. Imported overview evidence fits the16KB evidence budget for the47captured courses. Composition uses a compact record prompt and a35second/6000token budget bounded by the request deadline; the independent source verifier remains enabled.
+
+
+The supplemental formatter explicitly validates imported grade payloads and local imported-course URLs separately from native local_demo reports. The complete47-course result, including evidence wrapper and URLs, is15,646bytes; the16KB bound applies to the whole result, not just the JSON source content.

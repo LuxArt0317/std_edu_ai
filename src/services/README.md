@@ -96,3 +96,5 @@ Written requests about the Moodle assignment-list view go through the signed-in 
 School Affairs assistant calls now revalidate the existing session before private lookups or progress. Cached identity does not establish authorization; the server also verifies every authenticated request (Issue #105).
 
 VITE_ASSISTANT_UNIFIED_DISCOVERY routes verified account chat directly to the unified server flow, bypassing frontend question shortcuts. Fresh session validation remains required. Pair it with the server discovery flag and restart/refresh; see server/README.md (Issue108).
+
+`assistantAcknowledgment.ts` supplies brief English/Chinese request receipts without claiming record access. The optional acknowledgment field is bounded and preserved by browser and server conversation sanitizers; final content remains the conversation-history answer.

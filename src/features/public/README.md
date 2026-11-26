@@ -33,3 +33,7 @@ Chat language preferences control the assistant title, starter questions and fee
 `AssistantCommands.tsx` supplies slash-command menus, keyboard selection, local preference persistence and thinking/model controls to the shared public/account chatbot. The shared message renderer shows saved settings per answer, rather than relabelling old messages with the current choice.
 
 The assistant header displays the verified account email and a direct Sign out control, or an explicit Signed out link. Signing out cancels active requests/actions and changes the conversation scope so private chats are no longer shown. Account versus public mode is visible without opening School Affairs (Issue #107).
+
+## Conversational progress (Issue #112)
+
+Submitting a question immediately creates a short acknowledgment without waiting for the network or model. It is stored separately from final answer content and remains above the activity disclosure and final answer. The single activity line is collapsed by default, stays expanded if the user opens it, and retains the actual reported tool/source checks. Working drafts stay hidden. The shared message renderer gives Answer Lab the same collapsed activity behavior. No new model call or permission is introduced.
