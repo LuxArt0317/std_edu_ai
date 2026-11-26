@@ -1294,3 +1294,6 @@
 
 ## Local privacy repair — Issue #105
 - Gate personal guest questions before public shortcuts, add semantic public paraphrase routing, and revalidate sign-in before private assistant dispatch. No deployment.
+
+## Local grades recovery — Issue #106
+- Keep established grades workflows ahead of generic API exploration; add precise grade selectors, bounded fallback and readable activity/source labels.

@@ -23,3 +23,13 @@ test('normal public questions delegate, missing selectors clarify, and unsupport
  const value=await answerWithApplicationApis(base,{...deps,decide:async()=>decision('clarify',{answer:'Which term?'})});assert.equal(value?.status,'clarification');
  assert.equal(await answerWithApplicationApis(base,{...deps,maxSteps:1,decide:async()=>decision('answer',{answer:'Invented'})}),null);
 });
+test('API validation failure can recover through a corrected call instead of treating it as absent grades',async()=>{
+ const steps=[decision('describe'),decision('read',{queryJson:'{"scope":"dtm-grade-report"}'}),decision('read',{queryJson:'{"scope":"dtm-grade-report-overview"}'}),decision('answer',{answer:'A saved value',sourceIds:['account-api:0']})];const scopes:string[]=[];
+ const value=await answerWithApplicationApis(base,{...deps,decide:async()=>steps.shift(),invoke:async(_account:any,call:any)=>{scopes.push(call.query.scope);return scopes.length===1?{...result,status:400,ok:false,data:{error:'course_id required; use overview first'}}:result;}});
+ assert.deepEqual(scopes,['dtm-grade-report','dtm-grade-report-overview']);assert.equal(value?.verification?.status,'verified');assert.ok(value?.activity?.some(step=>step.status==='unavailable'));
+});
+test('unverified tool draft yields to standard assistant instead of returning generic failure to user',async()=>{
+ const steps=[decision('describe'),decision('read'),decision('answer',{answer:'Unsupported',sourceIds:['account-api:0']})];const activity:any[]=[];
+ const value=await answerWithApplicationApis({...base,onProgress:step=>activity.push(step)},{...deps,maxSteps:3,decide:async()=>steps.shift(),invoke:async()=>result,verify:async()=>({ok:false})});
+ assert.equal(value,null);assert.equal(activity.at(-1).kind,'api-fallback');assert.ok(activity.every(step=>!JSON.stringify(step).includes('/api/')));
+});

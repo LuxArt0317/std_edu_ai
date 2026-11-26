@@ -88,3 +88,6 @@ Automatic API discovery and reviewed invocation are implemented locally in the r
 
 ## Issue #105 local repair
 Guest personal intent now gates before public shortcuts, with sign-in-only activity. Public paraphrases can use semantic retrieval wording while composition retains the original question. Private dispatch revalidates its session. Focused tests, live intent checks, types/import/packaging checks pass. Local5173 restarted; no production deployment. Signed-in browser acceptance remains unverified.
+
+## Issue #106
+Fixed local API-preflight interruption: established grade intents bypass the generic loop; failed verification falls back instead of becoming a final generic response. Added focused academic-grades API contract and corrected DTM selector guidance. Activity no longer displays raw API paths/status.28focused tests pass with full types/import/catalog/JS-only packaging. Local server restarted; no deployment or production data mutation. Signed-in browser acceptance remains unverified.

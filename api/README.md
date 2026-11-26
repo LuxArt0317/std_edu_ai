@@ -164,3 +164,5 @@ Public and account assistant handlers use the same server-only assistantRequestB
 The signed-in assistant can clarify missing course-selection term scope using existing history/timetable destinations without reading account records.
 
 Application APIs are inventoried automatically for the signed-in chatbot. Declare static `assistantApi` metadata for accurate schemas and read classification; authorization remains in each handler. See [tool registry and review setup](../server/README.md#automatic-application-api-tools-issue-104).
+
+`GET /api/affairs-data?scope=academic-grades&view=transcript` exposes the caller-bound native grade reader. Only scope/view are accepted; the default is transcript. DTM report detail requires course_id; the overview lists accessible courses. Existing authorization remains required (Issue #106).

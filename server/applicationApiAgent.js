@@ -2,9 +2,12 @@ import {withAssistantModel,assistantModelOverride} from './assistantModelConfig.
 import {applicationApiOperations,searchApplicationApis,describeApplicationApi,invokeApplicationApi,proposeApplicationApiAction,redactApiToolValue} from './applicationApiTools.js';
 import {verificationModelCall,verifyEvidenceAnswer} from './answerVerificationModel.js';
 import {assistantContext} from '../src/services/assistantContext.js';
+const recordTitle=path=>path==='/api/affairs-data'?'School Affairs records':'Application records';
+const recordUrl=(path,call,route)=>path==='/api/affairs-data'?(call.query?.scope==='academic-grades'?'/school-affairs/services/13-1':String(call.query?.scope??'').startsWith('dtm-grade-report')?'/dtm/dashboard':'/school-affairs/records'):route.split(/[?#]/)[0];
 const schema={type:'object',additionalProperties:false,properties:{kind:{type:'string',enum:['delegate','discover','describe','read','propose','answer','clarify']},operationId:{type:'string'},queryJson:{type:'string'},bodyJson:{type:'string'},searchQuery:{type:'string'},answer:{type:'string'},sourceIds:{type:'array',items:{type:'string'},maxItems:8}},required:['kind','operationId','queryJson','bodyJson','searchQuery','answer','sourceIds']};
 const instructions=[
  'You are the application API tool agent for the signed-in school website. Choose the next useful step dynamically from the API catalog and observed results, not a fixed sequence.',
+ 'An HTTP 400 is an input validation failure, not an empty record. Read its error and the operation description, correct missing selectors, and choose an overview when a detail endpoint needs an unknown ID. Never repeat the same failed call. If you cannot select the correct scope, delegate to the existing assistant rather than inventing records.',
  'Use discover to find APIs, describe to inspect a registered operation, read to execute a declared read-only operation, or propose to prepare a mutation for explicit user review. Write operations NEVER run in this loop.',
  'For read/propose set operationId and JSON object strings queryJson and bodyJson. GET body is {}. Query values must be strings. No headers, URLs, cookies, credentials, identity overrides or SQL. The server supplies the current user authentication. Actual API permissions always apply.',
  'Use only arguments explicitly supplied by the user, required selectors from the current page, or actual tool results. Never invent a required ID, term, version, account role or consent. Ask one focused clarification when required fields are missing. A human will see the exact proposed request before confirming.',
@@ -16,6 +19,7 @@ const instructions=[
 ].join('\n');
 export async function answerWithApplicationApis({account,question,history=[],route='/school-affairs',deadline,onProgress=()=>{}},{decide=verificationModelCall,invoke=invokeApplicationApi,propose=proposeApplicationApiAction,verify=verifyEvidenceAnswer,operations=applicationApiOperations,search=searchApplicationApis,describe=describeApplicationApi,maxSteps=8}={}){
  if(!Number.isFinite(deadline)||deadline-Date.now()<18000)return null;
+ deadline=Math.min(deadline,Date.now()+40000); // Reserve time for established fallback handlers.
  const activity=[],observations=[],evidence=[],seen=new Set();let described=new Set();
  const emit=(kind,label,detail,status='complete')=>{const step={kind,label,detail,status};activity.push(step);try{onProgress(step);}catch{/* A disconnected view cannot authorize a write. */}};
  const catalog=operations().map(({id,method,path,description,readOnly,callable,unavailableReason})=>({id,method,path,description,readOnly,callable,unavailableReason}));
@@ -36,7 +40,7 @@ export async function answerWithApplicationApis({account,question,history=[],rou
   }
   try{
    if(decision.kind==='discover'){const result=search(decision.searchQuery);observations.push({tool:'discover',result});emit('api-discovery','Searched application APIs',`Found ${result.length} matching API operations.`);continue;}
-   if(decision.kind==='describe'){const result=describe(decision.operationId);described.add(result.id);observations.push({tool:'describe',result});emit('api-schema','Read API input schema',`${result.method} ${result.path}`);continue;}
+   if(decision.kind==='describe'){const result=describe(decision.operationId);described.add(result.id);observations.push({tool:'describe',result});emit('api-schema','Selected a record lookup',recordTitle(result.path));continue;}
    if(!described.has(decision.operationId)){observations.push({error:'Describe this operation before calling it.'});continue;}
    const call={operationId:decision.operationId,query:JSON.parse(decision.queryJson||'{}'),body:JSON.parse(decision.bodyJson||'{}')};
    if(decision.kind==='propose'){
@@ -44,11 +48,12 @@ export async function answerWithApplicationApis({account,question,history=[],rou
     return {status:'answered',answer:/\p{Script=Han}/u.test(question)?'請核對下方的操作及欄位，確認後才會執行。':'Please review the operation and fields below. Nothing will change until you confirm.',citations:[],proposedAction,activity,grounding:{source:'account',webSearched:false}};
    }
    const key=JSON.stringify(call);if(seen.has(key)){observations.push({error:'This exact call was already attempted. Use its result or choose a different needed scope.'});continue;}seen.add(key);
-   emit('api-read','Calling application API',decision.operationId,'running');const result=await invoke(account,call,{deadline:Math.min(deadline-14000,Date.now()+15000)});
-   observations.push({tool:'read',result});emit('api-read',result.ok?'Read application API':'API rejected the request',`${result.method} ${result.path} · HTTP ${result.status}${result.truncated?' · partial response':''}`,result.ok?'complete':'unavailable');
-   if(result.ok){const id='account-api:'+evidence.length;evidence.push({id,title:result.method+' '+result.path,url:route.split(/[?#]/)[0],content:JSON.stringify({checkedAt:new Date().toISOString(),...result,scope:'Only the requested endpoint and filters were read. Truncated or omitted fields and other collections remain unknown.'})});observations.at(-1).evidenceId=id;}
+   emit('api-read','Checking requested records','Reading the selected records for your signed-in account.','running');const result=await invoke(account,call,{deadline:Math.min(deadline-14000,Date.now()+15000)});
+   observations.push({tool:'read',result});emit('api-read',result.ok?'Retrieved requested records':'Lookup needs a different input',result.ok?`Read the selected account records${result.truncated?' (partial response)':''}.`:'The selected lookup did not accept these filters; no missing record was inferred.',result.ok?'complete':'unavailable');
+   if(result.ok){const id='account-api:'+evidence.length;evidence.push({id,title:recordTitle(result.path),url:recordUrl(result.path,call,route),content:JSON.stringify({checkedAt:new Date().toISOString(),...result,scope:'Only the requested endpoint and filters were read. Truncated or omitted fields and other collections remain unknown.'})});observations.at(-1).evidenceId=id;}
   }catch(error){const result=redactApiToolValue({error:error?.message||'API tool unavailable'},account,1500);observations.push(result.data);emit('api-tool-error','API tool needs a different input','The call was not completed; no absent record was inferred.','unavailable');}
  }
  if(!evidence.length)return null;
- return {status:'clarification',answer:/\p{Script=Han}/u.test(question)?'我已取得部分資料，但還無法確認完整答案。請提供要查詢的確切紀錄、學期或日期。':'I retrieved some records, but I couldn’t verify the complete answer yet. Which exact record, term or date should I focus on?',citations:evidence.map(e=>({chunkId:e.id,title:e.title,url:e.url})),activity,verification:{status:'unverified',attempts:0},grounding:{source:'account',webSearched:false}};
+ emit('api-fallback','Trying the standard record lookup','The initial lookup did not produce a verified answer.','complete');
+ return null;
 }

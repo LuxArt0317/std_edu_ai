@@ -1,3 +1,9 @@
+## Grades tool recovery [Issue #106]
+
+- [x] Add precise focused academic-grades API contract and DTM selector guidance.
+- [x] Bound generic exploration and verify corrected400 recovery.
+- [x] Restart and verify local availability; do not deploy.
+
 ## Signed-out privacy and paraphrases [Issue #105]
 
 - [x] Gate guest personal intent before all source shortcuts.

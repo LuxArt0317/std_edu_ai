@@ -1,5 +1,6 @@
+import {loadOwnAcademicGrades} from '../server/affairsWorkspace.js';
 import assistantApiToolsHandler from '../server/assistantApiToolsHttp.js';
-export const assistantApi = {"description":"School Affairs and DTM data: private student records, course selections, academic grades, attendance, graduation reports, assignments, scholarship, aid, housing, leave, clubs, student services and authorized manager views. Select an explicit scope and precise filters; never read all records to answer a narrow question.","methods":["GET"],"readMethods":["GET"]};
+export const assistantApi = {"description":"School Affairs and DTM data: private student records, course selections, academic grades, attendance, graduation reports, assignments, scholarship, aid, housing, leave, clubs, student services and authorized manager views. For School Affairs grades use scope=academic-grades and view=transcript (or warning, ranking, english; current, gpa, transfer and cycle may return explicit unavailability). Only scope and view are accepted. For Moodle grades without a course ID use scope=dtm-grade-report-overview; dtm-grade-report requires course_id from the overview. Select precise filters; never read all records for a narrow question.","methods":["GET"],"readMethods":["GET"]};
 import {serveEvaluationLab} from "../server/evaluationLabHosted.js";
 import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
@@ -152,6 +153,15 @@ export default async function handler(request:Request,response:Response) {
       return;
     }
     const scope=request.query?.scope;
+    if(scope==='academic-grades'){
+      const view=request.query?.view??'transcript';
+      if(typeof view!=='string'||!['current','transcript','warning','ranking','english','gpa','transfer','cycle'].includes(view)
+        ||Object.keys(request.query??{}).some(key=>!['scope','view'].includes(key))){
+        response.status(400).json({error:'Use scope=academic-grades with view=current, transcript, warning, ranking, english, gpa, transfer or cycle. No account filters are accepted.'});return;
+      }
+      response.status(200).json(await loadOwnAcademicGrades(account,view,{deadline:requestDeadline}));return;
+    }
+
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
     if (scope === clubStudentScope) {
       response.status(200).json(await readClubStudent({...account,requestDeadline},request.query??{}));
