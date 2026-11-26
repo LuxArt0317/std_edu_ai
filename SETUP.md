@@ -23,3 +23,5 @@ For local website/database discovery, embedding-cache generation and planner-ver
 The local discovery runner includes alternate account-source completion and the released assessment read scope. No additional migration or environment variable is required; see [server documentation](server/README.md#alternate-account-source-completion-issue-109).
 
 For the local original Moodle import database, private environment settings and resuming remaining captures, see [Moodle library setup](server/local-dtm/README.md).
+
+For optional `OPENAI_CONVERSATION_UPDATE_MODEL` and interim update behavior, see [conversation commentary setup](server/README.md#conversational-commentary-and-identity-continuity-issue-114). Default commentary model is GPT6Luna; production remains unchanged.

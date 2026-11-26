@@ -443,3 +443,9 @@ Original authorized DTM captures now live in a separate private, owner-scoped SQ
 Imported Moodle grade questions now share the local website database through both API discovery and the established DTM evidence reader. Capture administration queues are excluded from normal account answers. See [Moodle reader details](local-dtm/README.md#assistant-grade-reads-issue-111).
 
 Conversation persistence now allowlists a bounded optional acknowledgment separately from final answer content (Issue #112); no database migration is needed because saved conversations already use JSON messages.
+
+## Conversational commentary and identity continuity (Issue #114)
+
+`conversationUpdates.js` handles the `conversation-update` resource on the existing research API. It uses bounded recent context and tool statuses to generate short commentary, never answer evidence. It defaults to GPT6Luna with a shared8second generation/check deadline and no overlapping client requests. `OPENAI_CONVERSATION_UPDATE_MODEL` can override this auxiliary model. A bounded per-instance12/minute address limiter and24KB input bound limit requests; this is not a distributed quota system. No new Function is added. Adjacent identity confirmations resolve from recent user turns and recheck the current verified session. Identity replies are model-written from verified facts and independently checked, with the verified direct answer retained during provider failures. They run before unrelated discovery tools.
+
+A separate commentary checker rejects underlying answers, identity claims, access claims, unsupported findings or retractions before any interim text is displayed. A failed/late update is skipped; it does not replace or delay the main answer. The10second cadence schedules requests, rather than guaranteeing provider delivery every10seconds.

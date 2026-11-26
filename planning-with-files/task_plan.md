@@ -1,3 +1,10 @@
+## Contextual conversational updates [Issue #114]
+
+- [x] Replace canned acknowledgment with asynchronous model-generated commentary and10second updates using actual activity.
+- [x] Persist bounded updates separately from final answer and cancel when work ends.
+- [x] Resolve adjacent identity confirmations from recent user turns and write varied grounded replies.
+- [x] Verify context, persistence, provider safety and local behavior; commit without deployment.
+
 ## Activity expansion motion [Issue #113]
 
 - [x] Animate native disclosure expansion/collapse with rapid-toggle cancellation and reduced-motion support.

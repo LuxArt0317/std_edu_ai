@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Replace canned chat receipts with contextual model commentary on10second ticks, persist interim updates, and resolve identity confirmations against recent turns and the current verified session (Issue #114).
+
 - Animate chatbot activity expansion and collapse with keyboard support, reversible toggles and reduced-motion handling (Issue #113).
 
 - Fix whole-envelope imported-grade size accounting and add strict imported source/URL validation in the actual supplemental formatter (Issue #111).

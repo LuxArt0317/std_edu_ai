@@ -39,3 +39,7 @@ The assistant header displays the verified account email and a direct Sign out c
 Submitting a question immediately creates a short acknowledgment without waiting for the network or model. It is stored separately from final answer content and remains above the activity disclosure and final answer. The single activity line is collapsed by default, stays expanded if the user opens it, and retains the actual reported tool/source checks. Working drafts stay hidden. The shared message renderer gives Answer Lab the same collapsed activity behavior. No new model call or permission is introduced.
 
 Activity disclosures animate their measured height over220ms when opened or closed (Issue #113). Native summary keyboard behavior is retained, rapid toggles cancel the previous animation, and reduced-motion preference switches instantly. The shared renderer also supplies this behavior in Answer Lab.
+
+## Context-aware commentary (Issue #114)
+
+The live assistant requests an initial model-written receipt in parallel with its main answer, then requests a brief status update on10second ticks. Only one commentary request may be active; failures, duplicates and late replies are ignored. Updates use the current question, six recent turns and actual observed activity labels, never unverified draft answers. Commentary stops when the main request ends and is bounded to12saved updates. Model latency can delay an update; it never blocks the actual answer. The static receipt phrase selector was removed.

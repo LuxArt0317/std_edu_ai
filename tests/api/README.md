@@ -131,3 +131,5 @@ Issue109 tests cover empty-transcript to alternate-source recovery, duplicate/re
 `imported-dtm-grade-evidence.test.ts` covers literal imported totals versus percentages, dash preservation, caller gating and native UUID source restrictions. The local library test also exercises the established grade evidence entry point against a temporary SQLite import.
 
 The activity persistence round-trip also verifies that the optional immediate acknowledgment survives authenticated save/restore (Issue #112).
+
+`conversational-updates.test.ts` checks adjacent identity follow-ups, stale-topic rejection, bounded activity-only commentary input, and persisted interim messages. Commentary is never final-answer evidence.

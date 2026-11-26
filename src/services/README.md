@@ -97,4 +97,4 @@ School Affairs assistant calls now revalidate the existing session before privat
 
 VITE_ASSISTANT_UNIFIED_DISCOVERY routes verified account chat directly to the unified server flow, bypassing frontend question shortcuts. Fresh session validation remains required. Pair it with the server discovery flag and restart/refresh; see server/README.md (Issue108).
 
-`assistantAcknowledgment.ts` supplies brief English/Chinese request receipts without claiming record access. The optional acknowledgment field is bounded and preserved by browser and server conversation sanitizers; final content remains the conversation-history answer.
+Interim conversational updates are generated from the current question, recent turns and observed activity. Optional legacy acknowledgments and bounded update entries survive browser/server sanitization; only final content is used as the factual conversation answer.

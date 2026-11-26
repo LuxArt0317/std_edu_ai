@@ -1,4 +1,3 @@
-import {assistantAcknowledgment} from '../../services/assistantAcknowledgment';
 import {signOutAffairs} from './affairs/authClient';
 import { AssistantChatMessage } from "./AssistantChatMessage";
 import {useAssistantCommands} from './AssistantCommands';
@@ -117,16 +116,35 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     setMessages((old) => [
       ...old,
       { id: `u-${turnId}`, role: "user", content: question, images:attached },
-      { id: answerId, role: "assistant", content: "", acknowledgment:assistantAcknowledgment(question), phase:'working', activity:[] },
+      { id: answerId, role: "assistant", content: "", updates:[], phase:'working', activity:[] },
     ]);
     setQuery("");
     setImages([]);
     setError("");
     setBusy(true);
+    let commentaryBusy=false,commentaryAttempt=0;
+    const commentaryController=new AbortController();
+    const commentary:Array<{id:string;text:string}>=[];
+    let currentActivity:AssistantProgress[]=[];
+    const updateCommentary=async()=>{
+      if(commentaryBusy||controller.signal.aborted||commentaryController.signal.aborted)return;
+      commentaryBusy=true;
+      try{
+        const response=await fetch('/api/research-assistant?resource=conversation-update',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.any([commentaryController.signal,AbortSignal.timeout(9000)]),body:JSON.stringify({question,phase:commentaryAttempt++?'progress':'acknowledgment',history:messages.slice(-6).map(m=>({role:m.role,content:m.content})),activity:currentActivity,prior:commentary.map(m=>m.text)})});
+        if(!response.ok||response.status===204)return;
+        const value=await response.json();
+        if(typeof value.text!=='string'||!value.text.trim()||request!==sequence.current||controller.signal.aborted||commentaryController.signal.aborted||commentary.some(u=>u.text===value.text))return;
+        const update={id:window.crypto.randomUUID(),text:value.text.slice(0,360)};commentary.push(update);
+        setMessages(old=>old.map(item=>item.id===answerId&&item.phase==='working'?{...item,updates:[...(item.updates||[]),update].slice(-12)}:item));
+      }catch{/* Failed commentary must never interrupt the actual answer. */}finally{commentaryBusy=false;}
+    };
+    void updateCommentary();
+    const commentaryTimer=window.setInterval(()=>void updateCommentary(),10000);
     try {
       const route=assistantPageRoute(embedded);
       const onProgress=(step:AssistantProgress)=>{
         if (request !== sequence.current || controller.signal.aborted) return;
+        currentActivity=mergeAssistantActivity(currentActivity,[step]);
         setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
       };
       const result = await askWebsiteAssistant({userId:user?.id,question,history:messages,signal:controller.signal,images:attached,route,onProgress,preferences:commands.preferences});
@@ -136,6 +154,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       if (request === sequence.current && !controller.signal.aborted)
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'error',content:reason instanceof Error?reason.message:'Please try again.',activity:finishAssistantActivity(item.activity||[],true)}:item));
     } finally {
+      window.clearInterval(commentaryTimer);commentaryController.abort();
       if (request === sequence.current) setBusy(false);
     }
   }

@@ -36,7 +36,7 @@ import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {studentLeaveDraftAction} from '../server/studentLeaveDraft.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
-import {accountStatusIntent} from '../server/accountStatusIntent.js';
+import {accountStatusIntent,accountStatusContextQuestion} from '../server/accountStatusIntent.js';
 import {answerCampusEntry,campusEntryIntent} from '../server/campusEntryContract.js';
 import {answerLearningEntry,learningEntryIntent,legacyDtmWorkspacePath} from '../server/learningEntryContract.js';
 import {answerAccountStatus} from '../server/accountStatusAnswer.js';
@@ -349,6 +349,12 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   const stream=createAssistantStream(input?.stream===true,response);
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
+  const identityQuestion=accountStatusContextQuestion(question,history);
+  if(!hasProbe&&identityQuestion&&!(Array.isArray(input?.images)&&input.images.length)){
+    try{stream.send(200,await answerAccountStatus({account,question,identityQuestion,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));}
+    catch{stream.send(503,{error:'Your sign-in could not be checked. Please try again.'});}
+    return;
+  }
   if(process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)){
     const result=await answerWithApplicationApis({account,question,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)},{unified:true,maxSteps:12});
     if(result){stream.send(200,result);return;}

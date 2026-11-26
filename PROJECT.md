@@ -103,3 +103,5 @@ The chatbot now has a shared request-scoped LangGraph for website/API discovery,
 The API discovery loop now checks alternative read scopes before finalizing a partial result; released assessment reads remain separate from transcript/final grades. See [server implementation](server/README.md#alternate-account-source-completion-issue-109).
 
 The local original Moodle library uses built-in Node SQLite and the existing signed-in DTM shell. See [library architecture](server/local-dtm/README.md); no npm dependency was added.
+
+Contextual interim commentary and identity follow-up handling reuse the existing API Function and installed model transport; see [server design](server/README.md#conversational-commentary-and-identity-continuity-issue-114). No dependencies were added.
