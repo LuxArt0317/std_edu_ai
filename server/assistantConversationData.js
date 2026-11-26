@@ -20,6 +20,8 @@ function result(value){
 export function sanitizeStoredConversation(messages){
   return Array.isArray(messages)?boundedConversationMessages(messages.filter(message=>message&&['user','assistant'].includes(message.role)&&typeof message.id==='string'&&typeof message.content==='string').map(message=>({
     id:text(message.id,100),role:message.role,content:text(message.content,8000),
+    ...(message.role==='assistant'&&Array.isArray(message.updates)?{updates:message.updates.slice(-12).filter(r=>r&&typeof r.id==='string'&&typeof r.text==='string').map(r=>({id:text(r.id,100),text:text(r.text,360)}))}:{}),
+    ...(message.role==='assistant'&&typeof message.acknowledgment==='string'?{acknowledgment:text(message.acknowledgment,240)}:{}),
     ...(message.role==='assistant'?{phase:['working','complete','error'].includes(message.phase)?message.phase:'complete',activity:activity(message.activity),result:result(message.result),actionExpired:message.actionExpired===true||Boolean(message.result?.proposedAction)}:{}),
     ...(message.role==='user'&&Array.isArray(message.images)?{images:message.images.slice(0,2).map(image=>({name:text(image?.name,120)}))}:{}),
   }))):[];

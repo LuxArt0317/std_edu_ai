@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Perform a student-authorized School Affairs or DTM action. JSON body: kind, payload, and requestId where required by the operation. Includes requests, leave drafts, venue bookings, applications, submissions and profile changes. Requires user review; actual API validates role, payload and versions.","methods":["POST"],"readMethods":[]};
 import {changeLearningSupport,learningSupportMaxPayloadBytes,learningSupportReviewAction,learningSupportStudentActions} from '../server/learningSupport.js';
 import { writeClubFoundation } from '../server/clubStudent.js';
 import { clubDocumentActions,clubDocumentJsonLimit,writeClubDocument } from '../server/clubActivityDocuments.js';

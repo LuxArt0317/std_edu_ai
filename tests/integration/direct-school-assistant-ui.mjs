@@ -37,7 +37,7 @@ try {
     // Signing in from the embedded assistant must replace the top-level page.
     // An OAuth flow inside its iframe leaves Google blocked and the button busy.
     await page.getByRole('button', { name: '開啟 AI 校園助理' }).click();
-    await page.frameLocator('iframe.stu-assistant-frame').getByRole('link', { name: 'School Affairs sign in' }).click();
+    await page.frameLocator('iframe.stu-assistant-frame').getByRole('link', { name: 'Signed out · Sign in' }).click();
     await page.waitForURL('**/school-affairs/login');
     assert.equal(page.url(), origin + '/school-affairs/login');
     await page.getByRole('button', { name: 'Continue with Google' }).waitFor();

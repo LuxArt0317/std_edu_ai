@@ -264,3 +264,5 @@
   .dtm-record-list li { flex-wrap: wrap; }
   .dtm-record-list .dtm-row-actions { width: 100%; }
 }
+
+.dtm-imported-text{white-space:pre-wrap;overflow-wrap:anywhere;margin:1rem 0}.dtm-source-unavailable{color:#777}.dtm-imported-content .dtm-activity-link a{font-size:inherit}.dtm-imported-content table{min-width:640px}

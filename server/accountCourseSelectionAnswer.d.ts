@@ -8,3 +8,5 @@ export function courseSelectionWriteBoundary(url:string):VerificationCandidate;
 export function selectExactCourseSelection(question:string,route:string,history?:Array<{role:string;content:string}>):ExactCourseSelectionPlan|null;
 export function answerExactCourseSelection(options:{account:AffairsAccount;question:string;route:string;plan:ExactCourseSelectionPlan;deadline:number;
   onProgress?:(step:VerificationProgress)=>void}):Promise<VerificationCandidate>;
+
+export function courseSelectionTermGuide(question:string,route:string,history?:Array<{role:string;content:string}>):VerificationCandidate|null;

@@ -8,7 +8,7 @@ test('source-present scholarship roles generate coverage guidance without answer
  const notes=publicProspectusResponseNeeds(question,[context.evidence]);
  assert.equal(notes.length,5);
  const joined=notes.join('\n');
- for(const pattern of [/signature/u,/tier amounts/u,/either\/or/u,/recipient service obligation/u,/semester-specific/u])assert.match(joined,pattern);
+ for(const pattern of [/signature/u,/tier amounts/u,/either\/or/u,/recipient service obligation/u,/semester-specific/u,/explicitly name/u,/repayment consequence/u])assert.match(joined,pattern);
  assert.doesNotMatch(joined,/20,000|10,000|3,000|85|75|A2|36 hours/u);
  assert.ok(notes.every(note=>note.length<=650));
 });

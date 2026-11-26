@@ -16,7 +16,7 @@ for(const name of ['window','document','HTMLElement','HTMLInputElement','HTMLBut
 Object.defineProperty(dom.window.HTMLElement.prototype,'scrollTo',{value:()=>{},configurable:true});
 const globals=globalThis as typeof globalThis&{__learningSupportTest?:{data:{session:{user:{id:string};access_token:string}|null};error:null}};
 const hook=registerHooks({load(url,context,next){
-  if(/\/affairs\/authClient\.ts$/.test(url))return {format:'module',shortCircuit:true,source:'export const affairsClient={auth:{getSession:async()=>globalThis.__learningSupportTest}};'};
+  if(/\/affairs\/authClient\.ts$/.test(url))return {format:'module',shortCircuit:true,source:'export async function signOutAffairs(){throw Error("Unexpected sign-out in routing fixture");} export const affairsClient={auth:{getSession:async()=>globalThis.__learningSupportTest,getUser:async()=>({data:{user:globalThis.__learningSupportTest?.data.session?.user},error:null})}};'};
   if(/\/affairs\/authContext\.ts$/.test(url))return {format:'module',shortCircuit:true,source:'export const useAffairsAuth=()=>({user:globalThis.__learningSupportTest?.data.session?.user,loading:false});'};
   if(url.endsWith('.css'))return {format:'module',shortCircuit:true,source:'export {};'};return next(url,context);
 }});

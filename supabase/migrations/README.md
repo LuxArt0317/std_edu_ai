@@ -90,3 +90,5 @@ Migration 20261114220000 adds caller-owned announcement email preferences and a 
 Migration 20261114230000 installs the observed initial certificate catalog, protected applications, masked payout references, and reservation-based proof Storage.
 
 `20261124220000_evaluation_lab.sql` adds administrator-only, owner-scoped evaluation documents and private image rows with RPC-only access, revision locking and bounded storage. Independent of student-service draft migrations; prerequisite: existing `private.affairs_is_admin()`.
+
+`20261127010000_assistant_memory.sql` adds historical assistant memory and generation-fenced deletion. It has no seed data. Authenticated users can select only their unexpired rows and clear their own memory; only the server service role can insert verified snapshots. Apply before enabling `ASSISTANT_MEMORY_ENABLED`. Configure daily `select public.assistant_memory_purge_expired()` via database scheduler for physical retention cleanup. See server README for release/rollback gates. This migration is prepared only and has not been applied to the hosted database.

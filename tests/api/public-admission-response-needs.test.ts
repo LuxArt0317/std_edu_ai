@@ -54,3 +54,21 @@ test('language source projection includes literal bounded graduation and scholar
  assert.match(notes.join('\n'),/positive obligations/u);
  assert.ok(notes.every(note=>note.length<=650));
 });
+
+
+test('program approval year stays attached to literal language obligation instead of entry cohort',()=>{
+ const question='Do international students need Mandarin to enroll?';
+ const context=publicProspectusContext(question)!;const data=JSON.parse(context.evidence.content);
+ assert.equal(data.languageObligationClauses.length,2);
+ assert.deepEqual(data.languageObligationClauses.map((clause:any)=>clause.paragraph),['6','7']);
+ assert.match(data.languageObligationClauses[0].text,/newly approved Degree Program starting from 2023 academic year/u);
+ assert.match(data.languageObligationClauses[0].text,/before graduation/u);
+ assert.doesNotMatch(data.languageObligationClauses[0].text,/Failure to obtain/u);
+ assert.match(data.languageObligationClauses[1].text,/Failure to obtain A2 before the third semester/u);
+ assert.ok(data.languageObligationClauses.every((clause:any)=>clause.locator==='pdf:page:31'&&data.excerpt.includes(clause.text)));
+ const notes=publicAdmissionResponseNeeds(question,[context.evidence]);
+ assert.ok(notes.some(note=>/entry cohort is not evidence of when a program was approved/u.test(note)));
+ assert.doesNotMatch(notes.join('\n'),/2023|112|A2|B1/u);
+ const other=JSON.parse(publicProspectusContext('How much are IPIAC tuition fees?')!.evidence.content);
+ assert.equal(other.languageObligationClauses,undefined);
+});

@@ -1,3 +1,7 @@
+import {readLibrary} from '../server/local-dtm/store.js';
+import {loadOwnReleasedAssessments,loadOwnAcademicGrades} from '../server/affairsWorkspace.js';
+import assistantApiToolsHandler from '../server/assistantApiToolsHttp.js';
+export const assistantApi = {"description":"For imported original Moodle course content, assignments, submission status and literal grade tables, use scope=dtm-library; no other fields lists owned courses and literal grade totals. view=grades reads this compact score overview; view=coverage is for import administration only, not answering grades. Then pass course_id from this catalog to read its captured pages, or page_key from a returned source URL to read an exact page, or q for text search. This local library is separate from sample courses. School Affairs and DTM data: private student records, course selections, academic grades, attendance, graduation reports, assignments, scholarship, aid, housing, leave, clubs, student services and authorized manager views. For released course quiz/assessment scores use scope=released-assessments (no other fields). These are assessment items, not transcript or final course grades; keep their labels distinct. For School Affairs transcript grades use scope=academic-grades and view=transcript (or warning, ranking, english; current, gpa, transfer and cycle may return explicit unavailability). Only scope and view are accepted. For Moodle grades without a course ID use scope=dtm-grade-report-overview; dtm-grade-report requires course_id from the overview. Select precise filters; never read all records for a narrow question.","methods":["GET"],"readMethods":["GET"]};
 import {serveEvaluationLab} from "../server/evaluationLabHosted.js";
 import {learningSupportScope,parseLearningSupportQuery,readLearningSupport} from '../server/learningSupport.js';
 import { readClubStudent } from '../server/clubStudent.js';
@@ -66,8 +70,9 @@ import { chargePaymentAdminQuery, chargePaymentHistoryAdminScope, chargePaymentH
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;end?:(data:Buffer)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
-export const config={maxDuration:60};
+export const config={maxDuration:120};
 export default async function handler(request:Request,response:Response) {
+  if(first(request.query?.resource)==='assistant-api-tools')return assistantApiToolsHandler(request,response);
   if(first(request.query?.resource)==='evaluation-lab')return serveEvaluationLab(request,response);
   const scopes=Array.isArray(request.query?.scope)?request.query.scope:[request.query?.scope];
   const chargePaymentScope=scopes.some(scope=>typeof scope==='string'&&scope.startsWith(chargePaymentHistoryScope));
@@ -149,6 +154,20 @@ export default async function handler(request:Request,response:Response) {
       return;
     }
     const scope=request.query?.scope;
+    if(scope==='dtm-library'){response.status(200).json(await readLibrary(account,request.query));return;}
+    if(scope==='released-assessments'){
+      if(Object.keys(request.query??{}).some(key=>key!=='scope')){response.status(400).json({error:'Released assessment records do not accept account filters.'});return;}
+      response.status(200).json(await loadOwnReleasedAssessments(account,{deadline:requestDeadline}));return;
+    }
+    if(scope==='academic-grades'){
+      const view=request.query?.view??'transcript';
+      if(typeof view!=='string'||!['current','transcript','warning','ranking','english','gpa','transfer','cycle'].includes(view)
+        ||Object.keys(request.query??{}).some(key=>!['scope','view'].includes(key))){
+        response.status(400).json({error:'Use scope=academic-grades with view=current, transcript, warning, ranking, english, gpa, transfer or cycle. No account filters are accepted.'});return;
+      }
+      response.status(200).json(await loadOwnAcademicGrades(account,view,{deadline:requestDeadline}));return;
+    }
+
     if(Array.isArray(scope)){response.status(400).json({error:'Choose one records scope.'});return;}
     if (scope === clubStudentScope) {
       response.status(200).json(await readClubStudent({...account,requestDeadline},request.query??{}));

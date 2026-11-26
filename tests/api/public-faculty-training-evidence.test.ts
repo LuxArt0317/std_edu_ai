@@ -27,7 +27,10 @@ test('broad training discovery keeps exchange service and unread dated-event reg
  const entry=JSON.parse(context.evidence.content),exchange=JSON.parse(context.additionalEvidence[0].content),notice=JSON.parse(context.additionalEvidence[1].content);
  assert.ok(entry.serviceLabels.includes('人力資源網'));
  assert.equal(exchange.conditions,undefined);
- assert.equal(notice.date,undefined);
+ assert.equal(notice.date,source.documents.notice.sections.date);
+ assert.equal(notice.time,source.documents.notice.sections.time);
+ assert.equal(notice.location,source.documents.notice.sections.location);
+ assert.deepEqual(notice.registration.publishedButtonLabels,['【請點我報名】']);
  assert.equal(notice.registration.distinctDestinations,2);
  assert.equal(notice.registration.destinationBodiesRead,false);
  assert.equal(notice.registration.verifiedDirectRegistrationUrl,null);

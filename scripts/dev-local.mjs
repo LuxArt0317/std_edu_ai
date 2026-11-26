@@ -7,6 +7,8 @@ import {createServer as createViteServer,loadEnv} from 'vite';
 import {createEvaluationLab} from '../tools/evaluation-lab/server.mjs';
 import {validateEvaluationModel} from '../tools/evaluation-lab/models.mjs';
 import {withAssistantModel} from '../server/assistantModelConfig.js';
+import {verifyAffairsToken} from '../server/affairsWorkspace.js';
+import {resolveAccountJudgeEvidence} from '../server/accountJudgeEvidence.js';
 
 const root=fileURLToPath(new URL('../',import.meta.url));
 const port=Number(process.env.LOCAL_PORT||5173);
@@ -21,15 +23,36 @@ let validUrl=false;
 try{validUrl=new URL(localUrl).protocol==='https:';}catch{}
 if(!validUrl||!localKey||placeholders.has(localKey))throw new Error('Configure valid local client Supabase settings in ignored .env.local; encrypted placeholders cannot be used.');
 if(!process.env.OPENAI_API_KEY||placeholders.has(process.env.OPENAI_API_KEY))throw new Error('Configure the existing server-only model credential in ignored .env.local.');
+const {generateApplicationApis}=await import('../server/applicationApiCatalogBuild.js');
+const {generateWebsiteDiscovery}=await import('../server/websiteDiscoveryBuild.js');
+await generateWebsiteDiscovery(root);
+if(process.env.ASSISTANT_EMBEDDINGS_ENABLED==='true')await import('./compile-discovery-embeddings.mjs');
+await generateApplicationApis(root);
 process.env.VERCEL_ENV='development';
 process.env.STU_LOCAL_CAPTURE_ORIGIN=`http://127.0.0.1:${port}`;
 const {default:configFactory}=await import('../vite.config.ts');
 const config=typeof configFactory==='function'?await configFactory({command:'serve',mode:'development'}):configFactory;
 let vite;
-const evaluationLab=createEvaluationLab(root);
+const evaluationLab=createEvaluationLab(root,{resolveAccountJudgeEvidence:async(run,snapshot,request)=>{
+  const header=request.headers.authorization;
+  let account=null;
+  if(typeof header==='string'&&header.startsWith('Bearer ')){
+    try{account=await verifyAffairsToken(header.slice(7));}catch{/* No record read without a verified session. */}
+  }
+  return resolveAccountJudgeEvidence(account,run,snapshot);
+}});
 const modules=new Map();
 const server=http.createServer(async(req,res)=>{
   const url=new URL(req.url||'/',`http://127.0.0.1:${port}`);
+  if(url.pathname==='/__dtm_library/import'){
+    res.setHeader('Cache-Control','no-store');res.setHeader('Content-Type','application/json');
+    try{
+      if(req.method!=='POST'||req.headers.origin!==url.origin){res.writeHead(403);res.end(JSON.stringify({error:'Use the signed-in local importer.'}));return;}
+      const account=await verifyAffairsToken((req.headers.authorization||'').replace(/^Bearer /,''));
+      const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;if(size>12_000_000)throw Object.assign(Error('Import is too large.'),{status:413});chunks.push(chunk);}const raw=Buffer.concat(chunks).toString('utf8');
+      const {importLibrary}=await import('../server/local-dtm/store.js');const result=await importLibrary(account,JSON.parse(raw));res.end(JSON.stringify(result));
+    }catch(error){res.writeHead(error.status||400);res.end(JSON.stringify({error:error.status===401?'Sign in again.':error.message==='Invalid or oversized Moodle import.'?error.message:'Moodle import failed validation or access checks.'}));}return;
+  }
   if(url.pathname.startsWith('/__evaluation_lab/'))return evaluationLab(req,res);
   if(url.pathname==='/evaluation-lab'||url.pathname==='/evaluation-lab/'){res.writeHead(302,{Location:'/tools/evaluation-lab/index.html'+url.search});res.end();return;}
   if(!url.pathname.startsWith('/api/'))return vite.middlewares(req,res);
@@ -41,6 +64,7 @@ const server=http.createServer(async(req,res)=>{
   try{
     let route=url.pathname.slice(5);
     if(route==='affairs-conversations'){route='affairs-data';url.searchParams.set('resource','conversations');}
+    if(route==='assistant-api-tools'){route='affairs-data';url.searchParams.set('resource','assistant-api-tools');}
     if(!/^[a-z][a-z0-9-]*$/.test(route))return res.status(404).json({error:'Local API route not found.'});
     const filename=resolve(root,'api',route+'.ts');
     try{await access(filename);}catch{return res.status(404).json({error:'Local API route not found.'});}

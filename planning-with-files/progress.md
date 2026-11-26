@@ -1,46 +1,38 @@
-# Progress after source-evaluation archive
+# Progress
 
-- Archived prior103lines to archive/progress_2026-11-25_source-evaluation.md.
-- Q53actualhandler scope diagnosed and fixed; specific real contact/navigation channels added. CurrentAPI-only Luna/Terra80 verifiedonce, stop tuning.
-- Q20 actual linked suspension/credittransfer PDF clauses imported with verified manifest/hash. Q30 source terminology separates continuing from resuming students. Q45 scoped enrollment provider integrated; source regression tests running. No deployment/browser fallback.
+## Issue #108
+Unified discovery is implemented locally. See current_state.md and archive/progress_2026-11-26-unified-discovery.md for verification and handoff. Production unchanged.
+- Actual HTTP checks passed: unseen commencement paraphrase and laptop-online question both used discovery and independently verified sources. Anonymous forged account returned login only.
 
-- Full local build passed for study-options/enrollment/housing/communication source batch, including JS-only hosted API packaging with zero provider calls and asset validation. Source evaluations are API-only; UI/private acceptance pending.
+## Issue #109
+- Traced premature completion to website-only coverage review. Added read-only operation/scope recovery, canonical duplicate detection and unresolved-coverage replanning.
+- Live browser confirmed separate blank/unavailable DTM report and existing released assessment storage. Added narrow caller-owned assessment API without DB changes; signed-in answer then returned a stored score.
+-36focused tests and18verifier/native regressions pass; types/import/packaging pass. Restarted local server only.
 
-- RegressionQ31=80 and Q06=70 accepted(API-only); Q45latest55/unverifiedtimeout retained. Q20clauseapplicability/sourceindexfixed afterexactrejectiondiagnosis,6tests+TS passed. Q30scopedHTTPdiagnosticpreparedtoexaminefirstandrepairwithinoneactualrun.
+[Issue #110] Inspected signed-in original DTM through Codex browser; captured all47ownedcourses/694activity listings and47literal grade reports, plus20activity detail pages. Imported114pages into private owner-scoped SQLite through authenticated local browser UI; verified Saved47coursesand114pages. Built local-only importer, database-backed capture queue, existing-shell course/grade rendering, and authenticated assistant read scope. Browser transport closed during later batch; unsaved batch lost,661details remain and final rendered parity is blocked. No deployment or production database writes. Planning skill paths remain absent; existing monolithic planning followed.
 
-- Q30singleHTTPtrace identified exactunsupportedcontractscope before/afterrepair. Q20nowverified65 butincomplete. Q07financialnotesretrievalandnativecapabilitynavigationupdatedafter65regression; focusedtests3passed. Allrunslocal/API-only.
+[Issue #111] Fixed imported/legacy grade reader disconnect and removed capture queue from normal answers. Verified actual47course projection,33focused tests and a liveGPT6.1Sol answer plus independent source audit. Preserved guest boundary, source-specific UUID routes and literal score/percentage distinctions. Restarted local only; browser end-to-end replay remains unverified.
 
-- Addedfinancialpage31/native-record navigation and source-backed-alternatives behavior;3focusedtests+TS pass. RemovedtemporaryQ30hook/restartedserver65400. Q09regression60retainedforreview. Q20/Q07singlefocusedrerunsinflight.
+[Issue #112] Added immediate English/Chinese request receipts, persisted acknowledgment independently of final content, moved shared activity above final answer and collapsed it by default. User expansion survives progress and completion. Actual Codex browser confirmed immediate receipt, expandable live steps and final reply ordering; first run was interrupted by build HMR and was repeated. SSR verified draft suppression/order; authenticated persistence2checks, timeline3checks,24focused backend checks and76supplemental regressions pass, plus types/import/packaging. Browser end-to-end also exposed Issue111 whole-envelope17,065byte overflow and local_demo-only formatter; repaired explicit imported-grade validation and compacted complete47course envelope to15,646bytes. No deployment.
 
-- Q07postsourcecheckterminal60/verified1; stopblindreruns, nextneeds source-derived arithmetic projection insteadofproseeligibilityrecitation.
+[Issue #113] Added220ms measured-height expand/collapse to native activity details using Web Animations. Cancellation supports rapid reversal; reduced-motion/no-animation support toggles immediately; unmount cancels motion. Local Codex browser verified closing retains open semantics while height animates, settles closed, keyboard Enter expands from69.8px to390.4px and restores natural overflow. TypeScript/oxlint/diff checks pass. Local only; no model calls/deployment.
 
-- Integrated literalfinancialarithmeticprojection and scopedhousingcontractmetadata. Addedboundedserver-localbudget helper/default55s/local115s, preservingparentdeadlines; nohostconfigchange.9focusedtests,TS,fullbuildpassed. ThreefocusedAPIevaluationslive.
+[Issue #114] Replaced static receipt selector with separate model-written commentary requests on10second ticks; bounded persisted updates, no overlap, abort/late/duplicate protection. Added rate/input limits and separate interim checker rejecting factual answers/identity/access claims/retractions. Browser replay verified varied final identity answers and context-aware are-you-sure confirmation; it caught initial interim contradictions, corrected with tighter prompt plus independent commentary check. Live post-check progress note returned200 and described only reported record-read/verifying status.8focused API and7identity/timeline tests,types,321file import lint,14route catalog lint and JS-only packaging pass. Model latency can skip/delay commentary; no main-answer blocking or deployment. User memory question answered: recent context and saved chats exist; dedicated cross-chat long-term conversational memory is not implemented.
 
-- Q07accepted70 verified3/80.2s atlocal115sbudget; stop tuning. Q20latest50verified1, Q30latest25unverifiedremainincomplete. Continue Q25/Q34regression and Q09source selection.
+2026-11-27 #115: Inspected context clipping (24 messages/64KB), added local browser memory at shared dispatcher, protected historical provenance and owner scopes, documented commands/limits. Verified three focused tests, TypeScript build and import lint. No production deployment or infrastructure mutation.
 
-- Fixed initialpubliclinkfailures tosame-evidencerepair/fullreview; forwardedinitialfocusnotes andmixedcoverage. Q30now70verified3 accepted. Q25=75/Q34=70regressionsaccepted; Q09/Q20stillincomplete.14focusedtests,TS,fullbuildpassed; oldhistoryassertionremainsoutsidebatch.
+2026-11-27 #115: Prepared hosted memory storage and wired verified account handler; disabled signed-in browser memory path. Added migration, service-only writes, generation-fenced erase, evaluator exclusion and build memory-test gate. Tested disposable isolated-network PostgreSQL; no hosted database writes. Staging/cross-device acceptance remains pending.
 
-- Preserved Q30branchproof distinction and Q09exactfirstreview scope/completeness diagnosis; no additional paidcalls.
+2026-11-27 #116: Replaced commentary heartbeat with meaningful-event policy, queued turns and clarification signal. Verified queue removal/autodispatch in Codex browser. User then requested no steering; removed all steering code and controls, retaining noninterrupting queue. Added clarification queued-item reply choice. Local only.
 
-- Q20=75verified1andQ09=75verified3acceptedstop. Q37/38/40/41regressionsaccepted; Q42passreported,Q43/Q44/Q45inflight. Addedofflinecurrent-versionlatest-vs-bestscoreaudit.7focusedtests,TS,fullbuildpassed.
+2026-11-27 #117: User authorized GitHub production release. Loaded shared registry/client targets and verified live Vercel CLI identity. Applied four pending migrations atomically (learning support, leave draft, API reviews, memory); live schema179migrations/213tables/213RLS. Scheduled database memory purge daily18:23UTC. Set production unified discovery/memory/API flags and Sol answer/Terra reviewer/planner models. Live rollback-only memory owner isolation/clear fencing passed and fixture absent after rollback. Full release checks caught stale auth mocks plus native/public dispatch precedence bugs; repaired before publishing. Release still awaiting exact GitHub build/promotion and live browser acceptance.
 
-- Q42/Q43regressionspassed85/70. Q44andQ45current65verifiedbutincomplete; holdblindreruns anddiagnosesourcecoverage.
+2026-11-27 #117 GitHub clean-checkout validation found website indexing ran before external school assets were hydrated. Added asset preparation to pretest; local cached assets had masked the ordering issue. Production artifact remains unchanged while the corrected pipeline reruns.
 
-- Q51/Q53currentregressionsaccepted80/70. Preparedadmission/trainingfocus+exactfundingaliases,9tests+TS pass. AddedRunshownfilteredsubset/accountdeeplink, correctedredirectqueryloss; userprivatebatchrequestpendinginCodex. No privateacceptanceclaimed/serverrestartyet.
+2026-11-27 #117: Verified project Fluid compute enabled and current Vercel duration contract. Raised assistant/evaluation entrypoint caps120s and set server-owned work budget115s so production can use the same bounded90s discovery loop as local without a60s platform cutoff.
 
-- Publicationauthorized; loadedsharedinfra,verifiedGHownerLux, found11remote/555local/73conflicts. Runtimeimportlint+JS-onlypackagingpass. Checkpointingpendinggrader/source/testwork beforeisolatedintegration. No push/deploymentyet.
+2026-11-27 #117: Production-readiness check found normal server citation links are often site-relative. Canonicalized verified relative memory sources to stu.best and added regression coverage, preventing silently empty memory admission for normal account replies.
 
--2026-11-25: User authorized full production publication. Created isolated release integration against current GitHub main, preserving shared admin/storage changes and local development session. Production TS-import linter and JS-only packaging verified. Fresh-checkout supplemental-document validation and pretest preparation repaired; no bulk archive rewrite. Final evaluation regression repairs underway before GitHub pipeline publication.
+2026-11-27 #117: Final clean-checkout CI completed API suite with one stale60s config assertion; browser accessibility/all394copied pages passed, then the assistant test used the old sign-in link label. Updated both contracts to120s and the current signed-out link while retaining runtime import isolation and actual navigation assertions. No runtime gate was removed.
 
--2026-11-25: Complete assistant evaluation suite:1678passed,0failed,22skipped. Fixed real privatepayment/attendance/catalog routing boundaries and maintained independent ownership/read assertions. Strengthened packaging check through actual authenticated hosted dynamic dispatch with only3localfixture responses and0liveprovider calls. Finalbuildpassed; API2091/2092 identifiedandfixed an overlybroadclubjoin exclusion; finalAPIrerunpending.
-
--2026-11-25: Final API suite2092/2092passed; lint/handoffpassed. Release remainsunpublishedpending ownerGitHubPRpipeline and exactproductionverification.
-
-
-## Concurrent release record retained
-
-- Live startup failure caught and production rolled back to7aa9d0bd; authenticated lab state53/154/138 and imported151 intact. Corrected build emits explicit JS handler artifact and Node trace confirms inclusion284 files/0warnings. New candidate will be staged and checked before domain promotion. User changed default filter to Selected model / All statuses / Highest score.
-
--2026-11-25: PR103/25e377cb cleanCIpassedlint,2092APItests,548unit tests,fullassistant evaluation,build,handoff anddependency audit. Browsera11ygatecaughtstale bilingualtitle selectors. Updated exactEnglish→Chinese→English UIchecks andfreshfeedbackexpiry withoutrelaxingaxe/focus/overflowassertions; awaitingCIrerun. Fullverify:clientblockedbeforeI/O bymissing.env.owner.local inisolatedreleasecheckout.
-
--2026-11-25: Second cleanCIpassed allbackend/build/audit anda11ychecks. CopiedHTMLgatecaughtobsoleteassumptionthatnativephonebookmustbestaticHTML. Addednativecontactrender/search/source/assistant/containmentchecks whilekeepingallstaticCSPassertions. Browsergatesnowrunparallelwithbackendjob; no gate removed. ThirdCIpending.
+2026-11-27 #117: Both GitHub jobs passed on1443b1c9. Vercel's additional function compiler exposed a payment-history union guard that depended on strictNullChecks. Replaced it with a structural discriminator and added the builder-compatible compiler pass to typecheck:api so the mismatch is caught before future deployment. No behavior or permission change.

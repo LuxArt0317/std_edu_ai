@@ -1,3 +1,4 @@
+import {accountJudgeCaseSnapshot} from '../../server/accountJudgeEvidence.js';
 import {prepareEvaluationJudgeContext} from './judge-context.mjs';
 import {sanitizeRunExecution} from './run-execution.mjs';
 import { mkdir, readFile, writeFile, rename } from "node:fs/promises";
@@ -412,6 +413,7 @@ export function createEvaluationLab(root, options = {}) {
             expectedAnswer: row.expectedAnswer,
             expected: row.expected,
             scope: row.scope,
+            route: row.route,
             createdAt: new Date().toISOString(),
             ...(options.actor?{actor:options.actor}:{}),
             revision: revision(),
@@ -482,7 +484,12 @@ export function createEvaluationLab(root, options = {}) {
               bytes.toString("base64"),
           });
         }
-        const judgeContext=await prepareEvaluationJudgeContext(root,run);
+        let accountContext;
+        if(run.scope==='account'&&typeof options.resolveAccountJudgeEvidence==='function'){
+          try{accountContext=await options.resolveAccountJudgeEvidence(run,accountJudgeCaseSnapshot(state,run),req);}
+          catch{accountContext={evidence:[],summary:{reason:'read_unavailable',temporalComparability:'current-reconstruction-only',actorAttested:false}};}
+        }
+        const judgeContext=await prepareEvaluationJudgeContext(root,run,{accountContext});
         const review = await withAssistantModel(
           { model: judgeModel, reasoning: judgeReasoning },
           () =>

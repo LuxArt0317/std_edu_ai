@@ -1,5 +1,23 @@
 # API contract checks
 
+The authenticated dispatch suite also covers the seven formerly misrouted public families, public route registration and qualified personal/foreign/write compounds. Private reads and non-auth network calls are forbidden by fixtures. The separate41-case offline bank audit verifies route selection only, not model quality or a real browser session.
+
+`public-club-source-contacts.test.ts` verifies actual captured music-club contacts survive compaction and link checks, rejects unsafe/unrelated URLs and bounds the projection. `course-planning-intent.test.ts` checks bilingual/paraphrased advice selects only mixed course/degree records while factual, foreign, write and multi-domain requests keep their existing boundaries. These are offline contracts, not signed-in acceptance.
+
+The provider suite also checks optional source-audit effort does not alter answer or grader reasoning and invalid settings preserve request behavior. Scholarship response-needs checks require source-present roles/conditions and exclude reference amounts, grades and language thresholds from the instructions.
+
+The provider suite checks evaluation grading receives its configured time window while preserving the selected model/output cap and shorter caller deadlines. Planner calls retain their15-second transport limit.
+
+`answer-verification-provider.test.ts` verifies focus-only rejection forwards bounded detail labels into repair, rejects invalid references/oversized labels and independently checks the correction. `answer-verification-review-retry.test.ts` verifies one public checker-only recovery without new reads or rewrites, including repeated interruption, short budget, quota and proposed-action boundaries. These use provider fixtures, not real-model acceptance.
+
+The native academic evidence suite checks that graduation guidance links the actual curriculum directory while retaining the requested current/legacy report kind. It also checks that page capabilities do not expose private values or turn current year level/total credits into an entry cohort or eligibility decision.
+
+`scholarship-workspace.test.ts` binds assistant navigation/evidence to the catalog's scholarship destination, preserves period and application fields, and prevents pending review from becoming an award/payment claim. It retains caller-only reads and confirmed student/manager writes.
+
+The leave suite verifies that count responses describe request units, all-status/date scope and an explicit clarification for ambiguous usage in English and Chinese. The private grading suite verifies caller-bound leave reconstruction through the existing read-only reader and blocks a different run actor before any read. Fixture checks do not establish a live signed-in evaluation score.
+
+`affairs-public-dispatch.test.ts` checks authenticated funding/admission public dispatch before private reads, public route preservation, JSON/SSE parity, and mixed personal-request isolation. These fixtures prove routing and privacy contracts, not real-model answer quality.
+
 `public-release-assets.test.ts` verifies the generated copied documents and their assistant/CSP assets, including absence of the removed floating public-page notice/account-status widget. It uses local captures only.
 
 ## Account verification and chat regression checks
@@ -95,3 +113,23 @@ Prospectus response-needs tests require actual section-role evidence, reject uns
 Admission coverage tests validate source-gated language and timeline focus notes without hardcoded expected dates/thresholds.
 
 The guidance history test now validates the existing24-message/64kB/8000-character context contract, role filtering and Unicode-safe clipping instead of an obsolete six-message cap.
+
+Account-judge evidence tests enforce current-caller ownership, exact saved case scope, read failures versus empty records, and redacted summaries; saved chatbot flags and views never become independent evidence. Admission/training tests also cover bounded approval-year clauses and registration/schedule source projections.
+
+Q13 account grading tests cover caller/version/route isolation, complete timetable evidence, unlinked-student uncertainty, failed/partial reads, and value-free provenance summaries. These fixtures do not establish signed-in model acceptance.
+
+Course-selection term-guide checks cover bilingual missing-term navigation and exclusions for explicit terms, conversation context, foreign owners, compounds and writes.
+
+Academic outcome intent checks cover both independent evidence families, retained transcript/rank scope ambiguity and exclusions for other owners, writes, extra domains and lone record requests.
+
+Issue108 discovery checks: website-discovery tests cover source retrieval, semantic fallback, registered reads, guest isolation and unread-source coverage recovery; website-discovery-build checks automatic new-page indexing, expected-answer exclusion and checksum failures. discovery-embeddings checks vector/transport validation. Run with node --experimental-strip-types --test tests/api/website-discovery*.test.ts tests/api/discovery-embeddings.test.ts.
+
+Issue109 tests cover empty-transcript to alternate-source recovery, duplicate/read-only enforcement, released assessment ownership and generic exact-reference verification. Existing provider/retry/native-routing checks also pass.
+
+`local-dtm-library.test.ts` checks persistent SQLite imports, repeatable upserts, caller isolation, credential-bearing URL rejection and hosted disablement. It uses temporary databases and never reads or changes the user capture database.
+
+`imported-dtm-grade-evidence.test.ts` covers literal imported totals versus percentages, dash preservation, caller gating and native UUID source restrictions. The local library test also exercises the established grade evidence entry point against a temporary SQLite import.
+
+The activity persistence round-trip also verifies that the optional immediate acknowledgment survives authenticated save/restore (Issue #112).
+
+`conversational-updates.test.ts` checks adjacent identity follow-ups, stale-topic rejection, bounded activity-only commentary input, and persisted interim messages. Commentary is never final-answer evidence.

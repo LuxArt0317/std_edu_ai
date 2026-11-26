@@ -17,6 +17,22 @@ const base='https://xiftudmvxphxcjtmfmib.supabase.co';
 const account={user:{id:owner},url:base,key:'OFFLINE_PUBLIC_KEY',token:'OFFLINE_CALLER_TOKEN'};
 const namedQuestion='Show the dates and tracking status of my Clinic leave request. Use YYYY-MM-DD for dates.';
 const namedFields=['title','startsOn','endsOn','status','reviewStatus','reviewState'];
+
+test('leave usage distinguishes request counts from approved days and explains unfiltered scope',async()=>{
+  for(const question of ['How many leaves have I already used?','我已請假多少筆？']){
+    const selection=studentLeaveAssistantPlan(question,service+'/history',[])?.selection;
+    assert.ok(selection?.countOnly);
+    const source=await readStudentLeaveEvidence(account,{selection},{fetchImpl:async()=>Response.json([],{headers:{'content-range':'*/0'}})});
+    assert.equal(source.readState,'empty');
+    const result=formatSupplementalAccountAnswers([source],{question});
+    assert.match(result.answer,/Matching saved leave records: 0|相符的請假紀錄筆數：0/u);
+    assert.match(result.answer,/not approved leave days|不是已核准/u);
+    assert.match(result.answer,/not a semester-specific total|不是某學期/u);
+    assert.match(result.answer,/draft, filed and withdrawn|草稿、已送出與已撤回/u);
+    assert.match(result.answer,/which semester or dates|哪個學期或日期範圍/u);
+    assert.doesNotMatch(result.answer,/remaining allowance: 0|approved days: 0|剩餘額度：0/u);
+  }
+});
 type RequestBody={question:string;route?:string;history?:ReadonlyArray<{role:string;content:string}>};
 async function invoke(handler:any,body:RequestBody,host=process.env.VERCEL_URL){
   const headers=new Headers();

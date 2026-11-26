@@ -1,3 +1,17 @@
+import {schoolServiceEntries} from '../src/features/public/affairs/studentServices.js';
+
+/** Describe the implemented page; no evaluation reference or personal value. */
+export function scholarshipPageGuide(){
+ const entry=schoolServiceEntries.find(row=>row.id==='9-1');
+ if(!entry||entry.group!=='aca'||entry.kind!=='input')return null;
+ return {title:entry.title,url:entry.localUrl,
+  menu:['校務資訊系統','教務系統','申請輸入程式',entry.section,entry.title],
+  sections:[{title:'申請期間',collection:'periods',fields:['termLabel','opensAt','closesAt']},
+   {title:'歷史申請紀錄',collection:'applications',periodJoin:'applications.periodId = periods.id',fields:['status','submittedAt','reviewedAt','awardAmount','reviewNote']}],
+  statusMeaning:{pending:'Awaiting review, not approval or payment.',approved:'Award approved; this collection contains no payment receipt.',rejected:'Application not approved.',cancelled:'Application cancelled.'},
+  missingData:'An absent period or application does not establish rejection, approval, payment or eligibility.'};
+}
+
 export function mapScholarshipRecords(periods,applications) {
   return {
     periods:periods.map(row=>({id:row.id,termLabel:row.term_label,opensAt:row.opens_at,closesAt:row.closes_at,
@@ -40,7 +54,11 @@ export function answerScholarshipRecords(question,snapshot,route='',history=[]) 
     return `${period.termLabel}: ${date(period.opensAt)} – ${date(period.closesAt)} (${state})`;
   });
   const answer=chinese
-    ? `您的 stu.best 獎助學金紀錄（站內示範，非校方申請）：\n${lines.length?lines.join('\n'):'尚無申請紀錄。'}\n${periodLines.length?'申請期間（臺北時間）：\n'+periodLines.join('\n'):'管理員尚未公布站內申請期間。'}\n請在獎助學金頁面確認後申請或取消；僅在申請期間內、尚未審核的申請可取消。`
-    : `Your stu.best scholarship records (local demonstration, not university applications):\n${lines.length?lines.join('\n'):'No application history.'}\n${periodLines.length?'Application periods (Taipei time):\n'+periodLines.join('\n'):'No local application period has been published.'}\nApply or cancel after reviewing the scholarship page. Cancellation is available only during the application period before review.`;
-  return {answer,title:chinese?'我的獎助學金申請':'My scholarship applications',url:'/school-affairs/services/9-1'};
+    ? `你已儲存的獎助學金申請：\n${lines.length?lines.join('\n'):'尚無申請紀錄。'}\n${periodLines.length?'申請期間（臺北時間）：\n'+periodLines.join('\n'):'管理員尚未公布站內申請期間。'}\n請在獎助學金頁面確認後申請或取消；僅在申請期間內、尚未審核的申請可取消。`
+    : `Your saved scholarship applications:\n${lines.length?lines.join('\n'):'No application history.'}\n${periodLines.length?'Application periods (Taipei time):\n'+periodLines.join('\n'):'No local application period has been published.'}\nApply or cancel after reviewing the scholarship page. Cancellation is available only during the application period before review.`;
+  const guide=scholarshipPageGuide();
+  const navigation=guide&&/\b(?:where|find|locate|navigate|which page)\b|哪裡|哪里|何處|何处|怎麼查|怎么查/iu.test(question)
+    ?chinese?`可以從「${guide.menu.join(' → ')}」開啟[${guide.title}](${guide.url})。對照申請期間與下方歷史申請紀錄的狀態；待審核不代表已核准或已付款。`
+      :`Open [${guide.title}](${guide.url}) under School Affairs → Academic Affairs → Application/Input Programs → International Students. Match the application period with its entry in application history and check its status. Pending review does not mean approved or paid.`:'';
+  return {answer:[navigation,answer].filter(Boolean).join('\n\n'),title:chinese?'我的獎助學金申請':'My scholarship applications',url:'/school-affairs/services/9-1'};
 }

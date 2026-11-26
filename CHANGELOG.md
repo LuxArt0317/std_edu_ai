@@ -1,6 +1,59 @@
 # Changelog
 ## Unreleased
 
+- Production release hardening: preserve native service/campus routing before public guidance, isolate build flags, and update authentication/recovery regression contracts.
+
+- Replace timed chat updates with event-driven commentary; add removable queued messages and clarification replies. No steering, per user request.
+
+- Prepare durable server-owned assistant memory with owner RLS, verified-only writes, bounded retention, generation-fenced deletion, evaluator isolation and build checks. Pending migration/configuration; not deployed.
+
+- Local-only account-scoped browser memory preserves verified source-linked answer snapshots beyond the conversation window; `/memory status` and `/memory clear` controls. Historical recall is not fresh evidence.
+
+- Replace canned chat receipts with contextual model commentary on10second ticks, persist interim updates, and resolve identity confirmations against recent turns and the current verified session (Issue #114).
+
+- Animate chatbot activity expansion and collapse with keyboard support, reversible toggles and reduced-motion handling (Issue #113).
+
+- Fix whole-envelope imported-grade size accounting and add strict imported source/URL validation in the actual supplemental formatter (Issue #111).
+
+- Show immediate conversational acknowledgments, keep real activity collapsed in one expandable line, preserve user expansion, and retain acknowledgment before the final answer in live chat and shared rendering (Issue #112).
+
+- Connect chatbot grade evidence to the same imported Moodle database as the local UI, separate capture queues from score reads, and budget full-course answer generation without weakening verification (Issue #111).
+
+- Add an owner-scoped local SQLite Moodle content library, transactional browser import, actual course/grade navigation and a shared assistant read API (Issue #110). Preserve source-disabled activities and literal grades; remaining capture coverage is tracked. No deployment or production database changes.
+
+- Preserve both grade and graduation-report evidence for bounded combined graduation/ranking questions; keep term clarification and non-prediction limits.
+
+- Clarify unspecified year/semester subject questions with existing course-history and timetable links before account lookup; preserve contextual and scoped record handling.
+
+- Reconstruct Q13 grading evidence from the verified caller’s bounded timetable reader; preserve unlinked/partial-read uncertainty and store only value-free provenance summaries.
+
+- Keep seven additional public-guidance families on the public research path after sign-in; protect personal compounds, qualified record requests and writes, and forward no history or credentials.
+
+- Retain bounded source-published club Instagram contacts through compaction and link verification, keeping club names distinct and meeting locations unconfirmed.
+- Recognize bounded bilingual course-planning advice as mixed guidance with selected course-selection/graduation records, without inferring terms, thresholds or enrollment actions.
+
+- Clarify scholarship source coverage for applicant scope, programme/award obligations and source-present repayment consequences. Add optional independent source-audit reasoning effort without changing answer/grading settings or unset production defaults.
+
+- Let evaluation grading use its already configured30-second deadline instead of the shared15-second planner timeout; retain the selected grader, token budget and request deadline.
+
+- Preserve validated missing-detail labels as untrusted repair hints after focus-only rejection, without approving the rejected draft. Allow one budgeted recheck of an interrupted public review using the same draft and evidence.
+- Version public grading as v2 to reconstruct the current native contact catalog from source-pinned literal fields instead of its obsolete imported error page; retain earlier grades and unchanged scoring criteria.
+
+- Include the existing curriculum-plan directory and selected report capabilities in personal graduation evidence, preserving current/legacy report separation and missing-cohort limits.
+
+- Give scholarship answers page-backed navigation, period/history fields and review/payment distinctions as model evidence, while retaining caller-owned records and confirmation boundaries.
+
+- Explain leave-count units, unfiltered tracking states and date scope; ask for the intended usage measure instead of equating request counts with approved days. Add caller-scoped current leave evidence to evaluation grading.
+
+- Route signed-in public tuition-discount and enrollment-date questions to public research before account-record selection; retain mixed personal requests on the account path.
+
+- Add current-caller charge evidence to Q03 evaluation without exposing private values in saved grading summaries; preserve reference-only history and historical-drift limits.
+- Preserve source-qualified admission clauses and published workshop schedules/registration labels during answer composition.
+
+
+- Merge local and shared evaluation histories by stable IDs with conflict checks, verified recovery backups and hosted storage limits; retain cloud-only runs and judge history.
+
+
 - Run public browser gates alongside backend validation, retaining every gate while exposing UI regressions earlier.
 
 
@@ -1255,3 +1308,22 @@
 - rebuilt the homepage as a section-complete, responsive reconstruction of the current `stu.edu.tw` experience
 - added official navigation, carousel, audience, performance, story, admissions, news, hot-link, public-information, contact, social, and footer destinations
 - moved the research-driven AI assistant into a floating drawer so it does not disrupt the cloned homepage layout
+
+## Unreleased — Issue #104
+- Automatic authenticated API tools and reviewed actions; local only, hosted migration unapplied.
+
+## Local privacy repair — Issue #105
+- Gate personal guest questions before public shortcuts, add semantic public paraphrase routing, and revalidate sign-in before private assistant dispatch. No deployment.
+
+## Local grades recovery — Issue #106
+- Keep established grades workflows ahead of generic API exploration; add precise grade selectors, bounded fallback and readable activity/source labels.
+
+## Local account identity and grades — Issue #107
+- Show verified identity and direct sign-out in chat; isolate academic grade planning, reads and evidence from practice quizzes. Use concise sample labels rather than blanket unofficial-record disclaimers.
+
+## Unreleased — unified discovery
+
+- Local unified website/API discovery with hybrid retrieval, LangGraph adaptive tools, source-following and independent verification (Issue108); no deployment.
+
+## Local alternate grade-source recovery — Issue #109
+- Check alternative authorized API scopes before ending on an empty view; expose existing released assessment rows through a narrow owned reader. Keep grade families distinct and retain exact-reference verification.

@@ -89,3 +89,8 @@ export function savePersonalSchoolRecord(action:PersonalAction,options?:{expecte
     method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(action),signal,
   },options?.expectedUserId);
 }
+
+/** Uses the same expected-user and request cancellation boundary as native actions. */
+export function confirmApplicationApiToolAction(requestId:string,confirmationToken:string,options?:Parameters<typeof savePersonalSchoolRecord>[1]) {
+  return call<{id:string;kind:string;summary:string;result?:unknown}>('/api/assistant-api-tools',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'confirm',requestId,confirmationToken}),signal:options?.signal},options?.expectedUserId);
+}

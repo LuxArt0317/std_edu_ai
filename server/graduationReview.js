@@ -1,3 +1,4 @@
+import {isCombinedAcademicOutcomeQuestion} from './academicOutcomeIntent.js';
 // Pure module: the manager and server share these validation rules without
 // importing credentials, a database client, or server-only runtime modules.
 export const graduationReviewMaxPayloadBytes=131072;
@@ -117,6 +118,7 @@ export const graduationReviewNavigation={id:'graduation-review',match:topic,titl
   officialUrl:'https://infosys.stu.edu.tw/AcademicServices/Login/AspLoginGradReview',localUrl:graduationReviewPath,
   description:['查看您的站內畢業檢核參考報告與明列學分。','View your local graduation-reference report and its explicitly recorded credits.']};
 export function isGraduationReviewQuestion(question,route='',history=[]) {
+  if(isCombinedAcademicOutcomeQuestion(question))return true;
   if(otherTopic.test(question))return false;
   if(/^(?:please\s+)?(?:remind me|add (?:a )?task|create (?:a )?task|complete (?:my |the )?task|finish (?:my |the )?task)|新增待辦|建立任務|完成任務/i.test(question))return false;
   if(/\b(?:where (?:can|do) i (?:find|open)|where is|(?:link|url|website) for|how (?:do|can) i (?:open|find|access))\b|(?:連結|網址)|哪裡開啟/i.test(question))return false;

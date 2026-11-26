@@ -10,3 +10,15 @@ export function accountStatusIntent(question,route=''){
   if(route==='/account-status'&&/^(?:what is my (?:email|e-mail)(?: address)?|我的電子郵件(?:地址)?是什麼)$/iu.test(text))return 'email';
   return null;
 }
+
+/** Resolve a short confirmation only across adjacent identity questions. */
+export function accountStatusContextQuestion(question,history=[]){
+ if(accountStatusIntent(question))return question;
+ const confirmation=q=>typeof q==='string'&&/^(?:are you sure|really|you sure|are you certain|確定嗎|你確定嗎|真的嗎|真的吗|你确定吗)[?!.。！？\s]*$/iu.test(q.trim());
+ if(!confirmation(question)||!Array.isArray(history)||history.at(-1)?.role!=='assistant')return null;
+ for(const row of history.slice(-8).reverse())if(row.role==='user'){
+  if(confirmation(row.content))continue;
+  return accountStatusIntent(row.content)?row.content:null;
+ }
+ return null;
+}

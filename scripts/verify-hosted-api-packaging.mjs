@@ -58,8 +58,18 @@ try{
   assert.match(body.error,/Provide a question/u);
   assert.ok(observed.some(url=>url.endsWith('/rpc/evaluation_lab_access')));
   assert.equal(observed.length,3);
+  // Exercise the generic tool's real handler loader with every TypeScript source absent.
+  const apiTools=await import(pathToFileURL(path.join(temporary,'server/applicationApiTools.js')).href);
+  const apiCatalog=await import(pathToFileURL(path.join(temporary,'server/applicationApiCatalog.generated.js')).href);
+  for(const route of apiCatalog.applicationApiCatalog.filter(row=>!row.disabledReason))assert.equal(typeof await apiCatalog.loadApplicationApiHandler(route.slug),'function');
+  const previousFixtureFetch=globalThis.fetch;
+  globalThis.fetch=async(target,init)=>String(target).endsWith('/auth/v1/user')&&init?.headers?.Authorization==='Bearer packaging-denied-token'
+    ?Response.json({error:'Denied fixture token'},{status:401}):previousFixtureFetch(target,init);
+  const toolDenied=await apiTools.invokeApplicationApi({user:{id:'00000000-0000-4000-8000-000000000001'},token:'packaging-denied-token'},
+    {operationId:'affairs-data.get',query:{scope:'student-profile'}},{deadline:Date.now()+5000});
+  assert.equal(toolDenied.status,401);assert.equal(toolDenied.ok,false);
   console.log(JSON.stringify({compiledApiImport:true,sourceTypeScriptAbsent:true,publicAndAccountHandlersLinked:true,
-    authenticatedHostedAccountDispatch:true,unauthenticatedDenied:true,providerCalls:0,fixtureRequests:observed.length}));
+    authenticatedHostedAccountDispatch:true,applicationApiHandlersLinked:true,applicationApiDenied:true,unauthenticatedDenied:true,providerCalls:0,fixtureRequests:observed.length}));
 }finally{
   globalThis.fetch=originalFetch;
   for(const key of environmentKeys){if(originalEnvironment[key]===undefined)delete process.env[key];else process.env[key]=originalEnvironment[key];}

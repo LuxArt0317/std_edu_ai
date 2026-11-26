@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Read research-session participation state (GET) or submit a consented research operation (POST). Research consent must not be inferred or accepted by the model.","methods":["GET","POST"],"readMethods":["GET"]};
 import {createHash} from "node:crypto";
 import {operationalCorrelation,recordResearchOperation,safeOperationalCode} from "../server/researchOperations.js";
 type ApiRequest={method?:string;body?:unknown;query?:Record<string,string|string[]|undefined>;headers:Record<string,string|string[]|undefined>;socket?:{remoteAddress?:string}};

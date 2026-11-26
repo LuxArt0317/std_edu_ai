@@ -3,6 +3,7 @@ import {studentAidPath} from '../src/features/public/affairs/studentAidLinks.js'
 import {academicGradesPaths} from './academicGrades.js';
 import {graduationReviewPaths} from './graduationReview.js';
 import {academicAttendancePaths} from './academicAttendance.js';
+import {curriculumPlansPath} from '../src/features/public/affairs/curriculumPlans.js';
 
 const fixed = new Map(Object.entries({
   profile:['/school-affairs/records'],courses:['/school-affairs/records',schoolSubjectRecordsPath],
@@ -14,7 +15,7 @@ const fixed = new Map(Object.entries({
   studentAid:[studentAidPath],housing:['/school-affairs/services/26-1','/school-affairs/services/34-1'],
   creditLoadHistory:['/school-affairs/services/11-3'],courseSelection:['/school-affairs/services/11-1','/school-affairs/services/11-2'],
   academicGrades:Object.values(academicGradesPaths),
-  graduationReview:[...Object.values(graduationReviewPaths),'/school-affairs/services/15-1'],
+  graduationReview:[...Object.values(graduationReviewPaths),'/school-affairs/services/15-1',curriculumPlansPath],
   academicAttendance:Object.values(academicAttendancePaths),
 }));
 const services = new Map(schoolServiceEntries.map(entry=>[entry.id,entry.localUrl]));

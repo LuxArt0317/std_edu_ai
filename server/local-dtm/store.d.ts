@@ -1,0 +1,10 @@
+import type {AffairsAccount} from '../affairsWorkspace.js';
+export type ImportedActivity={id:string;title:string;kind:string;section:string;description:string;availability:string;url:string|null};
+export type ImportedPage={url:string;courseId?:string;title:string;text:string;tables:string[][][];links:{title:string;url:string}[];activities:ImportedActivity[];localUrl?:string;capturedAt?:string};
+export type ImportedCourse={id:string;title:string;term:string;code:string;instructor:string;gradeText?:string|null;rangeText?:string|null;percentageText?:string|null;rankText?:string|null;url?:string};
+export type ImportedLibrary={enabled:boolean;pending?:{courseId:string;sourceKey:string;title:string}[];courses:ImportedCourse[];pages:ImportedPage[];counts:{pages:number;activities:number;gradeRows:number}};
+export function sourceKey(value:string):string;
+export function libraryEnabled():boolean;
+export function validateImport(input:unknown):unknown;
+export function importLibrary(account:AffairsAccount,input:unknown):Promise<{courses:number;pages:number;importedAt:string}>;
+export function readLibrary(account:AffairsAccount,query?:Record<string,unknown>):Promise<ImportedLibrary>;

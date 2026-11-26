@@ -92,3 +92,21 @@ Written requests about the Moodle assignment-list view go through the signed-in 
 `websiteAssistant.ts` is the shared website/Answer Lab entry point. It selects the existing public or authenticated client from the actual session user. `assistantTransport.ts` permits request-scoped evaluation configuration without changing routing or global fetch.
 
 `assistantPreferences.js` parses /model and /thinking commands separately from ordinary path questions. `websiteAssistant.ts` applies selected settings through the existing transport and checks server acknowledgement before attaching settings to a saved answer. Commands never enter message history.
+
+School Affairs assistant calls now revalidate the existing session before private lookups or progress. Cached identity does not establish authorization; the server also verifies every authenticated request (Issue #105).
+
+VITE_ASSISTANT_UNIFIED_DISCOVERY routes verified account chat directly to the unified server flow, bypassing frontend question shortcuts. Fresh session validation remains required. Pair it with the server discovery flag and restart/refresh; see server/README.md (Issue108).
+
+Interim conversational updates are generated from the current question, recent turns and observed activity. Optional legacy acknowledgments and bounded update entries survive browser/server sanitization; only final content is used as the factual conversation answer.
+
+### Conversation memory (Issue #115)
+
+Signed-in memory is owned by the backend (`server/assistantMemory.js`), loaded after token verification, and enabled with `ASSISTANT_MEMORY_ENABLED=true`. The browser never submits verified-memory writes. The shared dispatcher retains loopback guest session memory only; it no longer persists signed-in account snapshots in localStorage. Older v1 browser entries are not imported or trusted. `/memory status` and `/memory clear` are authenticated server operations. Evaluation transports mark requests with their existing evaluation-model header and cannot read/write account memory. See `server/README.md` for storage, bounds and release prerequisites.
+
+### Chat turn control (#116)
+
+`assistantTurnControl.ts` bounds the FIFO queue to ten pending turns and identifies meaningful commentary events. PublicAssistant shows an immediate acknowledgment and may replace it with generated wording. There is no ten-second heartbeat. Later commentary is considered only on source-coverage changes or supported correction events, with a 45-second anti-noise cooldown and two-update cap; elapsed time alone never triggers a message. Actual tool activity remains visible in the expandable timeline.
+
+During a request, Enter/Queue message enqueues text and attachments without interrupting the answer. Pending items can be removed. Auto-dispatch preserves an unsent composer draft and uses the latest completed conversation context. Clarification results pause the queue; type a reply or select Use as reply on a pending item. Account/conversation changes and sign-out clear pending items; queues are tab-memory only and do not survive reload. Steering was explicitly removed at the user's request. Clarification yields the current graph run and resumes through a new authenticated request with conversation context, not a durable suspended LangGraph checkpoint. Writes still require normal review.
+
+`assistantDeploymentFlags.js` isolates Vite's build-time discovery flag from the shared dispatch body and returns a safe disabled default outside Vite. It does not bypass getUser validation. Private conversational history excludes unfinished assistant drafts. Confirmed action receipts link to View updated records.

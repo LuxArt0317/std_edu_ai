@@ -34,9 +34,12 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               <p className="mb-2 text-xs font-semibold">
                 {message.role === "user" ? "You" : "Assistant"}
               </p>
+              {message.role==='assistant'&&message.updates?.map(update=><p key={update.id} className="assistant-commentary text-sm" aria-live={message.phase==='working'?'polite':undefined}>{update.text}</p>)}
+              {message.role==='assistant'&&!message.updates?.length&&message.acknowledgment&&<p className="assistant-acknowledgment text-sm">{message.acknowledgment}</p>}
+              {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.role === "user" ? (
                 <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=>image.dataUrl?<img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />:<p key={image.name} className="mt-2 text-xs">Attached image · {image.name}</p>)}</>
-              ) : message.phase === 'working' && !message.content ? <p className="text-sm text-muted-foreground">Preparing your answer…</p> : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
+              ) : message.phase === 'working' ? null : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
                 <AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.modelSettings&&<p className="text-xs text-muted-foreground">Model setting: {message.result.modelSettings.model} · Thinking: {message.result.modelSettings.thinking}</p>}
@@ -55,6 +58,7 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               {message.result?.proposedAction && (canApply || readOnly) ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
                 <p className="font-semibold">Review action</p>
                 <p className="my-2 break-words">{message.result.proposedAction.label}</p>
+                {message.result.proposedAction.kind==='invoke_application_api' ? <details open className="mb-3"><summary>Exact API request</summary><pre className="mt-2 max-h-80 overflow-auto whitespace-pre-wrap break-words text-xs">{message.result.proposedAction.payload.review}</pre><p className="mt-2 text-xs">Review expires after 10 minutes. This runs with your current account permissions.</p></details> : null}
                 {message.result.proposedAction.kind==='publish_announcement' ? <p className="mb-2 whitespace-pre-wrap break-words">{message.result.proposedAction.payload?.body}</p> : null}
                 {message.result.proposedAction.kind==='create_service_request' ? <>
                   <p className="mb-1 text-xs text-muted-foreground">Request category · {message.result.proposedAction.payload?.request_type}</p>
@@ -68,11 +72,10 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
                 </dl> : null}
                 {message.result.proposedAction.kind===studentLeaveDraftAction&&validStudentLeaveDraft(message.result.proposedAction.payload) ?
                   <StudentLeaveDraftReview payload={message.result.proposedAction.payload}/> : null}
-                <p className="mb-3 text-xs text-muted-foreground">This changes stu.best records only. No university system is contacted.</p>
+                <p className="mb-3 text-xs text-muted-foreground">{message.result.proposedAction.kind==='invoke_application_api'?'The application endpoint validates this request and may reject missing fields or insufficient permissions.':'This changes stu.best records only. No university system is contacted.'}</p>
                 <Button size="sm" disabled={readOnly || !!actionBusy} onClick={()=>onApplyAction?.(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button>
               </div> : null}
               {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
-              {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.result?.citations.length ? (
                 <ul
                   className="space-y-2 border-t pt-3 text-xs"

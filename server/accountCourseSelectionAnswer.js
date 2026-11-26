@@ -26,6 +26,21 @@ const phaseLabels={initial:['initial selection','初選'],add_drop:['add/drop','
 const literal=value=>String(value).replace(/[\p{Cc}\p{Cf}]/gu,' ').replace(/[&<>\x60*_[\]#!~|]/gu,c=>'&#'+c.codePointAt(0)+';');
 const key=text=>text.trim().normalize('NFKC').toLowerCase();
 
+/** Missing-term navigation needs no account read and makes no enrollment claim. */
+export function courseSelectionTermGuide(question,route,history=[]){
+  if(typeof question!=='string'||typeof route!=='string'||history.length||question.length>300)return null;
+  const path=route.split(/[?#]/)[0].replace(/\/+$/u,'');
+  if(path!==historyPath&&path!==timetablePath)return null;
+  const text=question.trim().normalize('NFKC').replace(/[?？。.！!]+$/u,'');
+  const english=/^(?:what are my (?:subjects|courses|classes) for (?:a given|a specific|a particular) (?:academic |school )?year and semester|(?:how|where) can i (?:see|find|check) my (?:subjects|courses|classes) (?:by|for) (?:academic |school )?year and semester)$/iu.test(text);
+  const chinese=/^(?:我(?:的)?(?:指定|某個|某一)?學年(?:與|和|及)?學期(?:的)?(?:科目|課程|修課紀錄)(?:在哪裡|在哪|怎麼查|如何查詢)|(?:如何|怎麼|在哪裡)查(?:詢)?我(?:指定|某個|某一)?學年(?:與|和|及)?學期(?:的)?(?:科目|課程|修課紀錄))$/u.test(text);
+  if(!english&&!chinese)return null;
+  const answer=chinese
+    ?`可以，您想查哪個學年、哪個學期？\n\n在[選課紀錄](${historyPath})選擇學年、學期與選課階段，就能查看該筆紀錄；上課時間及教室則在[我的課表](${timetablePath})。開課查詢或教材網的課程列表，不能單獨證明您已選修。`
+    :`Sure—which academic year and semester would you like to check?\n\nYou can use [Course Selection Records](${historyPath}) to select the year, semester and selection phase. For meeting times and rooms, open [My Timetable](${timetablePath}). A course appearing in the public catalog or teaching-materials list does not, by itself, mean you are enrolled.`;
+  return {status:'clarification',answer,citations:[{chunkId:'directory:course-selection-history',title:chinese?'選課紀錄':'Course Selection Records',url:historyPath},{chunkId:'directory:course-selection-timetable',title:chinese?'我的課表':'My Timetable',url:timetablePath}],suggestedQuestions:[],grounding:{source:'directory',webSearched:false}};
+}
+
 export function courseSelectionPageDisposition(question,route){
   const path=route.split(/[?#]/)[0].replace(/\/+$/u,'');
   if(!localLinks.has(path))return null;

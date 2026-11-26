@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Administrator/staff management of School Affairs records. JSON body: kind and payload. Actual handler enforces management permissions and versions; selecting this API never grants a student an administrator role.","methods":["POST"],"readMethods":[]};
 import {changeLearningSupport,learningSupportMaxPayloadBytes,learningSupportReviewAction,learningSupportStudentActions} from '../server/learningSupport.js';
 import { writeClubFoundation } from '../server/clubStudent.js';
 import { changeClubEquipment,changeClubOfficer } from '../server/clubServices.js';

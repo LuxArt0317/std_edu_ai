@@ -1,8 +1,9 @@
+import {unifiedAssistantDiscoveryEnabled} from './assistantDeploymentFlags.js';
 import {assistantFetch,type AssistantTransport} from './assistantTransport';
 import {assistantContext} from './assistantContext.js';
 import {learningSupportQuestion} from '../../server/learningSupportAssistantIntent.js';
 import {parseExplicitAccountAction} from '../../server/accountActionIntent.js';
-import {accountStatusIntent} from '../../server/accountStatusIntent.js';
+import {accountStatusIntent,accountStatusContextQuestion} from '../../server/accountStatusIntent.js';
 import {campusEntryIntent} from '../../server/campusEntryContract.js';
 import {learningEntryIntent} from '../../server/learningEntryContract.js';
 import {dtmAssignmentListSelection} from '../../server/dtmAssignmentListIntent.js';
@@ -75,8 +76,14 @@ export async function askSchoolAffairsAssistant(expectedUserId: string, question
   signal?.throwIfAborted();
   if (error || !data.session) throw new Error('Your School Affairs session expired. Please sign in again.');
   if (data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the assistant and try again.');
+  // Revalidate before any private progress or lookup; cached sessions are not proof.
+  const verified=await affairsClient.auth.getUser(data.session.access_token);
+  signal?.throwIfAborted();
+  if(verified.error||verified.data.user?.id!==expectedUserId)throw new Error('Please sign in to School Affairs again before checking personal records.');
   const {access_token:accessToken}=data.session;
-  if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
+  if(unifiedAssistantDiscoveryEnabled())
+    return askVerifiedAccount(accessToken,question,history,signal,images,route,onProgress,transport);
+  if (campusEntryIntent(question,route)||accountStatusIntent(question,route)||accountStatusContextQuestion?.(question,history)||learningEntryIntent(question,route)||catalogDetailIntent(question,route)||isElearningCatalogPageQuestion(question,route)||isElearningMetadataQuestion(question,route)||parseExplicitAccountAction(question)||dtmAssignmentListSelection(question,route)||dtmMaterialIntent(question,route)||isInternshipEvidenceQuestion(question,route,history)||isStudentLeaveEvidenceQuestion(question,route,history)||isVenueRequestQuestion(question,route,history)||isDtmAssignmentEvidenceQuestion(question,route,history)||isAidPaymentsScopeQuestion(question,route,history)
     ||selectDtmSubmissionTiming(question,route,history)||isForeignDtmGradesQuestion(question,route)||shouldReadNativeDtmGrades(question,route,history)
     ||isElearningEvidenceQuestion(question,route,history)||isForeignElearningRecordsQuestion(question,route)
     ||isFacilityRepairEvidenceQuestion(question,route,history)||isForeignFacilityRepairQuestion(question)

@@ -21,7 +21,7 @@ test('compiled assistant entrypoints start without TypeScript sources or a TypeS
       globalThis.fetch=()=>{throw Error('Import/405 startup must not call a provider');};
       for(const name of ['affairs-assistant','research-assistant']){
         const module=await import('./api/'+name+'.js');
-        if(module.config.maxDuration!==60)throw Error('Duration changed');
+        if(module.config.maxDuration!==120)throw Error('Duration changed');
         let code=0,body;
         const response={setHeader(){},status(value){code=value;return response;},json(value){body=value;}};
         await module.default({method:'OPTIONS',headers:{}},response);

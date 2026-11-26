@@ -8,6 +8,19 @@ import pages from '../../src/features/public/mirror/pages.json' with {type:'json
 import doc from '../../server/data/ipiac115.json' with {type:'json'};
 const root=new URL('../../',import.meta.url).pathname;
 const run=(urls,extra={})=>({scope:'public',response:{answer:'',citations:urls.map(url=>({url})),...extra}});
+test('native contact directory supersedes the old missing-page capture using source-pinned literal contacts',async()=>{
+ const result=await resolvePublicJudgeEvidence(root,run(['/%E5%88%86%E6%A9%9F%E8%A1%A8/']));
+ assert.equal(result.sources.length,1);
+ const source=result.sources[0];assert.equal(source.transport,'source-pinned-native-catalog');
+ const data=JSON.parse(source.excerpt);
+ assert.equal(data.contacts.length,5);assert.match(data.scopeLimit,/not the old imported/u);
+ assert.ok(data.contacts.some(row=>row.extensions.includes('2007')&&/課程教學/u.test(row.sourceText)));
+ assert.ok(data.contacts.some(row=>row.extensions.includes('1610')&&row.email==='oica@stu.edu.tw'));
+ assert.doesNotMatch(source.excerpt,/Page not found|找不到頁面/iu);
+ assert.equal(source.excerptTruncated,false);
+ const unavailable=await resolvePublicJudgeEvidence('/missing-local-catalog-root',run([source.url]));
+ assert.equal(unavailable.sources.length,0);assert.equal(unavailable.unresolved[0].reason,'native_catalog_unavailable_or_integrity_failed');
+});
 test('actual registered prospectus supplies literal historical timeline from checked HTML, ignoring client evidence',async()=>{
  const result=await resolvePublicJudgeEvidence(root,run([doc.url],{verification:{status:'verified'},excerpt:'invented date 2099'}));
  assert.equal(result.methodVersion,publicJudgeMethodVersion);assert.equal(result.sources.length,1);

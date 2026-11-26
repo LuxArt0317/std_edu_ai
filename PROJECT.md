@@ -95,3 +95,15 @@ The canonical spreadsheet-based evaluation reference is [School questions and an
 Local chatbot slash settings, model catalog and request-scoped overrides are described in [server documentation](server/README.md), [public UI documentation](src/features/public/README.md) and [Answer Lab documentation](tools/evaluation-lab/README.md). No new dependency was added.
 
 The local assistant source coverage and independent-auditor configuration are documented in [server helpers](server/README.md); public source projections and their refresh commands are in [server data](server/data/README.md).
+
+The application API catalog, adaptive tool loop and reviewed actions share actual endpoint handlers. See [server architecture](server/README.md#automatic-application-api-tools-issue-104). No new dependencies were added.
+
+The chatbot now has a shared request-scoped LangGraph for website/API discovery, source reads, coverage review and answer verification. It reuses installed LangGraph/Cheerio; no dependencies were added. See [server architecture](server/README.md#unified-websitedatabase-discovery-issue-108).
+
+The API discovery loop now checks alternative read scopes before finalizing a partial result; released assessment reads remain separate from transcript/final grades. See [server implementation](server/README.md#alternate-account-source-completion-issue-109).
+
+The local original Moodle library uses built-in Node SQLite and the existing signed-in DTM shell. See [library architecture](server/local-dtm/README.md); no npm dependency was added.
+
+Contextual interim commentary and identity follow-up handling reuse the existing API Function and installed model transport; see [server design](server/README.md#conversational-commentary-and-identity-continuity-issue-114). No dependencies were added.
+
+Durable chatbot memory uses the existing account API and Supabase RLS, without new runtime dependencies. Configuration, privacy limits, retention and release gates: [server/README.md](server/README.md#durable-assistant-memory-115).

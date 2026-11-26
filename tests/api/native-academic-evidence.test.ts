@@ -3,6 +3,8 @@ import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import {runInNewContext} from 'node:vm';
 import {nativeAcademicCollection,type NativeAcademicEvidenceRow} from '../../server/nativeAcademicEvidence.js';
+import {accountEvidence} from '../../server/answerVerificationAccount.js';
+import {graduationPageGuide} from '../../server/graduationPageGuide.js';
 
 const owner='own-account',other='other-account',date='2026-11-12T10:00:00Z';
 const base={id:'row-one',userId:owner,sourceMode:'local_demo',version:4,createdAt:date,updatedAt:date};
@@ -18,6 +20,23 @@ const ranking={...base,id:'ranking-one',academicYear:115,semester:1,departmentRa
 const metadata={...base,id:'metadata-one',classLabel:null,englishRequirementText:'Stored requirement result'};
 const academicGrades={records:[grade],termSummaries:[termSummary],rankings:[ranking],metadata:[metadata]};
 const snapshot={profile:{userId:owner,email:'SECRET-EMAIL'},academicGrades,graduationReview:{reports:[report]}};
+
+test('personal graduation evidence includes curriculum navigation without inferring cohort or eligibility',()=>{
+ for(const [kind,route] of [['academic_services','/school-affairs/services/15-1'],['legacy','/school-affairs/services/15-2']] as const){
+  const evidence=accountEvidence({...snapshot,checkedAt:date,courses:[],dtm:{courses:[],assignments:[]}},['graduationReview'],{
+   question:'What are the graduation requirements for my department?',route,scopedReadOnly:true});
+  const source=evidence.find(row=>row.id==='account:graduationReview')!;
+  const guide=JSON.parse(source.content).pageGuide;
+  assert.deepEqual(JSON.parse(source.content).pageGuide,graduationPageGuide(kind));
+  assert.ok(source.urls?.includes('/school-affairs/services/12-5'));
+  assert.equal(guide.review.reportKind,kind);
+  assert.match(guide.interpretation,/year level does not establish entry cohort/u);
+  assert.match(guide.interpretation,/Total credits alone do not establish/u);
+  assert.match(guide.curriculum.capability,/not proof its contents were read/u);
+  assert.doesNotMatch(JSON.stringify(guide),/SECRET-EMAIL|Synthetic review note|128 credits/u);
+ }
+ assert.equal(graduationPageGuide('foreign-kind'),null);
+});
 const copy=<T>(value:T):T=>structuredClone(value);
 const count=(rows:Array<{collection:string;availableRows:number}>,key:string)=>rows.find(row=>row.collection===key)?.availableRows;
 type BoundedPart={records:NativeAcademicEvidenceRow[];excerpted:boolean;availableRows?:number;includedRows?:number};

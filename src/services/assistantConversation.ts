@@ -7,6 +7,8 @@ export type AssistantMessage = {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  acknowledgment?: string;
+  updates?:Array<{id:string;text:string}>;
   phase?: 'working' | 'complete' | 'error';
   activity?: AssistantProgress[];
   result?: AssistantResponse;
@@ -74,6 +76,8 @@ function cleanMessage(value: unknown, interrupted = false): AssistantMessage | n
   return {
     id:boundedAssistantText(message.id,100),role,
     content:interrupted && message.phase==='working' && role==='assistant' ? 'This answer was interrupted by navigation or refresh. Please ask again.' : boundedAssistantText(message.content,8000),
+    ...(role==='assistant'&&Array.isArray(message.updates)?{updates:message.updates.slice(-12).flatMap((row:unknown)=>{if(!row||typeof row!=='object')return [];const r=row as Record<string,unknown>;return typeof r.id==='string'&&typeof r.text==='string'?[{id:boundedAssistantText(r.id,100),text:boundedAssistantText(r.text,360)}]:[];})}:{}),
+    ...(role==='assistant'&&typeof message.acknowledgment==='string'?{acknowledgment:boundedAssistantText(message.acknowledgment,240)}:{}),
     ...(role==='assistant'?{phase,activity,result:cleanResult(message.result),actionExpired:message.actionExpired===true || Boolean(message.result && typeof message.result==='object' && (message.result as Record<string,unknown>).proposedAction)}:{}),
     ...(role==='user' && Array.isArray(message.images)?{images:message.images.slice(0,2).flatMap(value=>value&&typeof value==='object'&&typeof (value as {name?:unknown}).name==='string'?[{name:boundedAssistantText((value as {name:string}).name,120)}]:[])}:{}),
   };

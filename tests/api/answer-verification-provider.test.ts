@@ -138,15 +138,65 @@ test('verified public captures use bounded public composition without replacing 
 test('focus-only repair still rejects the draft and requires valid references',async()=>{
  const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='test';
  const evidence=[{id:'public-document:test',content:JSON.stringify({rule:'Complete and sign the application form.'})}],candidate={status:'answered',answer:'Complete and sign the application form.',citations:[]};
- let reference='/rule';
- globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:false,claims:[{claim:candidate.answer,supported:true,evidenceId:evidence[0].id,quotes:[],jsonPaths:[reference]}]})}]}]});
+ let reference='/rule',missing=['application submission procedure'];
+ globalThis.fetch=async()=>Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:false,missingRequestedDetails:missing,claims:[{claim:candidate.answer,supported:true,evidenceId:evidence[0].id,quotes:[],jsonPaths:[reference]}]})}]}]});
  try{
-  const verdict=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000});
+  const verdict=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});
   assert.equal(verdict.ok,false);assert.equal(verdict.answerFocusOnly,true);assert.ok(verdict.feedback?.length);
+  assert.equal(verdict.missingRequestedDetails,undefined,'Rejected focus drafts are not verified partial answers.');
+  assert.ok(verdict.feedback.some(note=>note.includes('application submission procedure')&&note.includes('not facts')));
   reference='/missing';
-  const invalid=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000});assert.equal(invalid.answerFocusOnly,false);
+  const invalid=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});assert.equal(invalid.answerFocusOnly,false);
+  assert.ok(!(invalid.feedback??[]).some(note=>note.includes('application submission procedure')));
+  reference='/rule';missing=['x'.repeat(161)];
+  const oversized=await verifyEvidenceAnswer({question:'Explain the requirements',candidate,evidence,deadline:Date.now()+10000,trackPublicCoverage:true});
+  assert.equal(oversized.ok,false);assert.ok(!(oversized.feedback??[]).some(note=>note.includes('x'.repeat(161))));
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
+test('the verification loop passes rejected coverage labels to repair and independently checks the correction',async()=>{
+ const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY;process.env.OPENAI_API_KEY='test';
+ const facts={form:'Sign the application form.',submission:'Submit it through the application portal.'};
+ const evidence=[{id:'public-document:fixture',content:JSON.stringify(facts)}];
+ let checks=0,repairs=0;
+ globalThis.fetch=async(_url,init)=>{
+  const request=JSON.parse(String(init?.body)),input=JSON.parse(request.input[0].content[0].text);
+  checks++;const complete=input.answer.includes(facts.submission);
+  const claims=Object.entries(facts).filter(([,value])=>input.answer.includes(value)).map(([key,value])=>({claim:value,supported:true,evidenceId:evidence[0].id,quotes:[],jsonPaths:['/'+key]}));
+  return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({supported:true,answersQuestion:complete,claims,missingRequestedDetails:complete?[]:['submission procedure']})}]}]});
+ };
+ try{
+  const result=await runAnswerVerification({question:'How do I submit my application?',initialAnswer:{status:'answered',answer:facts.form,citations:[]},
+   deadline:Date.now()+20000,loadEvidence:async()=>evidence,
+   verify:context=>verifyEvidenceAnswer({...context,trackPublicCoverage:true}),
+   repair:async({feedback,evidence:current})=>{
+    repairs++;assert.ok(feedback);assert.ok(feedback.some(note=>note.includes('submission procedure')));
+    assert.deepEqual(current,evidence);
+    return {status:'answered',answer:Object.values(JSON.parse(current[0].content)).join(' '),citations:[]};
+   }});
+  assert.equal(checks,2);assert.equal(repairs,1);assert.equal(result.verification.status,'verified');
+  assert.match(result.answer,/application portal/u);
+ }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
+});
+
+test('evaluation grading uses its allotted deadline without changing the chosen grader or planner budget',async()=>{
+ const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY,savedAuditor=process.env.OPENAI_VERIFICATION_MODEL;
+ const originalTimeout=AbortSignal.timeout,limits:number[]=[],requests:any[]=[];
+ process.env.OPENAI_API_KEY='test';process.env.OPENAI_VERIFICATION_MODEL='test-source-auditor';
+ AbortSignal.timeout=(milliseconds:number)=>{limits.push(milliseconds);return originalTimeout(milliseconds);};
+ globalThis.fetch=async(_url,init)=>{requests.push(JSON.parse(String(init?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{"score":80}'}]}]});};
+ try{
+  await withAssistantModel({model:'test-selected-grader',reasoning:'medium'},()=>verificationModelCall('evaluation_match_review',{},'Grade only',{},Date.now()+30000));
+  assert.ok(limits[0]>29000&&limits[0]<=30000);assert.equal(requests[0].model,'test-selected-grader');
+  assert.equal(requests[0].max_output_tokens,2400);
+  await verificationModelCall('evaluation_match_review',{},'Grade only',{},Date.now()+5000);
+  assert.ok(limits[1]>4000&&limits[1]<=5000);
+  await verificationModelCall('account_lookup_plan',{},'Plan only',{},Date.now()+30000);
+  assert.ok(limits[2]<=15000);
+ }finally{AbortSignal.timeout=originalTimeout;globalThis.fetch=savedFetch;
+  if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;
+  if(savedAuditor===undefined)delete process.env.OPENAI_VERIFICATION_MODEL;else process.env.OPENAI_VERIFICATION_MODEL=savedAuditor;}
+});
+
 test('public review is scoped while mixed account review retains its contracts',async()=>{
  const savedFetch=globalThis.fetch,savedKey=process.env.OPENAI_API_KEY,requests:any[]=[];process.env.OPENAI_API_KEY='test';
  globalThis.fetch=async(_url,init)=>{requests.push(JSON.parse(String(init?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{"ok":true}'}]}]});};
@@ -159,16 +209,23 @@ test('public review is scoped while mixed account review retains its contracts',
 });
 
 test('an answer-model selection preserves the independently configured source auditor',async()=>{
- const nativeFetch=globalThis.fetch,names=['OPENAI_API_KEY','OPENAI_VERIFICATION_MODEL'] as const;
+ const nativeFetch=globalThis.fetch,names=['OPENAI_API_KEY','OPENAI_VERIFICATION_MODEL','OPENAI_VERIFICATION_REASONING_EFFORT'] as const;
  const previous=Object.fromEntries(names.map(name=>[name,process.env[name]]));
  process.env.OPENAI_API_KEY='unit-test';process.env.OPENAI_VERIFICATION_MODEL='independent-review-model';
+ process.env.OPENAI_VERIFICATION_REASONING_EFFORT='low';
  const requests:any[]=[];
  globalThis.fetch=async(_url,options)=>{requests.push(JSON.parse(String(options?.body)));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:'{}'}]}]});};
  try{
   await withAssistantModel({model:'selected-answer-model',reasoning:'medium'},async()=>{
    await verificationModelCall('compose_grounded_answer',{},'Compose',{},Date.now()+5000);
    await verificationModelCall('answer_evidence_review',{},'Review',{},Date.now()+5000);
+   await verificationModelCall('evaluation_match_review',{},'Grade',{},Date.now()+5000);
+   process.env.OPENAI_VERIFICATION_REASONING_EFFORT='invalid';
+   await verificationModelCall('answer_evidence_review',{},'Review',{},Date.now()+5000);
   });
   assert.equal(requests[0].model,'selected-answer-model');assert.equal(requests[1].model,'independent-review-model');
+  assert.equal(requests[0].reasoning.effort,'medium');assert.equal(requests[1].reasoning.effort,'low');
+  assert.equal(requests[2].reasoning.effort,'medium','Source audit settings must not change independent grading.');
+  assert.equal(requests[3].reasoning.effort,'medium','Invalid audit settings retain the original request behavior.');
  }finally{globalThis.fetch=nativeFetch;for(const name of names){if(previous[name]===undefined)delete process.env[name];else process.env[name]=previous[name];}}
 });

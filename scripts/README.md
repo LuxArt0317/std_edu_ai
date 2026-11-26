@@ -59,3 +59,19 @@ The local `/evaluation-lab` redirect retains query parameters so filtered lab li
 `npm test` first builds the ignored JavaScript assistant runtime and restores checksum-pinned documents from the committed bundle. This keeps fresh checkouts and CI equivalent to prepared local workspaces without downloading school files.
 
 The isolated packaging check also follows the authenticated hosted `run-account` dynamic import with local auth/model fixtures and an invalid question, requiring the actual compiled handler’s400 response. It makes no live provider/database requests.
+
+Cloud Answer Lab synchronization supports `--merge` (dry-run unless `--apply` is
+also supplied). Merge preserves cloud records, reports stable-ID case/run
+conflicts, and blocks apply until those conflicts are resolved. Applying a full
+replacement now requires explicit `--replace --apply`. Both apply modes save and
+verify a private full cloud/local/proposed-state backup before changing data.
+No credentials or answers are printed in conflict summaries. Test the pure merge
+with `node --test tests/evaluation/evaluation-lab-merge.test.mjs`.
+
+Cloud sync enforces the deployed lab’s3MB mutation limit, even though the database permits20MB. Increase it only together with the hosted application limit; existing cloud history is never trimmed automatically.
+
+The local API adapter optionally verifies a private grading request’s existing Bearer session before invoking the same caller-scoped charge reader. Missing or invalid sessions perform no record read and remain reference-only. Isolated QA worktrees can point their ignored `.evaluation-lab` path to the preserved private store; no secrets or evaluation state enter Git.
+
+`compile-application-apis.mjs` builds the automatic API tool catalog and JavaScript-only handler modules. `lint-application-apis.mjs` rejects unsupported API structures. See [contracts and setup](../server/README.md#automatic-application-api-tools-issue-104).
+
+`compile-website-discovery.mjs` builds the public source/directory index; `compile-discovery-embeddings.mjs` incrementally caches public source vectors. Build/startup compile source discovery before importing handlers. With embedding enabled, only missing vectors invoke the provider. No evaluator reference or private account rows enter this index. See [server setup](../server/README.md#unified-websitedatabase-discovery-issue-108).

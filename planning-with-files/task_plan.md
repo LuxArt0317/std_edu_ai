@@ -1,4 +1,157 @@
+## Production release [Issue #117]
+
+- [x] Verify client registry, authorized account and exact pending migrations.
+- [x] Apply migrations, enable release configuration, schedule memory expiry and verify owner RLS with rollback-only fixtures.
+- [x] Repair pre-release runtime/fixture regressions.
+- [ ] Publish via GitHub pipeline and verify exact production artifact.
+- [ ] Verify live anonymous/signed-in chat, memory and queue behavior.
+
+## Event-driven commentary and queued turns [Issue #116]
+
+- [x] Remove ten-second update polling; retain immediate acknowledgment.
+- [x] Add bounded removable FIFO queue and clarification pause/reply controls.
+- [x] Remove steering entirely per latest user instruction.
+- [x] Check local browser queue dispatch and types/unit checks. No deployment.
+
+## Production memory preparation [Issue #115]
+
+- [x] Replace signed-in browser storage with server-owned Supabase persistence.
+- [x] Add owner RLS, service-only writes, expiry/caps and clear fencing.
+- [x] Check disposable PostgreSQL and runtime build boundaries.
+- [ ] Apply migration/configure cleanup and run hosted staging acceptance before enabling release.
+
+## Local conversation memory [Issue #115]
+
+- [x] Inspect rolling context and request-local evidence.
+- [x] Add bounded source-linked short-term and browser-persistent memory.
+- [x] Verify owner isolation, admission rules and compilation; keep local.
+- [ ] Follow up with server-owned durable evidence ledger and signed-in model recall acceptance.
+
+## Contextual conversational updates [Issue #114]
+
+- [x] Replace canned acknowledgment with asynchronous model-generated commentary and10second updates using actual activity.
+- [x] Persist bounded updates separately from final answer and cancel when work ends.
+- [x] Resolve adjacent identity confirmations from recent user turns and write varied grounded replies.
+- [x] Verify context, persistence, provider safety and local behavior; commit without deployment.
+
+## Activity expansion motion [Issue #113]
+
+- [x] Animate native disclosure expansion/collapse with rapid-toggle cancellation and reduced-motion support.
+- [x] Verify type checks and the local interaction; document and commit locally.
+
+## Immediate conversational feedback [Issue #112]
+
+- [x] Acknowledge immediately without claiming a lookup or exposing an unverified draft.
+- [x] Persist acknowledgment independently of final answer; reuse shared live/lab renderer.
+- [x] Collapse activity by default and preserve user expansion while progress arrives.
+- [x] Verify rendering/persistence and restart locally; no deployment.
+
+## Imported Moodle chatbot grade integration [Issue #111]
+
+- [x] Reproduce the disconnected legacy grade reader and oversized capture-queue response.
+- [x] Connect established grade evidence and semantic API discovery to the imported source.
+- [x] Verify all-course scores, privacy, source restrictions and local runtime; no deployment.
+
+## Complete owned Moodle content import [Issue #110]
+
+- [x] Inspect the signed-in original DTM and enumerate owned courses.
+- [ ] Finish capture: 47 courses, 47 grade reports and 20 activity pages saved; 661 linked details remain after browser transport disconnected.
+- [x] Store independently in an owner-scoped local database and connect Moodle and assistant readers.
+- [ ] Verify persistence, privacy and rendered pages; commit locally without deployment.
+
+## Authorized operation coverage [Issue #109]
+
+- [x] Extend completion review beyond public leads to read-only operations and scopes.
+- [x] Recover from an empty view without substituting practice results or bypassing authorization.
+- [x] Verify alternate-source recovery and explicit-source restrictions locally.
+
+## Unified discovery agent [Issue #108]
+
+- [x] Build searchable public-page/document index without evaluation references.
+- [x] Add semantic/lexical discovery and registered page reads.
+- [x] Run public and authenticated API tools through a shared adaptive LangGraph.
+- [x] Verify unseen paraphrases, source fidelity and account boundaries.
+- [x] Enable locally and document limitations; no deployment.
+
+## Visible identity and grade source isolation [Issue #107]
+
+- [x] Show verified identity and direct sign-out in chat.
+- [x] Isolate academic grade reads/evidence from practice courses.
+- [x] Verify auth boundaries, source isolation and concise provenance locally.
+
+## Grades tool recovery [Issue #106]
+
+- [x] Add precise focused academic-grades API contract and DTM selector guidance.
+- [x] Bound generic exploration and verify corrected400 recovery.
+- [x] Restart and verify local availability; do not deploy.
+
+## Signed-out privacy and paraphrases [Issue #105]
+
+- [x] Gate guest personal intent before all source shortcuts.
+- [x] Add semantic paraphrase routing and fresh session validation.
+- [x] Verify anonymous personal/public variants and document local-only status.
+
+## Automatic application API tools [Issue #104]
+
+- [x] Generate a complete API catalog and JavaScript-only handler loaders from API source files.
+- [x] Add bounded authenticated discovery, schema inspection and invocation of actual handlers.
+- [x] Add an adaptive model/tool loop and reviewed action execution to the school chatbot.
+- [x] Enforce credential isolation, endpoint authorization, mutation approval, replay and timeout boundaries.
+- [x] Verify automatic discovery of a new API, actual dispatch, denied calls, UI action-review contracts and hosted packaging. Signed-in browser acceptance remains unverified.
+- [x] Document how future APIs become tools; keep all changes local.
+
 # Task Plan
+
+## Public guidance parity after sign-in [Issue #100]
+
+- [x] Audit all41public questions through the authenticated handler with private reads/network/models forbidden; identify7wrong private selections.
+- [x] Reuse shared source predicates and strict public-route forwarding; retain personal/foreign/write boundaries.
+- [x] Verify22dispatch contracts, API types/import lint and41case audit with0private selections/errors.
+- [ ] Include real signed-in UI/model acceptance when browser access permits; fixtures do not prove it.
+
+## Club contact projection and course-planning intent [Issue #100]
+
+- [x] Audit Q43 actual captured contacts and identify URL removal during compaction.
+- [x] Preserve bounded named contacts and exact allowed URLs; keep location/membership scope explicit.
+- [x] Recognize Q16-family mixed course-planning advice with two owned record tools and safe exclusions.
+- [x] Verify focused source/intent/privacy checks, API types and runtime import lint.
+- [ ] Reload and evaluate Q43 once; Q16 still requires a verified signed-in run.
+
+## Coverage-feedback and checker-interruption repair [Issue #100]
+
+- [x] Retain validated focus-gap labels as untrusted repair hints while preserving rejection/reference checks.
+- [x] Add one safe public review-only retry within existing time/check bounds; no reread or rewrite on checker interruption.
+- [x] Verify graph/provider contracts and existing core verification behavior (29focusedchecks).
+- [ ] Load changes after the baseline regression terminates, then diagnose/rerun the failed cases one at a time.
+
+## Native public grading context [Issue #101]
+
+- [x] Verify Q36 grader used an obsolete imported error page instead of the current native catalog.
+- [x] Add source-pin/literal-field reconstruction and v2 history labels; keep rubric/weights/target unchanged.
+- [x] Verify13source/contextchecks, APItypes and runtime-importlint; UI syntax lint has0errors/5pre-existingwarnings.
+- [ ] Grade the existing Q36answer once after server restart; preserve v1 and avoid regenerating its answer.
+
+## Graduation requirements evidence [Issue #100]
+
+- [x] Audit existing curriculum-plan and report destinations; distinguish directory availability from unread PDFs.
+- [x] Include source-derived curriculum/report capability guidance in selected private graduation evidence and allow its real directory link.
+- [x] Check report-kind isolation, privacy and no cohort/eligibility inference in the native evidence suite.
+- [ ] Evaluate Q15 in a verified signed-in session; do not assign a fixture score.
+
+## Scholarship status navigation [Issue #100]
+
+- [x] Inspect the real local scholarship menu, period/history UI and saved response gaps.
+- [x] Add page-backed guidance to selected scholarship evidence and the initial answer; retain review/payment distinctions.
+- [x] Verify scholarship caller isolation, navigation and model-source consistency in six focused checks.
+- [ ] Evaluate Q05 with a verified signed-in caller; fixture checks are not a passing private score.
+
+## Signed-in public lookup parity [Issue #100]
+
+- [x] Trace saved production Q04/Q45 failures to authenticated account dispatch.
+- [x] Delegate clearly public funding/enrollment requests before private intent selection; retain mixed personal requests and strip credentials/history.
+- [x] Verify 30 focused routing/source/boundary checks, API types and runtime-import lint.
+- [x] Finish Q04 and Q45 Luna/Terra evaluations:85 and90.
+- [ ] Complete subsequent retrieval-case regression and authenticated live acceptance; fixtures/public API runs are not signed-in browser proof.
 
 ## Club activities and equipment borrowing [Issue #98]
 
@@ -1368,8 +1521,8 @@ Do not resume deployment or cloud overwrite. Production was rolled back; staged 
 ## Authorized publication [Issues #100/#101]
 - [x] User explicitly requested deploying all current changes through the existing GitHub pipeline.
 - [x] Runtime-import lint291files/0errors; isolated JS-only packaging passes without provider calls.
-- [ ] Reconcile11remote release commits with555local commits in isolated release integration; retain shared-admin actor/workspace access and current agent logic.
-- [ ] Run required lint/tests/build gates, publish by authenticated owner GitHub merge, verify exact production revision and hosted lab operation.
+- [x] Reconcile remote release commits with local work in isolated integration; retain shared-admin actor/workspace access and current agent logic.
+- [x] Run required gates, publish by authenticated owner GitHub merge, verify exact production revision and public lab/API boundaries. Signed-in execution remains manual.
 - [ ] Resume unfinished quality/authenticated evaluations after publication; do not mark53-case goalcomplete.
 
 ## Authorized production release —25 November2026 [Issue #100, Issue #101]
@@ -1377,8 +1530,28 @@ Do not resume deployment or cloud overwrite. Production was rolled back; staged 
 - [x] Integrate latest GitHub main without overwriting shared lab/admin fixes.
 - [x] Verify runtime import lint and JavaScript-only hosted packaging.
 - [x] Run API/unit/build/handoff/dependency gates; repair integration regression failures.
-- [ ] Pass the complete assistant evaluation suite on the final release tree.
-- [ ] Publish through owner-authenticated GitHub PR/main pipeline and verify exact deployed revision.
-- [ ] Verify public lab entry, assets and unauthorized API boundary; record remaining signed-in acceptance.
+- [x] Pass the complete assistant evaluation suite on the final release tree.
+- [x] Publish through owner-authenticated GitHub PR/main pipeline and verify exact deployed revision.
+- [x] Verify public lab entry, assets and unauthorized API boundary; record remaining signed-in acceptance.
 
-All53question quality goal remains open; this release does not claim full private-account or rendered-browser acceptance.
+All53question quality goal remains open; this release does not claim full private-account or production rendered-browser acceptance.
+
+## Leave usage interpretation [Issue #100]
+
+- [x] Distinguish counted request records from approved days/class periods and show date/status scope.
+- [x] Add exact caller-scoped Q12 source reconstruction for grading; retain historical comparison limits.
+- [x] Verify English/Chinese presentation, existing leave boundaries and caller isolation.
+- [ ] Run Q12 through a real verified signed-in session and Terra grading; do not substitute fixture scores.
+
+## Timetable grading [Issue #101]
+- [x] Add caller-scoped Q13 timetable reconstruction and isolation checks.
+- [ ] Complete real signed-in Q13 model acceptance.
+
+## Q17 missing-term guidance [Issue #100]
+- [x] Use existing course-history selectors to ask for unspecified academic year/semester before account reads.
+- [ ] Verify with the real signed-in model evaluation; no fixture grade substitutes.
+
+## Q18 compound academic outcome [Issue #100]
+- [x] Confirm and repair graduation evidence exclusion caused by a grade/rank compound.
+- [x] Preserve independent source families, term ambiguity and no inferred eligibility/rank.
+- [ ] Run real signed-in Luna answer/Terra evaluation; authentication gate remains.

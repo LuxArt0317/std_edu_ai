@@ -2,11 +2,28 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {executeAffairsAction,loadAffairsSnapshot,manageAffairsRecord} from '../../server/affairsWorkspace.js';
 import {answerPrivateAffairsQuestion} from '../../server/affairsAnswer.js';
-import {isScholarshipRecordQuestion,mapScholarshipRecords} from '../../server/scholarshipRecords.js';
+import {isScholarshipRecordQuestion,mapScholarshipRecords,scholarshipPageGuide} from '../../server/scholarshipRecords.js';
+import {accountEvidence} from '../../server/answerVerificationAccount.js';
 
 const period={id:'period-one',term_label:'Local demonstration 115-1',opens_at:'2026-11-01T00:00:00Z',closes_at:'2026-11-30T12:00:00Z',published:true,instructions:'Saved instructions',source_mode:'local_demo',version:1};
 const application={id:'application-one',period_id:period.id,user_id:'10000000-0000-4000-8000-000000000001',status:'approved',award_amount:'12500.00',required_hours:'20.50',actual_hours:'5.25',review_note:'Local review completed',submitted_at:'2026-11-10T03:00:00Z',reviewed_at:'2026-11-11T03:00:00Z',cancelled_at:null,version:2};
 const account={user:{id:'10000000-0000-4000-8000-000000000001'},token:'caller-token',url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'publishable-test-key'};
+
+test('scholarship navigation is tied to the actual page and separates review from payment',async()=>{
+ const guide=scholarshipPageGuide()!;
+ assert.equal(guide.url,'/school-affairs/services/9-1');assert.equal(guide.menu.at(-2),'境外學生');
+ assert.match(guide.statusMeaning.pending,/not approval or payment/u);
+ const snapshot={checkedAt:'2026-11-12T00:00:00Z',profile:{userId:account.user.id},courses:[],dtm:{courses:[],assignments:[]},scholarship:mapScholarshipRecords([period],[{...application,status:'pending',award_amount:null}])};
+ const evidence=accountEvidence(snapshot,['scholarship'],{question:'Where can I find my scholarship status?',scopedReadOnly:true});
+ const source=evidence.find(row=>row.id==='account:scholarship')!;
+ assert.deepEqual(JSON.parse(source.content).pageGuide,guide);
+ const result=await answerPrivateAffairsQuestion('Where can I find my scholarship status?',snapshot);
+ assert.match(result.answer,/Academic Affairs → Application\/Input Programs → International Students/u);
+ assert.match(result.answer,/application period.*application history/su);
+ assert.match(result.answer,/Pending review does not mean approved or paid/u);
+ assert.match(result.answer,/pending review/u);
+ assert.doesNotMatch(result.answer,/award NT\$12500|you have been paid/iu);
+});
 
 test('scholarship answers use saved review amounts and application dates, without model access',async()=>{
   const snapshot={checkedAt:'2026-11-12T00:00:00Z',scholarship:mapScholarshipRecords([period],[application])};

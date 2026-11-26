@@ -50,12 +50,12 @@ test('planner retains exact topical native tools, normalizes routes, and uses th
     const dtm=await planAccountLookup('My DTM grades',[],'/dtm/grades',Date.now()+10000);
     assert.equal(dtm.degraded,undefined);
     assert.deepEqual(dtm.tools,['dtmGradeReport']);
-    assert.equal(calls,6,'Recognized native DTM reads never need the planner.');
+    assert.equal(calls,5,'Standalone academic grades and recognized native DTM reads do not need the planner.');
     const explicit=await planAccountLookup('My academic transcript and my DTM grades',[],'/dtm/grades',Date.now()+10000);
     assert.ok(explicit.tools.includes('academicGrades'));
     const dtmFollowup=await planAccountLookup('My grades and attendance',[{role:'user',content:'My DTM courses'}],'',Date.now()+10000);
     assert.equal(dtmFollowup.degraded,undefined);
-    assert.ok(!dtmFollowup.tools.some(key=>nativeKeys.includes(key)));assert.equal(calls,8);
+    assert.ok(!dtmFollowup.tools.some(key=>nativeKeys.includes(key)));assert.equal(calls,7);
   }finally{globalThis.fetch=previousFetch;if(previousKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=previousKey;}
 });
 
@@ -180,7 +180,7 @@ test('native endpoint retries issue only authenticated reads after the single in
       gradeReads++;assert.equal(url.searchParams.get('user_id'),'eq.'+userId);
       return Response.json([{id:'20000000-0000-4000-8000-000000000089',user_id:userId,source_mode:'local_demo',version:1,created_at:at,updated_at:at,
         record_kind:'transcript',academic_year:115,semester:1,course_title:'Synthetic native course',course_code:null,category_text:null,module_name:null,
-        required_elective_text:null,credits:0,grade_text:snapshots===1?'P':'0',remark_text:null,row_order:0}]);
+        required_elective_text:null,credits:0,grade_text:gradeReads===1?'P':'0',remark_text:null,row_order:0}]);
     }
     return Response.json([]);
   };
@@ -188,8 +188,8 @@ test('native endpoint retries issue only authenticated reads after the single in
     let body:any;const response={status(_code:number){return response;},json(value:unknown){body=value;},setHeader(){}};
     await handler({method:'POST',headers:{authorization:'Bearer '+token},body:{question:'My transcript',route:'/school-affairs/services/13-1/transcript/'}},response);
     assert.equal(body.verification?.status,'verified',JSON.stringify(body));assert.equal(body.verification.attempts,2);
-    assert.equal(snapshots,2);assert.equal(gradeReads,2);assert.equal(reviews,2);assert.equal(repairs,1);
-    assert.deepEqual(rpc,['affairs_initialize_account','dtm_initialize_account']);assert.equal(body.proposedAction,undefined);
+    assert.equal(snapshots,0);assert.equal(gradeReads,2);assert.equal(reviews,2);assert.equal(repairs,1);
+    assert.deepEqual(rpc,[]);assert.equal(body.proposedAction,undefined);
     assert.match(body.answer,/grade is 0/);assert.match(JSON.stringify(body.views),/Synthetic native course/);
   }finally{globalThis.fetch=previousFetch;for(const key of ['OPENAI_API_KEY','VITE_SUPABASE_URL','VITE_SUPABASE_PUBLISHABLE_KEY'])if(saved[key]===undefined)delete process.env[key];else process.env[key]=saved[key];}
 });

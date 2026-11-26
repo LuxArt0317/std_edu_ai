@@ -105,8 +105,9 @@ test('the compiled signed-in client dispatches only a verified learning-help que
     if(specifier.endsWith('accountStatusIntent.js'))return {accountStatusIntent};
     if(specifier.endsWith('learningEntryContract.js'))return {learningEntryIntent};
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
     if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{
-      getSession:async()=>({data:{session:{user:{id:userId},access_token:token}},error:null}),
+      getUser:async()=>({data:{user:{id:userId}},error:null}),getSession:async()=>({data:{session:{user:{id:userId},access_token:token}},error:null}),
     }}};
     return new Proxy({},{get:()=>forbid});
   },fetch:async(path,init)=>{

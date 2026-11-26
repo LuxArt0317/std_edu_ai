@@ -327,7 +327,8 @@ test('browser dispatch uses the common verified endpoint before direct responder
     if(specifier.endsWith('elearningOutlineEvidenceIntent.js'))return outlineIntent;
     if(specifier.endsWith('feeRemissionEvidenceIntent.js'))return feeIntent;
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
-    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:sessionOwner},access_token:'BROWSER_TOKEN'}},error:null})}}};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:sessionOwner}},error:null}),getSession:async()=>({data:{session:{user:{id:sessionOwner},access_token:'BROWSER_TOKEN'}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url:string,init:RequestInit)=>{requests.push({url,body:JSON.parse(String(init.body)),token:(init.headers as Record<string,string>).Authorization});return Response.json({status:'answered',answer:'Verified endpoint',citations:[]});}});
   for(const [question,route]of [[dormQuestion,dormRoute],[outlineQuestion+' Also show my tuition balance.',outlineRoute],['Show my fee remission and my tuition balance.','/school-affairs/services/21-3']])assert.equal((await exports.askSchoolAffairsAssistant(owner,question,[],undefined,[],route)).answer,'Verified endpoint');

@@ -11,7 +11,7 @@ const steps=[
   {kind:'verification-deeper-review',label:'Taking a closer look',detail:'Used the same evidence.',status:'complete' as const},
   {kind:'verification-3',label:'Answer checked against evidence',detail:'The answer passed the evidence checks.',status:'complete' as const}];
 const messages=()=>[{id:'u',role:'user' as const,content:'What is in my records?'},
-  {id:'a',role:'assistant' as const,content:'Your checked answer.',phase:'complete' as const,activity:steps,
+  {id:'a',role:'assistant' as const,content:'Your checked answer.',acknowledgment:'Let me check that for you.',phase:'complete' as const,activity:steps,
     result:{answer:'Your checked answer.',status:'answered' as const,citations:[],suggestedQuestions:[],activity:steps,verification:{status:'verified' as const,attempts:3}}}];
 
 test('authenticated persistence sends all normal activity steps and rejects oversized UTF-8 before RPC',async()=>{
@@ -30,7 +30,7 @@ test('authenticated persistence sends all normal activity steps and rejects over
   const call=async(method:string,body?:unknown)=>{let status=200,value:any;const res={status(code:number){status=code;return res;},json(result:unknown){value=result;},setHeader(){}};await handler({method,body,query:{id},headers:{authorization:'Bearer '+'x'.repeat(40)}},res);return{status,value};};
   try{
     assert.equal((await call('POST',{id,title:'Records',version:0,messages:messages()})).status,200);
-    const read=await call('GET');assert.equal(read.status,200);assert.deepEqual(read.value.messages[1].activity,steps);
+    const read=await call('GET');assert.equal(read.status,200);assert.deepEqual(read.value.messages[1].activity,steps);assert.equal(read.value.messages[1].acknowledgment,'Let me check that for you.');
     assert.deepEqual(read.value.messages[1].result.verification,{status:'verified',attempts:3});
     assert.equal((await call('POST',{id,title:'Records',version:1,messages:[{id:'u',role:'user',content:'課'.repeat(65000)}]})).status,400);
     assert.equal(writes,1);

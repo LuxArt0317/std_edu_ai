@@ -8,8 +8,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "npm run lint:runtime-imports && npm run compile:assistant-runtime && npm run typecheck:api && npm run prepare:school-assets && tsc -b && vite build && node scripts/write-release-manifest.mjs && npm run verify:api-packaging && npm run verify:build",
-    "lint": "npm run lint:runtime-imports && oxlint",
+    "build": "npm run verify:assistant-memory && npm run lint:runtime-imports && npm run lint:application-apis && npm run prepare:school-assets && npm run compile:assistant-runtime && npm run typecheck:api && tsc -b && vite build && node scripts/write-release-manifest.mjs && npm run verify:api-packaging && npm run verify:build",
+    "lint": "npm run lint:runtime-imports && npm run lint:application-apis && oxlint",
     "test": "node scripts/verify-needed-catalog.mjs && node scripts/verify-needed-v3.mjs && node scripts/verify-research-protocol.mjs && node scripts/verify-research-104.mjs && node scripts/verify-research-trace-evidence.mjs && node scripts/verify-research-evaluation.mjs && node scripts/verify-research-operations.mjs && node scripts/verify-research-hardening.mjs && node scripts/verify-stu-source-inventory.mjs && node scripts/verify-stitch-ui.mjs && node scripts/verify-stitch-all-pages.mjs && node --experimental-strip-types --test tests/api/*.test.ts",
     "verify:needed": "node scripts/verify-needed-catalog.mjs",
     "verify:research-104": "node scripts/verify-research-104.mjs",
@@ -89,12 +89,17 @@
     "test:school-statistics": "node tests/integration/school-statistics-ui.mjs",
     "test:school-home-layout": "node tests/integration/school-home-layout-ui.mjs",
     "test:assistant-evaluation": "node --test tests/evaluation/*.test.mjs",
-    "typecheck:api": "tsc --ignoreConfig --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck --types node api/*.ts",
+    "typecheck:api": "tsc --ignoreConfig --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck --types node api/*.ts && tsc --ignoreConfig --noEmit --target ES2022 --module NodeNext --moduleResolution NodeNext --skipLibCheck --types node api/*.ts --strictNullChecks false --noImplicitAny false",
     "dev:local": "node --experimental-strip-types scripts/dev-local.mjs",
-    "compile:assistant-runtime": "node scripts/compile-affairs-assistant.mjs",
+    "compile:assistant-runtime": "npm run compile:website-discovery && npm run compile:application-apis && node scripts/compile-affairs-assistant.mjs",
     "verify:api-packaging": "node scripts/verify-hosted-api-packaging.mjs",
     "lint:runtime-imports": "node scripts/lint-runtime-imports.mjs",
-    "pretest": "npm run compile:assistant-runtime && npm run prepare:school-assets"
+    "pretest": "npm run prepare:school-assets && npm run compile:website-discovery && npm run compile:application-apis",
+    "compile:application-apis": "node scripts/compile-application-apis.mjs",
+    "lint:application-apis": "node scripts/lint-application-apis.mjs",
+    "compile:website-discovery": "node scripts/compile-website-discovery.mjs",
+    "compile:discovery-embeddings": "node scripts/compile-discovery-embeddings.mjs",
+    "verify:assistant-memory": "node --experimental-strip-types --test tests/memory/*.test.ts"
   },
   "dependencies": {
     "@langchain/core": "1.4.0",

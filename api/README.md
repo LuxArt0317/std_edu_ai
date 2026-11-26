@@ -1,5 +1,9 @@
 # HTTP API
 
+`publicSignedInDispatch.js` reuses the public source predicates for graduation/attendance policy, learning resources, repair how-to, office directions/contacts, faculty training and staff parking before selecting account records. Personal/foreign-record compounds and writes retain the account path. Only a registered public route and current question are forwarded; history and credentials stay private. The41-case offline public-bank routing audit has zero private selections/errors, distinct from real signed-in browser/model acceptance.
+
+Signed-in public funding-discovery and admission-date questions delegate to the same in-process public research handler before account-record selection. Only the current question and validated public page route are forwarded; credentials and account history are excluded. Mixed personal questions remain on the account path.
+
 `affairs-data.ts?scope=graduation-clearance` reads private applications, available periods and office decisions. The `manage` view takes a term and optional candidate. Dedicated student and administrator actions are versioned and retry-safe.
 
 `affairs-data.ts?scope=teaching-feedback` reads survey completion, immediate feedback, or authorized management by `view`. Dedicated student and administrator actions save evaluations, feedback, survey settings, releases, and reviews.
@@ -156,3 +160,13 @@ Public student-card replacement instructions share public research; personal app
 Backend runtime source imports are checked by `npm run lint:runtime-imports`. Hosted evaluation loads generated JavaScript rather than importing another API TypeScript source at runtime.
 
 Public and account assistant handlers use the same server-only assistantRequestBudget helper and preserve parent deadlines. The default remains55seconds within the unchanged60-second hosting configuration. Longer local budgets do not authorize or configure a longer hosted function.
+
+The signed-in assistant can clarify missing course-selection term scope using existing history/timetable destinations without reading account records.
+
+Application APIs are inventoried automatically for the signed-in chatbot. Declare static `assistantApi` metadata for accurate schemas and read classification; authorization remains in each handler. See [tool registry and review setup](../server/README.md#automatic-application-api-tools-issue-104).
+
+`GET /api/affairs-data?scope=academic-grades&view=transcript` exposes the caller-bound native grade reader. Only scope/view are accepted; the default is transcript. DTM report detail requires course_id; the overview lists accessible courses. Existing authorization remains required (Issue #106).
+
+With ASSISTANT_DISCOVERY_ENABLED, guest research and authenticated affairs handlers use the same discovery graph before legacy question-specific answer paths. Guest identity is always null; authenticated calls preserve original endpoint permissions. See [server discovery](../server/README.md#unified-websitedatabase-discovery-issue-108).
+
+Issue109 adds GET affairs-data?scope=released-assessments with no extra filters. The caller-owned released assessment reader supplies literal item scores and labels, separately from academic transcript and DTM report scopes. It is automatically discoverable from the API contract.

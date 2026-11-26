@@ -1,3 +1,6 @@
+import {openAssistantMemory} from '../server/assistantMemory.js';
+import {answerWithApplicationApis} from '../server/applicationApiAgent.js';
+import {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute} from '../server/publicSignedInDispatch.js';
 import {assistantRequestDeadline} from '../server/assistantRequestBudget.js';
 import {conversationalGuidance} from '../server/conversationalGuidance.js';
 import {withUserAssistantSettings} from '../server/assistantUserSettings.js';
@@ -8,6 +11,8 @@ import {isPublicAdmissionLanguageQuestion} from '../server/publicAdmissionLangua
 import {isPublicCalendarDateQuestion} from '../server/publicCalendarEvidence.js';
 import {isPublicHousingPolicyQuestion} from '../server/publicHousingPolicyIntent.js';
 import {isPublicStudentCardReplacementQuestion} from '../server/publicStudentCardIntent.js';
+import {publicFundingIntent} from '../server/publicFundingEvidence.js';
+import {isPublicEnrollmentDateQuestion} from '../server/publicEnrollmentEvidence.js';
 import {publishedSchoolGuidance} from '../server/publishedSchoolGuidance.js';
 import {campusHelpGuide} from '../server/campusHelpGuides.js';
 import {isImageDescriptionQuestion} from '../server/assistantImageAnswer.js';
@@ -32,7 +37,7 @@ import {parseExplicitAccountAction} from '../server/accountActionIntent.js';
 import {studentLeaveDraftAction} from '../server/studentLeaveDraft.js';
 import {answerRequestedAffairsAction} from '../server/answerRequestedAffairsAction.js';
 import type {VerificationProgress} from '../server/answerVerification.js';
-import {accountStatusIntent} from '../server/accountStatusIntent.js';
+import {accountStatusIntent,accountStatusContextQuestion} from '../server/accountStatusIntent.js';
 import {answerCampusEntry,campusEntryIntent} from '../server/campusEntryContract.js';
 import {answerLearningEntry,learningEntryIntent,legacyDtmWorkspacePath} from '../server/learningEntryContract.js';
 import {answerAccountStatus} from '../server/accountStatusAnswer.js';
@@ -84,7 +89,7 @@ import {readDtmGradeReportEvidence} from '../server/accountDtmGradeReportEvidenc
 import {isForeignDtmGradesQuestion,isNativeDtmGradeOnlyQuestion} from '../server/dtmGradeEvidenceIntent.js';
 import {independentElearningQuestion,isElearningEvidenceQuestion,isForeignElearningRecordsQuestion} from '../server/elearningEvidenceIntent.js';
 import {readElearningEvidence} from '../server/accountElearningEvidence.js';
-import {answerExactCourseSelection,courseSelectionPageDisposition,courseSelectionWriteBoundary,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
+import {answerExactCourseSelection,courseSelectionTermGuide,courseSelectionPageDisposition,courseSelectionWriteBoundary,selectExactCourseSelection} from '../server/accountCourseSelectionAnswer.js';
 import {answerExactAcademicAttendance,selectExactAcademicAttendance} from '../server/accountAcademicAttendanceAnswer.js';
 import {answerExactElearning,selectExactElearningReply} from '../server/accountElearningExactAnswer.js';
 import {readFacilityRepairEvidence} from '../server/accountFacilityRepairEvidence.js';
@@ -125,7 +130,7 @@ import { answerDirectTuitionPayment, isOwnFeeBalanceQuestion, isPendingFeeQuesti
 import { isCreditLoadHistoryQuestion } from '../server/creditLoadHistory.js';
 import { isCourseSelectionQuestion } from '../server/courseSelection.js';
 import { AffairsWorkspaceError, AffairsWorkspaceReadUnavailableError, loadAffairsSnapshot, loadOwnAcademicGrades, loadOwnAffairsCharges, loadOwnServiceNotes, verifyAffairsToken, type AffairsAccount } from '../server/affairsWorkspace.js';
-import {standaloneAcademicGradeView} from '../server/academicGrades.js';
+import {academicGradesQuery,isAcademicGradeOnlyQuestion,isAcademicGradesQuestion,standaloneAcademicGradeView} from '../server/academicGrades.js';
 import {loadOwnAffairsTimetable} from '../server/ownAffairsTimetable.js';
 import { createAssistantStream } from '../server/assistantStream.js';
 import { readAssistantReply } from '../src/services/assistantStreamReader.js';
@@ -135,7 +140,7 @@ type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|str
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
 type PublicResearchHandler = ResearchApiHandler;
 type PublicProgress = Parameters<NonNullable<Parameters<typeof readAssistantReply>[1]>>[0];
-export const config = {maxDuration:60};
+export const config = {maxDuration:120};
 const requestWindows = new Map<string,number[]>();
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
 function hasRouteControls(text:string,spaces=false):boolean {
@@ -342,7 +347,35 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   active.push(now);requestWindows.set(account.user.id,active);
   if(active.length>24){response.status(429).json({error:'Too many questions. Please wait a moment.'});return;}
   response.setHeader('X-Assistant-Request-Id',correlationId);
+  const memory=await openAssistantMemory(account,{disabled:hasProbe||Boolean(value(request.headers['x-stu-evaluation-run'])||value(request.headers['x-stu-evaluation-model']))||route.includes('evaluation-lab')});
+  if(/^\/memory\s+(clear|status)$/i.test(question.trim())){
+    if(!memory){response.status(503).json({error:'Account memory is not configured or is temporarily unavailable.'});return;}
+    try{const clear=/clear$/i.test(question.trim());if(clear)await memory.clear();response.status(200).json({status:'answered',answer:clear?'I cleared your saved account memory. Existing conversations are unchanged.':`Your account has ${memory.count} historical answer snapshots. Use /memory clear to delete them.`,citations:[],suggestedQuestions:[]});}catch{response.status(503).json({error:'Memory deletion could not be confirmed. Please try again.'});}return;
+  }
+  if(memory)history=memory.context(question,history);
   const stream=createAssistantStream(input?.stream===true,response);
+  const send=stream.send.bind(stream);let memoryPending=Promise.resolve();
+  stream.send=(status,payload)=>{memoryPending=(status===200&&memory?memory.remember(question,payload).catch(()=>{console.warn('Assistant memory save unavailable',{code:'memory_store_unavailable'});}):Promise.resolve()).then(()=>send(status,payload));};
+  try {
+  // API tools reuse actual endpoint handlers and current caller auth. Probes and
+  // image-specific workflows retain their established specialized boundaries.
+  const identityQuestion=accountStatusContextQuestion(question,history);
+  if(!hasProbe&&identityQuestion&&accountStatusIntent(identityQuestion)!=='displayName'&&!(Array.isArray(input?.images)&&input.images.length)){
+    try{stream.send(200,await answerAccountStatus({account,question,identityQuestion,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));}
+    catch{stream.send(503,{error:'Your sign-in could not be checked. Please try again.'});}
+    return;
+  }
+  if(process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)){
+    const result=await answerWithApplicationApis({account,question,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)},{unified:true,maxSteps:12});
+    if(result){stream.send(200,result);return;}
+  }
+  if(process.env.ASSISTANT_DISCOVERY_ENABLED!=='true'&&process.env.ASSISTANT_API_TOOLS_ENABLED==='true'&&!hasProbe&&!isAcademicGradesQuestion(question,route,history)&&!isNativeDtmGradeOnlyQuestion(question,route,history)&&!(Array.isArray(input?.images)&&input.images.length)){
+    const result=await answerWithApplicationApis({account,question,history,route,deadline,
+      onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
+    if(result){stream.send(200,result);return;}
+  }
+
+
   // Describing an attachment uses user-supplied image evidence, not private
   // account records. Resolve this before route/history-based record selection.
   if(!hasProbe&&Array.isArray(input?.images)&&input.images.length&&isImageDescriptionQuestion(question)){
@@ -360,10 +393,19 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
     return;
   }
 
-  if(!hasProbe&&!(Array.isArray(input?.images)&&input.images.length)&&(isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
+  // Public funding/enrollment questions must not inherit private-record intent
+  // merely because the caller is signed in. Mixed/personal requests stay on the
+  // account path; public dispatch never receives account history or credentials.
+  const publicFundingOrEnrollment=!/\b(?:my|our|mine|am i|did i|have i|for me|on my behalf|another student|someone else's)\b|我的|我們的|幫我|帮我|其他學生|其他学生/iu.test(question)
+    &&Boolean(publicFundingIntent(question)||isPublicEnrollmentDateQuestion(question));
+  const earlyCampusEntry=campusEntryIntent(question,route);
+  if(earlyCampusEntry){stream.send(200,answerCampusEntry(question,earlyCampusEntry,true));return;}
+  const nativeGuidanceBoundary=Boolean(campusEntryIntent(question,route)||nativePageLookupContext(question,route,history).selected||internshipAssistantPlan(question,route,history)||studentLeaveAssistantPlan(question,route,history));
+  const additionalPublicGuidance=isAdditionalPublicGuidanceQuestion(question);
+  if(!hasProbe&&!nativeGuidanceBoundary&&!(Array.isArray(input?.images)&&input.images.length)&&(additionalPublicGuidance||publicFundingOrEnrollment||isPublicStudentCardReplacementQuestion(question)||isPublicHousingPolicyQuestion(question)||isPublicScholarshipPolicyQuestion(question)||isPublicDocumentRequestQuestion(question)||isPublicClubQuestion(question)||isPublicAdmissionLanguageQuestion(question)||isPublicCalendarDateQuestion(question))){
     try{
       const research=await dispatchPublicResearch(publicResearch,{method:'POST',headers:{'content-type':'application/json'},
-        body:{question,history:[],route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,
+        body:{question,history:[],route:additionalPublicGuidance?additionalPublicGuidanceRoute(route):publicFundingOrEnrollment&&/^(?:\/admissions\/?|\/school-sites\/[^?#]+)$/u.test(route)?route:'/',images:[],stream:stream.enabled,consentedResearchUse:false}},deadline,
         step=>stream.progress(step.kind,step.label,step.detail,step.status));
       stream.send(research.status,research.result);
     }catch{stream.send(503,{error:'I could not load the public procedure just now. Your personal records have not been checked.'});}
@@ -421,7 +463,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(payment){stream.send(200,payment);return;}
   const paymentHistory=selectChargePaymentHistory(requestedQuestion,route,history,now);
   if(paymentHistory){
-    if(paymentHistory.reason){stream.send(200,chargePaymentHistoryBoundary(paymentHistory));return;}
+    if(!('filter' in paymentHistory)){stream.send(200,chargePaymentHistoryBoundary(paymentHistory));return;}
     if(Array.isArray(input?.images)&&input.images.length){
       stream.send(400,{error:'Ask about your payment history using text.'});return;
     }
@@ -578,6 +620,8 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
       stream.send(200,navigation);return;
     }
   }
+  const termGuide=!(Array.isArray(input?.images)&&input.images.length)?courseSelectionTermGuide(question,route,history):null;
+  if(termGuide){stream.send(200,termGuide);return;}
   const exactSelection=selectExactCourseSelection(question,route,history);
   if(exactSelection){
     if(Array.isArray(input?.images)&&input.images.length){
@@ -1078,7 +1122,9 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
         return {...scopedSnapshot(),courses:[],charges:[],timetableReadUnavailable:true,chargeReadUnavailable:true};
       return {...timetable,...charges};
     };
-    const academicGradeView=question===requestedQuestion&&!history.length&&!notes.keys.length&&!pageContext.selected
+    const academicGradeView=isAcademicGradeOnlyQuestion(question,route,history)
+      ?academicGradesQuery(question,route,history).view||'transcript'
+      :question===requestedQuestion&&!history.length&&!notes.keys.length&&!pageContext.selected
       &&!dtmCompound&&!teachingSelection&&!housingSelection&&!applicationSelection&&!intent.baseTools.length
       ?standaloneAcademicGradeView(question,route):null;
     const loadBaseSnapshot=(initialize?:false)=>academicGradeView?loadOwnAcademicGrades(account,academicGradeView,{deadline}):housingOnly
@@ -1170,6 +1216,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   } catch(error) {
     stream.send(error instanceof AffairsWorkspaceError?error.status:503,{error:error instanceof AffairsWorkspaceError?error.message:'Your School Affairs records could not be checked.'});
   }
+  } finally {await memoryPending;}
 };
 }
 

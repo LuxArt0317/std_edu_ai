@@ -1,3 +1,13 @@
+## Guarded Answer Lab production release —25 November2026 [Issues #100/#101]
+
+`https://stu.best` now serves `61e7b02889124f84b3b5fe4da0e75b99a06633c8` from GitHub owner merge [PR103](https://github.com/LuxArt0317/std_edu_ai/pull/103), Ready as `dpl_4JpJ8m2SQnKiKdmqDiVsk2TWHugs`. The merged file tree equals the reviewed PR tree. [Quality45561021731](https://github.com/LuxArt0317/std_edu_ai/actions/runs/45561021731) passed both backend and browser jobs:2092APItests,548unit tests,1678evaluation tests (22skipped), lint/build/handoff/dependency checks,10accessibility states with zero blocking findings,394copied pages plus the native contact directory, audience navigation, boot recovery and embedded assistant checks. These browser runs use controlled fixtures.
+
+Production build checked291backend files with0runtime-import errors and exercised the actual hosted account-handler import in a JavaScript-only tree with TypeScript source absent and0liveprovider calls. Live checks verified exact release metadata, five routes including standalone Answer Lab,22JavaScript/CSSassets, unauthorized lab state/run-account401responses and missing-asset404. Saved cloud results were retained; shared-admin migration was already applied, with no new schema work.
+
+A prior rollback kept the public domain pinned even after the Git deployment reached Ready. The exact Git-built artifact was explicitly promoted, then public metadata was rechecked. No CLI source upload or author impersonation was used.
+
+Remaining acceptance: actual signed-in production lab execution and full53question quality goal remain open. Fullownerclientverification stopped before external I/O because this isolated checkout lacks `.env.owner.local`; no real user session was exported and no desktop browser was launched. Local manual server5173was preserved. Production hosting/model settings were not expanded to match the longer local evaluation budget.
+
 ## Focused assistant production release [Issue #100]
 
 The production domain and client main are at `5440ba5`. The release answers campus Wi-Fi, a semester off and class leave using the matching campus instructions. It refuses other-student profile and announcement settings requests and can retry temporarily unavailable saved venue requests under the same account. The exact Preview and production passed five streaming prompts, three Chromium conversation reloads, four public route checks and an unauthenticated denial. The build uses the existing database schema. [Quality](https://github.com/LuxArt0317/std_edu_ai/actions/runs/43789439646)

@@ -1,3 +1,4 @@
+export const assistantApi = {"description":"Save a user feedback report about an assistant response. Validated by the existing feedback endpoint.","methods":["POST"],"readMethods":[]};
 import { createHash } from "node:crypto";
 
 type ApiRequest = {

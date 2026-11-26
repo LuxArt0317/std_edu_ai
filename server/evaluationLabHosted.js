@@ -1,3 +1,4 @@
+import {resolveAccountJudgeEvidence} from './accountJudgeEvidence.js';
 import { createEvaluationLab } from "../tools/evaluation-lab/server.mjs";
 import { validateEvaluationModel } from "../tools/evaluation-lab/models.mjs";
 import { verifyAffairsToken } from "./affairsWorkspace.js";
@@ -100,6 +101,7 @@ export async function serveEvaluationLab(req, res, {accountHandler} = {}) {
     };
     const handler = createEvaluationLab(process.cwd(), {
       storage,
+      resolveAccountJudgeEvidence:(run,caseSnapshot)=>resolveAccountJudgeEvidence(account,run,caseSnapshot),
       actor: { id: account.user.id, email: account.user.email },
       workspace: {
         id: "shared-answer-lab",

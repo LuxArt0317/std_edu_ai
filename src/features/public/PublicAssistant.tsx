@@ -1,3 +1,5 @@
+import {enqueueAssistantTurn,meaningfulAssistantUpdate,type QueuedAssistantTurn} from '../../services/assistantTurnControl';
+import {signOutAffairs} from './affairs/authClient';
 import { AssistantChatMessage } from "./AssistantChatMessage";
 import {useAssistantCommands} from './AssistantCommands';
 import {assistantLanguage} from '../../services/assistantLanguage.js';
@@ -25,7 +27,7 @@ import { changeLearningSupport } from '../../services/learningSupport';
 import { repairId } from './affairs/facilityRepair.js';
 import { learningSupportPath, leavePath } from './affairs/studentServices.js';
 import { studentLeaveDraftAction, validStudentLeaveDraft } from '../../../server/studentLeaveDraft.js';
-import { performSchoolAffairsAction } from "../../services/schoolAffairsWorkspace";
+import { performSchoolAffairsAction, confirmApplicationApiToolAction } from "../../services/schoolAffairsWorkspace";
 import { finishAssistantActivity, mergeAssistantActivity, mergeFinalAssistantActivity, type AssistantMessage } from "../../services/assistantConversation";
 import {useAssistantSessions} from './useAssistantSessions';
 import {assistantPageRoute} from '../../services/assistantPageRoute.js';
@@ -56,6 +58,11 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     [busy, setBusy] = useState(false),
     [actionBusy, setActionBusy] = useState<string | null>(null),
     [error, setError] = useState("");
+  const [queued,setQueued]=useState<QueuedAssistantTurn[]>([]);
+  const [clarification,setClarification]=useState('');
+  const [awaitingReply,setAwaitingReply]=useState(false);
+  const queueRef=useRef<QueuedAssistantTurn[]>([]);
+  const runningRef=useRef(false);
   const {messages,setMessages}=sessions;
   const commands=useAssistantCommands(query,setQuery);
   const latestUser=messages.filter(message=>message.role==='user').at(-1)?.content||'';
@@ -88,6 +95,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     setError("");
     setBusy(false);
     setActionBusy(null);
+    queueRef.current=[];setQueued([]);runningRef.current=false;setClarification('');setAwaitingReply(false);
   }, [scope,sessions.active?.id]);
   useEffect(() => {
     if (!embedded) return;
@@ -103,11 +111,26 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
       behavior: "smooth",
     });
   }, [messages, busy]);
-  async function send(text = query) {
+  useEffect(()=>{
+    if(busy||awaitingReply||runningRef.current||!queued.length||!scope||sessions.loadingChat||!sessions.active)return;
+    const [next,...rest]=queueRef.current;if(!next)return;
+    queueRef.current=rest;setQueued(rest);
+    void send(next.text,{attached:next.images});
+  },[busy,awaitingReply,queued,scope,sessions.loadingChat,sessions.active?.id]);
+  function submit(){
+    const text=query.trim()||(images.length?'Please explain the attached image.':'');
+    if(!text)return;
+    if(runningRef.current){
+      try{queueRef.current=enqueueAssistantTurn(queueRef.current,{id:crypto.randomUUID(),text,images:[...images]});setQueued(queueRef.current);setQuery('');setImages([]);}catch(reason){setError(reason instanceof Error?reason.message:'Unable to queue message.');}return;
+    }
+    void send(text);
+  }
+  async function send(text = query,options:{attached?:Array<{name:string;dataUrl:string}>}={}) {
     if(commands.consumeCommand(text))return;
-    const attached = images;
+    const attached = options.attached||images;
     const question = text.trim() || (attached.length ? "Please explain the attached image." : "");
-    if (!question || busy || !scope || !sessions.active || sessions.loadingChat) return;
+    if (!question || runningRef.current || !scope || !sessions.active || sessions.loadingChat) return;
+    runningRef.current=true;setClarification('');setAwaitingReply(false);
     const request = ++sequence.current,
       controller = new AbortController();
     const turnId = window.crypto.randomUUID(), answerId = `a-${turnId}`;
@@ -115,26 +138,51 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
     setMessages((old) => [
       ...old,
       { id: `u-${turnId}`, role: "user", content: question, images:attached },
-      { id: answerId, role: "assistant", content: "", phase:'working', activity:[] },
+      { id: answerId, role: "assistant", content: "", updates:[{id:'initial',text:assistantLanguage(question,messages)==='en'?'I’m on it.':'我來確認一下。'}], phase:'working', activity:[] },
     ]);
-    setQuery("");
-    setImages([]);
+    if(options.attached===undefined){setQuery("");setImages([]);}
     setError("");
     setBusy(true);
+    let commentaryBusy=false,commentaryAttempt=0,lastCommentaryAt=Date.now(),progressUpdates=0;
+    const commentaryController=new AbortController();
+    const commentary:Array<{id:string;text:string}>=[];
+    let currentActivity:AssistantProgress[]=[];
+    const updateCommentary=async()=>{
+      if(commentaryBusy||controller.signal.aborted||commentaryController.signal.aborted)return;
+      commentaryBusy=true;
+      try{
+        const response=await fetch('/api/research-assistant?resource=conversation-update',{method:'POST',headers:{'Content-Type':'application/json'},signal:AbortSignal.any([commentaryController.signal,AbortSignal.timeout(9000)]),body:JSON.stringify({question,phase:commentaryAttempt++?'progress':'acknowledgment',history:messages.slice(-6).map(m=>({role:m.role,content:m.content})),activity:currentActivity,prior:commentary.map(m=>m.text)})});
+        if(!response.ok||response.status===204)return;
+        const value=await response.json();
+        if(typeof value.text!=='string'||!value.text.trim()||request!==sequence.current||controller.signal.aborted||commentaryController.signal.aborted||commentary.some(u=>u.text===value.text))return;
+        const update={id:commentaryAttempt===1?'initial':window.crypto.randomUUID(),text:value.text.slice(0,360)};commentary.push(update);
+        setMessages(old=>old.map(item=>item.id===answerId&&item.phase==='working'?{...item,updates:[...(item.updates||[]).filter(u=>u.id!==update.id),update].slice(-12)}:item));
+      }catch{/* Failed commentary must never interrupt the actual answer. */}finally{commentaryBusy=false;}
+    };
+    void updateCommentary();
+
     try {
       const route=assistantPageRoute(embedded);
       const onProgress=(step:AssistantProgress)=>{
         if (request !== sequence.current || controller.signal.aborted) return;
+        currentActivity=mergeAssistantActivity(currentActivity,[step]);
+        if(step.kind==='clarification-request')setClarification(step.detail);
+        if(meaningfulAssistantUpdate(step)&&step.kind!=='clarification-request'&&Date.now()-lastCommentaryAt>45000&&progressUpdates<2&&!commentaryBusy){
+          lastCommentaryAt=Date.now();progressUpdates++;void updateCommentary();
+        }
         setMessages(old=>old.map(item=>item.id===answerId?{...item,activity:mergeAssistantActivity(item.activity,[step])}:item));
       };
-      const result = await askWebsiteAssistant({userId:user?.id,question,history:messages,signal:controller.signal,images:attached,route,onProgress,preferences:commands.preferences});
-      if (request === sequence.current && !controller.signal.aborted)
+      const result = await askWebsiteAssistant({userId:user?.id,question,history:messages.filter(m=>m.phase!=='working'),signal:controller.signal,images:attached,route,onProgress,preferences:commands.preferences});
+      if (request === sequence.current && !controller.signal.aborted){
+        setAwaitingReply(result.status==='clarification');
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'complete',content:result.answer,result,activity:finishAssistantActivity(mergeFinalAssistantActivity(item.activity,result.activity))}:item));
+      }
     } catch (reason) {
       if (request === sequence.current && !controller.signal.aborted)
         setMessages(old=>old.map(item=>item.id===answerId?{...item,phase:'error',content:reason instanceof Error?reason.message:'Please try again.',activity:finishAssistantActivity(item.activity||[],true)}:item));
     } finally {
-      if (request === sequence.current) setBusy(false);
+      commentaryController.abort();
+      if (request === sequence.current){pending.current=null;runningRef.current=false;setBusy(false);setClarification('');}
     }
   }
   async function addImages(files: FileList | null) {
@@ -172,7 +220,10 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         :['set_assignment_status','cancel_club_equipment','counseling_cancel','cancel_facility_repair','withdraw_learning_support'].includes(kind)?payload.id
         :kind==='update_display_name'?user.id:undefined;
       let result;
-      if(kind==='cancel_club_equipment'||kind==='counseling_cancel'){
+      if(kind==='invoke_application_api'){
+        if(!clubUuid.test(requestId)||typeof payload.confirmationToken!=='string')throw new Error('Ask for a new action review.');
+        result=await confirmApplicationApiToolAction(requestId,payload.confirmationToken,{expectedUserId:user.id,signal});
+      }else if(kind==='cancel_club_equipment'||kind==='counseling_cancel'){
         const expected_version=Number(payload.expected_version);
         if(!clubUuid.test(requestId)||!clubUuid.test(payload.id)||!/^\d{1,6}$/u.test(payload.expected_version)||expected_version<1)
           throw new Error('This action needs a new review. Ask again before applying it.');
@@ -212,7 +263,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         ...item,
         content:`${item.content}\n\n✓ ${summary}. [View updated records](${action.url||'/school-affairs/records'}).`,
         result:item.result?{...item.result,proposedAction:undefined}:undefined,
-        activity:mergeAssistantActivity(item.activity,[{kind:'action',label:'Updated your stu.best record',detail:result.summary,status:'complete'}]),
+        activity:mergeAssistantActivity(item.activity,[{kind:'action',label:kind==='invoke_application_api'?'Application API responded':'Updated your stu.best record',detail:result.summary,status:'complete'}]),
       }:item));
       window.dispatchEvent(new Event('school-affairs:updated'));
     } catch(reason) {
@@ -261,7 +312,7 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         <header className="border-b px-5 py-5 pr-12">
           <SheetTitle>{english?"Campus assistant":"校園助理"}</SheetTitle>
           <SheetDescription id="public-assistant-description" className="mt-2">
-            {user ? "Ask about your stu.best School Affairs records, or request an action. Sample courses and grades are clearly labeled; actions need your review." : "Ask about School Affairs services and public school information. Sign in to ask about your stu.best records."}
+            {user ? "Ask about your stu.best School Affairs records, or request an action. Actions need your review." : "Ask about School Affairs services and public school information. Sign in to ask about your stu.best records."}
           </SheetDescription>
         </header>
         <div className="flex items-center justify-between gap-3 border-b px-5 py-2 text-sm">
@@ -270,8 +321,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
             href="/school-affairs/login"
             target={embedded ? "_top" : undefined}
           >
-            {user ? "School Affairs account" : "School Affairs sign in"}
+            {user ? `Signed in as ${user.email || "your School Affairs account"}` : loading ? "Checking sign-in…" : "Signed out · Sign in"}
           </a>
+          {user?<Button size="sm" variant="outline" onClick={async()=>{
+            sequence.current++;pending.current?.abort();pendingAction.current?.abort();queueRef.current=[];setQueued([]);runningRef.current=false;setAwaitingReply(false);setBusy(false);setActionBusy(null);
+            try{await signOutAffairs();}catch(reason){setError(reason instanceof Error?reason.message:'Sign out failed.');}
+          }}>Sign out</Button>:null}
           <Button
             size="sm"
             variant="ghost"
@@ -332,9 +387,12 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
           className="space-y-3 border-t p-4"
           onSubmit={(event) => {
             event.preventDefault();
-            void send();
+            submit();
           }}
         >
+          {awaitingReply&&<p role="status" className="text-sm">Waiting for your reply. Queued messages are paused.</p>}
+          {queued.length>0&&<div className="space-y-1 text-sm" aria-label="Queued messages"><p className="font-medium">Queued · {queued.length} (sent in order after this answer)</p>{queued.map(turn=><div key={turn.id} className="flex items-center gap-2 rounded border px-2 py-1"><span className="min-w-0 flex-1 truncate">{turn.text}{turn.images.length?` · ${turn.images.length} attachments`:''}</span>{awaitingReply&&!busy&&<Button type="button" size="sm" variant="outline" onClick={()=>{queueRef.current=queueRef.current.filter(t=>t.id!==turn.id);setQueued(queueRef.current);void send(turn.text,{attached:turn.images});}}>Use as reply</Button>}<Button type="button" variant="ghost" size="icon" aria-label={`Remove queued message: ${turn.text.slice(0,50)}`} onClick={()=>{queueRef.current=queueRef.current.filter(t=>t.id!==turn.id);setQueued(queueRef.current);}}><X size={14}/></Button></div>)}</div>}
+          {clarification&&busy&&<p role="status" className="rounded border p-2 text-sm">{clarification} Wait for this request to pause, then reply below.</p>}
           {error ? (
             <p role="alert" className="text-sm text-destructive">
               {error}
@@ -363,15 +421,15 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
                 !event.nativeEvent.isComposing
               ) {
                 event.preventDefault();
-                void send();
+                submit();
               }
             }}
           />
           {commands.controls}
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2"><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="Attach images" onChange={event=>void addImages(event.target.files)}/><Button type="button" variant="outline" size="icon" aria-label="Attach images" disabled={busy} onClick={()=>fileInput.current?.click()}><Paperclip size={16}/></Button><span className="text-xs text-muted-foreground">Enter to send · Shift+Enter for a new line</span></div>
-            <Button type="submit" disabled={!scope || !sessions.active || sessions.loadingChat || busy || (!query.trim() && !images.length)}>
-              <Send size={16} /> Send
+            <div className="flex items-center gap-2"><input ref={fileInput} type="file" accept="image/png,image/jpeg,image/webp" multiple className="sr-only" aria-label="Attach images" onChange={event=>void addImages(event.target.files)}/><Button type="button" variant="outline" size="icon" aria-label="Attach images" onClick={()=>fileInput.current?.click()}><Paperclip size={16}/></Button><span className="text-xs text-muted-foreground">{busy?'Enter to queue · Sent after this answer':'Enter to send · Shift+Enter for a new line'}</span></div>
+            <Button type="submit" disabled={!scope || !sessions.active || sessions.loadingChat || (!query.trim() && !images.length)}>
+              <Send size={16} /> {busy?'Queue message':awaitingReply?'Reply':'Send'}
             </Button>
           </div>
         </form>

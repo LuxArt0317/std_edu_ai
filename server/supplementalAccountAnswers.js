@@ -474,6 +474,21 @@ function validateGradeCells(value,item=false){
   if(item&&(!gradeId(value.id)||!gradeString(value.label,320)||!value.label.trim()||![null,'assignment'].includes(value.activityKind)))invalid();
 }
 function validateGradePayload(envelope,p,evidence){
+  if(evidence.provenance==='imported'){
+    const keys=['collection','sourceMode','readState','checkedAt','selection','courses','counts','courseCoverage','complete','excerpted','rules',...(own(p,'literalTables')?['literalTables']:[]),...(own(p,'reportUrl')?['reportUrl']:[])];
+    if(!exact(p,keys)||p.collection!=='dtmGradeReport'||p.sourceMode!=='imported'||p.readState!=='ok'||envelope.readState!=='ok'||envelope.reason!==null
+      ||!exact(p.selection,['view'])||p.selection.view!=='overview'||p.complete!==true||p.excerpted!==false||typeof p.rules!=='string'
+      ||!Array.isArray(p.courses)||p.courses.length>500||!exact(p.counts,['available','matching','included','omitted'])
+      ||!integer(p.counts.available)||p.counts.matching!==p.courses.length||p.counts.included!==p.courses.length||p.counts.omitted!==0||p.counts.available<p.courses.length
+      ||!exact(p.courseCoverage,['loaded','complete','moreAvailable'])||p.courseCoverage.loaded!==p.counts.available||p.courseCoverage.complete!==true||p.courseCoverage.moreAvailable!==false)invalid();
+    const seen=new Set();for(const c of p.courses){if(!exact(c,['courseId','title','code','term','gradeText','rangeText','percentageText','rankText','url'])
+      ||!/^import-[0-9]{1,12}$/.test(c.courseId)||seen.has(c.courseId)||c.url!=='/dtm/course/'+c.courseId+'/grades'
+      ||!['title','code','term'].every(k=>typeof c[k]==='string'&&c[k].length<=1000)||!['gradeText','rangeText','percentageText','rankText'].every(k=>c[k]===null||typeof c[k]==='string'&&c[k].length<=1000))invalid();seen.add(c.courseId);}
+    if(own(p,'literalTables')&&(!Array.isArray(p.literalTables)||p.literalTables.some(t=>!Array.isArray(t)||t.some(r=>!Array.isArray(r)||r.some(c=>typeof c!=='string')))))invalid();
+    if(own(p,'reportUrl')&&(p.courses.length!==1||typeof p.reportUrl!=='string'||!p.reportUrl.startsWith('/dtm/course/'+p.courses[0].courseId+'?source=')))invalid();
+    return;
+  }
+
   const base=['collection','sourceMode','readState','checkedAt','selection','provenance','counts','courseCoverage','courses','course','reportPresent','report','requiresClarification','complete','excerpted','capabilities','rules'];
   if(!exact(p,[...base,...(own(p,'unavailableReason')?['unavailableReason']:[]),...(own(p,'omittedCourseMetadata')?['omittedCourseMetadata']:[])])
     ||p.collection!=='dtmGradeReport'||p.sourceMode!=='local_demo'||evidence.provenance!=='local_demo'||p.readState!==envelope.readState
@@ -558,7 +573,7 @@ function allowedUrl(id,url){
   if(id==='account:dtmAssignment')return url==='/dtm/assignments'||typeof url==='string'&&detailRoute.test(url);
   if(id==='account:internshipRecords')return url===internshipEvidencePath||internshipEvidenceUrls.includes(url);
   if(id==='account:leaveRecords')return allowedLeaveUrl(url);
-  if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&gradeRoute.test(url);
+  if(id==='account:dtmGradeReport')return url==='/dtm/grades'||typeof url==='string'&&(gradeRoute.test(url)||/^\/dtm\/course\/import-[0-9]{1,12}\/grades$/.test(url));
   if(id==='account:aidPayments'){
     if(typeof url!=='string')return false;
     const [path,query]=url.split('?');
@@ -1039,6 +1054,17 @@ function sectionFor(parsed,question,zh){
     if(s.range)section.lead.push(t('Date range ', '日期範圍 ')+s.range.from+' – '+s.range.through);
     if(s.countOnly){
       section.lead.push(t('Matching saved leave records: ','相符的請假紀錄筆數：')+c.matching+'.');
+      section.lead.push(t('That counts request records, not approved leave days or class periods.',
+        '這是請假申請紀錄的筆數，不是已核准的請假天數或節數。'));
+      if(!s.range)section.lead.push(t('No date range was selected, so this is not a semester-specific total.',
+        '本次沒有指定日期範圍，因此不是某學期的合計。'));
+      const statuses=s.filters?.statuses;
+      if(statuses&&!statuses.included.length&&!statuses.excluded.length)
+        section.lead.push(t('The count includes matching draft, filed and withdrawn records; it does not filter by an approval decision.',
+          '筆數包含相符的草稿、已送出與已撤回紀錄，沒有依核准結果篩選。'));
+      if(/\b(?:used|taken|remaining|allowance)\b|已用|用掉|已請|已请|剩餘|剩余/iu.test(question))
+        section.lead.push(t('Do you mean requests, approved days or class periods—and for which semester or dates?',
+          '你想算的是申請筆數、已核准天數，還是課堂節數？要查哪個學期或日期範圍？'));
       return section;
     }
     if(envelope.readState==='empty'){
@@ -1494,7 +1520,7 @@ function sectionFor(parsed,question,zh){
     return section;
   }
   if(id==='account:dtmGradeReport'){
-    section.lead.push(t('Saved local_demo Moodle grade report. Values are shown as recorded.',
+    section.lead.push(p.sourceMode==='imported'?t('Imported Moodle grade report. Values are shown as recorded.','已匯入的 Moodle 成績報告，欄位照原文顯示。'):t('Saved local_demo Moodle grade report. Values are shown as recorded.',
       '已儲存的 local_demo Moodle 範例成績報告，欄位照原文顯示。'));
     if(asksAboutOfficialRecords(question))section.lead.push(t('An official transcript or live Moodle grade requires separate verification.',
       '正式成績單或 Moodle 即時成績需另行確認。'));

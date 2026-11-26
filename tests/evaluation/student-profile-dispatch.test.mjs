@@ -75,7 +75,7 @@ test('the frozen Student Profile prompts use only the verified browser and accou
       {headers:{'content-range':owner===id?'0-0/1':'*/0'}});
   };
   t.mock.method(globalThis,'fetch',fetchMock);
-  const auth={auth:{getSession:async()=>({data:{session:{user:{id:caller},access_token:caller===id?token:otherToken}},error:null})}};
+  const auth={auth:{getUser:async()=>({data:{user:{id:caller}},error:null}),getSession:async()=>({data:{session:{user:{id:caller},access_token:caller===id?token:otherToken}},error:null})}};
   const ask=await loadBrowserDispatch(auth,async(path,init)=>{
     requests.push(path);
     assert.equal(init.method,'GET');

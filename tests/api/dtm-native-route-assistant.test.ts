@@ -277,7 +277,8 @@ test('actual compiled client preserves every native question/route/history and v
     if(specifier.endsWith('dtmGradeEvidenceIntent.js'))return nativeIntent;
     if(specifier.endsWith('assistantStreamReader.js'))return {readAssistantReply};
     if(specifier.endsWith('assistantActivityBudget.js'))return {boundedAssistantText};
-    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getSession:async()=>({data:{session:{user:{id:current},access_token:'OFFLINE_BROWSER'}},error:null})}}};
+    if(specifier.endsWith('assistantDeploymentFlags.js'))return {unifiedAssistantDiscoveryEnabled:()=>false};
+    if(specifier.endsWith('/authClient'))return {affairsClient:{auth:{getUser:async()=>({data:{user:{id:current}},error:null}),getSession:async()=>({data:{session:{user:{id:current},access_token:'OFFLINE_BROWSER'}},error:null})}}};
     return new Proxy({},{get:()=>()=>false});
   },fetch:async(url:string,init:RequestInit)=>{calls.push({url,body:JSON.parse(String(init.body)),headers:init.headers});return Response.json({status:'answered',answer:'Intercepted verified API dispatch.',citations:[]});}});
   for(const row of bank){

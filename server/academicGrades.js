@@ -223,3 +223,8 @@ export function answerAcademicGrades(question,snapshot,route='',history=[]) {
   }
   return render(linesFor(blocks),footer(blocks.length,shownRows));
 }
+
+/** Select only the academic-grade family for a standalone grades question. */
+export function isAcademicGradeOnlyQuestion(question,route='',history=[]){
+ return isAcademicGradesQuestion(question,route,history)&&!/\b(?:subjects?|courses?|year level|what year|graduation|assignments?|homework|timetable|schedule|teachers?|instructors?|attendance|tuition|fees?|moodle|dtm|practice|quizzes|quiz)\b|年級|畢業|課程|科目|作業|課表|老師|出席|學費|數位教材|練習/iu.test(question);
+}
