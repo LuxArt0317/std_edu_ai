@@ -140,7 +140,7 @@ type ApiRequest = {method?:string;body?:unknown;headers:Record<string,string|str
 type ApiResponse = {status:(code:number)=>ApiResponse;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;write?:(chunk:string)=>void;end?:()=>void;flushHeaders?:()=>void};
 type PublicResearchHandler = ResearchApiHandler;
 type PublicProgress = Parameters<NonNullable<Parameters<typeof readAssistantReply>[1]>>[0];
-export const config = {maxDuration:60};
+export const config = {maxDuration:120};
 const requestWindows = new Map<string,number[]>();
 function value(input:string|string[]|undefined) {return Array.isArray(input)?input[0]:input;}
 function hasRouteControls(text:string,spaces=false):boolean {

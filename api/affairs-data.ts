@@ -70,7 +70,7 @@ import { chargePaymentAdminQuery, chargePaymentHistoryAdminScope, chargePaymentH
 type Request = {method?:string;headers:Record<string,string|string[]|undefined>;body?:unknown;query?:Record<string,string|string[]|undefined>};
 type Response = {status:(code:number)=>Response;json:(body:unknown)=>void;setHeader:(name:string,value:string)=>void;end?:(data:Buffer)=>void};
 const first=(value:string|string[]|undefined)=>Array.isArray(value)?value[0]:value;
-export const config={maxDuration:60};
+export const config={maxDuration:120};
 export default async function handler(request:Request,response:Response) {
   if(first(request.query?.resource)==='assistant-api-tools')return assistantApiToolsHandler(request,response);
   if(first(request.query?.resource)==='evaluation-lab')return serveEvaluationLab(request,response);
