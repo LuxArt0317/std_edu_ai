@@ -13,6 +13,7 @@ const fixture=()=>{
   data.courses=[current,...data.courses.filter((row:any)=>['HIS102','FUT401'].includes(row.code)),
     {...structuredClone(current),enrollmentId:evalId(5),code:'QA302',title:'Networks Fundamentals'},
     {...structuredClone(current),enrollmentId:evalId(6),code:'QA303',title:'Software Studio'}];
+  data.courses=data.courses.map((row:any)=>({...row,sourceMode:'verified'}));
   return data;
 };
 async function withPlanner(tools:string[]|Error,work:()=>Promise<void>){

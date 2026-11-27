@@ -29,7 +29,7 @@ const course={id:id(2),course:'Database Design',code:'DB701',term:'QA demo term'
 const survey={id:id(3),termId:id(4),term:course.term,phase:'midterm',questions:['PRIVATE_QUESTION'],
   opensAt:'2026-10-01T00:00:00Z',closesAt:'2026-10-31T00:00:00Z',version:1,released:true,state:'closed',
   courses:[{...course,completed:true}]};
-const enrollment={id:id(7),student_id:id(5),status:'enrolled',source_mode:'sample',section_id:id(8),student:{id:id(5),user_id:id(1)},
+const enrollment={id:id(7),student_id:id(5),status:'enrolled',source_mode:'verified',section_id:id(8),student:{id:id(5),user_id:id(1)},
   section:{id:id(8),course_id:id(9),term_id:id(4),weekday:1,starts_at:'09:00:00',ends_at:'10:30:00',room:'QA Room',
     course:{id:id(9),code:'SAVED1',title:'Current timetable class'},term:{id:id(4),label:course.term,starts_on:'2021-01-01',ends_on:'2098-12-31'}}};
 const fee={id:id(10),student_id:id(5),label:'QA Tuition',amount_due:28000,amount_paid:5000,currency:'TWD',source_mode:'sample'};

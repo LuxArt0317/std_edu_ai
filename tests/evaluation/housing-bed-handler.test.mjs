@@ -63,7 +63,7 @@ test('all housing questions exercise the real API and are graded against indepen
             readTools.add('courses');
             return range(fixture.courses.filter(item=>item.status==='enrolled').map((item,index)=>{
               const n=10+index*4;
-              return {id:id(n),student_id:id(1),status:item.status,source_mode:'sample',section_id:id(n+1),student:{id:id(1),user_id:owner},
+              return {id:id(n),student_id:id(1),status:item.status,source_mode:'verified',section_id:id(n+1),student:{id:id(1),user_id:owner},
                 section:{id:id(n+1),course_id:id(n+2),term_id:id(n+3),weekday:item.weekday,room:item.room,starts_at:item.startsAt,ends_at:item.endsAt,
                   course:{id:id(n+2),code:item.code,title:item.title},term:{id:id(n+3),label:item.term.label,starts_on:item.term.startsOn,ends_on:item.term.endsOn}}};
             }));

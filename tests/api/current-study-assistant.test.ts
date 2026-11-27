@@ -31,7 +31,7 @@ test('the narrow current-semester and year route excludes independent topics, hi
 });
 
 function enrolment(n:number,label:string,start:string,end:string){
-  return {id:id(10+n),student_id:id(2),section_id:id(20+n),status:'enrolled',source_mode:'sample',student:{id:id(2),user_id:id(1)},
+  return {id:id(10+n),student_id:id(2),section_id:id(20+n),status:'enrolled',source_mode:'verified',student:{id:id(2),user_id:id(1)},
     section:{id:id(20+n),course_id:id(30+n),term_id:id(40+n),weekday:1,starts_at:'09:00:00',ends_at:'10:30:00',room:'QA Room',
       course:{id:id(30+n),code:'STUDY'+n,title:label},term:{id:id(40+n),label:'QA term '+n,starts_on:start,ends_on:end}}};
 }

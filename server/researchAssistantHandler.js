@@ -1,3 +1,4 @@
+import {answerSocialConversation} from './socialConversation.js';
 import {answerWithApplicationApis} from './applicationApiAgent.js';
 import {guestAssistantAccess,guestSignInAnswer} from './guestAssistantAccess.js';
 import {publicAdmissionResponseNeeds} from './publicAdmissionResponseNeeds.js';
@@ -430,6 +431,7 @@ export function createResearchAssistantHandler(dependencies = {}) {
         // This handler is anonymous even when a client supplies identity claims.
         // Resolve privacy before any keyword shortcut, source lookup or progress.
         const access=!input.images.length?await (dependencies.guestAccess||guestAssistantAccess)(input.question,input.history):null;
+        if(process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!input.images.length){const social=await answerSocialConversation({question:input.question,history:input.history,deadline:assistantRequestDeadline(Date.now())});if(social){stream.send(200,social);return;}}
         if(access?.access==='personal'){stream.send(200,guestSignInAnswer(input.question));return;}
         if(process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!input.images.length){
             const result=await (dependencies.discover||answerWithApplicationApis)({account:null,question:input.question,history:input.history,route:input.route,deadline:assistantRequestDeadline(Date.now()),onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)},{unified:true,maxSteps:12});

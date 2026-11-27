@@ -478,17 +478,17 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     housing:mapHousingRecords(housingPeriods.filter(row=>row.published || housingApplications.some(item=>item.period_id===row.id) || housingAssignments.some(item=>item.period_id===row.id)),housingApplications,housingAssignments),
     profile:{userId:profile.user_id,email:profile.email,displayName:profile.preferred_name || profile.display_name,role:profile.role},
     student:student?{id:student.id,studentNumber:student.student_number,fullName:student.full_name,yearLevel:student.year_level,status:student.status,sourceMode:student.source_mode,program:programs.find(row=>row.id===student.program_id)?.name||null}:null,
-    courses:enrollments.map(enrollment=>{
+    courses:enrollments.filter(row=>row.source_mode!=='sample').map(enrollment=>{
       const section=sectionById.get(enrollment.section_id);const course=courseById.get(section?.course_id);const term=termById.get(section?.term_id);
       return {enrollmentId:enrollment.id,status:enrollment.status,sourceMode:enrollment.source_mode,
         code:course?.code||'',title:course?.title||'',credits:course?.credits||0,
         term:term?.label||'',termStartsOn:term?.starts_on||'',termEndsOn:term?.ends_on||'',instructor:section?.instructor||'',weekday:section?.weekday||null,
         startsAt:section?.starts_at||'',endsAt:section?.ends_at||'',room:section?.room||'',
-        grades:grades.filter(row=>row.enrollment_id===enrollment.id && row.released_at).map(row=>({label:row.label,score:row.score,maximum:row.maximum,sourceMode:row.source_mode})),
+        grades:grades.filter(row=>row.enrollment_id===enrollment.id && row.released_at && row.source_mode!=='sample').map(row=>({label:row.label,score:row.score,maximum:row.maximum,sourceMode:row.source_mode})),
         attendance:attendance.filter(row=>row.enrollment_id===enrollment.id).map(row=>({date:row.meeting_on,status:row.status,sourceMode:row.source_mode}))};
     }),
     charges:charges.map(mapAffairsCharge),
-    assignments:assignments.map(row=>({id:row.id,title:row.title,details:row.details,dueAt:row.due_at,status:row.status,submittedAt:row.submitted_at,sourceMode:row.source_mode,
+    assignments:assignments.filter(row=>row.source_mode!=='sample').map(row=>({id:row.id,title:row.title,details:row.details,dueAt:row.due_at,status:row.status,submittedAt:row.submitted_at,sourceMode:row.source_mode,
       enrollmentId:row.enrollment_id,dtmCourseId:row.dtm_course_id,meetingId:row.meeting_id ?? null,
       origin:row.import_key?'moodle_calendar':row.source_mode==='personal'?'manual':'sample',
       course:row.enrollment_id
@@ -506,7 +506,7 @@ export async function loadAffairsSnapshot(account, includeAdmin = false, options
     })),
     dtm:{
       sourceMode:dtmCourses.some(row=>row.source_mode==='personal')?'personal':'sample',
-      courses:dtmCourses.map(row=>({
+      courses:dtmCourses.filter(row=>row.source_mode!=='sample').map(row=>({
         id:row.id,code:row.code,title:row.title,term:row.term,role:row.role,sourceMode:row.source_mode,
         materials:dtmMaterials.filter(item=>item.course_id===row.id).map(item=>({
           id:item.id,title:item.title,kind:item.kind,summary:item.summary,position:item.position,
@@ -608,7 +608,7 @@ export async function loadOwnReleasedAssessments(account,{deadline=Date.now()+12
  ]);
  if(courses.some(row=>!sections.some(item=>item.course_id===row.id)||typeof row.code!=='string'||typeof row.title!=='string')||terms.some(row=>!sections.some(item=>item.term_id===row.id)||typeof row.label!=='string')||new Set(items.map(row=>row.id)).size!==items.length)throw new AffairsWorkspaceError('Assessment source links could not be verified.');
  if(items.some(row=>!chargeUuid.test(row.id??'')||!enrollmentIds.includes(row.enrollment_id)||typeof row.label!=='string'||row.label.length>1000||!['sample','verified'].includes(row.source_mode)||typeof row.released_at!=='string'||!Number.isFinite(Date.parse(row.released_at))||![row.score,row.maximum].every(value=>(typeof value==='number'||typeof value==='string'&&value.trim())&&Number.isFinite(Number(value)))||Number(row.score)<0||Number(row.maximum)<=0||Number(row.score)>Number(row.maximum)))throw new AffairsWorkspaceError('Assessment values could not be verified.');
- return {...empty,studentRecordFound:true,complete:all.length<=100&&items.length<=200,grades:items.slice(0,200).map(row=>{
+ return {...empty,studentRecordFound:true,complete:all.length<=100&&items.length<=200,grades:items.filter(row=>row.source_mode!=='sample').slice(0,200).map(row=>{
   const enrollment=enrollments.find(item=>item.id===row.enrollment_id),section=sections.find(item=>item.id===enrollment.section_id),course=courses.find(item=>item.id===section?.course_id),term=terms.find(item=>item.id===section?.term_id);
   return {id:row.id,label:row.label,score:Number(row.score),maximum:Number(row.maximum),sourceMode:row.source_mode,releasedAt:row.released_at,courseCode:typeof course?.code==='string'?course.code:null,courseTitle:typeof course?.title==='string'?course.title:null,term:typeof term?.label==='string'?term.label:null};
  })};

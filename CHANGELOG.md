@@ -1,6 +1,14 @@
 # Changelog
 ## Unreleased
 
+- Add source-derived semester-grouped course/grade cards with report links in shared chat/lab renderer; persist selected course views and support safe GFM tables (#122).
+
+- Route personal introductions and conversational recall before record verification; preserve user-stated attribution and remove redundant completed lookup acknowledgments (#121).
+
+- Exclude temporary academic sample subjects, practice grades and Moodle course rows from student chatbot evidence and restored record tables; retain actual imported data (#120).
+
+- Extend authenticated Moodle course discovery, term filters, literal grade details and paginated activities with exact UI links; retain retrieved evidence, check clarification necessity and seed bounded active-course context for dynamic assistant lookup (#119).
+
 - Production release hardening: preserve native service/campus routing before public guidance, isolate build flags, and update authentication/recovery regression contracts.
 
 - Replace timed chat updates with event-driven commentary; add removable queued messages and clarification replies. No steering, per user request.
@@ -1327,3 +1335,8 @@
 
 ## Local alternate grade-source recovery — Issue #109
 - Check alternative authorized API scopes before ending on an empty view; expose existing released assessment rows through a narrow owned reader. Keep grade families distinct and retain exact-reference verification.
+
+
+## Production deployment verified — 2026-11-27 (Issue #117)
+GitHub PR #118 merged as 9f939e001df2bc9d75f31d065df5e2fbc335610c. Vercel production deployment dpl_ASgfRFjjmkRUvnuAj74Dbu4WQMxT is READY; stu.best/release.json matches that exact revision. Main Quality run45876039810 and candidate run45875106948 passed. Five public routes returned200; anonymous private assistant/data requests returned401 and guest grades requested sign-in without records. Signed-in Codex browser verified immediate receipt, sequential queued contextual follow-up, private conversation persistence, and two memory snapshots across new chat/reload.
+Remaining acceptance limitation: historical recall question returned an unnecessarily broad current account-profile response instead of recalling the earlier confirmation. Memory storage is verified; useful historical recall is NOT fully accepted. Track correction under #115; #117 remains open for this acceptance gap. The local47course Moodle SQLite import is not deployed or migrated. No steering implemented.

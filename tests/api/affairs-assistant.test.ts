@@ -268,15 +268,15 @@ test('personal School Affairs question reads only the caller site records, never
   throw Error(`Unexpected external call: ${url}`);
  };
  const result=await invoke(affairsHandler,{question:'What are my current subjects?',route:'/school-affairs/menu/aca/query'},token);
- assert.equal(result.status,200,JSON.stringify({body:result.body,calls}));assert.match(result.body.answer,/SAMP101 Campus Orientation/);assert.match(result.body.answer,/sample/i);
+ assert.equal(result.status,200,JSON.stringify({body:result.body,calls}));assert.doesNotMatch(result.body.answer,/SAMP101 Campus Orientation/);assert.ok(!result.body.views?.some((v:any)=>v.rows.some((r:any)=>JSON.stringify(r).includes('SAMP101'))));
  assert.doesNotMatch(result.body.answer,/IM101|IM203|Fall Semester 2026|Nexus/);
  assert.equal(result.body.verification.status,'verified');
  assert.ok(calls.every(url=>url.startsWith('https://xiftudmvxphxcjtmfmib.supabase.co/')||url==='https://api.openai.com/v1/responses'));
  const dtm=await invoke(affairsHandler,{question:'What DTM materials do I have?',route:'/dtm'},token);
- assert.equal(dtm.status,200);assert.match(dtm.body.answer,/Getting started guide/);assert.match(dtm.body.answer,/sample/i);
+ assert.equal(dtm.status,200);assert.doesNotMatch(dtm.body.answer,/Getting started guide|DTM-SAMPLE-101/);
  overview=true;
  const account=await invoke(affairsHandler,{question:'what are all my school details',route:'/dtm'},token);
- assert.equal(account.status,200);assert.match(account.body.answer,/Sample General Studies/);assert.match(account.body.answer,/Year level: 1/u);assert.match(account.body.answer,/SAMP101/);assert.match(account.body.answer,/DTM-SAMPLE-101/);assert.doesNotMatch(account.body.answer,/student@example.com/);
+ assert.equal(account.status,200);assert.match(account.body.answer,/Sample General Studies/);assert.match(account.body.answer,/Year level: 1/u);assert.doesNotMatch(account.body.answer,/SAMP101|DTM-SAMPLE-101/);assert.doesNotMatch(account.body.answer,/student@example.com/);
  const known=await invoke(affairsHandler,{question:'what details do you know about me',route:'/school-affairs'},token);
  assert.equal(known.status,200);assert.match(known.body.answer,/Sample General Studies/);assert.match(known.body.answer,/Year level: 1/u);assert.match(known.body.answer,/sample/i);
  overview=false;
@@ -285,9 +285,9 @@ test('personal School Affairs question reads only the caller site records, never
  const tools=await invoke(affairsHandler,{question:'what tools do you have?',route:'/dtm'},token);
  assert.equal(tools.status,200);assert.match(tools.body.answer,/prepare a task or service request/);assert.match(tools.body.answer,/cannot access or change official university records/i);
  const assignments=await invoke(affairsHandler,{question:'What are my Moodle assignments?',route:'/dtm'},token);
- assert.equal(assignments.status,200);assert.match(assignments.body.answer,/Practice reflection/);assert.match(assignments.body.answer,/sample/i);
+ assert.equal(assignments.status,200);assert.doesNotMatch(assignments.body.answer,/Practice reflection/);
  const followup=await invoke(affairsHandler,{question:'how about assignments?',route:'/dtm',history:[{role:'user',content:'What are my current subjects?'}]},token);
- assert.equal(followup.status,200);assert.match(followup.body.answer,/Practice reflection/);assert.equal(followup.body.grounding.source,'account');
+ assert.equal(followup.status,200);assert.doesNotMatch(followup.body.answer,/Practice reflection/);assert.equal(followup.body.grounding.source,'account');
  const tomorrow=await invoke(affairsHandler,{question:'and tomorrow?',route:'/school-affairs',history:[{role:'user',content:'What subjects do I have today?'}]},token);
  assert.equal(tomorrow.status,200);assert.match(tomorrow.body.answer,/tomorrow/i);assert.equal(tomorrow.body.grounding.source,'account');
  const fees=await invoke(affairsHandler,{question:'how much is my tuition balance?',route:'/school-affairs'},token);
@@ -318,7 +318,7 @@ test('personal School Affairs question reads only the caller site records, never
  const events=await invokeStream({question:'What DTM materials do I have?',route:'/dtm'},token);
  assert.equal(events.at(-1)?.type,'result');
  assert.ok(events.some(event=>event.type==='progress' && event.data.kind==='verification-1' && event.data.status==='complete'));
- assert.match(events.at(-1)!.data.answer,/Getting started guide/);
+ assert.doesNotMatch(events.at(-1)!.data.answer,/Getting started guide/);
 });
 
 test('public image question accepts validated PNG and reports actual image analysis',async()=>{

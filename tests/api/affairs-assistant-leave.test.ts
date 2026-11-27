@@ -93,7 +93,7 @@ async function check(
           assert.equal(timetable,true);
           assert.equal(url.searchParams.get('student_id'),'eq.'+student);
           const recordId=(n:number)=>'11900000-0000-4000-8000-'+String(n).padStart(12,'0');
-          return Response.json([{id:recordId(401),student_id:student,section_id:recordId(402),status:'enrolled',source_mode:'sample',
+          return Response.json([{id:recordId(401),student_id:student,section_id:recordId(402),status:'enrolled',source_mode:'verified',
             student:{id:student,user_id:owner},section:{id:recordId(402),course_id:recordId(403),term_id:recordId(404),weekday:1,
               starts_at:'10:00:00',ends_at:'11:00:00',room:'QA Room',
               course:{id:recordId(403),code:'QA1',title:'Saved next class'},term:{id:recordId(404),label:'Sample term',starts_on:'2021-01-01',ends_on:'2098-12-31'}}}],

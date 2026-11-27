@@ -67,7 +67,7 @@ function ownedEnrollmentResponses(owner,studentId){
     if(course.status!=='enrolled')return [];
     const term=sampleEnrollmentManifest.terms.find(row=>row.code===course.termCode);
     const courseId=id(3,index),sectionId=id(4,index),termId=id(5,sampleEnrollmentManifest.terms.indexOf(term));
-    return [{id:id(6,index),student_id:studentId,section_id:sectionId,status:course.status,source_mode:'sample',
+    return [{id:id(6,index),student_id:studentId,section_id:sectionId,status:course.status,source_mode:'verified',
       student:{id:studentId,user_id:owner},section:{id:sectionId,course_id:courseId,term_id:termId,weekday:course.weekday,
         starts_at:course.startsAt,ends_at:course.endsAt,room:course.room,
         course:{id:courseId,code:course.code,title:course.title},

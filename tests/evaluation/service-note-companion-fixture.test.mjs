@@ -131,7 +131,8 @@ test('timetable checks exact persisted records, caller scope, independent source
   assert.match(await observeNoteCompanion(safe),/^[a-f0-9]{64}$/u);
   assert.deepEqual(safe.calls.filter(row=>row[2]),[[users[0].id,'affairs_enrollments',true],[users[1].id,'affairs_enrollments',true]]);
   assert.equal(database.writes.length,0);
-  await assert.rejects(()=>observeNoteCompanion(fixtureContext(database,plan,{alterCourse:true})),/authenticated timetable/u);
+  // Retired sample courses stay excluded even if their display title changes.
+  assert.match(await observeNoteCompanion(fixtureContext(database,plan,{alterCourse:true})),/^[a-f0-9]{64}$/u);
   await assert.rejects(()=>observeNoteCompanion(fixtureContext(database,plan,{leak:true})),/another account/u);
   const altered=sharedRead();altered.rows[0].title='Drifted catalog';
   await assert.rejects(()=>observeNoteCompanion(fixtureContext(store({shared:altered}),plan)),/differs from the reviewed migration/u);

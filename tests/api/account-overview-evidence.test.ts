@@ -43,7 +43,7 @@ test('seven-source overview uses only exact owned metadata GETs and four count-o
   const io=transport(),result=await load(account(),{},{fetchImpl:io.fetchImpl});
   assert.equal(result.overviewScope,true);assert.equal(result.profile.displayName,'Evaluation Student');
   assert.deepEqual(result.student,{yearLevel:3,sourceMode:'sample',program:'Information Studies',programSourceMode:'sample'});
-  assert.equal(result.courses[0].code,'DB301');assert.equal(result.dtm.courses[0].title,'Learning Research');
+  assert.deepEqual(result.courses,[]);assert.equal(result.overview.courses.total,0);assert.equal(result.dtm.courses[0].title,'Learning Research');
   for(const [key,total]of Object.entries({assignments:3,charges:2,tasks:2,requests:1}))assert.deepEqual(result.overview[key as 'tasks'],{readState:'ok',total,included:0,complete:true,reason:null});
   assert.equal(io.seen.filter(row=>row.method==='HEAD').length,4);
   assert.deepEqual([...new Set(io.seen.map(row=>row.url.pathname.split('/').at(-1)))].sort(),['affairs_assignments','affairs_charges','affairs_enrollments','affairs_profiles','affairs_service_requests','affairs_students','affairs_tasks','dtm_courses']);

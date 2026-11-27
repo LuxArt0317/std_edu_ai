@@ -1,3 +1,5 @@
+import {presentMoodleReply} from '../server/moodleCourseViews.js';
+import {answerSocialConversation} from '../server/socialConversation.js';
 import {openAssistantMemory} from '../server/assistantMemory.js';
 import {answerWithApplicationApis} from '../server/applicationApiAgent.js';
 import {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute} from '../server/publicSignedInDispatch.js';
@@ -355,10 +357,14 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   if(memory)history=memory.context(question,history);
   const stream=createAssistantStream(input?.stream===true,response);
   const send=stream.send.bind(stream);let memoryPending=Promise.resolve();
-  stream.send=(status,payload)=>{memoryPending=(status===200&&memory?memory.remember(question,payload).catch(()=>{console.warn('Assistant memory save unavailable',{code:'memory_store_unavailable'});}):Promise.resolve()).then(()=>send(status,payload));};
+  stream.send=(status,payload)=>{memoryPending=(status===200?presentMoodleReply(account,payload):Promise.resolve(payload)).then(async presented=>{if(status===200&&memory)try{await memory.remember(question,presented);}catch{console.warn('Assistant memory save unavailable',{code:'memory_store_unavailable'});}send(status,presented);});};
   try {
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
+  if(!hasProbe&&process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!(Array.isArray(input?.images)&&input.images.length)){
+    const social=await answerSocialConversation({question,history,deadline});
+    if(social){stream.send(200,social);return;}
+  }
   const identityQuestion=accountStatusContextQuestion(question,history);
   if(!hasProbe&&identityQuestion&&accountStatusIntent(identityQuestion)!=='displayName'&&!(Array.isArray(input?.images)&&input.images.length)){
     try{stream.send(200,await answerAccountStatus({account,question,identityQuestion,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));}

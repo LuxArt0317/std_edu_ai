@@ -206,6 +206,7 @@ test('a failed correction still abstains after two attempts and is never promote
 
 test('course-pronoun selection uses the latest bounded user antecedent, not assistant claims or another account',()=>{
   const snapshot:Record<string,any>=buildAccountFixture({now:'2026-11-13T02:00:00Z'});
+  snapshot.courses=snapshot.courses.map((row:any)=>({...row,sourceMode:'verified'}));
   snapshot.courses.push({...snapshot.courses[0],userId:EVAL_OTHER_USER_ID,instructor:'FOREIGN INSTRUCTOR'});
   for(const code of ['DB301','HIS102']){
     const evidence=accountEvidence(snapshot,['courses'],{question:'Who teaches it, and which room is it in?',history:[
@@ -233,10 +234,11 @@ test('two course antecedents produce different selected evidence and preserved c
   const question='Who teaches it, and which room is it in?',inputs:Record<string,any>[]=[];
   for(const code of ['DB301','HIS102']){
     const snapshot:Record<string,any>=buildAccountFixture({now:'2026-11-13T02:00:00Z'});
+  snapshot.courses=snapshot.courses.map((row:any)=>({...row,sourceMode:'verified'}));
     const course=snapshot.courses.find((row:any)=>row.code===code);course.instructor='Saved instructor '+code;
     const fresh=structuredClone(snapshot);fresh.courses.find((row:any)=>row.code===code).instructor='Refreshed instructor '+code;
-    const draft=`Sample stu.best course ${code}: ${course.instructor}; room ${course.room}.`;
-    const corrected=`Sample stu.best course ${code}: Refreshed instructor ${code}; room ${course.room}.`;
+    const draft=`Saved stu.best course ${code}: ${course.instructor}; room ${course.room}.`;
+    const corrected=`Saved stu.best course ${code}: Refreshed instructor ${code}; room ${course.room}.`;
     const finalReview={supported:true,answersQuestion:true,claims:[{
       claim:corrected,supported:true,evidenceId:'account:courses',quotes:[],jsonPaths:['/records/0/code','/records/0/instructor','/records/0/room','/records/0/sourceMode'],
     }]};
@@ -280,8 +282,9 @@ test('two course antecedents produce different selected evidence and preserved c
 test('all-course and cohort-plus-named follow-ups preserve their requested subjects in evidence and the final card',async()=>{
   const question='Who teaches them, and which room are they in?';
   const snapshot:Record<string,any>=buildAccountFixture({now:'2026-11-13T02:00:00Z'});
+  snapshot.courses=snapshot.courses.map((row:any)=>({...row,sourceMode:'verified'}));
   const codes=snapshot.courses.map((row:any)=>row.code);
-  const answer='Saved sample subjects: '+codes.join(', ')+'.';
+  const answer='Saved subjects: '+codes.join(', ')+'.';
   const jsonPaths=snapshot.courses.flatMap((_:any,index:number)=>['/records/'+index+'/code','/records/'+index+'/sourceMode']);
   for(const previous of ['Tell me about all my courses, including DB301','Tell me about my current courses and my course HIS102'])await mocked([
     {tools:['courses'],publicTopics:[],catalogQuery:null,action:null},

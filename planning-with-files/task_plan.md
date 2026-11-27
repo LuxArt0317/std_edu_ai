@@ -1,3 +1,26 @@
+## Publish chatbot and course UI [Issue #123]
+- [x] Verify client targets and reconcile local commits onto current production main.
+- [ ] Pass release/clean-checkout checks and publish via GitHub.
+- [ ] Verify exact live revision, privacy boundary and conversational reply.
+
+## Structured course results [Issue #122]
+- [x] Add literal-source course presentation with semester groups, grades and exact links.
+- [x] Reuse live/lab rendering; repair malformed Markdown tables.
+- [x] Verify source integrity, persistence and actual-component local UI. Broad-query model timeout recorded separately; no deployment.
+
+## Natural personal conversation [Issue #121]
+- [x] Add semantic conversational routing before record/identity workflows.
+- [x] Verify self-report acknowledgment and follow-up recall, preserve actual record routing; local only.
+
+## Remove temporary academic seeds [Issue #120]
+- [x] Exclude sample subjects and grades from backend snapshot/tool evidence and restored tables.
+- [x] Verify actual DTM data retained, types and local routes; commit locally.
+
+## Contextual Moodle records [Issue #119]
+- [x] Extend owner-scoped course discovery, term filters, grade detail and activities with exact links.
+- [x] Teach shared discovery to use course/page/conversation context and clarify material ambiguity.
+- [x] Verify isolation, selectors and data-to-link parity; restart local; no deployment.
+
 ## Production release [Issue #117]
 
 - [x] Verify client registry, authorized account and exact pending migrations.

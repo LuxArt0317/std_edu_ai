@@ -36,10 +36,10 @@ const timetableId=(n:number)=>'53010000-0000-4000-8000-'+String(n).padStart(12,'
 const timetableStudents=[{id:timetableId(631),user_id:owner},{id:timetableId(632),user_id:internshipNativeManifest.owners.B}];
 const timetableSections=[
   {code:'SAMP103',title:'Student Services Practice',sectionId:timetableId(650),courseId:timetableId(651),termId:timetableId(652),
-    weekday:5,startsAt:'10:00:00',endsAt:'11:30:00',status:'enrolled',sourceMode:'sample',room:'Sample Room 305',
+    weekday:5,startsAt:'10:00:00',endsAt:'11:30:00',status:'enrolled',sourceMode:'verified',room:'Sample Room 305',
     term:{label:'Sample Fall 2026',startsOn:'2026-09-07',endsOn:'2027-01-15'}},
   {code:'SAMP201',title:'Applied Digital Projects',sectionId:timetableId(660),courseId:timetableId(661),termId:timetableId(662),
-    weekday:2,startsAt:'14:00:00',endsAt:'15:30:00',status:'enrolled',sourceMode:'sample',room:'Sample Lab 202',
+    weekday:2,startsAt:'14:00:00',endsAt:'15:30:00',status:'enrolled',sourceMode:'verified',room:'Sample Lab 202',
     term:{label:'Sample Spring 2027',startsOn:'2027-02-15',endsOn:'2027-06-25'}},
 ];
 const publishedTimetable={
@@ -129,7 +129,7 @@ async function exercise(suffix:string,{retry=false,unverifiable=false,observed=f
         const id=(n:number)=>'53010000-0000-4000-8000-'+String(n).padStart(12,'0');
         if(timetableIssue==='unavailable')return Response.json({}, {status:503});
         if(timetableIssue==='empty')return Response.json([], {headers:{'content-range':'*/0'}});
-        const first={id:id(621),student_id:student,section_id:id(622),status:'enrolled',source_mode:'sample',
+        const first={id:id(621),student_id:student,section_id:id(622),status:'enrolled',source_mode:'verified',
           student:{id:student,user_id:owner},section:{id:id(622),course_id:id(623),term_id:id(624),weekday:2,
             starts_at:'10:10:00',ends_at:'11:00:00',room:timetableIssue==='missing-room'?'':'QA-R201',
             course:{id:id(623),code:'QAP201',title:'QA Research Practice'},

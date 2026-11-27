@@ -61,6 +61,7 @@ async function read(account,table,query,fetchImpl,observeRead){
 }
 
 function snapshot(userId,studentRecordFound,courses){
+  courses=courses.filter(row=>row.sourceMode!=='sample');
   return {profile:{userId},checkedAt:new Date().toISOString(),source:'stu.best School Affairs',officialUniversityData:false,studentRecordFound,courses,
     completeness:{courses:{scope:'owned_enrolled_timetable',returned:courses.length,complete:studentRecordFound,cap:ownAffairsTimetableLimits.rows,
       reason:studentRecordFound?null:'student_unlinked',

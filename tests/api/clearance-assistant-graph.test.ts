@@ -134,7 +134,7 @@ async function fakeTransport(options:Fixture,run:()=>Promise<void>){
     const weekday=new Date(start+'T00:00:00Z').getUTCDay()||7;
     const row=(later:boolean)=>{
       const n=later?10:0,section_id=id(6+n),course_id=id(7+n);
-      return {id:id(5+n),student_id:id(4),section_id,status:'enrolled',source_mode:'sample',
+      return {id:id(5+n),student_id:id(4),section_id,status:'enrolled',source_mode:'verified',
         student:{id:id(4),user_id:id(1)},section:{id:section_id,course_id,term_id:id(3),weekday,
           starts_at:later?'12:00:00':'10:00:00',ends_at:later?'13:00:00':'11:00:00',room:'Lab 2',
           course:{id:course_id,code:later?'QA99':'QA'+enrollmentReads,title:later?'UNRELATED_LATER_COURSE':'Campus Seminar'},

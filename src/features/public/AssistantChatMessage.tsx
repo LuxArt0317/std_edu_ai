@@ -1,3 +1,5 @@
+import {AssistantCourseResults} from "./AssistantCourseResults";
+import {academicSourceViews} from "../../../server/academicSourcePolicy.js";
 import "./AssistantChatMessage.css";
 import type { AssistantMessage as Message } from "../../services/assistantConversation";
 import { Button } from "@/components/ui/button";
@@ -23,7 +25,7 @@ function StudentLeaveDraftReview({payload}:{payload:StudentLeaveDraft}) {
 export function AssistantChatMessage({message, embedded=false, english=false, busy=false, actionBusy=null, canApply=false, readOnly=false, onApplyAction, onSuggestion}: {
  message: Message; embedded?: boolean; english?: boolean; busy?: boolean; actionBusy?: string|null; canApply?: boolean; readOnly?: boolean;
  onApplyAction?: (message: Message)=>void; onSuggestion?: (question:string)=>void;
-}) { return (
+}) { const courseView=message.result?.views?.find(view=>view.id==='moodle-courses');const firstParagraph=message.content.split(/\n\s*\n/)[0];const intro=firstParagraph.length<=400&&!firstParagraph.includes('|')?firstParagraph:'Here are the subjects returned for this request.';return (
             <article
               className={
                 message.role === "user"
@@ -34,13 +36,13 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               <p className="mb-2 text-xs font-semibold">
                 {message.role === "user" ? "You" : "Assistant"}
               </p>
-              {message.role==='assistant'&&message.updates?.map(update=><p key={update.id} className="assistant-commentary text-sm" aria-live={message.phase==='working'?'polite':undefined}>{update.text}</p>)}
-              {message.role==='assistant'&&!message.updates?.length&&message.acknowledgment&&<p className="assistant-acknowledgment text-sm">{message.acknowledgment}</p>}
+              {message.role==='assistant'&&(message.phase==='working'||message.result?.grounding?.source!=='conversation')&&message.updates?.map(update=><p key={update.id} className="assistant-commentary text-sm" aria-live={message.phase==='working'?'polite':undefined}>{update.text}</p>)}
+              {message.role==='assistant'&&(message.phase==='working'||message.result?.grounding?.source!=='conversation')&&!message.updates?.length&&message.acknowledgment&&<p className="assistant-acknowledgment text-sm">{message.acknowledgment}</p>}
               {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.role === "user" ? (
                 <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=>image.dataUrl?<img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />:<p key={image.name} className="mt-2 text-xs">Attached image · {image.name}</p>)}</>
               ) : message.phase === 'working' ? null : message.phase === 'error' ? <p role="alert" className="text-sm text-destructive">{message.content}</p> : (
-                <AssistantMarkdown>{message.content}</AssistantMarkdown>
+                courseView?<><AssistantMarkdown>{intro}</AssistantMarkdown><AssistantCourseResults view={courseView}/><details className="assistant-full-answer"><summary>Full written answer</summary><AssistantMarkdown>{message.content}</AssistantMarkdown></details></>:<AssistantMarkdown>{message.content}</AssistantMarkdown>
               )}
               {message.result?.modelSettings&&<p className="text-xs text-muted-foreground">Model setting: {message.result.modelSettings.model} · Thinking: {message.result.modelSettings.thinking}</p>}
               {message.result?.grounding?.source === "web" && <p className="text-xs text-muted-foreground">Found online · See sources below.</p>}
@@ -54,7 +56,7 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
                   : 'Not confirmed yet'}
                 {message.result.verification.status === 'verified' && message.result.grounding?.source !== 'general-guidance' && message.result.verification.attempts > 0 && ` · ${message.result.verification.attempts} ${message.result.verification.attempts === 1 ? 'check' : 'checks'}`}
               </p>}
-              {message.result?.views?.map(view=><details key={view.id} className="min-w-0 rounded-md border bg-muted/20 p-2 text-xs"><summary className="cursor-pointer font-semibold">{view.title} · {view.total} retrieved</summary><div className="mt-2 max-w-full overflow-x-auto" role="region" aria-label={view.title} tabIndex={0}><table className="w-full border-collapse text-left"><thead><tr>{view.columns.map(column=><th key={column} className="border-b p-2 whitespace-nowrap">{column}</th>)}</tr></thead><tbody>{view.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column} className="border-b p-2 align-top">{cell}</td>)}</tr>)}</tbody></table></div><p className="mt-2 text-muted-foreground">{view.rows.length<view.total?`Showing ${view.rows.length} of ${view.total} retrieved records. `:''}{view.note}</p><a className="mt-2 inline-block underline" href={view.url} target={embedded?'_top':undefined}>Open records</a></details>)}
+              {academicSourceViews(message.result?.views).filter(view=>view.id!=='moodle-courses').map(view=><details key={view.id} className="min-w-0 rounded-md border bg-muted/20 p-2 text-xs"><summary className="cursor-pointer font-semibold">{view.title} · {view.total} retrieved</summary><div className="mt-2 max-w-full overflow-x-auto" role="region" aria-label={view.title} tabIndex={0}><table className="w-full border-collapse text-left"><thead><tr>{view.columns.map(column=><th key={column} className="border-b p-2 whitespace-nowrap">{column}</th>)}</tr></thead><tbody>{view.rows.map((row,index)=><tr key={index}>{row.map((cell,column)=><td key={column} className="border-b p-2 align-top">{cell}</td>)}</tr>)}</tbody></table></div><p className="mt-2 text-muted-foreground">{view.rows.length<view.total?`Showing ${view.rows.length} of ${view.total} retrieved records. `:''}{view.note}</p><a className="mt-2 inline-block underline" href={view.url} target={embedded?'_top':undefined}>Open records</a></details>)}
               {message.result?.proposedAction && (canApply || readOnly) ? <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
                 <p className="font-semibold">Review action</p>
                 <p className="my-2 break-words">{message.result.proposedAction.label}</p>

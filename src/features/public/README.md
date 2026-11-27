@@ -43,3 +43,9 @@ Activity disclosures animate their measured height over220ms when opened or clos
 ## Context-aware commentary (Issue #114)
 
 The live assistant requests an initial model-written receipt in parallel with its main answer, then requests a brief status update on10second ticks. Only one commentary request may be active; failures, duplicates and late replies are ignored. Updates use the current question, six recent turns and actual observed activity labels, never unverified draft answers. Commentary stops when the main request ends and is bounded to12saved updates. Model latency can delay an update; it never blocks the actual answer. The static receipt phrase selector was removed.
+
+Issue #120: temporary academic sample rows are excluded from student snapshots and dynamic API evidence. Restored assistant tables hide sample subjects/grades; actual captured DTM records are retained. No database rows are deleted.
+
+Issue #121: semantic social-conversation routing acknowledges user self-reports and recalls recent user-shared context without school tools or verification badges. Current records, account authorization and actions still require their existing lookup paths. No cross-chat memory promise or personal-fact write is made. Completed social replies omit the temporary lookup acknowledgment.
+
+Issue #122: shared chat renderer supports source-derived `moodle-courses` views grouped by literal term. Answer subject names are matched to retrieved API rows; displayed marks/links are copied from records, not parsed from prose. The established grade-reader path uses the same adapter after a verified reply. Up to60selected course rows persist in browser and account conversations; other views retain12-row bounds. Full text remains expandable. `remark-gfm` and conservative collapsed-table repair handle Markdown table answers without raw HTML.
