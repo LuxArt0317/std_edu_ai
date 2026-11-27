@@ -133,3 +133,5 @@ Issue109 tests cover empty-transcript to alternate-source recovery, duplicate/re
 The activity persistence round-trip also verifies that the optional immediate acknowledgment survives authenticated save/restore (Issue #112).
 
 `conversational-updates.test.ts` checks adjacent identity follow-ups, stale-topic rejection, bounded activity-only commentary input, and persisted interim messages. Commentary is never final-answer evidence.
+
+Issue #119: contextual Moodle course/term/grade/activity API reads, exact record-link evidence admission, evidence-preserving final composition and clarification review. See `server/local-dtm/README.md` for API parameters and local-only capture limits. Focused regression coverage includes owner isolation, page context, pagination and safe destination links.

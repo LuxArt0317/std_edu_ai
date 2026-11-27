@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Extend authenticated Moodle course discovery, term filters, literal grade details and paginated activities with exact UI links; retain retrieved evidence, check clarification necessity and seed bounded active-course context for dynamic assistant lookup (#119).
+
 - Production release hardening: preserve native service/campus routing before public guidance, isolate build flags, and update authentication/recovery regression contracts.
 
 - Replace timed chat updates with event-driven commentary; add removable queued messages and clarification replies. No steering, per user request.

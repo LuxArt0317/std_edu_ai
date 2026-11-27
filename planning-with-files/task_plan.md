@@ -1,3 +1,8 @@
+## Contextual Moodle records [Issue #119]
+- [x] Extend owner-scoped course discovery, term filters, grade detail and activities with exact links.
+- [x] Teach shared discovery to use course/page/conversation context and clarify material ambiguity.
+- [x] Verify isolation, selectors and data-to-link parity; restart local; no deployment.
+
 ## Production release [Issue #117]
 
 - [x] Verify client registry, authorized account and exact pending migrations.

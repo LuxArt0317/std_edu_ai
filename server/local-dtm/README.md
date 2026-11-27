@@ -12,3 +12,17 @@ Normal library reads exclude the capture queue; only `view=coverage` returns pen
 
 
 The supplemental formatter explicitly validates imported grade payloads and local imported-course URLs separately from native local_demo reports. The complete47-course result, including evidence wrapper and URLs, is15,646bytes; the16KB bound applies to the whole result, not just the JSON source content.
+
+## Focused course API (Issue #119)
+
+The existing authenticated `scope=dtm-library` now supports:
+
+- `view=courses&q=Operating%20Systems`: match owned title/code/instructor; optional exact `term`. Multiple matches remain visible for clarification. `courseUrl` opens the subject and `url` its grades. `gradeReportAvailable` distinguishes a missing report from a blank score.
+- `view=grades&course_id=92665`: literal grade tables only, with the same grade URL used by the UI.
+- `view=activities&course_id=92665`: ordered sections, materials, forums, assignments and quizzes; availability text is retained without inventing completion status. Fifty entries per page; follow `activityPage.nextOffset` using `offset`. Captured details link directly; uncaptured details link to their owning course with `detailAvailable=false`.
+
+The planner uses the active imported-course URL and recent conversation to resolve broad follow-ups. It discovers named courses through this API; it must not infer a current term merely from lexical order. Broad grades may show available terms; singular requests with multiple genuine matches require a focused choice. All selectors retain verified-owner isolation. This is local-only until the private import is migrated to hosted storage; no extra enrollment, score, or material is fabricated.
+
+An authenticated imported-course page seeds only its own bounded captured course content through the same API before dynamic planning. This avoids losing the meaning of “this subject” and does not authorize another account or preselect a grade answer. Guests never run this seed read.
+
+When planning stops with useful evidence, the unified flow reserves composition and independent verification time instead of discarding those reads. A proposed clarification is checked against fresh evidence and recent referents before asking the user to repeat a detail.
