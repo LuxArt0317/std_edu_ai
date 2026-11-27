@@ -1,3 +1,8 @@
+## Publish chatbot and course UI [Issue #123]
+- [x] Verify client targets and reconcile local commits onto current production main.
+- [ ] Pass release/clean-checkout checks and publish via GitHub.
+- [ ] Verify exact live revision, privacy boundary and conversational reply.
+
 ## Structured course results [Issue #122]
 - [x] Add literal-source course presentation with semester groups, grades and exact links.
 - [x] Reuse live/lab rendering; repair malformed Markdown tables.
