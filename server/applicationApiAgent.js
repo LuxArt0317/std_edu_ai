@@ -1,3 +1,4 @@
+import {moodleCourseViews} from './moodleCourseViews.js';
 import {runDiscoveryGraph} from './discoveryGraph.js';
 import {searchWebsite,readWebsitePage} from './websiteDiscovery.js';
 import {guestSignInAnswer} from './guestAssistantAccess.js';
@@ -106,7 +107,7 @@ export async function answerWithApplicationApis({account,question,history=[],rou
    }catch(error){console.info('Discovery composition unavailable',{code:typeof error?.code==='string'?error.code:error?.name||'unknown',draftStatus:candidate?.status});emit('answer-compose','Answer needs more source support','The draft was not accepted; checking the available evidence again.','unavailable');observations.push({error:'The answer composer could not complete a supported draft. Reuse the evidence or identify the precise missing detail.'});return false;}}
    emit('api-answer-check','Checking the answer against sources','Comparing the draft with the retrieved evidence.','running');
    let review;try{review=await verify({question,candidate,evidence:selected,deadline:Math.min(deadline,Date.now()+30000),responseIntent});}catch{review={ok:false,reason:'review_unavailable'};}
-   if(review?.ok){emit('api-answer-check','Checked the answer against sources','The retrieved evidence supports this answer.');finalResult={...candidate,activity,verification:{status:'verified',attempts:activity.filter(a=>a.kind==='api-answer-check'&&a.status==='running').length}};return true;}
+   if(review?.ok){emit('api-answer-check','Checked the answer against sources','The retrieved evidence supports this answer.');finalResult={...candidate,views:moodleCourseViews(selected,[],candidate.answer),activity,verification:{status:'verified',attempts:activity.filter(a=>a.kind==='api-answer-check'&&a.status==='running').length}};return true;}
    emit('api-answer-check','Answer needs correction','The draft did not pass the evidence check.','unavailable');observations.push({verification:{ok:false,feedback:review?.feedback??[],missingRequestedDetails:review?.missingRequestedDetails??[],reason:review?.reason??'unverified'}});return false;
   }
   try{

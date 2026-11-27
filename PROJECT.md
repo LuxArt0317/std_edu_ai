@@ -107,3 +107,5 @@ The local original Moodle library uses built-in Node SQLite and the existing sig
 Contextual interim commentary and identity follow-up handling reuse the existing API Function and installed model transport; see [server design](server/README.md#conversational-commentary-and-identity-continuity-issue-114). No dependencies were added.
 
 Durable chatbot memory uses the existing account API and Supabase RLS, without new runtime dependencies. Configuration, privacy limits, retention and release gates: [server/README.md](server/README.md#durable-assistant-memory-115).
+
+Chat answers use `remark-gfm` for safe Markdown tables and server-derived semester/course result views. See `src/features/public/README.md` for presentation and persistence.

@@ -1,3 +1,8 @@
+## Structured course results [Issue #122]
+- [x] Add literal-source course presentation with semester groups, grades and exact links.
+- [x] Reuse live/lab rendering; repair malformed Markdown tables.
+- [x] Verify source integrity, persistence and actual-component local UI. Broad-query model timeout recorded separately; no deployment.
+
 ## Natural personal conversation [Issue #121]
 - [x] Add semantic conversational routing before record/identity workflows.
 - [x] Verify self-report acknowledgment and follow-up recall, preserve actual record routing; local only.
