@@ -18,7 +18,7 @@ const wording='Practice draft: “In [real exercise], I [your actual contributio
 
 function enrollment(index,code,title,starts,ends){
   const day=offset=>new Date(Date.now()+offset*86_400_000).toISOString().slice(0,10);
-  return {id:id(10+index),student_id:student,section_id:id(20+index),status:'enrolled',source_mode:'sample',
+  return {id:id(10+index),student_id:student,section_id:id(20+index),status:'enrolled',source_mode:'verified',
     student:{id:student,user_id:owner},section:{id:id(20+index),course_id:id(30+index),term_id:id(40+index),weekday:1,
       starts_at:'09:00:00',ends_at:'10:30:00',room:'Local room',
       course:{id:id(30+index),code,title},term:{id:id(40+index),label:'Saved term '+index,starts_on:day(starts),ends_on:day(ends)}}};
@@ -120,8 +120,8 @@ function harness(t,{courses='success',year='success',retry=false,keepRejected=fa
         coursePointers=['/records'];
       }else{
         assert.equal(course.studentRecordFound,true);
-        assert.deepEqual(course.records.map(row=>[row.code,row.title,row.sourceMode]),[['DB301','Database Design','sample']]);
-        courseText='The current subject in your saved local sample records is Database Design (DB301).';
+        assert.deepEqual(course.records.map(row=>[row.code,row.title,row.sourceMode]),[['DB301','Database Design','verified']]);
+        courseText='The current subject in your saved local records is Database Design (DB301).';
         coursePointers=['/records/0/title','/records/0/code'];
       }
       const claims=[claim('account:courses',coursePointers,courseText)];
@@ -196,7 +196,7 @@ test('the real handler reads only the caller timetable before composing and veri
   assert.ok(io.modelInputs.every(({payload})=>payload.question===frozen.question));
   assert.equal(body.verification?.status,'verified',JSON.stringify(body));
   assert.equal(body.proposedAction,undefined);
-  assert.match(body.answer,/saved local sample records/u);
+  assert.match(body.answer,/saved local records/u);
   assert.doesNotMatch(JSON.stringify(body),/HIS102|FUT401|PRIVATE_SCOPE_EMAIL|STALE_FINANCE_SENTINEL/u);
   assert.deepEqual(body.views.find(view=>view.id==='courses').rows.map(row=>row[0]),['DB301 Database Design']);
 
@@ -250,7 +250,7 @@ for(const year of ['success','failure'])test('an explicitly requested own year u
 });
 
 for(const [provider,courses,expected] of [
-  ['unavailable','success',/DB301 · Database Design.*\(sample data\)/u],
+  ['unavailable','success',/DB301 · Database Design/u],
   ['quota','empty',/no current enrollments in your saved timetable/u],
   ['missing-key','unlinked',/No student record is linked to this account/u],
   ['unavailable','failure',/couldn’t be read/u],

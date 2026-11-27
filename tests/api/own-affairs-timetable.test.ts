@@ -7,7 +7,7 @@ import {studyCalendar} from '../../server/affairsSchedule.js';
 const owner='49000000-0000-4000-8000-000000000001',student='49000000-0000-4000-8000-000000000002',foreign='49000000-0000-4000-8000-000000000003',termId='49000000-0000-4000-8000-000000000004';
 const account={user:{id:owner},url:'https://xiftudmvxphxcjtmfmib.supabase.co',key:'OFFLINE_KEY',token:'OFFLINE_CALLER'};
 const id=(family:number,index:number)=>'49000000-0000-4000-'+family+'-'+String(index).padStart(12,'0');
-const row=(index=1)=>({id:id(8100,index),student_id:student,section_id:id(8200,index),status:'enrolled',source_mode:'sample',student:{id:student,user_id:owner},
+const row=(index=1)=>({id:id(8100,index),student_id:student,section_id:id(8200,index),status:'enrolled',source_mode:'verified',student:{id:student,user_id:owner},
   section:{id:id(8200,index),course_id:id(8300,index),term_id:termId,weekday:1,starts_at:'09:00:00',ends_at:'10:30:00',room:'A101',
     course:{id:id(8300,index),code:'QA'+index,title:'QA owned course '+index},term:{id:termId,label:'QA Fall',starts_on:'2026-09-07',ends_on:'2027-01-15'}}});
 type Row=ReturnType<typeof row>;
@@ -37,7 +37,7 @@ test('actual scoped transport projects only owned timetable fields and remains c
   assert.match(select,/term:affairs_terms!affairs_sections_term_id_fkey\(id,label,starts_on,ends_on\)/u);
   assert.doesNotMatch(select,/!inner|\*|grades|attendance|instructor|credits|profiles|dtm/iu);
   assert.deepEqual(Object.keys(out.profile),['userId']);assert.equal(out.studentRecordFound,true);assert.equal(out.officialUniversityData,false);
-  assert.deepEqual(out.courses,[{enrollmentId:id(8100,1),status:'enrolled',sourceMode:'sample',code:'QA1',title:'QA owned course 1',term:'QA Fall',termStartsOn:'2026-09-07',termEndsOn:'2027-01-15',weekday:1,startsAt:'09:00',endsAt:'10:30',room:'A101'}]);
+  assert.deepEqual(out.courses,[{enrollmentId:id(8100,1),status:'enrolled',sourceMode:'verified',code:'QA1',title:'QA owned course 1',term:'QA Fall',termStartsOn:'2026-09-07',termEndsOn:'2027-01-15',weekday:1,startsAt:'09:00',endsAt:'10:30',room:'A101'}]);
   const calendar=studyCalendar(out.courses,'2026-11-15T00:00:00Z');assert.equal(calendar.next?.day,'2026-11-16');assert.equal(calendar.next?.course.code,'QA1');
   assert.equal(out.completeness.courses.complete,true);assert.match(out.completeness.courses.meaning,/No atomic multi-request snapshot/u);
   assert.doesNotMatch(JSON.stringify(out),/OFFLINE_|student_id|course_id|term_id|section_id|"total"|"count"/u);assert.equal(io.calls.length,2);
@@ -123,3 +123,4 @@ test('shared deadlines abort uncooperative transport and cancel a stalled respon
   const stalled:typeof fetch=async()=>new Response(new ReadableStream({cancel(){cancelled=true;}}));
   await rejected(load(account,{deadline:Date.now()+30},{fetchImpl:stalled}));assert.equal(cancelled,true);
 });
+test('temporary sample enrollments cannot enter direct timetable answers while real owned rows remain',async()=>{const seed=row(1);seed.source_mode='sample';const io=transport([seed,row(2)]),out=await run(io);assert.deepEqual(out.courses.map(c=>c.code),['QA2']);assert.equal(out.completeness.courses.returned,1);assert.equal(out.completeness.courses.complete,true);});

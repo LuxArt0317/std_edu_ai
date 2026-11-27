@@ -223,12 +223,14 @@ test(scenario==='overview-unavailable'?'exact four-turn conversation recovers th
     assert.ok(firstBody.activity.some(step=>step.kind==='account-overview-evidence-check'&&step.status==='complete'));
     assert.deepEqual(firstBody.citations.map(citation=>citation.chunkId),
       ['account-scope','account:profile','account:courses','account:dtm','account:assignments','account:charges','account:tasks','account:requests']);
-    assert.deepEqual(run.report.results[0].failures.map(row=>row.id),['guidance.independentReview']);assert.equal(run.report.results[0].independentReview.status,'pending');
+    assert.deepEqual(run.report.results[0].failures.map(row=>row.id),['fact.2','list.0.include.0','list.0.include.1','list.0.include.2','guidance.independentReview']);assert.equal(run.report.results[0].independentReview.status,'pending');
     assert.deepEqual(run.session.results[1].envelope.body.citations.map(row=>row.chunkId),['account-scope','account:profile','account:courses']);
     assert.deepEqual(run.session.results[2].envelope.body.citations.map(row=>row.chunkId),['account:charges']);
     assert.deepEqual(reviewEvidence,[[]]);
     assert.deepEqual(providerHistory.find(row=>row.turn===3).history,[],'Explicit interview coaching needs no previous account replies at the model provider.');assert.equal(transport.some(row=>row.turn===3),false);
-    for(const index of [1,2])assert.equal(run.report.results[index].passed,true,JSON.stringify(run.report.results[index].failures));
+    assert.equal(run.report.results[1].passed,false,'The frozen sample-subject expectation must no longer pass after seed exclusion.');
+    assert.doesNotMatch(run.session.results[1].envelope.body.answer,/SAMP101|SAMP102|SAMP103/);
+    assert.equal(run.report.results[2].passed,true,JSON.stringify(run.report.results[2].failures));
     assert.equal(run.report.results[3].independentReview.status,'pending');
     const coaching=run.session.results[3].envelope.body;
     assert.equal(coaching.grounding.source,'general-guidance');

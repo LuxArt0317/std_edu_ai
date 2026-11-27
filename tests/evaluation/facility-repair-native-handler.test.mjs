@@ -37,7 +37,7 @@ test('actual Facility Repair handler satisfies frozen read cases with the review
   ];
   for(const [index,{row,label,failed}] of observations.entries())await t.test(label,async()=>{
     t.mock.timers.setTime(Date.parse(manifest.now)+index*65_000);
-    const fixture=facilityRepairFixtureForCase(row),before=structuredClone(fixture);
+    const fixture=structuredClone(facilityRepairFixtureForCase(row));fixture.courses=fixture.courses.map(course=>({...course,sourceMode:'verified'}));const before=structuredClone(fixture);
     const calls=[],transportErrors=[],providerCalls=[];
     globalThis.fetch=async(input,init)=>{
       const url=new URL(String(input));
