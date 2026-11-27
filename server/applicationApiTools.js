@@ -1,3 +1,4 @@
+import {academicSourceRecords} from './academicSourcePolicy.js';
 import {signApiReview,validApiReview,signApiReceipt,verifiedApiReceipt,apiReviewRpc} from './applicationApiReviewStore.js';
 import {applicationApiCatalog,loadApplicationApiHandler} from './applicationApiCatalog.generated.js';
 import {createHash,randomBytes,randomUUID,timingSafeEqual} from 'node:crypto';
@@ -72,7 +73,7 @@ export async function invokeApplicationApi(account,input,{deadline=Date.now()+15
  try{await Promise.race([Promise.resolve().then(()=>handler(request,response)),new Promise((_,reject)=>{timer=setTimeout(()=>reject(new ApplicationApiToolError('API response time limit reached; action outcome may be unknown. Check records before retrying.',504)),Math.max(1,deadline-Date.now()));})]);}
  finally{clearTimeout(timer);}
  if(!finished)fail('The API returned no response.',502);
- const bounded=redactApiToolValue(binary?{binaryOmitted:true,message:'Open the native page to view or download this private file.'}:payload,account);
+ const bounded=redactApiToolValue(binary?{binaryOmitted:true,message:'Open the native page to view or download this private file.'}:academicSourceRecords(payload),account);
  return {operationId:operation.id,path:operation.path,method:operation.method,status,ok:status>=200&&status<300,...bounded};
 }
 async function actionRoot(){const root=process.env.ASSISTANT_API_ACTION_STORE;if(process.env.VERCEL||!root||!isAbsolute(root))fail('A durable action store must be configured before API mutations can be reviewed.',503);await mkdir(root,{recursive:true,mode:0o700});const stat=await lstat(root);if(stat.isSymbolicLink()||!stat.isDirectory())fail('Invalid action store.',503);await chmod(root,0o700);return root;}

@@ -43,3 +43,5 @@ Activity disclosures animate their measured height over220ms when opened or clos
 ## Context-aware commentary (Issue #114)
 
 The live assistant requests an initial model-written receipt in parallel with its main answer, then requests a brief status update on10second ticks. Only one commentary request may be active; failures, duplicates and late replies are ignored. Updates use the current question, six recent turns and actual observed activity labels, never unverified draft answers. Commentary stops when the main request ends and is bounded to12saved updates. Model latency can delay an update; it never blocks the actual answer. The static receipt phrase selector was removed.
+
+Issue #120: temporary academic sample rows are excluded from student snapshots and dynamic API evidence. Restored assistant tables hide sample subjects/grades; actual captured DTM records are retained. No database rows are deleted.

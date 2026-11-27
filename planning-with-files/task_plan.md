@@ -1,3 +1,7 @@
+## Remove temporary academic seeds [Issue #120]
+- [x] Exclude sample subjects and grades from backend snapshot/tool evidence and restored tables.
+- [x] Verify actual DTM data retained, types and local routes; commit locally.
+
 ## Contextual Moodle records [Issue #119]
 - [x] Extend owner-scoped course discovery, term filters, grade detail and activities with exact links.
 - [x] Teach shared discovery to use course/page/conversation context and clarify material ambiguity.

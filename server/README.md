@@ -467,3 +467,5 @@ Release hardening (#117): the legacy public path keeps deterministic access rout
 Production assistant and hosted-evaluation entry functions allow120seconds on the verified Fluid-enabled Vercel project. `ASSISTANT_REQUEST_BUDGET_MS=115000` keeps application work inside that limit; unified discovery uses at most90seconds and leaves fallback/response headroom. Defaults remain55seconds when the server flag is absent. The budget is server-owned, never a client argument.
 
 Issue #119: contextual Moodle course/term/grade/activity API reads, exact record-link evidence admission, evidence-preserving final composition and clarification review. See `server/local-dtm/README.md` for API parameters and local-only capture limits. Focused regression coverage includes owner isolation, page context, pagination and safe destination links.
+
+Issue #120: temporary academic sample rows are excluded from student snapshots and dynamic API evidence. Restored assistant tables hide sample subjects/grades; actual captured DTM records are retained. No database rows are deleted.

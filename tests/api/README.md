@@ -135,3 +135,5 @@ The activity persistence round-trip also verifies that the optional immediate ac
 `conversational-updates.test.ts` checks adjacent identity follow-ups, stale-topic rejection, bounded activity-only commentary input, and persisted interim messages. Commentary is never final-answer evidence.
 
 Issue #119: contextual Moodle course/term/grade/activity API reads, exact record-link evidence admission, evidence-preserving final composition and clarification review. See `server/local-dtm/README.md` for API parameters and local-only capture limits. Focused regression coverage includes owner isolation, page context, pagination and safe destination links.
+
+Issue #120: temporary academic sample rows are excluded from student snapshots and dynamic API evidence. Restored assistant tables hide sample subjects/grades; actual captured DTM records are retained. No database rows are deleted.

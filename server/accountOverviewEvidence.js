@@ -1,3 +1,4 @@
+import {academicSourceRecords} from './academicSourcePolicy.js';
 /** Read-only seven-source account overview. This is not a workspace initializer
  * or a general record loader. Counts deliberately do not retrieve private text. */
 import {AffairsWorkspaceError} from './affairsWorkspace.js';
@@ -148,6 +149,8 @@ export async function loadAccountOverviewSnapshot(account,options={},dependencie
     settle(async()=>dtmRows(await read(captured,fetchImpl,'dtm_courses',{...own('id,user_id,code,title,term,source_mode',accountOverviewLimits.dtmCourses),order:'id.asc'}),captured.userId)),
     dependentCount('affairs_assignments'),dependentCount('affairs_charges'),count('affairs_tasks','user_id',captured.userId),count('affairs_service_requests','user_id',captured.userId),
   ]);
+  if(timetable.ok)timetable.value={...timetable.value,courses:academicSourceRecords(timetable.value.courses,'courses')};
+  if(dtm.ok){const kept=academicSourceRecords(dtm.value.courses,'courses');dtm.value={...dtm.value,courses:kept,total:Math.max(kept.length,dtm.value.total-(dtm.value.courses.length-kept.length))};}
   const profileState=profile.ok&&student.ok?(profile.value||student.value?state('ok'):state('empty'))
     :profile.ok||student.ok?state('partial',null,0,'partial_read'):unavailable(profile.reason);
   const courseState=timetable.ok?(student.ok&&Boolean(student.value)!==timetable.value.studentRecordFound?unavailable('student_changed'):

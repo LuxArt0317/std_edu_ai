@@ -1,3 +1,4 @@
+import {academicSourceRecords} from './academicSourcePolicy.js';
 import {nativeAcademicCollection} from './nativeAcademicEvidence.js';
 import {academicGradesPaths,academicGradesQuery,isAcademicGradesQuestion,selectAcademicGradeCourses} from './academicGrades.js';
 import {graduationReviewPaths,graduationReviewQuery,graduationReviewNamedCourseTitles,selectGraduationReviewCourses,isGraduationReviewQuestion} from './graduationReview.js';
@@ -107,6 +108,7 @@ function nativeDefinitions(snapshot,context){
   };
 }
 export function accountRecordViews(snapshot,tools,context={}){
+  snapshot=academicSourceRecords(snapshot);
   const userId=snapshot.profile?.userId;
   const selectedRows=key=>{
     const value=selectAccountEvidence(snapshot,key,context)?.records;
