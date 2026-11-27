@@ -26,9 +26,9 @@ const events=[{version:1,status:'submitted',note:'',occurred_at:row.created_at},
   {version:3,status:'resolved',note:'Latest note',occurred_at:row.updated_at}];
 const native=()=>({userId:owner,detail:{...row},events:events.map(event=>({...event}))});
 const snapshot=()=>({checkedAt:now,profile:{userId:owner},housing:{secret:'UNRELATED HOUSING'},student:{name:'UNRELATED IDENTITY'},
-  courses:[{id:'e1000001-0000-4000-8000-000000000001',status:'enrolled',sourceMode:'sample',code:'QA301',title:'QA Timetable Workshop',credits:3,
+  courses:[{id:'e1000001-0000-4000-8000-000000000001',status:'enrolled',sourceMode:'verified',code:'QA301',title:'QA Timetable Workshop',credits:3,
     term:'Synthetic evaluation term',termStartsOn:'2026-09-01',termEndsOn:'2027-01-15',instructor:'PRIVATE INSTRUCTOR',weekday:2,startsAt:'09:10:00',endsAt:'11:00:00',room:'QA302',grades:[{feedback:'PRIVATE GRADE'}],attendance:[{note:'PRIVATE ATTENDANCE'}]},
-    {id:'e1000001-0000-4000-8000-000000000002',status:'enrolled',sourceMode:'sample',code:'QA999',title:'UNRELATED OTHER COURSE',term:'Synthetic evaluation term',termStartsOn:'2026-09-01',termEndsOn:'2027-01-15',weekday:3,startsAt:'09:00:00',endsAt:'10:00:00',room:'PRIVATE OTHER ROOM'}]});
+    {id:'e1000001-0000-4000-8000-000000000002',status:'enrolled',sourceMode:'verified',code:'QA999',title:'UNRELATED OTHER COURSE',term:'Synthetic evaluation term',termStartsOn:'2026-09-01',termEndsOn:'2027-01-15',weekday:3,startsAt:'09:00:00',endsAt:'10:00:00',room:'PRIVATE OTHER ROOM'}]});
 type HandlerDependencies=NonNullable<Parameters<typeof createAffairsAssistantHandler>[0]>;
 async function invoke(dependencies:HandlerDependencies,body:Record<string,unknown>,authenticated=true){
   const output:{status:number;body:any;events:any[];headers:Record<string,string>}={status:200,body:null,events:[],headers:{}};
