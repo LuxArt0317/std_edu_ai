@@ -120,7 +120,7 @@ async function readTimetableProjection({sql,plan,users,publishable,fetchImpl,rea
     requireProof(isDeepStrictEqual(sqlRows,ordered(expected.enrollments)),'Persisted enrollments differ from the independently authored published timetable.');
     const scoped=await loadOwnAffairsTimetable({url:origin,key:publishable,token:user.token,user:{id:user.id}},
       {expectedStudentId:studentId},{fetchImpl});
-    const courses=expected.expectedCourses.filter(row=>row.status==='enrolled').map(({credits:_credits,instructor:_instructor,...row})=>({
+    const courses=expected.expectedCourses.filter(row=>row.status==='enrolled'&&row.sourceMode!=='sample').map(({credits:_credits,instructor:_instructor,...row})=>({
       ...row,startsAt:row.startsAt.slice(0,5),endsAt:row.endsAt.slice(0,5),
     }));
     requireProof(scoped.profile.userId===user.id&&scoped.studentRecordFound&&scoped.completeness.courses.complete

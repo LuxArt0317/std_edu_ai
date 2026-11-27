@@ -39,7 +39,7 @@ test('the eight original Leave gaps grade through the real handler and owner-sco
   const binding={origin,projectRef:leaveFixtureProject,sourceRevision:'2'.repeat(40),suiteHash:'3'.repeat(64),runId,owners};
   const student={id:studentId,user_id:owners.A.id};
   const courseId=randomUUID(),termId=randomUUID(),sectionId=randomUUID(),enrollmentId=randomUUID();
-  const enrollment={id:enrollmentId,student_id:studentId,section_id:sectionId,status:'enrolled',source_mode:'sample',
+  const enrollment={id:enrollmentId,student_id:studentId,section_id:sectionId,status:'enrolled',source_mode:'verified',
     student,section:{id:sectionId,course_id:courseId,term_id:termId,weekday:7,starts_at:'08:10:00',ends_at:'09:10:00',room:'Local room',
       course:{id:courseId,code:'LEAVE701',title:'Leave evaluation next class'},
       term:{id:termId,label:'115/1',starts_on:'2026-09-01',ends_on:'2027-01-15'}}};

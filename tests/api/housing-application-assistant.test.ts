@@ -48,7 +48,7 @@ async function exercise(question:string,tools:string[],options:{route?:string;hi
       assert.equal(url.searchParams.get('student_id'),'eq.'+id(5));
       if(name==='affairs_charges')return ranged([{id:id(6),student_id:id(5),label:'QA Tuition',amount_due:28000,amount_paid:5000,currency:'TWD',source_mode:'sample'}]);
       assert.equal(name,'affairs_enrollments');
-      return ranged([{id:id(7),student_id:id(5),status:'enrolled',source_mode:'sample',section_id:id(8),student:{id:id(5),user_id:caller.user.id},
+      return ranged([{id:id(7),student_id:id(5),status:'enrolled',source_mode:'verified',section_id:id(8),student:{id:id(5),user_id:caller.user.id},
         section:{id:id(8),course_id:id(9),term_id:id(10),weekday:1,starts_at:'09:00:00',ends_at:'10:30:00',room:'QA Room',
           course:{id:id(9),code:'SAVED1',title:'Saved next class'},term:{id:id(10),label:'QA term',starts_on:'2021-01-01',ends_on:'2098-12-31'}}}]);
     }

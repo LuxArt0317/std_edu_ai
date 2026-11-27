@@ -28,7 +28,7 @@ async function ask(question:string,route=housingPath,signedIn=true,history:Array
 }
 
 const ranged=(rows:unknown[])=>Response.json(rows,{headers:{'content-range':rows.length?'0-'+(rows.length-1)+'/'+rows.length:'*/0'}});
-const timetable={id:id(7),student_id:id(5),status:'enrolled',source_mode:'sample',section_id:id(8),student:{id:id(5),user_id:id(1)},
+const timetable={id:id(7),student_id:id(5),status:'enrolled',source_mode:'verified',section_id:id(8),student:{id:id(5),user_id:id(1)},
   section:{id:id(8),course_id:id(9),term_id:id(4),weekday:1,starts_at:'09:00:00',ends_at:'10:30:00',room:'QA Room',
     course:{id:id(9),code:'SAVED1',title:'Current timetable class'},term:{id:id(4),label:'QA demo term',starts_on:'2021-01-01',ends_on:'2098-12-31'}}};
 const charge={id:id(10),student_id:id(5),label:'QA Tuition',amount_due:28000,amount_paid:5000,currency:'TWD',source_mode:'sample'};
