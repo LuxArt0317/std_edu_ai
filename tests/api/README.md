@@ -137,3 +137,5 @@ The activity persistence round-trip also verifies that the optional immediate ac
 Issue #119: contextual Moodle course/term/grade/activity API reads, exact record-link evidence admission, evidence-preserving final composition and clarification review. See `server/local-dtm/README.md` for API parameters and local-only capture limits. Focused regression coverage includes owner isolation, page context, pagination and safe destination links.
 
 Issue #120: temporary academic sample rows are excluded from student snapshots and dynamic API evidence. Restored assistant tables hide sample subjects/grades; actual captured DTM records are retained. No database rows are deleted.
+
+Issue #121: semantic social-conversation routing acknowledges user self-reports and recalls recent user-shared context without school tools or verification badges. Current records, account authorization and actions still require their existing lookup paths. No cross-chat memory promise or personal-fact write is made. Completed social replies omit the temporary lookup acknowledgment.

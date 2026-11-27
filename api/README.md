@@ -172,3 +172,5 @@ With ASSISTANT_DISCOVERY_ENABLED, guest research and authenticated affairs handl
 Issue109 adds GET affairs-data?scope=released-assessments with no extra filters. The caller-owned released assessment reader supplies literal item scores and labels, separately from academic transcript and DTM report scopes. It is automatically discoverable from the API contract.
 
 Issue #119: contextual Moodle course/term/grade/activity API reads, exact record-link evidence admission, evidence-preserving final composition and clarification review. See `server/local-dtm/README.md` for API parameters and local-only capture limits. Focused regression coverage includes owner isolation, page context, pagination and safe destination links.
+
+Issue #121: semantic social-conversation routing acknowledges user self-reports and recalls recent user-shared context without school tools or verification badges. Current records, account authorization and actions still require their existing lookup paths. No cross-chat memory promise or personal-fact write is made. Completed social replies omit the temporary lookup acknowledgment.

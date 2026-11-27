@@ -1,3 +1,7 @@
+## Natural personal conversation [Issue #121]
+- [x] Add semantic conversational routing before record/identity workflows.
+- [x] Verify self-report acknowledgment and follow-up recall, preserve actual record routing; local only.
+
 ## Remove temporary academic seeds [Issue #120]
 - [x] Exclude sample subjects and grades from backend snapshot/tool evidence and restored tables.
 - [x] Verify actual DTM data retained, types and local routes; commit locally.

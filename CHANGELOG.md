@@ -1,6 +1,8 @@
 # Changelog
 ## Unreleased
 
+- Route personal introductions and conversational recall before record verification; preserve user-stated attribution and remove redundant completed lookup acknowledgments (#121).
+
 - Exclude temporary academic sample subjects, practice grades and Moodle course rows from student chatbot evidence and restored record tables; retain actual imported data (#120).
 
 - Extend authenticated Moodle course discovery, term filters, literal grade details and paginated activities with exact UI links; retain retrieved evidence, check clarification necessity and seed bounded active-course context for dynamic assistant lookup (#119).

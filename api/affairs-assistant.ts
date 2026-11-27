@@ -1,3 +1,4 @@
+import {answerSocialConversation} from '../server/socialConversation.js';
 import {openAssistantMemory} from '../server/assistantMemory.js';
 import {answerWithApplicationApis} from '../server/applicationApiAgent.js';
 import {isAdditionalPublicGuidanceQuestion,additionalPublicGuidanceRoute} from '../server/publicSignedInDispatch.js';
@@ -359,6 +360,10 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   try {
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
+  if(!hasProbe&&process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!(Array.isArray(input?.images)&&input.images.length)){
+    const social=await answerSocialConversation({question,history,deadline});
+    if(social){stream.send(200,social);return;}
+  }
   const identityQuestion=accountStatusContextQuestion(question,history);
   if(!hasProbe&&identityQuestion&&accountStatusIntent(identityQuestion)!=='displayName'&&!(Array.isArray(input?.images)&&input.images.length)){
     try{stream.send(200,await answerAccountStatus({account,question,identityQuestion,history,route,deadline,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)}));}

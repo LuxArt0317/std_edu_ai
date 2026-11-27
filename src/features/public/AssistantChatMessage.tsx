@@ -35,8 +35,8 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
               <p className="mb-2 text-xs font-semibold">
                 {message.role === "user" ? "You" : "Assistant"}
               </p>
-              {message.role==='assistant'&&message.updates?.map(update=><p key={update.id} className="assistant-commentary text-sm" aria-live={message.phase==='working'?'polite':undefined}>{update.text}</p>)}
-              {message.role==='assistant'&&!message.updates?.length&&message.acknowledgment&&<p className="assistant-acknowledgment text-sm">{message.acknowledgment}</p>}
+              {message.role==='assistant'&&(message.phase==='working'||message.result?.grounding?.source!=='conversation')&&message.updates?.map(update=><p key={update.id} className="assistant-commentary text-sm" aria-live={message.phase==='working'?'polite':undefined}>{update.text}</p>)}
+              {message.role==='assistant'&&(message.phase==='working'||message.result?.grounding?.source!=='conversation')&&!message.updates?.length&&message.acknowledgment&&<p className="assistant-acknowledgment text-sm">{message.acknowledgment}</p>}
               {message.role === 'assistant' ? <ActivityTimeline message={message} /> : null}
               {message.role === "user" ? (
                 <><p className="whitespace-pre-wrap text-sm [overflow-wrap:anywhere]">{message.content}</p>{message.images?.map(image=>image.dataUrl?<img key={image.name} src={image.dataUrl} alt={`Attached ${image.name}`} className="mt-2 max-h-40 max-w-full rounded-md object-contain" />:<p key={image.name} className="mt-2 text-xs">Attached image · {image.name}</p>)}</>
