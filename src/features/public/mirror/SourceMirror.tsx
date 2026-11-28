@@ -45,7 +45,18 @@ export default function SourceMirror() {
   const page = findSchoolPage(pages, source);
   const documentFile = documentFiles.find(item => canonicalSchoolUrl(item.source) === source);
   const status = unavailable.find(item => item.source === source)?.status;
-  useEffect(() => { document.title = page ? `${page.title} · local copy` : "Local page not copied yet"; }, [page]);
+  const redirectSource = !page && !documentFile &&
+    (location.pathname.startsWith("/school-sites/") || status === "requires-auth-integration")
+    ? source : null;
+  useEffect(() => {
+    document.title = page ? `${page.title} · local copy` :
+      redirectSource ? "Opening university page" : "Local page not copied yet";
+    if (redirectSource) window.location.replace(redirectSource);
+  }, [page, redirectSource]);
+  if (redirectSource) return <main className="mirror-index">
+    <h1>正在開啟校方頁面 · Opening university page</h1>
+    <a href={redirectSource}>Continue to the university website</a>
+  </main>;
   return <main className="mirror-index">
     <h1>{page ? "Copied page available" : documentFile ? "本地文件 · Local document" : "此頁面尚未完成複製 · Page not copied yet"}</h1>
     {page ? <p>The copied page is a direct document. <a href={page.route}>Open the page</a> or <a href={page.file}>open the captured HTML</a>.</p>

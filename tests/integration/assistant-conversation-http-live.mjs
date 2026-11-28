@@ -564,7 +564,6 @@ export async function main(){
           dialogs:document.querySelectorAll('[role="dialog"]').length,
           pickerPresent:Boolean(document.querySelector('#assistant-conversation-picker')),
           pickerDisabled:document.querySelector('#assistant-conversation-picker')?.disabled??null,
-          optionCount:document.querySelector('#assistant-conversation-picker')?.options.length??0,
           alertCount:document.querySelectorAll('[role="alert"]').length,
         })));
         const filename='failure-'+runId+'.png';

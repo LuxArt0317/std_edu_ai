@@ -18,6 +18,36 @@ test('local Moodle import persists and isolates callers, upserts, and disables o
  await assert.rejects(importLibrary(stranger,{courses:[course],pages:[page]}),/cannot import/);await assert.rejects(readLibrary({} as never),/Sign in/);
  await importLibrary(owner,{courses:[course],pages:[{...page,text:'Updated contents'}]});assert.equal((await readLibrary(owner,{q:'Updated'})).pages[0].text,'Updated contents');assert.equal((await readLibrary(owner)).counts.pages,1);
  await assert.rejects(importLibrary(owner,{courses:[course],pages:[{...page,url:'https://evil.test/course/view.php?id=12'}]}));assert.equal((await readLibrary(owner)).counts.pages,1);
+ const quizList=await readLibrary(owner,{view:'activities',kind:'quiz'});
+ assert.equal(quizList.activityPage?.total,0);
+ const activityList=await readLibrary(owner,{view:'activities',kind:'assign'});
+ assert.equal(activityList.activityPage?.total,1);
+ assert.equal(activityList.activities?.[0].completionStatus,'unknown');
+ assert.equal(activityList.activities?.[0].availabilityState,'unknown');
+ await assert.rejects(readLibrary(owner,{view:'courses',kind:'quiz'}),/supported Moodle activity type/);
+ const before=(await readLibrary(owner,{view:'assignments'})).assignments?.[0];
+ assert.equal(before?.status,'unknown');
+ assert.equal(before?.url,null);
+ await importLibrary(owner,{courses:[course],pages:[{...page,url:page.activities[0].url,activities:[],
+   tables:[[['繳交狀態','沒有繳交作業'],['規定繳交時間','2026年 12月 1日(Tue) 00:00']]]}]});
+ const assignmentResult=await readLibrary(owner,{view:'assignments'});
+ assert.equal(assignmentResult.assignmentCoverage?.byStatus.not_submitted,1);
+ assert.equal(assignmentResult.assignments?.[0].url,'/dtm/course/import-12?source=%2Fmod%2Fassign%2Fview.php%3Fid%3D123');
+ assert.equal((await readLibrary(stranger,{view:'assignments'})).assignmentCoverage?.total,0);
+ const quizUrl='https://dtm.stu.edu.tw/mod/quiz/view.php?id=124';
+ await importLibrary(owner,{courses:[course],pages:[{...page,activities:[...page.activities,
+   {...page.activities[0],id:'module-124',title:'Midterm quiz',kind:'quiz',url:quizUrl}]}]});
+ const uncapturedQuiz=(await readLibrary(owner,{view:'quizzes'})).quizzes?.[0];
+ assert.equal(uncapturedQuiz?.detailAvailable,false);
+ assert.equal(uncapturedQuiz?.attemptStatusText,null);
+ await importLibrary(owner,{courses:[course],pages:[{...page,url:quizUrl,activities:[],
+   tables:[[['Attempt status','Finished'],['Attempts remaining','0'],['Final grade','8 / 10']]]}]});
+ const quiz=(await readLibrary(owner,{view:'quizzes',course_id:'12'})).quizzes?.[0];
+ assert.equal(quiz?.attemptStatusText,'Finished');
+ assert.equal(quiz?.attemptsRemainingText,'0');
+ assert.equal(quiz?.releasedScoreText,'8 / 10');
+ assert.match(quiz?.url??'',/quiz/);
+ assert.equal((await readLibrary(stranger,{view:'quizzes'})).quizCoverage?.total,0);
  process.env.VERCEL='1';assert.equal((await readLibrary(owner)).enabled,false);await assert.rejects(importLibrary(owner,{courses:[course],pages:[page]}),/disabled/);
  }finally{for(const [key,value]of Object.entries({LOCAL_DTM_DATABASE:old.path,LOCAL_DTM_IMPORT_EMAIL:old.email,VERCEL:old.vercel,VERCEL_ENV:old.env})){if(value===undefined)delete process.env[key];else process.env[key]=value;}rmSync(directory,{recursive:true});}
 });
@@ -37,7 +67,7 @@ test('course discovery, term selection and structured activity/grade reads share
  await importLibrary(owner,{courses:[course,other],pages:[{...page,activities},report]});
  const matches=await readLibrary(owner,{view:'courses',q:'C12',term:course.term});assert.equal(matches.courses.length,1);assert.equal(matches.pages.length,0);assert.equal(matches.courses[0].courseUrl,'/dtm/course/import-12');assert.equal(matches.courses[0].url,'/dtm/course/import-12/grades');assert.equal(matches.courses[0].gradeReportAvailable,true);assert.equal(matches.courses[0].gradeText,'85');
  const detail=await readLibrary(owner,{view:'grades',course_id:'12'});assert.equal(detail.pages.length,1);assert.equal(detail.pages[0].localUrl,matches.courses[0].url);assert.deepEqual(detail.pages[0].tables,report.tables);
- const list=await readLibrary(owner,{view:'activities',course_id:'12'});assert.equal(list.activities?.length,50);assert.equal(list.activityPage?.nextOffset,50);assert.equal(list.activities?.[0].detailAvailable,false);assert.equal(list.activities?.[0].url,matches.courses[0].courseUrl);assert.equal((await readLibrary(owner,{view:'activities',course_id:'12',offset:'50'})).activities?.length,2);
+ const list=await readLibrary(owner,{view:'activities',course_id:'12'});assert.equal(list.activities?.length,50);assert.equal(list.activityPage?.nextOffset,50);assert.equal(list.activities?.[0].detailAvailable,false);assert.match(list.activities?.[0].url??'',/\?source=/);assert.equal((await readLibrary(owner,{view:'activities',course_id:'12',offset:'50'})).activities?.length,2);
  assert.equal((await readLibrary(owner,{view:'courses',term:other.term})).courses[0].gradeReportAvailable,false);
  assert.equal((await readLibrary(stranger,{view:'activities',course_id:'12'})).activities?.length,0);assert.equal((await readLibrary(owner,{course_id:'12',term:other.term})).pages.length,0);
  for(const query of [{course_id:'bad'},{term:['bad']},{offset:'-1'},{offset:'1e2'}])await assert.rejects(readLibrary(owner,query),/Invalid|Choose/);

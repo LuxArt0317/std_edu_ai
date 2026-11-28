@@ -54,3 +54,30 @@ Remaining acceptance limitation: historical recall question returned an unnecess
 2026-11-28 #122: Added shared semester-grouped Moodle course/grade UI, compact literal totals/ranges/percentages, exact report links, chronological collapsible terms (ungraded terms initially collapsed), full-answer disclosure and safe navigation. Source-only adapter matches named answer subjects to retrieved records; marks are never extracted from model prose. Both dynamic and established verified grade replies supported. Saved browser/server views retain60course rows. Installed remark-gfm (npm audit0vulnerabilities), added conservative collapsed-table repair; actual existing saved user answer now renders a real accessible table.18focused source/discovery/persistence/repair tests, API dual types, frontend types and325file runtime import lint passed. Actual-component browser visual check used21owned stored courses across2terms and showed aligned grade fields. Broad year112 model replay failed/timed out before a structured result; full broad-query generation acceptance is not claimed. Private preview server/tab disposed; local5173 restarted. No deployment.
 
 2026-11-28 #123 release verification: full API2183and unit548passed after updating obsolete sample-row fixtures. Broader evaluation replay caught direct timetable sample leak; reader now filters temporary enrollments after ownership/pagination validation. Frozen transcript gold remains unchanged; replay now explicitly records its retired sample expectations as failures, while asserting no sample codes returned. Context/coaching/repair fixtures use verified-source academic records.65focused cases passed before added direct exclusion assertion. GitHub PR124 pending rerun; production unchanged.
+
+## Production verified — 2026-11-28 [Issue #123]
+PR #124 merged as e8444d28c05f1a01c9c870a4f814a514147e57c8. Vercel dpl_6DxGHZvi4GfMUULghRdtgTsVaD2G READY; stu.best/release.json matches exactly. PR Quality46083592668 and main Quality46084143060 succeeded. Local API2184/unit548/evaluation1686pass22external-gatedskip; build and JS-only runtime packaging passed. Five public routes200, anonymous private data/assistant401. Production conversational introduction and contextual follow-up200 with no record activity or verification badge. Signed-in Codex browser rendered School Affairs and chat shell successfully. No migrations or private local Moodle SQLite upload; existing hosted data remains unchanged. Historical recall and full broad-query generation limitations remain open.
+
+- #125: Added validated source redirects for uncopied mirror pages. All eight mirror tests and TypeScript checks passed.
+
+- #126: Added public web search routing for explicit requests and separate feedback service error messages. Pending live release verification.
+
+- #126: Added contextual intent routing ahead of campus discovery. Local verification only.
+
+- #127: Shared Shu-Te reference context across model calls. Focused tests passed and the local server was restarted.
+
+- #128: Prefer verified service destinations and group citations by URL in shared chat display. Local only.
+
+- #129: Added owner-scoped Moodle assignment status projection and chatbot lookup. Local capture verifies 149 assignments, four known statuses, and 145 unknown.
+
+- #130: Audited imported activity coverage and School Affairs status scopes. Added activity filters and coverage plus assistant discovery hints. Hosted release and authenticated chat replay pending.
+
+- #131: Added owner-scoped quiz detail lookup and exam evidence guidance. 26 focused tests and API type checks passed. Personal exam schedules and live quiz details need source records.
+
+- #132: Chat picker shows last-updated timestamps and sorts newest first. Local only.
+
+- #133: Improved the conversation menu and generate topic labels from the first question. Local only.
+
+- #134: Verified exact Moodle material lookup for course 81787 and added source fallback for uncaptured content. Local only.
+
+- #135: Private production snapshot uploaded and readback verified. 47 courses and 114 pages, anonymous access denied. GitHub release verification pending.

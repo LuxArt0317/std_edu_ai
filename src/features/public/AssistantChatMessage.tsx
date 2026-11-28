@@ -25,7 +25,15 @@ function StudentLeaveDraftReview({payload}:{payload:StudentLeaveDraft}) {
 export function AssistantChatMessage({message, embedded=false, english=false, busy=false, actionBusy=null, canApply=false, readOnly=false, onApplyAction, onSuggestion}: {
  message: Message; embedded?: boolean; english?: boolean; busy?: boolean; actionBusy?: string|null; canApply?: boolean; readOnly?: boolean;
  onApplyAction?: (message: Message)=>void; onSuggestion?: (question:string)=>void;
-}) { const courseView=message.result?.views?.find(view=>view.id==='moodle-courses');const firstParagraph=message.content.split(/\n\s*\n/)[0];const intro=firstParagraph.length<=400&&!firstParagraph.includes('|')?firstParagraph:'Here are the subjects returned for this request.';return (
+}) {
+ const sources = message.result?.citations ?? [];
+ const sourcesByUrl = new Map<string, typeof sources>();
+ for (const citation of sources) {
+   const excerpts = sourcesByUrl.get(citation.url);
+   if (excerpts) excerpts.push(citation);
+   else sourcesByUrl.set(citation.url, [citation]);
+ }
+ const courseView=message.result?.views?.find(view=>view.id==='moodle-courses');const firstParagraph=message.content.split(/\n\s*\n/)[0];const intro=firstParagraph.length<=400&&!firstParagraph.includes('|')?firstParagraph:'Here are the subjects returned for this request.';return (
             <article
               className={
                 message.role === "user"
@@ -78,12 +86,12 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
                 <Button size="sm" disabled={readOnly || !!actionBusy} onClick={()=>onApplyAction?.(message)}>{actionBusy===message.id?'Applying…':'Confirm action'}</Button>
               </div> : null}
               {message.actionExpired && !message.result?.proposedAction ? <p className="rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">The earlier action review expired when this chat was restored. Ask again if you still want to do it.</p> : null}
-              {message.result?.citations.length ? (
+              {sourcesByUrl.size ? (
                 <ul
                   className="space-y-2 border-t pt-3 text-xs"
                   aria-label="Sources"
                 >
-                  {message.result.citations.map((citation) => (
+                  {Array.from(sourcesByUrl.values(), ([citation, ...otherExcerpts]) => (
                     <li key={`${citation.chunkId}:${citation.url}`}>
                       <a
                         href={citation.url}
@@ -91,10 +99,11 @@ export function AssistantChatMessage({message, embedded=false, english=false, bu
                         rel="noreferrer"
                         className="block break-words font-medium underline underline-offset-4"
                       >
-                        {citation.title}
+                        {otherExcerpts.length ? (english ? "Shared source page" : "共同來源頁面") : citation.title}
                       </a>
                       <span className="text-muted-foreground">
                         {citation.sourceName}
+                        {otherExcerpts.length ? (english ? ` · ${otherExcerpts.length + 1} excerpts` : ` · ${otherExcerpts.length + 1} 則引文`) : ""}
                         {citation.reviewedAt
                           ? ` · Reviewed ${new Date(citation.reviewedAt).toLocaleDateString()}`
                           : ""}

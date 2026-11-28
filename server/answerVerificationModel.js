@@ -1,5 +1,5 @@
 import {navigationUrlKey} from './answerNavigationUrl.js';
-import {groundedAnswerStrategy} from './assistantAnswerStrategy.js';
+import {campusReferenceContext,directNavigationContext,groundedAnswerStrategy} from './assistantAnswerStrategy.js';
 import {assistantModelOverride} from './assistantModelConfig.js';
 import {assistantLanguage} from '../src/services/assistantLanguage.js';
 import {assistantContext} from '../src/services/assistantContext.js';
@@ -88,7 +88,7 @@ export async function verificationModelCall(name, schema, instructions, input, d
     body: JSON.stringify({
       model,
       store: false, reasoning: { effort: reasoning }, max_output_tokens: review ? 8192 : importedGradesOnly ? 6000 : deeperReview ? 4096 : 2400,
-      instructions,
+      instructions: [campusReferenceContext, directNavigationContext, instructions].join(" "),
       input: [{ role: 'user', content: [
         { type: 'input_text', text: JSON.stringify(input) },
         ...images.map(image => ({ type: 'input_image', image_url: image.dataUrl, detail: 'auto' })),

@@ -1,10 +1,11 @@
+import {DropdownMenu,DropdownMenuTrigger,DropdownMenuContent,DropdownMenuItem} from "@/components/ui/dropdown-menu";
 import {enqueueAssistantTurn,meaningfulAssistantUpdate,type QueuedAssistantTurn} from '../../services/assistantTurnControl';
 import {signOutAffairs} from './affairs/authClient';
 import { AssistantChatMessage } from "./AssistantChatMessage";
 import {useAssistantCommands} from './AssistantCommands';
 import {assistantLanguage} from '../../services/assistantLanguage.js';
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, RotateCcw, Paperclip, X, Trash2 } from "lucide-react";
+import { MessageCircle, Send, RotateCcw, Paperclip, X, Trash2, ChevronDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -43,6 +44,11 @@ const questions = [
   "What DTM materials do I have?",
 ];
 export const campusAssistantOpenEvent = "stu-campus-assistant:open";
+
+const conversationDateFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
 
 export function PublicAssistant({ initialOpen = false, embedded = false, showLauncher = true }: {
   initialOpen?: boolean;
@@ -344,10 +350,31 @@ export function PublicAssistant({ initialOpen = false, embedded = false, showLau
         </div>
         <div className="space-y-1.5 border-b px-5 py-2">
           <div className="flex min-w-0 items-center gap-2">
-            <label htmlFor="assistant-conversation-picker" className="sr-only">Conversations</label>
-            <select id="assistant-conversation-picker" aria-label="Conversations" className="min-w-0 flex-1 rounded-md border bg-background px-2 py-2 text-sm" value={sessions.active?.id||''} disabled={busy||!!actionBusy||sessions.loadingChat||sessions.syncing} onChange={event=>void sessions.chooseChat(event.target.value)}>
-              {sessions.conversations.map(chat=><option key={chat.id} value={chat.id}>{chat.title}{sessions.unsavedConversationIds.includes(chat.id)?' — Save needs attention':''}</option>)}
-            </select>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button id="assistant-conversation-picker" data-conversation-id={sessions.active?.id} variant="outline" aria-label="Conversations" className="h-10 min-w-0 flex-1 justify-between"
+                  disabled={busy||!!actionBusy||sessions.loadingChat||sessions.syncing}>
+                  <span className="truncate">{sessions.active?.title||'Conversations'}</span>
+                  <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-80">
+                {sessions.conversations.map(chat=>{
+                  const updated=new Date(chat.updatedAt);
+                  const date=Number.isFinite(updated.getTime())?conversationDateFormatter.format(updated):null;
+                  const selected=chat.id===sessions.active?.id;
+                  const unsaved=sessions.unsavedConversationIds.includes(chat.id);
+                  return <DropdownMenuItem key={chat.id} data-conversation-id={chat.id} onSelect={()=>void sessions.chooseChat(chat.id)}
+                    className="grid grid-cols-[5.75rem_minmax(0,1fr)_1rem] items-start gap-2 px-2 py-2.5">
+                    <time dateTime={date?chat.updatedAt:undefined} className="text-xs text-muted-foreground">{date}</time>
+                    <span className="min-w-0 break-words font-medium">{chat.title}
+                      {unsaved&&<span className="block text-xs text-muted-foreground">Save needs attention</span>}
+                    </span>
+                    {selected&&<Check aria-label="Current conversation" className="size-4" />}
+                  </DropdownMenuItem>;
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button variant="ghost" size="icon" aria-label="Delete this conversation" disabled={busy||!!actionBusy||sessions.syncing||sessions.loadingChat||!messages.length} onClick={()=>void sessions.deleteChat()}><Trash2 className="size-4"/></Button>
           </div>
           <p className="text-xs text-muted-foreground" role="status">{sessions.loadingChat?'Loading conversation…':sessions.persistenceStatus}</p>

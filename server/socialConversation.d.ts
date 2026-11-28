@@ -1,1 +1,1 @@
-export function answerSocialConversation(context:{question:string;history?:Array<{role:string;content:string}>;deadline:number},decide?:any):Promise<any|null>;
+export function answerSocialConversation(context:{question:string;history?:Array<{role:string;content:string}>;deadline:number;allowPublicWeb?:boolean;onProgress?:(step:{kind:string;label:string;detail:string;status:"running"})=>void},decide?:any):Promise<any|null>;

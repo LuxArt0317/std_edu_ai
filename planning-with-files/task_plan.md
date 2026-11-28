@@ -1,7 +1,7 @@
 ## Publish chatbot and course UI [Issue #123]
 - [x] Verify client targets and reconcile local commits onto current production main.
-- [ ] Pass release/clean-checkout checks and publish via GitHub.
-- [ ] Verify exact live revision, privacy boundary and conversational reply.
+- [x] Pass release/clean-checkout checks and publish via GitHub PR #124.
+- [x] Verify exact live revision, privacy boundary and conversational reply.
 
 ## Structured course results [Issue #122]
 - [x] Add literal-source course presentation with semester groups, grades and exact links.
@@ -1578,3 +1578,31 @@ All53question quality goal remains open; this release does not claim full privat
 - [x] Confirm and repair graduation evidence exclusion caused by a grade/rank compound.
 - [x] Preserve independent source families, term ambiguity and no inferred eligibility/rank.
 - [ ] Run real signed-in Luna answer/Terra evaluation; authentication gate remains.
+
+## [Issue #125] University fallback for uncopied pages
+
+- [x] Keep captured pages and documents, and redirect eligible missing mirror routes.
+- [x] Run mirror tests and TypeScript checks.
+- [ ] Verify redirect after publication.
+
+- #126: Added public web search routing for explicit requests and separate feedback service error messages. Pending live release verification.
+
+- #126: Added contextual intent routing ahead of campus discovery. Local verification only.
+
+- #127: Shared Shu-Te reference context across model calls. Focused tests passed and the local server was restarted.
+
+- #128: Prefer verified service destinations and group citations by URL in shared chat display. Local only.
+
+- #129: Added owner-scoped Moodle assignment status projection and chatbot lookup. Local capture verifies 149 assignments, four known statuses, and 145 unknown.
+
+- #130: Audited imported activity coverage and School Affairs status scopes. Added activity filters and coverage plus assistant discovery hints. Hosted release and authenticated chat replay pending.
+
+- #131: Added owner-scoped quiz detail lookup and exam evidence guidance. 26 focused tests and API type checks passed. Personal exam schedules and live quiz details need source records.
+
+- #132: Chat picker shows last-updated timestamps and sorts newest first. Local only.
+
+- #133: Improved the conversation menu and generate topic labels from the first question. Local only.
+
+- #134: Verified exact Moodle material lookup for course 81787 and added source fallback for uncaptured content. Local only.
+
+- #135: Private production snapshot uploaded and readback verified. 47 courses and 114 pages, anonymous access denied. GitHub release verification pending.
