@@ -298,11 +298,12 @@ export async function runNativeBrowserAcceptance({origin,sourceRevision,fixtureA
         await dialog.getByText('Conversation saved to your private account.',{exact:true}).waitFor();
         const answer=await article.locator('.nexus-message-markdown').innerText();
         const links=await article.locator('a').evaluateAll(nodes=>[...new Set(nodes.map(node=>node.getAttribute('href')))]);
-        const observations=await observer.end(),chatId=await dialog.getByLabel('Conversations',{exact:true}).inputValue();
+        const observations=await observer.end(),chatId=await dialog.getByLabel('Conversations',{exact:true}).getAttribute('data-conversation-id');
         const persisted=await invoke('verifyConversation',[{ownerKey:testCase.ownerKey,userId:testCase.userId,chatId,question:testCase.question,answer,runId,signal}]);
         requireValue(persisted?.verified===true,'native-browser-conversation-readback');
         await page.reload({waitUntil:'domcontentloaded'});await page.getByRole('button',{name:'開啟 AI 校園助理',exact:true}).click();
-        await dialog.getByLabel('Conversations',{exact:true}).selectOption(chatId);
+        await dialog.getByLabel('Conversations',{exact:true}).click();
+        await page.getByRole('menuitem').and(page.locator(`[data-conversation-id=${JSON.stringify(chatId)}]`)).click();
         const restored=dialog.getByRole('log').locator('article').last();await restored.locator('.nexus-message-markdown').waitFor();
         const reloaded=normalize(await restored.locator('.nexus-message-markdown').innerText())===normalize(answer);
         const activity=restored.locator('details').filter({has:page.locator('summary').filter({hasText:'Activity'})}).first();

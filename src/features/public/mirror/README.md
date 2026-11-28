@@ -11,3 +11,5 @@ Run `npm run sync:school-routes` after changing `pages.json`, then `npm run buil
 The School Map capture’s transparent placeholder was repaired using the original registered publisher image. `scripts/repair-campus-map.mjs` updates its local source and asset checksums while preserving all other captured markup. The original capture date remains historical; this is an asset repair, not a claim that page content was recaptured. Other missing-media warnings remain untouched.
 
 The local asset registry includes the checksum-verified bilingual1150202 academic-rules PDF used by the assistant source projection. See [source data](../../../../server/data/README.md) for its importer and scope.
+
+Uncopied `/school-sites/` routes and catalogued university authentication gaps open their canonical university source after checking for a captured page or document. The university handles any sign-in at that destination.

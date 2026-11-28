@@ -362,7 +362,7 @@ return async function handler(request:ApiRequest,response:ApiResponse) {
   // API tools reuse actual endpoint handlers and current caller auth. Probes and
   // image-specific workflows retain their established specialized boundaries.
   if(!hasProbe&&process.env.ASSISTANT_DISCOVERY_ENABLED==='true'&&!(Array.isArray(input?.images)&&input.images.length)){
-    const social=await answerSocialConversation({question,history,deadline});
+    const social=await answerSocialConversation({question,history,deadline,allowPublicWeb:true,onProgress:step=>stream.progress(step.kind,step.label,step.detail,step.status)});
     if(social){stream.send(200,social);return;}
   }
   const identityQuestion=accountStatusContextQuestion(question,history);

@@ -84,13 +84,33 @@ export function useAssistantSessions(scope:string|null){
     },400);
     return ()=>clearTimeout(timer);
   },[scope,state,saveFailures,syncing,loadingChat,retry]);
+  const firstQuestion = active?.messages.find(message => message.role === 'user')?.content;
+  const titleCandidateId = active && firstQuestion &&
+    active.title === boundedAssistantText(firstQuestion,80) ? active.id : undefined;
+  useEffect(()=>{
+    if(!scope||!titleCandidateId||!firstQuestion)return;
+    const controller=new AbortController();
+    const fallback=boundedAssistantText(firstQuestion,80);
+    void fetch('/api/research-assistant?resource=conversation-update',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({phase:'title',question:firstQuestion.slice(0,600)}),
+      signal:AbortSignal.any([controller.signal,AbortSignal.timeout(9000)]),
+    }).then(response=>response.status===200?response.json():null).then(result=>{
+      if(controller.signal.aborted||typeof result?.title!=='string')return;
+      const title=boundedAssistantText(result.title,70).trim();
+      if(!title||title===fallback)return;
+      setState(previous=>previous.scope!==scope?previous:{...previous,chats:previous.chats.map(chat=>
+        chat.id===titleCandidateId&&chat.title===fallback?{...chat,title}:chat)});
+    }).catch(()=>{});
+    return ()=>controller.abort();
+  },[scope,titleCandidateId,firstQuestion]);
   function setMessages(update:AssistantMessage[]|((previous:AssistantMessage[])=>AssistantMessage[])){
     setState(previous=>{
       if(previous.scope!==scope)return previous;
       return {...previous,chats:previous.chats.map(chat=>{
         if(chat.id!==previous.activeId)return chat;
         const messages=recentCompleteTurns(typeof update==='function'?update(chat.messages):update);
-        return {...chat,messages,title:boundedAssistantText(messages.find(item=>item.role==='user')?.content,80)||chat.title,updatedAt:new Date().toISOString()};
+        return {...chat,messages,title:chat.messages.some(message=>message.role==='user')?chat.title:boundedAssistantText(messages.find(item=>item.role==='user')?.content,80)||chat.title,updatedAt:new Date().toISOString()};
       })};
     });
   }
@@ -134,7 +154,10 @@ export function useAssistantSessions(scope:string|null){
     }catch(error){if(epoch===generation.current)setOperationError(error instanceof Error?error.message:'Conversation could not be deleted.');}
     finally{if(epoch===generation.current){loadingRequest.current=false;setLoadingChat(false);}}
   }
-  const conversations=state.scope===scope?[...new Map([...state.remote,...state.chats].map(item=>[item.id,item])).values()]:[];
+  const conversations=state.scope===scope
+    ? [...new Map([...state.remote,...state.chats].map(item=>[item.id,item])).values()]
+        .sort((a,b)=>(Date.parse(b.updatedAt)||0)-(Date.parse(a.updatedAt)||0))
+    : [];
   const cachedStatus=(chat:AssistantSession)=>{
     const previous=cache?.scope===scope?cache.chats.find(item=>item.id===chat.id):undefined;
     return previous&&previous.messages===chat.messages&&previous.title===chat.title?cache?.result.chats[chat.id]:undefined;

@@ -151,8 +151,16 @@ export default async function handler(
       signal: AbortSignal.timeout(10_000),
     },
   );
+  if (result.status >= 500 || result.status === 401 || result.status === 403) {
+    response.status(503).json({ error: "Feedback is temporarily unavailable. Please try again later." });
+    return;
+  }
+  if (result.status === 429) {
+    response.status(429).json({ error: "Too many feedback requests. Please try again shortly." });
+    return;
+  }
   if (!result.ok) {
-    response.status(result.status === 429 ? 429 : 400).json({
+    response.status(400).json({
       error:
         "This feedback link is invalid, expired, or has already been submitted.",
     });

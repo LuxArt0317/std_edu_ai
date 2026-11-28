@@ -26,3 +26,17 @@ The planner uses the active imported-course URL and recent conversation to resol
 An authenticated imported-course page seeds only its own bounded captured course content through the same API before dynamic planning. This avoids losing the meaning of “this subject” and does not authorize another account or preselect a grade answer. Guests never run this seed read.
 
 When planning stops with useful evidence, the unified flow reserves composition and independent verification time instead of discarding those reads. A proposed clarification is checked against fresh evidence and recent referents before asking the user to repeat a detail.
+
+The owner-scoped `view=assignments` projection joins course activities to captured submission pages. Missing or unrecognized status stays unknown. Dates and statuses describe the saved capture.
+
+For activity questions, `view=activities` accepts `kind` (assign, forum, page, quiz, url, workshop, resource, folder) together with course, term and text filters. It returns literal availability text, detail capture time, source URL, a local link, and coverage across the filtered results. Completion remains unknown in this projection. Assignment submission status is available separately under `view=assignments`.
+
+The local capture contains course outlines and grade reports, four assignment detail pages, and sixteen link detail pages. It does not include quiz attempt, forum participation, or workshop submission detail pages. A listing, an availability note, or an empty local lookup cannot establish the corresponding student status.
+
+`view=quizzes` lists owned imported quizzes with optional course, term, title and offset selectors. Recognized fields from a captured detail table include opening and closing time, attempts allowed and remaining, attempt status and released grade. Uncaptured or unrecognized fields are null. Public exam windows come from the academic calendar; a personal exam slot or seat requires separate course-specific evidence.
+
+An activity with a captured outline link has an exact local activity route even if its detail page was not imported. The route offers the original university link only when it matches an activity in the signed-in owner’s course outline.
+
+Production reads owner snapshots from the private Supabase Storage bucket `private-moodle-captures` using the server-only service credential. The account ID comes from the verified School Affairs session. The runtime downloads a bounded snapshot into a request-specific temporary directory, opens it read-only, and removes it after the query. No local disk is needed to retain production data.
+
+Operators can publish an authorized, single-owner SQLite capture with `scripts/publish-moodle-capture.mjs`. Set `MOODLE_CAPTURE_PROJECT_REF` and provide the matching project URL and server credential through a protected environment. The script verifies the owner against the target project, uses SQLite backup, confirms private storage and byte-for-byte readback, and refuses to overwrite a different existing snapshot.

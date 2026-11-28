@@ -8,3 +8,34 @@ test('recall receives actual recent conversation; record and mixed requests fall
  assert.equal(await answerSocialConversation({...base,question:'My mother is Rosa. What are my grades?'},async()=>({mode:'lookup',answer:''})),null);
  assert.equal(await answerSocialConversation(base,async()=>{throw Error('offline');}),null);
 });
+
+test('public follow-ups get a standalone search query without account history', async () => {
+ const previousFetch = globalThis.fetch;
+ const previousKey = process.env.OPENAI_API_KEY;
+ process.env.OPENAI_API_KEY = 'test-key';
+ const calls: unknown[] = [];
+ globalThis.fetch = async (_url, init) => {
+  calls.push(JSON.parse(String(init?.body)));
+  return new Response(null, { status: 503 });
+ };
+ try {
+  const result = await answerSocialConversation({
+   ...base,
+   question: 'What about his latest speech?',
+   history: [{ role: 'user', content: 'Search for Donald Trump' }],
+   allowPublicWeb: true,
+  }, async () => ({ mode: 'public_web', answer: 'Donald Trump latest public speech' }));
+  assert.equal(result.grounding.source, 'web');
+  assert.equal(calls.length, 1);
+  assert.match(JSON.stringify(calls[0]), /Donald Trump latest public speech/);
+  assert.doesNotMatch(JSON.stringify(calls[0]), /What about his latest speech|Search for Donald Trump/);
+  assert.equal(await answerSocialConversation({
+   ...base, question: 'What are my grades?', allowPublicWeb: true,
+  }, async () => ({ mode: 'public_web', answer: 'Student grade report' })), null);
+  assert.equal(calls.length, 1);
+ } finally {
+  globalThis.fetch = previousFetch;
+  if (previousKey === undefined) delete process.env.OPENAI_API_KEY;
+  else process.env.OPENAI_API_KEY = previousKey;
+ }
+});

@@ -1,6 +1,43 @@
 # Changelog
 ## Unreleased
 
+- Serve imported Moodle snapshots from private cloud storage for signed-in production owners (#135).
+
+
+- Find named imported Moodle materials and open their exact activity links (#134).
+
+
+- Show chat titles prominently with a left timestamp column and generate concise topic titles (#133).
+
+
+- Sort the chat history picker by most recent update and display localized timestamps (#132).
+
+
+- Expose captured Moodle quiz details and distinguish public exam periods from individual exam slots (#131).
+
+
+- Expose Moodle activity coverage and filters, and guide the assistant to dedicated School Affairs status reads (#130).
+
+
+- Read captured Moodle assignment submission statuses with exact links and explicit unknown coverage (#129).
+
+
+- Group citations that share a URL and distinguish verified service destinations from directory sources (#128).
+
+
+- Use Shu-Te as the default campus reference in assistant routing, progress and grounded answers (#127).
+
+
+- Route contextual public web requests before campus lookup, including follow-ups that refer to a prior topic (#126).
+
+
+- Route explicit general web searches to OpenAI and report feedback service errors separately (#126).
+
+
+- Open the university source for uncopied school mirror pages and known university sign-in destinations (#125).
+
+- Publish chatbot conversation, academic sample exclusion and structured course UI through GitHub PR #124; verify exact production revision, private endpoint denial and conversational recall (#123).
+
 - Add source-derived semester-grouped course/grade cards with report links in shared chat/lab renderer; persist selected course views and support safe GFM tables (#122).
 
 - Route personal introductions and conversational recall before record verification; preserve user-stated attribution and remove redundant completed lookup acknowledgments (#121).

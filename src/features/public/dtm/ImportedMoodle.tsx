@@ -36,7 +36,16 @@ export function DtmImportedCourse({userId,courseId,view}:{userId:string;courseId
  if(error)return <p role="alert">{error}</p>;if(!data)return <p role="status">載入課程內容中…</p>;
  const wanted=source|| (view==='grades'?'/grade/report/user/index.php?id='+courseId:'/course/view.php?id='+courseId);
  const page=data.pages.find(p=>key(p.url)===wanted);
- if(!page)return <p role="status">這個頁面尚未匯入。<Link to={'/dtm/course/import-'+courseId}>返回課程</Link></p>;
+ if(!page){
+  const outline=data.pages.find(p=>key(p.url)==='/course/view.php?id='+courseId);
+  const activity=source?outline?.activities.find(a=>a.url&&key(a.url)===source):undefined;
+  return <div className="space-y-3">
+   {activity&&<h2>{activity.title}</h2>}
+   <p role="status">這個頁面尚未匯入。 This activity’s content has not been imported.</p>
+   {activity?.url&&<p><a href={activity.url} target="_blank" rel="noreferrer">Open in university Moodle</a></p>}
+   <p><Link to={'/dtm/course/import-'+courseId}>返回課程 · Back to course</Link></p>
+  </div>;
+ }
  const coursePage=key(page.url).startsWith('/course/view.php');
  const introduction=page.tables.length?page.text.slice(0,page.text.indexOf(page.tables[0]?.[0]?.[0]||'\0')).trim().split('\n').slice(1).join('\n').trim():'';
  return <div className="dtm-imported-content">
