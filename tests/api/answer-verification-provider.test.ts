@@ -130,7 +130,7 @@ test('verified public captures use bounded public composition without replacing 
   assert.deepEqual(requests[0].text.format.schema.properties.sourceIds.items.enum,['public-page:verified']);
   assert.match(requests[0].instructions,/exact values.*url or urls/);
   await verificationModelCall('compose_grounded_answer',schema,'ACCOUNT CONTRACT SENTINEL',{evidence:[{id:'public-page:verified',content:'Published content'},{id:'account:grades',content:'Owned record'}]},Date.now()+40000);
-  assert.equal(requests[1].instructions,'ACCOUNT CONTRACT SENTINEL');
+  assert.match(requests[1].instructions,/Shu-Te University/);assert.match(requests[1].instructions,/ACCOUNT CONTRACT SENTINEL$/);
   assert.equal(requests[1].text.format.schema.properties.sourceIds.items.enum,undefined);
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
@@ -204,7 +204,7 @@ test('public review is scoped while mixed account review retains its contracts',
   await verificationModelCall('answer_evidence_review',{},'ACCOUNT CONTRACT SENTINEL',{evidence:[{id:'public-document:test',content:'Published facts'}]},Date.now()+10000);
   assert.doesNotMatch(requests[0].instructions,/ACCOUNT CONTRACT SENTINEL/);assert.match(requests[0].instructions,/RFC6901/);
   await verificationModelCall('answer_evidence_review',{},'ACCOUNT CONTRACT SENTINEL',{evidence:[{id:'public-document:test',content:'Published facts'},{id:'account:grades',content:'Private record'}]},Date.now()+10000);
-  assert.equal(requests[1].instructions,'ACCOUNT CONTRACT SENTINEL');
+  assert.match(requests[1].instructions,/Shu-Te University/);assert.match(requests[1].instructions,/ACCOUNT CONTRACT SENTINEL$/);
  }finally{globalThis.fetch=savedFetch;if(savedKey===undefined)delete process.env.OPENAI_API_KEY;else process.env.OPENAI_API_KEY=savedKey;}
 });
 
